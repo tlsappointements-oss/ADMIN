@@ -1,16 +1,81 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../style.css"> <title>Admin Dashboard | Mercedes-Benz</title>
+    <style>
+        body { display: flex; min-height: 100vh; background: #050505; color: white; margin: 0; font-family: sans-serif; }
+        .sidebar { width: 250px; background: #000; border-right: 1px solid #222; padding: 30px 20px; display: flex; flex-direction: column; }
+        .sidebar .logo { margin-bottom: 50px; font-size: 1.2rem; letter-spacing: 2px; }
+        .nav-item { padding: 15px; color: #888; text-decoration: none; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; transition: 0.3s; cursor: pointer; }
+        .nav-item:hover, .nav-item.active { color: white; background: #111; }
+        .main-content { flex: 1; padding: 40px; overflow-y: auto; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
+        .stat-card { background: #111; padding: 25px; border: 1px solid #222; border-radius: 4px; }
+        .stat-card h4 { color: #555; margin: 0; font-size: 0.7rem; text-transform: uppercase; }
+        .stat-card p { font-size: 1.8rem; margin: 10px 0 0 0; font-weight: 200; }
+        .admin-table { width: 100%; border-collapse: collapse; background: #111; }
+        .admin-table th { text-align: left; padding: 15px; border-bottom: 1px solid #222; color: #555; font-size: 0.8rem; }
+        .admin-table td { padding: 15px; border-bottom: 1px solid #1a1a1a; font-size: 0.9rem; }
+        .status-pill { padding: 4px 10px; border-radius: 10px; font-size: 0.7rem; background: #222; }
+        .btn-mb { padding: 10px 20px; background: white; color: black; border: none; cursor: pointer; text-transform: uppercase; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">MERCEDES ADMIN</div>
+        <a class="nav-item active">Dashboard</a>
+        <a class="nav-item">Manage Inventory</a>
+        <a class="nav-item">Recent Orders</a>
+        <div style="margin-top: auto;">
+            <a class="nav-item" id="logoutBtn" style="color: #ff4444;">Logout System</a>
+        </div>
+    </div>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
-  authDomain: "cars-website-558c0.firebaseapp.com",
-  projectId: "cars-website-558c0",
-  storageBucket: "cars-website-558c0.appspot.com",
-  messagingSenderId: "142475379783",
-  appId: "1:142475379783:web:2849d07fb6eb8da4715d62"
-};
+    <div class="main-content">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+            <h2 style="font-weight: 200;">System Overview</h2>
+            <button class="btn-mb">+ Add New Vehicle</button>
+        </header>
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+        <div class="stats-grid">
+            <div class="stat-card"><h4>Total Sales</h4><p>$1,450,000</p></div>
+            <div class="stat-card"><h4>Active Listings</h4><p>24</p></div>
+            <div class="stat-card"><h4>Pending Inquiries</h4><p>12</p></div>
+        </div>
+
+        <h3 style="font-weight: 200; margin-bottom: 20px;">Recent Activity</h3>
+        <table class="admin-table">
+            <thead>
+                <tr><th>Customer</th><th>Vehicle</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>John Doe</td><td>EQS Sedan</td>
+                    <td><span class="status-pill">Processing</span></td>
+                    <td><button style="background:none; border:none; color:#0078d4; cursor:pointer;">View</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { auth } from '../js/firebase.js'; // Path: Up to ADMIN/, then js/firebase.js
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // Check if user is logged in
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = "login.html";
+            }
+        });
+
+        // Logout Logic
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await signOut(auth);
+            window.location.href = "login.html";
+        });
+    </script>
+</body>
+</html>
