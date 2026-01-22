@@ -1,30 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="../style.css"> <title>Mercedes-Benz Login</title>
+    <link rel="stylesheet" href="style.css">
+    <title>Admin Login</title>
 </head>
 <body>
-    <div class="login-container">
-        <input type="email" id="email" placeholder="Email">
+    <div style="max-width:400px; margin: 100px auto; padding: 20px;">
+        <div class="logo" style="text-align:center; margin-bottom:30px;">MERCEDES LOGIN</div>
+        <input type="email" id="email" placeholder="Email Address">
         <input type="password" id="password" placeholder="Password">
-        <button id="loginBtn" class="btn-mb">Enter Dashboard</button>
+        <button class="btn-mb" id="loginBtn">Enter Dashboard</button>
     </div>
 
     <script type="module">
-        // Import from the JS folder
-        import { auth } from '../js/firebase.js'; 
+        import { auth } from './firebase.js';
         import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        document.getElementById('loginBtn').addEventListener('click', async () => {
+        const loginBtn = document.getElementById('loginBtn');
+
+        loginBtn.addEventListener('click', async () => {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
 
             try {
+                // Firebase authentication call
                 await signInWithEmailAndPassword(auth, email, pass);
-                // Redirecting to admin.html (same folder)
+                
+                // Redirecting to admin.html in the same folder
                 window.location.href = "admin.html";
             } catch (error) {
-                alert("Login Error: " + error.message);
+                // Handling errors (wrong password, etc.)
+                alert("Login Failed: " + error.message);
             }
         });
     </script>
