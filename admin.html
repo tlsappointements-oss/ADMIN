@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+	<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
@@ -116,16 +116,38 @@
     </div>
 
     <script type="module">
-        // Updated path: firebase.js is in the same folder
         import { auth } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Protection check
+        // Protection check & Domain Restriction
         onAuthStateChanged(auth, (user) => {
             if (!user) {
+                // Redirect anyone not logged in back to login
                 window.location.href = "login.html";
+            } else {
+                // Restricted Domain Logic
+                if (user.email.toLowerCase().endsWith('@jobson.com')) {
+                    applyRestrictedMode();
+                }
             }
         });
+
+        function applyRestrictedMode() {
+            const addBtn = document.getElementById('addCarBtn');
+            if (addBtn) {
+                addBtn.style.display = 'none'; // Completely hide add button
+            }
+            
+            // Disable actions in the table
+            const tableButtons = document.querySelectorAll('.admin-table button');
+            tableButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.3';
+                btn.innerText = 'View Only';
+            });
+
+            console.log("Restricted access applied for @jobson.com user.");
+        }
 
         // Logout listener
         document.getElementById('logoutBtn').addEventListener('click', async (e) => {
@@ -138,8 +160,12 @@
             }
         });
 
-        // Original logic placeholders
+        // Original logic placeholders (with extra security check)
         document.getElementById('addCarBtn').onclick = () => {
+            if (auth.currentUser && auth.currentUser.email.endsWith('@jobson.com')) {
+                alert("Restricted: You do not have permission to add vehicles.");
+                return;
+            }
             const model = prompt("Enter Vehicle Model:");
             if(model) alert(model + " added.");
         };
