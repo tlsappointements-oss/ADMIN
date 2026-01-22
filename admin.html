@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="style.css">
     <title>Admin Dashboard | Mercedes-Benz</title>
     <style>
         body { display: flex; min-height: 100vh; background: #050505; color: white; margin: 0; }
@@ -62,7 +62,8 @@
         }
     </style>
 </head>
-<body> <div class="sidebar">
+<body>
+    <div class="sidebar">
         <div class="logo">MERCEDES ADMIN</div>
         <a href="#" class="nav-item active">Dashboard</a>
         <a href="#" class="nav-item" id="manageInventoryBtn">Manage Inventory</a>
@@ -115,19 +116,18 @@
     </div>
 
     <script type="module">
-        // Import your specific auth from your firebase.js path
-        import { auth } from '../js/firebase.js';
+        // Updated path: firebase.js is in the same folder
+        import { auth } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // 1. PROTECTION: Check if user is logged in
+        // Protection check
         onAuthStateChanged(auth, (user) => {
             if (!user) {
-                // If no user is logged in, redirect to login page in the same folder
                 window.location.href = "login.html";
             }
         });
 
-        // 2. LOGOUT: Link to your red logout button
+        // Logout listener
         document.getElementById('logoutBtn').addEventListener('click', async (e) => {
             e.preventDefault();
             try {
@@ -138,14 +138,11 @@
             }
         });
 
-        // 3. UI Buttons (Keeping your original logic placeholders)
+        // Original logic placeholders
         document.getElementById('addCarBtn').onclick = () => {
             const model = prompt("Enter Vehicle Model:");
-            if(model) alert(model + " added to local view.");
+            if(model) alert(model + " added.");
         };
-
-        document.getElementById('manageInventoryBtn').onclick = () => alert("Inventory Loading...");
-        document.getElementById('recentOrdersBtn').onclick = () => alert("Orders Loading...");
     </script>
 </body>
 </html>

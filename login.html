@@ -1,21 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="../style.css"> <title>Login | Mercedes-Benz</title>
+    <link rel="stylesheet" href="../style.css"> <title>Mercedes-Benz Login</title>
 </head>
-<body style="background: #050505; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
-
-    <div style="width: 300px; padding: 40px; background: #111; border: 1px solid #222;">
-        <h2 style="font-weight: 200; text-align: center; letter-spacing: 2px;">MERCEDES LOGIN</h2>
-        <input type="email" id="email" placeholder="Email" style="width:100%; padding:10px; margin:10px 0; background:#000; border:1px solid #333; color:white;">
-        <input type="password" id="password" placeholder="Password" style="width:100%; padding:10px; margin:10px 0; background:#000; border:1px solid #333; color:white;">
-        <button id="loginBtn" style="width:100%; padding:12px; background:white; color:black; border:none; cursor:pointer; text-transform:uppercase;">Sign In</button>
+<body>
+    <div class="login-container">
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button id="loginBtn" class="btn-mb">Enter Dashboard</button>
     </div>
 
     <script type="module">
-        // Import 'auth' from the js folder (one level up, then into js)
-        import { auth } from '../js/firebase.js';
+        // Import from the JS folder
+        import { auth } from '../js/firebase.js'; 
         import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         document.getElementById('loginBtn').addEventListener('click', async () => {
@@ -24,7 +21,7 @@
 
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-                // Redirects to admin.html in the SAME folder
+                // Redirecting to admin.html (same folder)
                 window.location.href = "admin.html";
             } catch (error) {
                 alert("Login Error: " + error.message);
