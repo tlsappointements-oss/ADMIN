@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
     <title>Admin Dashboard | Mercedes-Benz</title>
     <style>
-        body { display: flex; min-height: 100vh; background: #050505; }
+        body { display: flex; min-height: 100vh; background: #050505; color: white; margin: 0; }
         
         /* Sidebar Design */
         .sidebar {
@@ -62,21 +62,20 @@
         }
     </style>
 </head>
-<body onload="checkAuth()">
-    <div class="sidebar">
+<body> <div class="sidebar">
         <div class="logo">MERCEDES ADMIN</div>
         <a href="#" class="nav-item active">Dashboard</a>
-        <a href="#" class="nav-item" onclick="toggleSection('inventory')">Manage Inventory</a>
-        <a href="#" class="nav-item" onclick="toggleSection('orders')">Recent Orders</a>
+        <a href="#" class="nav-item" id="manageInventoryBtn">Manage Inventory</a>
+        <a href="#" class="nav-item" id="recentOrdersBtn">Recent Orders</a>
         <div style="margin-top: auto;">
-            <a href="#" class="nav-item" onclick="logout()" style="color: #ff4444;">Logout System</a>
+            <a href="#" class="nav-item" id="logoutBtn" style="color: #ff4444;">Logout System</a>
         </div>
     </div>
 
     <div class="main-content">
         <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
             <h2 style="font-weight: 200;">System Overview</h2>
-            <button class="btn-mb" onclick="openAddCarModal()">+ Add New Vehicle</button>
+            <button class="btn-mb" id="addCarBtn">+ Add New Vehicle</button>
         </header>
 
         <div class="stats-grid">
@@ -115,8 +114,38 @@
         </table>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-    <script src="script.js"></script>
+    <script type="module">
+        // Import your specific auth from your firebase.js path
+        import { auth } from '../js/firebase.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // 1. PROTECTION: Check if user is logged in
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                // If no user is logged in, redirect to login page in the same folder
+                window.location.href = "login.html";
+            }
+        });
+
+        // 2. LOGOUT: Link to your red logout button
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await signOut(auth);
+                window.location.href = "login.html";
+            } catch (error) {
+                console.error("Logout failed", error);
+            }
+        });
+
+        // 3. UI Buttons (Keeping your original logic placeholders)
+        document.getElementById('addCarBtn').onclick = () => {
+            const model = prompt("Enter Vehicle Model:");
+            if(model) alert(model + " added to local view.");
+        };
+
+        document.getElementById('manageInventoryBtn').onclick = () => alert("Inventory Loading...");
+        document.getElementById('recentOrdersBtn').onclick = () => alert("Orders Loading...");
+    </script>
 </body>
 </html>

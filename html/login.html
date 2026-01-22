@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="../style.css"> <title>Mercedes-Benz Login</title>
+</head>
+<body>
+    <div class="login-container">
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button id="loginBtn" class="btn-mb">Enter Dashboard</button>
+    </div>
+
+    <script type="module">
+        // Import from the JS folder
+        import { auth } from '../js/firebase.js'; 
+        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                // Redirecting to admin.html (same folder)
+                window.location.href = "admin.html";
+            } catch (error) {
+                alert("Login Error: " + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
