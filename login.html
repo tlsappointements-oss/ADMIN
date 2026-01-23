@@ -5,6 +5,71 @@
     <title>Admin Login</title>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        /* Cinematic Pop-up Styles */
+        #biometric-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(15px);
+        }
+
+        .scanner-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* The Animated Circular Progress */
+        .progress-ring {
+            position: absolute;
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.1s;
+            stroke: #e30613;
+            stroke-width: 6;
+            fill: transparent;
+            stroke-dasharray: 816.8; /* 2 * PI * 130 */
+            stroke-dashoffset: 816.8;
+            filter: drop-shadow(0 0 10px #e30613);
+        }
+
+        #video {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #333;
+        }
+
+        #percentage-text {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 100;
+            margin-top: 20px;
+            font-family: 'Segoe UI', sans-serif;
+            letter-spacing: 4px;
+        }
+
+        #success-icon {
+            display: none;
+            position: absolute;
+            font-size: 100px;
+            color: #00ff00;
+            filter: drop-shadow(0 0 20px #00ff00);
+            z-index: 10000;
+        }
+    </style>
 </head>
 <body>
     <div style="max-width:400px; margin: 100px auto; padding: 20px; text-align: center;">
@@ -13,14 +78,21 @@
         <input type="email" id="email" placeholder="Email Address">
         <input type="password" id="password" placeholder="Password">
 
-        <div id="camera-container" style="display:none; margin-top: 15px; margin-bottom: 15px;">
-            <video id="video" width="320" height="240" autoplay muted style="border: 2px solid #e30613; border-radius: 4px; background: #000;"></video>
-            <p id="status-text" style="font-size: 0.75rem; color: #e30613; font-weight: bold; margin-top: 5px;">SCANNING BIOMETRICS...</p>
-        </div>
-
         <div class="g-recaptcha" data-sitekey="6Ldl4VMsAAAAAH9KZ7pHmZS8tYozgU3TovKNUkSt" style="margin-bottom: 20px; margin-top: 10px; display: inline-block;"></div>
 
         <button class="btn-mb" id="loginBtn">Enter Dashboard</button>
+    </div>
+
+    <div id="biometric-overlay">
+        <div class="scanner-container">
+            <svg class="progress-ring" width="300" height="300">
+                <circle class="progress-ring__circle" r="130" cx="150" cy="150"/>
+            </svg>
+            <video id="video" autoplay muted></video>
+            <div id="success-icon">✓</div>
+        </div>
+        <div id="percentage-text">0%</div>
+        <p style="color: #e30613; letter-spacing: 2px; font-size: 0.7rem; margin-top: 15px;">BIOMETRIC ENCRYPTED SCAN</p>
     </div>
 
     <script type="module">
@@ -29,7 +101,17 @@
 
         const loginBtn = document.getElementById('loginBtn');
         const video = document.getElementById('video');
-        const statusText = document.getElementById('status-text');
+        const overlay = document.getElementById('biometric-overlay');
+        const pctText = document.getElementById('percentage-text');
+        const progressCircle = document.querySelector('.progress-ring__circle');
+        const successIcon = document.getElementById('success-icon');
+        const circumference = 130 * 2 * Math.PI;
+
+        function updateProgress(value) {
+            const offset = circumference - (value / 100 * circumference);
+            progressCircle.style.strokeDashoffset = offset;
+            pctText.innerText = `${Math.floor(value)}%`;
+        }
 
         async function loadSecurityModels() {
             try {
@@ -40,65 +122,68 @@
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
-                console.log("Biometric Models Loaded");
-            } catch (e) {
-                alert("CRITICAL ERROR: AI Models failed to load.");
-            }
+            } catch (e) { console.error("Model load error"); }
         }
         loadSecurityModels();
 
         async function runFaceVerification(email) {
             try {
-                // Get domain and username (e.g. dikra.aljazouli from dikra.aljazouli@jobson.com)
                 const [username, fullDomain] = email.split('@');
-                const domain = fullDomain.split('.')[0]; // gets 'jobson', 'alten', or 'mercedes' (admin)
-                
-                // Construct path: ./images/jobson/dikra.aljazouli.jpg
+                const domain = fullDomain.split('.')[0];
                 const imagePath = `./images/${domain}/${username}.jpg`;
-                
-                console.log("Looking for reference image at:", imagePath);
+
                 const referenceImg = await faceapi.fetchImage(imagePath);
-                
-                const refResult = await faceapi.detectSingleFace(referenceImg, new faceapi.SsdMobilenetv1Options())
-                                             .withFaceLandmarks()
-                                             .withFaceDescriptor();
+                const refResult = await faceapi.detectSingleFace(referenceImg, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
 
                 if (!refResult) {
-                    alert(`AI cannot find a clear face for ${username} in the database.`);
+                    alert("No reference image found for this user.");
                     return false;
                 }
 
                 const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
                 video.srcObject = stream;
-                document.getElementById('camera-container').style.display = 'block';
+                overlay.style.display = 'flex';
 
                 const faceMatcher = new faceapi.FaceMatcher(refResult, 0.6);
+                let progress = 0;
 
                 return new Promise((resolve) => {
                     const checkInterval = setInterval(async () => {
-                        const liveDetection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-                                                           .withFaceLandmarks()
-                                                           .withFaceDescriptor();
+                        const liveDetection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
                         
                         if (liveDetection) {
                             const match = faceMatcher.findBestMatch(liveDetection.descriptor);
                             if (match.label !== 'unknown') {
-                                clearInterval(checkInterval);
-                                stream.getTracks().forEach(track => track.stop());
-                                resolve(true);
+                                // Face matched: Ascend progress to 100%
+                                progress += Math.random() * 15 + 5; 
+                                if (progress >= 100) {
+                                    progress = 100;
+                                    updateProgress(100);
+                                    clearInterval(checkInterval);
+                                    
+                                    // Success Animation
+                                    successIcon.style.display = 'block';
+                                    setTimeout(() => {
+                                        overlay.style.display = 'none';
+                                        successIcon.style.display = 'none';
+                                        stream.getTracks().forEach(track => track.stop());
+                                        resolve(true);
+                                    }, 1500);
+                                }
                             }
                         }
-                    }, 600);
+                        updateProgress(Math.min(progress, 100));
+                    }, 100);
 
                     setTimeout(() => {
                         clearInterval(checkInterval);
                         stream.getTracks().forEach(track => track.stop());
                         resolve(false);
-                    }, 20000);
+                    }, 25000);
                 });
 
             } catch (err) {
-                alert("Identity verification error: Ensure your photo exists in the correct domain folder.");
+                alert("Identity verification error.");
                 return false;
             }
         }
@@ -108,38 +193,28 @@
             const pass = document.getElementById('password').value;
 
             if (grecaptcha.getResponse().length === 0) {
-                alert("Please complete the 'I am not a robot' verification.");
+                alert("Please complete reCAPTCHA.");
+                return;
+            }
+
+            const isAuthorized = await runFaceVerification(email);
+            
+            if (!isAuthorized) {
+                alert("FACE RECOGNITION FAILED.");
+                await signOut(auth);
+                window.location.reload();
                 return;
             }
 
             try {
-                // 1. Biometric Step First
-                statusText.innerText = "VERIFYING IDENTITY...";
-                const isAuthorized = await runFaceVerification(email);
-                
-                if (!isAuthorized) {
-                    alert("FACE RECOGNITION FAILED: Access Denied.");
-                    await signOut(auth); // Clear any lingering sessions
-                    window.location.reload();
-                    return;
-                }
-
-                // 2. Firebase Step
                 await signInWithEmailAndPassword(auth, email, pass);
-                
-                // 3. Routing
-                if (email.endsWith('@alten.com')) {
-                    window.location.href = "prestation.html";
-                } else if (email.endsWith('@jobson.com')) {
-                    window.location.href = "maintenance.html";
-                } else {
-                    window.location.href = "admin.html";
-                }
-
+                if (email.endsWith('@alten.com')) window.location.href = "prestation.html";
+                else if (email.endsWith('@jobson.com')) window.location.href = "maintenance.html";
+                else window.location.href = "admin.html";
             } catch (error) {
                 alert("Login Failed: " + error.message);
                 grecaptcha.reset();
-                document.getElementById('camera-container').style.display = 'none';
+                overlay.style.display = 'none';
             }
         });
     </script>
