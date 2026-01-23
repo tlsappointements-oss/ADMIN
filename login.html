@@ -20,24 +20,27 @@
         const loginBtn = document.getElementById('loginBtn');
 
         loginBtn.addEventListener('click', async (e) => {
-            e.preventDefault(); // Prevent default button behavior
+            e.preventDefault();
             
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
 
-            // Trigger reCAPTCHA Enterprise before login
+            // 2. Added check to ensure grecaptcha is loaded
+            if (typeof grecaptcha === 'undefined') {
+                alert("Security Service (reCAPTCHA) failed to load. Please check your internet connection.");
+                return;
+            }
+
             grecaptcha.enterprise.ready(async () => {
                 try {
-                    // Generate the token
+                    // 3. Generate token
                     const token = await grecaptcha.enterprise.execute('6Lcfr1MsAAAAAFeNnF2lII-vx8kd3iylim8SebkU', {action: 'LOGIN'});
+                    console.log("reCAPTCHA Token Generated:", token); // Check this in your browser console (F12)
                     
-                    // Firebase authentication call
+                    // Proceed to Firebase
                     await signInWithEmailAndPassword(auth, email, pass);
-                    
-                    // Redirecting to admin.html
                     window.location.href = "admin.html";
                 } catch (error) {
-                    // Handling errors (reCAPTCHA failure or wrong password)
                     alert("Login Failed: " + error.message);
                 }
             });
