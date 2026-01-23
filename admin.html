@@ -126,11 +126,9 @@
                 // If not logged in, force go to login.html
                 window.location.replace("login.html");
             } else if (user.email.toLowerCase().endsWith('@jobson.com')) {
-                // If user is from @jobson.com, force log them out and redirect
-                alert("Access Denied: @jobson.com domain is restricted.");
-                signOut(auth).then(() => {
-                    window.location.replace("login.html");
-                });
+                // MODIFIED: If user is from @jobson.com, redirect to maintenance.html
+                alert("Admin Access Denied. Redirecting to Maintenance Department Portal...");
+                window.location.replace("maintenance.html");
             } else {
                 // SUCCESS: User is logged in and NOT @jobson.com. Show the page.
                 document.body.style.display = "flex";
