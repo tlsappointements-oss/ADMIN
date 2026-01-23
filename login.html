@@ -11,12 +11,12 @@
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.98);
             z-index: 9999;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            backdrop-filter: blur(15px);
+            backdrop-filter: blur(20px);
         }
 
         .scanner-container {
@@ -28,7 +28,6 @@
             align-items: center;
         }
 
-        /* The Animated Circular Progress */
         .progress-ring {
             position: absolute;
             transform: rotate(-90deg);
@@ -39,7 +38,7 @@
             stroke: #e30613;
             stroke-width: 6;
             fill: transparent;
-            stroke-dasharray: 816.8; /* 2 * PI * 130 */
+            stroke-dasharray: 816.8; 
             stroke-dashoffset: 816.8;
             filter: drop-shadow(0 0 10px #e30613);
         }
@@ -61,6 +60,18 @@
             letter-spacing: 4px;
         }
 
+        /* Breach UI Styles */
+        #breach-display {
+            display: none;
+            flex-direction: row;
+            gap: 40px;
+            margin-top: 20px;
+        }
+
+        .comp-box { text-align: center; position: relative; }
+        .comp-img { width: 180px; height: 180px; border-radius: 10px; object-fit: cover; border: 2px solid #333; }
+        .mark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 80px; font-weight: bold; }
+
         #success-icon {
             display: none;
             position: absolute;
@@ -74,25 +85,42 @@
 <body>
     <div style="max-width:400px; margin: 100px auto; padding: 20px; text-align: center;">
         <div class="logo" style="text-align:center; margin-bottom:30px;">MERCEDES LOGIN</div>
-        
         <input type="email" id="email" placeholder="Email Address">
         <input type="password" id="password" placeholder="Password">
-
         <div class="g-recaptcha" data-sitekey="6Ldl4VMsAAAAAH9KZ7pHmZS8tYozgU3TovKNUkSt" style="margin-bottom: 20px; margin-top: 10px; display: inline-block;"></div>
-
         <button class="btn-mb" id="loginBtn">Enter Dashboard</button>
     </div>
 
     <div id="biometric-overlay">
-        <div class="scanner-container">
-            <svg class="progress-ring" width="300" height="300">
-                <circle class="progress-ring__circle" r="130" cx="150" cy="150"/>
-            </svg>
-            <video id="video" autoplay muted></video>
-            <div id="success-icon">✓</div>
+        <div id="scan-zone" style="display: flex; flex-direction: column; align-items: center;">
+            <div class="scanner-container">
+                <svg class="progress-ring" width="300" height="300">
+                    <circle class="progress-ring__circle" r="130" cx="150" cy="150"/>
+                </svg>
+                <video id="video" autoplay muted></video>
+                <div id="success-icon">✓</div>
+            </div>
+            <div id="percentage-text">0%</div>
+            <p id="status-label" style="color: #e30613; letter-spacing: 2px; font-size: 0.7rem; margin-top: 15px;">BIOMETRIC ENCRYPTED SCAN</p>
         </div>
-        <div id="percentage-text">0%</div>
-        <p style="color: #e30613; letter-spacing: 2px; font-size: 0.7rem; margin-top: 15px;">BIOMETRIC ENCRYPTED SCAN</p>
+
+        <div id="breach-display">
+            <div class="comp-box">
+                <p style="color:#00ff00; font-size: 0.8rem;">AUTHORIZED OWNER</p>
+                <img id="owner-img" class="comp-img">
+                <div class="mark" style="color:#00ff00;">✓</div>
+            </div>
+            <div class="comp-box">
+                <p style="color:#e30613; font-size: 0.8rem;">UNAUTHORIZED INTRUDER</p>
+                <canvas id="intruder-canvas" class="comp-img" width="180" height="180"></canvas>
+                <div class="mark" style="color:#e30613;">✕</div>
+            </div>
+        </div>
+        <div id="breach-msg" style="display:none; color:white; text-align:center; margin-top:30px; font-family: sans-serif;">
+            <h2 style="color:#e30613; margin-bottom: 5px;">ACCESS DENIED</h2>
+            <p>FACE DOESN'T MATCH! YOU ARE NOT THE OWNER OF THE ACCOUNT.<br>
+            <span style="color:#888;">AN HR ADMIN WILL CONTACT YOU IMMEDIATELY!</span></p>
+        </div>
     </div>
 
     <script type="module">
@@ -135,53 +163,52 @@
                 const referenceImg = await faceapi.fetchImage(imagePath);
                 const refResult = await faceapi.detectSingleFace(referenceImg, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
 
-                if (!refResult) {
-                    alert("No reference image found for this user.");
-                    return false;
-                }
-
                 const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
                 video.srcObject = stream;
                 overlay.style.display = 'flex';
-
-                const faceMatcher = new faceapi.FaceMatcher(refResult, 0.6);
+                
                 let progress = 0;
+                let isMatch = false;
 
                 return new Promise((resolve) => {
-                    const checkInterval = setInterval(async () => {
-                        const liveDetection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                    const scanInterval = setInterval(async () => {
+                        const live = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
                         
-                        if (liveDetection) {
-                            const match = faceMatcher.findBestMatch(liveDetection.descriptor);
-                            if (match.label !== 'unknown') {
-                                // Face matched: Ascend progress to 100%
-                                progress += Math.random() * 15 + 5; 
-                                if (progress >= 100) {
-                                    progress = 100;
-                                    updateProgress(100);
-                                    clearInterval(checkInterval);
-                                    
-                                    // Success Animation
-                                    successIcon.style.display = 'block';
-                                    setTimeout(() => {
-                                        overlay.style.display = 'none';
-                                        successIcon.style.display = 'none';
-                                        stream.getTracks().forEach(track => track.stop());
-                                        resolve(true);
-                                    }, 1500);
-                                }
+                        if (live && refResult) {
+                            const match = new faceapi.FaceMatcher(refResult, 0.6).findBestMatch(live.descriptor);
+                            if (match.label !== 'unknown') isMatch = true;
+                        }
+
+                        progress += 2; // Fixed speed for the scan
+                        updateProgress(Math.min(progress, 100));
+
+                        if (progress >= 100) {
+                            clearInterval(scanInterval);
+                            
+                            if (isMatch) {
+                                successIcon.style.display = 'block';
+                                setTimeout(() => {
+                                    overlay.style.display = 'none';
+                                    stream.getTracks().forEach(t => t.stop());
+                                    resolve(true);
+                                }, 1500);
+                            } else {
+                                // SHOW BREACH UI
+                                document.getElementById('scan-zone').style.display = 'none';
+                                document.getElementById('breach-display').style.display = 'flex';
+                                document.getElementById('breach-msg').style.display = 'block';
+                                document.getElementById('owner-img').src = imagePath;
+                                
+                                const ctx = document.getElementById('intruder-canvas').getContext('2d');
+                                ctx.drawImage(video, 0, 0, 180, 180);
+                                
+                                stream.getTracks().forEach(t => t.stop());
+                                setTimeout(() => { window.location.reload(); }, 8000);
+                                resolve(false);
                             }
                         }
-                        updateProgress(Math.min(progress, 100));
-                    }, 100);
-
-                    setTimeout(() => {
-                        clearInterval(checkInterval);
-                        stream.getTracks().forEach(track => track.stop());
-                        resolve(false);
-                    }, 25000);
+                    }, 50);
                 });
-
             } catch (err) {
                 alert("Identity verification error.");
                 return false;
@@ -198,23 +225,15 @@
             }
 
             const isAuthorized = await runFaceVerification(email);
-            
-            if (!isAuthorized) {
-                alert("FACE RECOGNITION FAILED.");
-                await signOut(auth);
-                window.location.reload();
-                return;
-            }
-
-            try {
-                await signInWithEmailAndPassword(auth, email, pass);
-                if (email.endsWith('@alten.com')) window.location.href = "prestation.html";
-                else if (email.endsWith('@jobson.com')) window.location.href = "maintenance.html";
-                else window.location.href = "admin.html";
-            } catch (error) {
-                alert("Login Failed: " + error.message);
-                grecaptcha.reset();
-                overlay.style.display = 'none';
+            if (isAuthorized) {
+                try {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                    window.location.href = email.endsWith('@alten.com') ? "prestation.html" : 
+                                          email.endsWith('@jobson.com') ? "maintenance.html" : "admin.html";
+                } catch (e) { 
+                    alert("Login Failed: " + e.message); 
+                    overlay.style.display = 'none';
+                }
             }
         });
     </script>
