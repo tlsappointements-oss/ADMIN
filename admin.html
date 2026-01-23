@@ -120,18 +120,28 @@
         import { auth } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Protection check
+        // Protection check and Multi-Domain Routing
         onAuthStateChanged(auth, (user) => {
             if (!user) {
                 // If not logged in, force go to login.html
                 window.location.replace("login.html");
-            } else if (user.email.toLowerCase().endsWith('@jobson.com')) {
-                // MODIFIED: If user is from @jobson.com, redirect to maintenance.html
-                alert("Admin Access Denied. Redirecting to Maintenance Department Portal...");
-                window.location.replace("maintenance.html");
             } else {
-                // SUCCESS: User is logged in and NOT @jobson.com. Show the page.
-                document.body.style.display = "flex";
+                const userEmail = user.email.toLowerCase();
+
+                if (userEmail.endsWith('@jobson.com')) {
+                    // Redirect @jobson.com to maintenance.html
+                    alert("Admin Access Denied. Redirecting to Maintenance Department Portal...");
+                    window.location.replace("maintenance.html");
+                } 
+                else if (userEmail.endsWith('@alten.com')) {
+                    // NEW: Redirect @alten.com to prestation.html
+                    alert("Admin Access Denied. Redirecting to ALTEN Supply Chain & Logistics Portal...");
+                    window.location.replace("prestation.html");
+                } 
+                else {
+                    // SUCCESS: User is authorized admin. Show the page.
+                    document.body.style.display = "flex";
+                }
             }
         });
 
@@ -147,10 +157,4 @@
         });
 
         // Original logic placeholders
-        document.getElementById('addCarBtn').onclick = () => {
-            const model = prompt("Enter Vehicle Model:");
-            if(model) alert(model + " added.");
-        };
-    </script>
-</body>
-</html>
+        document.getElementById
