@@ -12,9 +12,31 @@
         .gmao-card { background: #111; border: 1px solid #222; padding: 25px; border-radius: 2px; margin-bottom: 20px; }
         .status-indicator { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 10px; }
         .status-online { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+        .status-maint { background: #e30613; box-shadow: 0 0 10px #e30613; }
         input, select, textarea { background: #1a1a1a; border: 1px solid #333; color: white; padding: 12px; width: 100%; margin: 10px 0; border-radius: 0; }
-        .tech-btn { background: #555; color: white; border: none; padding: 10px 20px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+        .tech-btn { background: #555; color: white; border: none; padding: 10px 20px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 0.7rem; }
         .tech-btn:hover { background: #777; }
+        
+        /* Intervention Overlay */
+        #intervention-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #111;
+            padding: 40px;
+            border: 1px solid #e30613;
+            width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .step-item { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; font-size: 0.9rem; }
+        .step-item input { width: auto; margin: 0; }
     </style>
 
     <script type="module">
@@ -25,12 +47,10 @@
             if (!user || !user.email.toLowerCase().endsWith('@jobson.com')) {
                 window.location.replace("login.html");
             } else {
-                // Feature: Dynamic Name Extraction
                 const nameParts = user.email.split('@')[0].split('.');
                 const firstName = nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1);
                 const lastName = nameParts[1] ? " " + nameParts[1].charAt(0).toUpperCase() + nameParts[1].slice(1) : "";
                 document.getElementById('techName').innerText = `Technician: ${firstName}${lastName}`;
-                
                 document.body.style.display = "flex";
             }
         });
@@ -39,8 +59,46 @@
             await signOut(auth);
             window.location.replace("login.html");
         };
+
+        // GMAO LOGIC
+        let currentActiveAsset = null;
+
+        window.openIntervention = (assetId) => {
+            currentActiveAsset = assetId;
+            document.getElementById('asset-title').innerText = `INTERVENTION: ${assetId}`;
+            document.getElementById('status-' + assetId).innerHTML = '<span class="status-indicator status-maint"></span> IN MAINTENANCE';
+            document.getElementById('intervention-modal').style.display = 'flex';
+        };
+
+        window.closeIntervention = () => {
+            const form = document.getElementById('checklist-form');
+            if (!form.checkValidity()) {
+                alert("You must complete all mandatory safety steps before closure.");
+                return;
+            }
+
+            const reportData = {
+                asset: currentActiveAsset,
+                tech: document.getElementById('techName').innerText,
+                details: document.getElementById('work-desc').value,
+                timestamp: new Date().toLocaleString()
+            };
+
+            // Automatic Status Update
+            document.getElementById('status-' + currentActiveAsset).innerHTML = '<span class="status-indicator status-online"></span> WORKING';
+            
+            // Submission Simulation to Mohamed
+            const recipient = "mohamed.aouladzerouali@jobson.com";
+            console.log("Submitting report to:", recipient, reportData);
+            
+            alert(`REPORT SUBMITTED TO: ${recipient}\nMachine is now back to WORKING status.`);
+            
+            // Reset and Close
+            document.getElementById('intervention-modal').style.display = 'none';
+            form.reset();
+        };
     </script>
-    </head>
+</head>
 <body>
     <div class="sidebar">
         <div style="letter-spacing: 3px; font-weight: 300; margin-bottom: 40px;">TECH DEPT</div>
@@ -48,42 +106,79 @@
         <p id="techName" style="font-size: 0.7rem; color: #888;">Technician: Authorized Access Only</p>
         <button class="tech-btn" style="width:100%; margin-top: 20px;" onclick="logout()">Exit System</button>
     </div>
+
     <div class="main-content">
-        <h2 style="font-weight: 200; letter-spacing: 2px;">MAINTENANCE LOG & GMAO UPDATES</h2>
-        <div class="gmao-card">
-            <h3 style="font-size: 0.9rem; color: #aaa;">NEW INTERVENTION</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <input type="text" placeholder="Equipment ID (e.g., LIFT-04)">
-                <select>
-                    <option>Preventive</option>
-                    <option>Curative</option>
-                    <option>Corrective</option>
-                </select>
-            </div>
-            <textarea rows="4" placeholder="Work Description & Parts Used..."></textarea>
-            <button class="tech-btn">Update GMAO Database</button>
-        </div>
-        <h3 style="font-weight: 200; margin-top: 40px;">ACTIVE ASSET STATUS</h3>
+        <h2 style="font-weight: 200; letter-spacing: 2px;">MERCEDES-BENZ PLANT | MACHINE LIBRARY</h2>
+        
+        <p style="color: #666; font-size: 0.8rem; margin-bottom: 30px;">Select an asset to view history or change operational status.</p>
+
         <table style="width: 100%; border-collapse: collapse; background: #111; font-size: 0.8rem;">
             <tr style="border-bottom: 1px solid #333; text-align: left; color: #666;">
-                <th style="padding: 15px;">ASSET</th>
-                <th>LAST SERVICE</th>
-                <th>CONDITION</th>
-                <th>STATUS</th>
+                <th style="padding: 15px;">MACHINE ID</th>
+                <th>DESCRIPTION</th>
+                <th>HISTORY/LOGS</th>
+                <th>ACTUAL STATUS</th>
+                <th>ACTION</th>
             </tr>
             <tr style="border-bottom: 1px solid #222;">
-                <td style="padding: 15px;">Hydraulic Lift A</td>
-                <td>2026-01-10</td>
-                <td>94%</td>
-                <td><span class="status-indicator status-online"></span> OPERATIONAL</td>
+                <td style="padding: 15px; font-weight: bold;">KUKA-ROB-01</td>
+                <td>Welding Arm - EQS Chassis Line</td>
+                <td><a href="#" style="color: #e30613;">View 12 Operations</a></td>
+                <td id="status-KUKA-ROB-01"><span class="status-indicator status-online"></span> WORKING</td>
+                <td><button class="tech-btn" onclick="openIntervention('KUKA-ROB-01')">Start Maint.</button></td>
             </tr>
             <tr style="border-bottom: 1px solid #222;">
-                <td style="padding: 15px;">HVAC Unit 02</td>
-                <td>2025-12-15</td>
-                <td>62%</td>
-                <td><span class="status-indicator" style="background: #ffcc00;"></span> MAINTENANCE DUE</td>
+                <td style="padding: 15px; font-weight: bold;">PRESS-MB-44</td>
+                <td>Heavy Metal Stamper - Wing Panels</td>
+                <td><a href="#" style="color: #e30613;">View 08 Operations</a></td>
+                <td id="status-PRESS-MB-44"><span class="status-indicator status-online"></span> WORKING</td>
+                <td><button class="tech-btn" onclick="openIntervention('PRESS-MB-44')">Start Maint.</button></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #222;">
+                <td style="padding: 15px; font-weight: bold;">CONVEY-77</td>
+                <td>Paint Shop Assembly Transport</td>
+                <td><a href="#" style="color: #e30613;">View 24 Operations</a></td>
+                <td id="status-CONVEY-77"><span class="status-indicator status-online"></span> WORKING</td>
+                <td><button class="tech-btn" onclick="openIntervention('CONVEY-77')">Start Maint.</button></td>
             </tr>
         </table>
+    </div>
+
+    <div id="intervention-modal">
+        <div class="modal-content">
+            <h2 id="asset-title" style="font-weight: 200; color: #e30613; letter-spacing: 2px;"></h2>
+            <p style="font-size: 0.7rem; color: #666; margin-bottom: 20px;">MANDATORY MAINTENANCE CHECKLIST</p>
+            
+            <form id="checklist-form">
+                <div class="step-item">
+                    <input type="checkbox" required>
+                    <label>Isolation of Power (LOTO Procedure)</label>
+                </div>
+                <div class="step-item">
+                    <input type="checkbox" required>
+                    <label>Hydraulic Pressure Depressurization</label>
+                </div>
+                <div class="step-item">
+                    <input type="checkbox" required>
+                    <label>Visual Inspection of Moving Parts</label>
+                </div>
+                <div class="step-item">
+                    <input type="checkbox" required>
+                    <label>Lubrication and Filter Replacement</label>
+                </div>
+                <div class="step-item">
+                    <input type="checkbox" required>
+                    <label>Operational Safety Test Passed</label>
+                </div>
+
+                <textarea id="work-desc" rows="4" placeholder="Detailed Report of the Intervention..." required></textarea>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="tech-btn" style="background: #e30613; flex: 1;" onclick="closeIntervention()">Closure & Set to Working</button>
+                    <button type="button" class="tech-btn" style="flex: 1;" onclick="document.getElementById('intervention-modal').style.display='none'">Cancel</button>
+                </div>
+            </form>
+        </div>
     </div>
 </body>
 </html>
