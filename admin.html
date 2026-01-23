@@ -65,7 +65,10 @@
 </head>
 <body>
     <div class="sidebar">
-        <div class="logo">MERCEDES ADMIN</div>
+        <div class="logo">
+            <img src="alten_logo.png" alt="ALTEN" style="width: 120px; margin-bottom: 10px; display: block;">
+            MERCEDES ADMIN
+        </div>
         <a href="#" class="nav-item active">Dashboard</a>
         <a href="#" class="nav-item" id="manageInventoryBtn">Manage Inventory</a>
         <a href="#" class="nav-item" id="recentOrdersBtn">Recent Orders</a>
@@ -120,26 +123,24 @@
         import { auth } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Protection check and Multi-Domain Routing
+        // Multi-Domain Protection Check
         onAuthStateChanged(auth, (user) => {
             if (!user) {
-                // If not logged in, force go to login.html
                 window.location.replace("login.html");
             } else {
-                const userEmail = user.email.toLowerCase();
+                const email = user.email.toLowerCase();
 
-                if (userEmail.endsWith('@jobson.com')) {
-                    // Redirect @jobson.com to maintenance.html
+                if (email.endsWith('@jobson.com')) {
                     alert("Admin Access Denied. Redirecting to Maintenance Department Portal...");
                     window.location.replace("maintenance.html");
                 } 
-                else if (userEmail.endsWith('@alten.com')) {
-                    // NEW: Redirect @alten.com to prestation.html
-                    alert("Admin Access Denied. Redirecting to ALTEN Supply Chain & Logistics Portal...");
+                else if (email.endsWith('@alten.com')) {
+                    // NEW: Redirect Alten domain to Prestation portal
+                    alert("Admin Access Denied. Redirecting to ALTEN Prestation Portal...");
                     window.location.replace("prestation.html");
                 } 
                 else {
-                    // SUCCESS: User is authorized admin. Show the page.
+                    // Success for primary admins (Show the page)
                     document.body.style.display = "flex";
                 }
             }
@@ -157,4 +158,10 @@
         });
 
         // Original logic placeholders
-        document.getElementById
+        document.getElementById('addCarBtn').onclick = () => {
+            const model = prompt("Enter Vehicle Model:");
+            if(model) alert(model + " added.");
+        };
+    </script>
+</body>
+</html>
