@@ -18,14 +18,22 @@
     
     <script type="module">
         import { auth } from './firebase.js';
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         onAuthStateChanged(auth, (user) => {
-            if (!user) {
+            if (!user || !user.email.toLowerCase().endsWith('@alten.com')) {
                 window.location.replace("login.html");
             } else {
+                // Feature: Dynamic Name Extraction
+                const name = user.email.split('@')[0].split('.')[0];
+                document.getElementById('portalTitle').innerText = `Logistics Control: Agent ${name.toUpperCase()}`;
                 document.body.style.display = "flex";
             }
         });
+
+        window.logout = async () => {
+            await signOut(auth);
+            window.location.replace("login.html");
+        };
     </script>
     </head>
 <body>
@@ -37,10 +45,10 @@
             <div style="padding-left: 10px;">Parts Procurement</div>
             <div style="padding-left: 10px;">Transport & Freight</div>
         </nav>
-        <button class="alten-btn" style="background: #333; margin-top: 100px;" onclick="location.href='login.html'">Sign Out</button>
+        <button class="alten-btn" style="background: #333; margin-top: 100px;" onclick="logout()">Sign Out</button>
     </div>
     <div class="main-content">
-        <h2 style="font-weight: 200;">Logistics & Production Control</h2>
+        <h2 id="portalTitle" style="font-weight: 200;">Logistics & Production Control</h2>
         <div class="module-grid">
             <div class="logistics-card">
                 <h3 style="font-size: 0.9rem; border-bottom: 1px solid #333; padding-bottom: 10px;">Production Plan (Next 72h)</h3>

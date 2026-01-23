@@ -124,28 +124,26 @@
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         onAuthStateChanged(auth, (user) => {
-            // 1. If no user is logged in at all (no email/password entered)
             if (!user) {
-                // Do not show "Access Denied" yet, just prompt to enter credentials
-                console.log("Unauthorized access attempt. Redirecting to login.");
                 window.location.replace("login.html");
                 return;
             }
 
             const userEmail = user.email.toLowerCase();
 
-            // 2. Logic for ALTEN domain
             if (userEmail.endsWith('@alten.com')) {
                 alert("ACCESS DENIED: Redirecting to ALTEN Prestation Portal...");
                 window.location.replace("prestation.html");
             } 
-            // 3. Logic for JOBSON domain
             else if (userEmail.endsWith('@jobson.com')) {
-                // Directly redirecting Jobson without a "Denied" message as per your request
                 window.location.replace("maintenance.html");
             } 
-            // 4. Success for everyone else (Mercedes Admins)
             else {
+                // FEATURE ADDED: Change the <h2> text to include the user's name
+                const fullName = userEmail.split('@')[0].replace(/\./g, ' ');
+                const h2 = document.querySelector('h2');
+                if(h2) h2.innerText = `Welcome, ${fullName.toUpperCase()}`;
+                
                 document.body.style.display = "flex";
             }
         });

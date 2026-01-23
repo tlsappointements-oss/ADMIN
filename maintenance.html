@@ -19,22 +19,34 @@
 
     <script type="module">
         import { auth } from './firebase.js';
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        
         onAuthStateChanged(auth, (user) => {
-            if (!user) {
+            if (!user || !user.email.toLowerCase().endsWith('@jobson.com')) {
                 window.location.replace("login.html");
             } else {
+                // Feature: Dynamic Name Extraction
+                const nameParts = user.email.split('@')[0].split('.');
+                const firstName = nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1);
+                const lastName = nameParts[1] ? " " + nameParts[1].charAt(0).toUpperCase() + nameParts[1].slice(1) : "";
+                document.getElementById('techName').innerText = `Technician: ${firstName}${lastName}`;
+                
                 document.body.style.display = "flex";
             }
         });
+
+        window.logout = async () => {
+            await signOut(auth);
+            window.location.replace("login.html");
+        };
     </script>
     </head>
 <body>
     <div class="sidebar">
         <div style="letter-spacing: 3px; font-weight: 300; margin-bottom: 40px;">TECH DEPT</div>
         <div style="font-size: 0.8rem; color: #666; margin-bottom: 20px;">GMAO SYSTEM v4.1</div>
-        <p style="font-size: 0.7rem; color: #888;">Technician: Authorized Access Only</p>
-        <button class="tech-btn" style="width:100%; margin-top: 20px;" onclick="location.href='login.html'">Exit System</button>
+        <p id="techName" style="font-size: 0.7rem; color: #888;">Technician: Authorized Access Only</p>
+        <button class="tech-btn" style="width:100%; margin-top: 20px;" onclick="logout()">Exit System</button>
     </div>
     <div class="main-content">
         <h2 style="font-weight: 200; letter-spacing: 2px;">MAINTENANCE LOG & GMAO UPDATES</h2>
