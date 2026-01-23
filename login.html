@@ -4,14 +4,21 @@
     <link rel="stylesheet" href="style.css">
     <title>Admin Login</title>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body>
-    <div style="max-width:400px; margin: 100px auto; padding: 20px;">
+    <div style="max-width:400px; margin: 100px auto; padding: 20px; text-align: center;">
         <div class="logo" style="text-align:center; margin-bottom:30px;">MERCEDES LOGIN</div>
+        
         <input type="email" id="email" placeholder="Email Address">
         <input type="password" id="password" placeholder="Password">
 
-        <div class="g-recaptcha" data-sitekey="6Ldl4VMsAAAAAH9KZ7pHmZS8tYozgU3TovKNUkSt" style="margin-bottom: 20px; margin-top: 10px;"></div>
+        <div id="camera-container" style="display:none; margin-top: 15px; margin-bottom: 15px;">
+            <video id="video" width="320" height="240" autoplay muted style="border: 2px solid #e30613; border-radius: 4px; background: #000;"></video>
+            <p id="status-text" style="font-size: 0.75rem; color: #e30613; font-weight: bold; margin-top: 5px;">SCANNING BIOMETRICS...</p>
+        </div>
+
+        <div class="g-recaptcha" data-sitekey="6Ldl4VMsAAAAAH9KZ7pHmZS8tYozgU3TovKNUkSt" style="margin-bottom: 20px; margin-top: 10px; display: inline-block;"></div>
 
         <button class="btn-mb" id="loginBtn">Enter Dashboard</button>
     </div>
@@ -21,32 +28,99 @@
         import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const loginBtn = document.getElementById('loginBtn');
+        const video = document.getElementById('video');
+        const statusText = document.getElementById('status-text');
+
+        // Initializing Models and Diagnostics
+        async function loadSecurityModels() {
+            try {
+                await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
+                await faceapi.nets.faceLandmark68Net.loadFromUri('./models');
+                await faceapi.nets.faceRecognitionNet.loadFromUri('./models');
+                console.log("Biometric Models Loaded Successfully");
+            } catch (e) {
+                alert("CRITICAL ERROR: AI Models could not load. Check if /models folder exists and is accessible.");
+            }
+        }
+        loadSecurityModels();
+
+        // Biometric Match Logic (Authorized: Dora)
+        async function runFaceVerification() {
+            try {
+                // 1. Start WebCam
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                video.srcObject = stream;
+                document.getElementById('camera-container').style.display = 'block';
+
+                // 2. Load Authorized Face (Dora)
+                const referenceImg = await faceapi.fetchImage('./images/dora.jpg');
+                const refResult = await faceapi.detectSingleFace(referenceImg).withFaceLandmarks().withFaceDescriptor();
+
+                if (!refResult) {
+                    throw new Error("Reference file 'dora.jpg' is missing or not clear.");
+                }
+
+                const faceMatcher = new faceapi.FaceMatcher(refResult, 0.6);
+
+                // 3. Continuous scan for 10 seconds
+                return new Promise((resolve) => {
+                    const checkInterval = setInterval(async () => {
+                        const liveDetection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                        
+                        if (liveDetection) {
+                            const match = faceMatcher.findBestMatch(liveDetection.descriptor);
+                            if (match.label !== 'unknown') {
+                                clearInterval(checkInterval);
+                                stream.getTracks().forEach(track => track.stop()); // Stop Camera
+                                resolve(true);
+                            }
+                        }
+                    }, 800);
+
+                    // Timeout
+                    setTimeout(() => {
+                        clearInterval(checkInterval);
+                        stream.getTracks().forEach(track => track.stop());
+                        resolve(false);
+                    }, 15000);
+                });
+
+            } catch (err) {
+                alert("Camera/Model Error: " + err.message);
+                return false;
+            }
+        }
 
         loginBtn.addEventListener('click', async () => {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
 
-            // 1. Check if the reCAPTCHA is verified
+            // 1. Check reCAPTCHA
             const recaptchaResponse = grecaptcha.getResponse();
-            
             if (recaptchaResponse.length === 0) {
-                // User has not completed the captcha
                 alert("Please complete the 'I am not a robot' verification.");
                 return;
             }
 
             try {
-                // 2. Firebase authentication call
+                // 2. Step: Biometric Verification
+                const isAuthorized = await runFaceVerification();
+                
+                if (!isAuthorized) {
+                    alert("IDENTITY NOT RECOGNIZED: Access Denied. Only authorized personnel (Dora) can enter.");
+                    window.location.reload();
+                    return;
+                }
+
+                // 3. Step: Firebase authentication
                 await signInWithEmailAndPassword(auth, email, pass);
                 
-                // Redirecting to admin.html
+                // Redirect
                 window.location.href = "admin.html";
             } catch (error) {
-                // Handling errors (wrong password, etc.)
                 alert("Login Failed: " + error.message);
-                
-                // Reset reCAPTCHA on failure so they have to verify again
                 grecaptcha.reset();
+                document.getElementById('camera-container').style.display = 'none';
             }
         });
     </script>
