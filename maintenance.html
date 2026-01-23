@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="style.css">
     <title>Maintenance Dept | Technical Portal</title>
     <style>
-        body { display: flex; min-height: 100vh; background: #0a0a0a; color: #e0e0e0; margin: 0; font-family: 'Segoe UI', sans-serif; }
+        body { display: none; min-height: 100vh; background: #0a0a0a; color: #e0e0e0; margin: 0; font-family: 'Segoe UI', sans-serif; }
         .sidebar { width: 250px; background: #000; border-right: 1px solid #333; padding: 30px 20px; }
         .main-content { flex: 1; padding: 40px; }
         .gmao-card { background: #111; border: 1px solid #222; padding: 25px; border-radius: 2px; margin-bottom: 20px; }
@@ -16,7 +16,19 @@
         .tech-btn { background: #555; color: white; border: none; padding: 10px 20px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
         .tech-btn:hover { background: #777; }
     </style>
-</head>
+
+    <script type="module">
+        import { auth } from './firebase.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.replace("login.html");
+            } else {
+                document.body.style.display = "flex";
+            }
+        });
+    </script>
+    </head>
 <body>
     <div class="sidebar">
         <div style="letter-spacing: 3px; font-weight: 300; margin-bottom: 40px;">TECH DEPT</div>
@@ -24,10 +36,8 @@
         <p style="font-size: 0.7rem; color: #888;">Technician: Authorized Access Only</p>
         <button class="tech-btn" style="width:100%; margin-top: 20px;" onclick="location.href='login.html'">Exit System</button>
     </div>
-
     <div class="main-content">
         <h2 style="font-weight: 200; letter-spacing: 2px;">MAINTENANCE LOG & GMAO UPDATES</h2>
-        
         <div class="gmao-card">
             <h3 style="font-size: 0.9rem; color: #aaa;">NEW INTERVENTION</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -41,7 +51,6 @@
             <textarea rows="4" placeholder="Work Description & Parts Used..."></textarea>
             <button class="tech-btn">Update GMAO Database</button>
         </div>
-
         <h3 style="font-weight: 200; margin-top: 40px;">ACTIVE ASSET STATUS</h3>
         <table style="width: 100%; border-collapse: collapse; background: #111; font-size: 0.8rem;">
             <tr style="border-bottom: 1px solid #333; text-align: left; color: #666;">
