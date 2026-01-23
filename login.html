@@ -25,45 +25,49 @@
 
     <script type="module">
         import { auth } from './firebase.js';
-        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const loginBtn = document.getElementById('loginBtn');
         const video = document.getElementById('video');
         const statusText = document.getElementById('status-text');
 
-        // Loading ALL necessary models including SsdMobilenet for better reference scanning
         async function loadSecurityModels() {
             try {
                 const MODEL_URL = './models';
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL), // Added for better photo detection
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
                 console.log("Biometric Models Loaded");
             } catch (e) {
-                alert("CRITICAL ERROR: AI Models failed to load. Ensure the /models folder contains the .json and shard files.");
+                alert("CRITICAL ERROR: AI Models failed to load.");
             }
         }
         loadSecurityModels();
 
-        async function runFaceVerification() {
+        async function runFaceVerification(email) {
             try {
-                // 1. Load Dora's Image first to ensure it exists
-                const referenceImg = await faceapi.fetchImage('./images/dora.jpg');
+                // Get domain and username (e.g. dikra.aljazouli from dikra.aljazouli@jobson.com)
+                const [username, fullDomain] = email.split('@');
+                const domain = fullDomain.split('.')[0]; // gets 'jobson', 'alten', or 'mercedes' (admin)
                 
-                // Use SSD detector for the photo (it's more powerful than TinyFace)
+                // Construct path: ./images/jobson/dikra.aljazouli.jpg
+                const imagePath = `./images/${domain}/${username}.jpg`;
+                
+                console.log("Looking for reference image at:", imagePath);
+                const referenceImg = await faceapi.fetchImage(imagePath);
+                
                 const refResult = await faceapi.detectSingleFace(referenceImg, new faceapi.SsdMobilenetv1Options())
                                              .withFaceLandmarks()
                                              .withFaceDescriptor();
 
                 if (!refResult) {
-                    alert("AI cannot find a clear face in 'dora.jpg'. Please use a clear, front-facing photo.");
+                    alert(`AI cannot find a clear face for ${username} in the database.`);
                     return false;
                 }
 
-                // 2. Start WebCam
                 const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
                 video.srcObject = stream;
                 document.getElementById('camera-container').style.display = 'block';
@@ -72,7 +76,6 @@
 
                 return new Promise((resolve) => {
                     const checkInterval = setInterval(async () => {
-                        // Use Tiny detector for live video (it's faster)
                         const liveDetection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
                                                            .withFaceLandmarks()
                                                            .withFaceDescriptor();
@@ -91,18 +94,17 @@
                         clearInterval(checkInterval);
                         stream.getTracks().forEach(track => track.stop());
                         resolve(false);
-                    }, 20000); // 20-second window to recognize face
+                    }, 20000);
                 });
 
             } catch (err) {
-                console.error(err);
-                alert("Security Error: " + err.message);
+                alert("Identity verification error: Ensure your photo exists in the correct domain folder.");
                 return false;
             }
         }
 
         loginBtn.addEventListener('click', async () => {
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.toLowerCase();
             const pass = document.getElementById('password').value;
 
             if (grecaptcha.getResponse().length === 0) {
@@ -111,17 +113,29 @@
             }
 
             try {
+                // 1. Biometric Step First
                 statusText.innerText = "VERIFYING IDENTITY...";
-                const isAuthorized = await runFaceVerification();
+                const isAuthorized = await runFaceVerification(email);
                 
                 if (!isAuthorized) {
-                    alert("IDENTITY NOT RECOGNIZED: Access Denied.");
+                    alert("FACE RECOGNITION FAILED: Access Denied.");
+                    await signOut(auth); // Clear any lingering sessions
                     window.location.reload();
                     return;
                 }
 
+                // 2. Firebase Step
                 await signInWithEmailAndPassword(auth, email, pass);
-                window.location.href = "admin.html";
+                
+                // 3. Routing
+                if (email.endsWith('@alten.com')) {
+                    window.location.href = "prestation.html";
+                } else if (email.endsWith('@jobson.com')) {
+                    window.location.href = "maintenance.html";
+                } else {
+                    window.location.href = "admin.html";
+                }
+
             } catch (error) {
                 alert("Login Failed: " + error.message);
                 grecaptcha.reset();
