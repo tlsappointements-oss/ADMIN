@@ -3,6 +3,7 @@
 <head>
     <link rel="stylesheet" href="style.css">
     <title>Admin Login</title>
+    <script src="https://www.google.com/recaptcha/enterprise.js?render=6Lcfr1MsAAAAAFeNnF2lII-vx8kd3iylim8SebkU"></script>
 </head>
 <body>
     <div style="max-width:400px; margin: 100px auto; padding: 20px;">
@@ -18,20 +19,28 @@
 
         const loginBtn = document.getElementById('loginBtn');
 
-        loginBtn.addEventListener('click', async () => {
+        loginBtn.addEventListener('click', async (e) => {
+            e.preventDefault(); // Prevent default button behavior
+            
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
 
-            try {
-                // Firebase authentication call
-                await signInWithEmailAndPassword(auth, email, pass);
-                
-                // Redirecting to admin.html in the same folder
-                window.location.href = "admin.html";
-            } catch (error) {
-                // Handling errors (wrong password, etc.)
-                alert("Login Failed: " + error.message);
-            }
+            // Trigger reCAPTCHA Enterprise before login
+            grecaptcha.enterprise.ready(async () => {
+                try {
+                    // Generate the token
+                    const token = await grecaptcha.enterprise.execute('6Lcfr1MsAAAAAFeNnF2lII-vx8kd3iylim8SebkU', {action: 'LOGIN'});
+                    
+                    // Firebase authentication call
+                    await signInWithEmailAndPassword(auth, email, pass);
+                    
+                    // Redirecting to admin.html
+                    window.location.href = "admin.html";
+                } catch (error) {
+                    // Handling errors (reCAPTCHA failure or wrong password)
+                    alert("Login Failed: " + error.message);
+                }
+            });
         });
     </script>
 </body>
