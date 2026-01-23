@@ -3,13 +3,16 @@
 <head>
     <link rel="stylesheet" href="style.css">
     <title>Admin Login</title>
-    <script src="https://www.google.com/recaptcha/enterprise.js?render=6Lcfr1MsAAAAAFeNnF2lII-vx8kd3iylim8SebkU"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
     <div style="max-width:400px; margin: 100px auto; padding: 20px;">
         <div class="logo" style="text-align:center; margin-bottom:30px;">MERCEDES LOGIN</div>
         <input type="email" id="email" placeholder="Email Address">
         <input type="password" id="password" placeholder="Password">
+
+        <div class="g-recaptcha" data-sitekey="6Ldl4VMsAAAAAH9KZ7pHmZS8tYozgU3TovKNUkSt" style="margin-bottom: 20px; margin-top: 10px;"></div>
+
         <button class="btn-mb" id="loginBtn">Enter Dashboard</button>
     </div>
 
@@ -19,31 +22,32 @@
 
         const loginBtn = document.getElementById('loginBtn');
 
-        loginBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            
+        loginBtn.addEventListener('click', async () => {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
 
-            // 2. Added check to ensure grecaptcha is loaded
-            if (typeof grecaptcha === 'undefined') {
-                alert("Security Service (reCAPTCHA) failed to load. Please check your internet connection.");
+            // 1. Check if the reCAPTCHA is verified
+            const recaptchaResponse = grecaptcha.getResponse();
+            
+            if (recaptchaResponse.length === 0) {
+                // User has not completed the captcha
+                alert("Please complete the 'I am not a robot' verification.");
                 return;
             }
 
-            grecaptcha.enterprise.ready(async () => {
-                try {
-                    // 3. Generate token
-                    const token = await grecaptcha.enterprise.execute('6Lcfr1MsAAAAAFeNnF2lII-vx8kd3iylim8SebkU', {action: 'LOGIN'});
-                    console.log("reCAPTCHA Token Generated:", token); // Check this in your browser console (F12)
-                    
-                    // Proceed to Firebase
-                    await signInWithEmailAndPassword(auth, email, pass);
-                    window.location.href = "admin.html";
-                } catch (error) {
-                    alert("Login Failed: " + error.message);
-                }
-            });
+            try {
+                // 2. Firebase authentication call
+                await signInWithEmailAndPassword(auth, email, pass);
+                
+                // Redirecting to admin.html
+                window.location.href = "admin.html";
+            } catch (error) {
+                // Handling errors (wrong password, etc.)
+                alert("Login Failed: " + error.message);
+                
+                // Reset reCAPTCHA on failure so they have to verify again
+                grecaptcha.reset();
+            }
         });
     </script>
 </body>
