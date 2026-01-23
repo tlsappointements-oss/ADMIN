@@ -66,7 +66,7 @@
 <body>
     <div class="sidebar">
         <div class="logo">
-            <img src="alten_logo.png" alt="ALTEN" style="width: 120px; margin-bottom: 10px; display: block;">
+            <img src="alten_logo.png" alt="ALTEN" style="width: 120px; margin-bottom: 10px; display: block;" onerror="this.style.display='none'">
             MERCEDES ADMIN
         </div>
         <a href="#" class="nav-item active">Dashboard</a>
@@ -123,26 +123,28 @@
         import { auth } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Multi-Domain Protection Check
+        // FORCED DOMAIN CHECKING
         onAuthStateChanged(auth, (user) => {
             if (!user) {
+                console.log("No user found, redirecting to login...");
                 window.location.replace("login.html");
-            } else {
-                const email = user.email.toLowerCase();
+                return;
+            }
 
-                if (email.endsWith('@jobson.com')) {
-                    alert("Admin Access Denied. Redirecting to Maintenance Department Portal...");
-                    window.location.replace("maintenance.html");
-                } 
-                else if (email.endsWith('@alten.com')) {
-                    // NEW: Redirect Alten domain to Prestation portal
-                    alert("Admin Access Denied. Redirecting to ALTEN Prestation Portal...");
-                    window.location.replace("prestation.html");
-                } 
-                else {
-                    // Success for primary admins (Show the page)
-                    document.body.style.display = "flex";
-                }
+            const userEmail = user.email.toLowerCase();
+            console.log("Logged in as: " + userEmail);
+
+            if (userEmail.endsWith('@alten.com')) {
+                alert("ACCESS DENIED: Redirecting to ALTEN Prestation Portal...");
+                window.location.replace("prestation.html");
+            } 
+            else if (userEmail.endsWith('@jobson.com')) {
+                alert("ACCESS DENIED: Redirecting to Maintenance Portal...");
+                window.location.replace("maintenance.html");
+            } 
+            else {
+                // Only Mercedes/Admin emails see the content
+                document.body.style.display = "flex";
             }
         });
 
