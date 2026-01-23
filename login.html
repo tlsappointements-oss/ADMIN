@@ -31,62 +31,72 @@
         const video = document.getElementById('video');
         const statusText = document.getElementById('status-text');
 
-        // Initializing Models and Diagnostics
+        // Loading ALL necessary models including SsdMobilenet for better reference scanning
         async function loadSecurityModels() {
             try {
-                await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
-                await faceapi.nets.faceLandmark68Net.loadFromUri('./models');
-                await faceapi.nets.faceRecognitionNet.loadFromUri('./models');
-                console.log("Biometric Models Loaded Successfully");
+                const MODEL_URL = './models';
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL), // Added for better photo detection
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                console.log("Biometric Models Loaded");
             } catch (e) {
-                alert("CRITICAL ERROR: AI Models could not load. Check if /models folder exists and is accessible.");
+                alert("CRITICAL ERROR: AI Models failed to load. Ensure the /models folder contains the .json and shard files.");
             }
         }
         loadSecurityModels();
 
-        // Biometric Match Logic (Authorized: Dora)
         async function runFaceVerification() {
             try {
-                // 1. Start WebCam
+                // 1. Load Dora's Image first to ensure it exists
+                const referenceImg = await faceapi.fetchImage('./images/dora.jpg');
+                
+                // Use SSD detector for the photo (it's more powerful than TinyFace)
+                const refResult = await faceapi.detectSingleFace(referenceImg, new faceapi.SsdMobilenetv1Options())
+                                             .withFaceLandmarks()
+                                             .withFaceDescriptor();
+
+                if (!refResult) {
+                    alert("AI cannot find a clear face in 'dora.jpg'. Please use a clear, front-facing photo.");
+                    return false;
+                }
+
+                // 2. Start WebCam
                 const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
                 video.srcObject = stream;
                 document.getElementById('camera-container').style.display = 'block';
 
-                // 2. Load Authorized Face (Dora)
-                const referenceImg = await faceapi.fetchImage('./images/dora.jpg');
-                const refResult = await faceapi.detectSingleFace(referenceImg).withFaceLandmarks().withFaceDescriptor();
-
-                if (!refResult) {
-                    throw new Error("Reference file 'dora.jpg' is missing or not clear.");
-                }
-
                 const faceMatcher = new faceapi.FaceMatcher(refResult, 0.6);
 
-                // 3. Continuous scan for 10 seconds
                 return new Promise((resolve) => {
                     const checkInterval = setInterval(async () => {
-                        const liveDetection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                        // Use Tiny detector for live video (it's faster)
+                        const liveDetection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                                                           .withFaceLandmarks()
+                                                           .withFaceDescriptor();
                         
                         if (liveDetection) {
                             const match = faceMatcher.findBestMatch(liveDetection.descriptor);
                             if (match.label !== 'unknown') {
                                 clearInterval(checkInterval);
-                                stream.getTracks().forEach(track => track.stop()); // Stop Camera
+                                stream.getTracks().forEach(track => track.stop());
                                 resolve(true);
                             }
                         }
-                    }, 800);
+                    }, 600);
 
-                    // Timeout
                     setTimeout(() => {
                         clearInterval(checkInterval);
                         stream.getTracks().forEach(track => track.stop());
                         resolve(false);
-                    }, 15000);
+                    }, 20000); // 20-second window to recognize face
                 });
 
             } catch (err) {
-                alert("Camera/Model Error: " + err.message);
+                console.error(err);
+                alert("Security Error: " + err.message);
                 return false;
             }
         }
@@ -95,27 +105,22 @@
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
 
-            // 1. Check reCAPTCHA
-            const recaptchaResponse = grecaptcha.getResponse();
-            if (recaptchaResponse.length === 0) {
+            if (grecaptcha.getResponse().length === 0) {
                 alert("Please complete the 'I am not a robot' verification.");
                 return;
             }
 
             try {
-                // 2. Step: Biometric Verification
+                statusText.innerText = "VERIFYING IDENTITY...";
                 const isAuthorized = await runFaceVerification();
                 
                 if (!isAuthorized) {
-                    alert("IDENTITY NOT RECOGNIZED: Access Denied. Only authorized personnel (Dora) can enter.");
+                    alert("IDENTITY NOT RECOGNIZED: Access Denied.");
                     window.location.reload();
                     return;
                 }
 
-                // 3. Step: Firebase authentication
                 await signInWithEmailAndPassword(auth, email, pass);
-                
-                // Redirect
                 window.location.href = "admin.html";
             } catch (error) {
                 alert("Login Failed: " + error.message);
