@@ -23,24 +23,26 @@
         .intervenir-msg { color: #ff0000; font-size: 0.75rem; font-weight: bold; font-style: italic; text-transform: uppercase; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
 
-        /* --- NEW DANGER OVERLAY STYLES --- */
+        /* DANGER OVERLAY */
         #dangerOverlay {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(150, 0, 0, 0.9); z-index: 9999; flex-direction: column;
             justify-content: center; align-items: center; text-align: center;
-            animation: dangerFlash 0.5s infinite;
+            animation: dangerFlash 0.4s infinite;
         }
-        @keyframes dangerFlash { 0% { background: rgba(100, 0, 0, 0.9); } 50% { background: rgba(255, 0, 0, 1); } 100% { background: rgba(100, 0, 0, 0.9); } }
-        .giant-triangle { font-size: 150px; color: white; text-shadow: 0 0 30px #000; filter: drop-shadow(0 0 20px gold); }
-        .danger-text { font-size: 2.5rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; letter-spacing: 5px; }
+        @keyframes dangerFlash { 0% { background: rgba(100, 0, 0, 0.95); } 50% { background: rgba(255, 0, 0, 1); } 100% { background: rgba(100, 0, 0, 0.95); } }
+        .giant-triangle { font-size: 180px; color: white; filter: drop-shadow(0 0 30px gold); animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
     <div id="dangerOverlay">
         <div class="giant-triangle">⚠️</div>
-        <div class="danger-text">DANGER: PANNE ASSIGNED</div>
-        <div id="dangerDescription" style="font-size: 1.5rem; margin-top: 10px;"></div>
+        <div class="danger-text">CRITICAL PANNE</div>
+        <div id="dangerDescription" style="font-size: 1.8rem; margin-top: 15px; font-weight: bold; background: black; padding: 10px 20px;"></div>
+        <p style="margin-top: 20px; color: yellow;">CLICK THE SMALL TRIANGLE IN THE LIST TO ACKNOWLEDGE</p>
     </div>
 
     <div class="sidebar">
@@ -52,7 +54,6 @@
     <div class="main">
         <div id="adminPanel">
             <h3 style="margin-top:0">DIRECTOR SYNC</h3>
-            <p style="font-size:0.8rem; color:#888">Upload machines.json to update cars-website-558c0</p>
             <input type="file" id="jsonInput" accept=".json">
             <button onclick="syncDatabase()">PUSH 105 MACHINES</button>
         </div>
@@ -65,7 +66,8 @@
                     <th>NAME</th>
                     <th>SECTION</th>
                     <th>STATUS</th>
-                    <th id="actionHeader"></th> </tr>
+                    <th id="actionHeader"></th>
+                </tr>
             </thead>
             <tbody id="assetTable">
                 <tr><td colspan="5">Loading data from Firebase...</td></tr>
@@ -80,7 +82,8 @@
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
-        let lastKnownAssignmentCount = 0;
+        let hasAcknowledged = false;
+        let alertInterval = null;
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
@@ -93,10 +96,8 @@
 
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
-                document.getElementById('actionHeader').innerText = "ASSIGNMENT & ACTIONS";
                 onSnapshot(collection(db, "users"), (snap) => {
-                    techList = [];
-                    snap.forEach(d => techList.push(d.id));
+                    techList = []; snap.forEach(d => techList.push(d.id));
                     loadMachinesLive();
                 });
             } else {
@@ -109,21 +110,17 @@
             const currentUserEmail = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
 
             onSnapshot(collection(db, "machines"), (snapshot) => {
-                let currentAssignments = 0;
                 tableBody.innerHTML = "";
-                
+                let pendingTask = null;
+
                 snapshot.forEach((snapshotDoc) => {
                     const m = snapshotDoc.data();
                     const machineDocId = snapshotDoc.id;
                     const isWorking = m.status === "WORKING";
-                    const statusClass = isWorking ? "status-working" : "status-breakdown";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
 
-                    if (!isWorking && isAssignedToMe) currentAssignments++;
-
-                    // --- TRIGGER DANGER ALERT ---
-                    if (!isWorking && isAssignedToMe && currentAssignments > lastKnownAssignmentCount) {
-                        triggerDangerAlert(m.name, m.section);
+                    if (!isWorking && isAssignedToMe && !m.acknowledged) {
+                        pendingTask = m;
                     }
 
                     let rowHTML = `
@@ -132,9 +129,9 @@
                             <td>${m.name}</td>
                             <td>${m.section}</td>
                             <td>
-                                <span class="${statusClass}">${m.status}</span>
+                                <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
                                 ${(!isWorking && isAssignedToMe) ? `
-                                    <span class="alert-triangle" onclick="openUrgencyInfo('${m.name}')">⚠️</span>
+                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}', '${m.name}')">⚠️</span>
                                     <span class="intervenir-msg">please intervenir</span>
                                 ` : ''}
                             </td>
@@ -153,53 +150,71 @@
                             </button>
                         `;
                     } else {
-                        rowHTML += `<span style="color:#555; font-size:0.8rem;">Assigned: ${m.assignedTech || 'None'}</span>`;
+                        rowHTML += `<span style="color:#555; font-size:0.8rem;">${m.assignedTech || 'Unassigned'}</span>`;
                     }
-
                     rowHTML += `</td></tr>`;
                     tableBody.innerHTML += rowHTML;
                 });
-                lastKnownAssignmentCount = currentAssignments;
+
+                // --- ALERT LOGIC ---
+                if (pendingTask && !alertInterval) {
+                    startDangerCycle(pendingTask.name, pendingTask.section);
+                } else if (!pendingTask) {
+                    stopDangerCycle();
+                }
             });
         }
 
-        // --- DANGER ALERT LOGIC ---
-        function triggerDangerAlert(machineName, section) {
-            const overlay = document.getElementById('dangerOverlay');
-            const desc = document.getElementById('dangerDescription');
-            
-            // Sound: Using a built-in browser beep at high frequency
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            oscillator.type = 'sawtooth';
-            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
-            oscillator.connect(audioCtx.destination);
-            oscillator.start();
+        function startDangerCycle(name, section) {
+            const trigger = () => {
+                const overlay = document.getElementById('dangerOverlay');
+                document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
+                overlay.style.display = 'flex';
+                
+                // Play Emergency Sound
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.5);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 10);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 10);
 
-            desc.innerText = `MACHINE: ${machineName} | SECTION: ${section}`;
-            overlay.style.display = 'flex';
-
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                oscillator.stop();
-            }, 10000); // 10 seconds duration
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    // Re-trigger after 5 seconds if not acknowledged
+                    alertInterval = setTimeout(trigger, 5000);
+                }, 10000);
+            };
+            trigger();
         }
 
-        window.assignTech = async (docId, techEmail) => {
-            try {
-                await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase() });
-            } catch (err) { console.error(err); }
+        function stopDangerCycle() {
+            clearTimeout(alertInterval);
+            alertInterval = null;
+            document.getElementById('dangerOverlay').style.display = 'none';
+        }
+
+        window.acknowledgeTask = async (docId, name) => {
+            stopDangerCycle();
+            await updateDoc(doc(db, "machines", docId), { acknowledged: true });
+            alert(`🚨 PANNE CONFIRMED: ${name}\nReport to section immediately.`);
         };
 
-        window.openUrgencyInfo = (name) => {
-            alert(`🚨 PANNE URGENTE: ${name}\n\nURGENCY: CRITICAL\nTIMEFRAME: WITHIN 1 HOUR`);
+        window.assignTech = async (docId, techEmail) => {
+            await updateDoc(doc(db, "machines", docId), { 
+                assignedTech: techEmail.toLowerCase(),
+                acknowledged: false 
+            });
         };
 
         window.toggleMachineStatus = async (docId, currentStatus) => {
             const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
             await updateDoc(doc(db, "machines", docId), {
                 status: newStatus,
-                lastUpdate: serverTimestamp()
+                acknowledged: false
             });
         };
 
@@ -212,7 +227,7 @@
                 for (const item of data) {
                     await setDoc(doc(db, "machines", item.id), {
                         machineId: item.id, name: item.name, section: item.section,
-                        status: "WORKING", assignedTech: "", lastUpdate: serverTimestamp()
+                        status: "WORKING", assignedTech: "", acknowledged: false
                     }, { merge: true });
                 }
                 alert("Sync Success!");
