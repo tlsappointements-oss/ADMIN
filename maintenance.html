@@ -53,6 +53,11 @@
         /* Search Bar Style */
         .search-container { margin-bottom: 20px; }
         #machineSearch { width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: white; border-radius: 4px; }
+
+        /* NEW FEATURE STYLE: Part Status Badge */
+        .part-status-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; margin-left: 10px; text-transform: uppercase; }
+        .ps-repair { background: #ff9900; color: #000; }
+        .ps-fixed { background: #00ff00; color: #000; }
     </style>
 </head>
 <body>
@@ -104,7 +109,13 @@
             <p style="font-size: 0.8rem; color: #888;">Left Click: Rotate | Right Click: Pan | Scroll: Zoom | Click component to select</p>
             
             <div id="techCreateIncident" style="display:none;">
-                <p>Selected Part: <b id="selectedPartName" style="color:#e30613;">None</b></p>
+                <p>Selected Part: <b id="selectedPartName" style="color:#e30613;">None</b> <span id="partStatusDisplay"></span></p>
+                
+                <div id="partLifecycleActions" style="margin-bottom: 15px; display: none;">
+                    <button onclick="updatePartLifecycle('UNDER REPAIR')" style="background: #555; font-size: 0.7rem;">MARK UNDER REPAIR</button>
+                    <button onclick="updatePartLifecycle('FIXED')" style="background: #28a745; font-size: 0.7rem; margin-left: 5px;">MARK FIXED</button>
+                </div>
+
                 <textarea id="panneDesc" placeholder="Describe the failure..." style="width:100%; height:60px; background:#111; color:#fff; border:1px solid #333; padding:10px;"></textarea>
                 <select id="panneCrit" style="width:100%; margin-top:10px; padding:10px; background:#111; color:#fff;">
                     <option value="Minor">Low Criticality</option>
@@ -140,6 +151,7 @@
         let mouse = new THREE.Vector2();
         let selectedObject = null;
         let activeGlowPart = "";
+        let currentLoadedMachine = "";
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
@@ -165,6 +177,7 @@
                 loadMachinesLive();
             }
             listenForHistory();
+            listenToPartStatus(); // NEW FEATURE: Real-time Part Status
         });
 
         function init3D() {
@@ -205,6 +218,7 @@
         }
 
         window.loadMachineModel = (machineName) => {
+            currentLoadedMachine = machineName;
             document.getElementById('maintTitle').innerText = `High-Detail Twin: ${machineName}`;
             
             const toRemove = [];
@@ -218,6 +232,8 @@
             activeGlowPart = "";
             selectedObject = null;
             document.getElementById('selectedPartName').innerText = "None";
+            document.getElementById('partStatusDisplay').innerHTML = "";
+            document.getElementById('partLifecycleActions').style.display = "none";
 
             const nameLower = machineName.toLowerCase();
             const machineGroup = new THREE.Group();
@@ -323,6 +339,11 @@
                 selectedObject = intersects[0].object;
                 activeGlowPart = selectedObject.userData.name;
                 document.getElementById('selectedPartName').innerText = selectedObject.userData.name;
+                
+                // NEW FEATURE: Show lifecycle actions
+                if(auth.currentUser.email.toLowerCase() !== DIRECTOR) {
+                    document.getElementById('partLifecycleActions').style.display = "block";
+                }
             }
         }
 
@@ -342,12 +363,50 @@
             renderer.render(scene, camera);
         }
 
+        /* NEW FEATURE: Part Status Sync Functions */
+        window.updatePartLifecycle = async (status) => {
+            if(!selectedObject || !currentLoadedMachine) return;
+            const partId = `${currentLoadedMachine}_${selectedObject.userData.name}`.replace(/\s+/g, '_');
+            await setDoc(doc(db, "part_status", partId), {
+                machine: currentLoadedMachine,
+                part: selectedObject.userData.name,
+                status: status,
+                updatedBy: auth.currentUser.email,
+                time: serverTimestamp()
+            }, { merge: true });
+            
+            await addDoc(collection(db, "history"), { 
+                msg: `Part ${selectedObject.userData.name} updated to ${status} by Tech`, 
+                time: serverTimestamp() 
+            });
+        };
+
+        function listenToPartStatus() {
+            onSnapshot(collection(db, "part_status"), (snap) => {
+                if(!selectedObject) return;
+                const partId = `${currentLoadedMachine}_${selectedObject.userData.name}`.replace(/\s+/g, '_');
+                const badge = document.getElementById('partStatusDisplay');
+                
+                let found = false;
+                snap.forEach(d => {
+                    if(d.id === partId) {
+                        const s = d.data().status;
+                        const cls = s === 'FIXED' ? 'ps-fixed' : 'ps-repair';
+                        badge.innerHTML = `<span class="part-status-badge ${cls}">${s}</span>`;
+                        found = true;
+                    }
+                });
+                if(!found) badge.innerHTML = "";
+            });
+        }
+
         window.submit3DIncident = async () => {
             if(!selectedObject) return alert("Select the part in 3D first!");
             const desc = document.getElementById('panneDesc').value;
             const crit = document.getElementById('panneCrit').value;
             await addDoc(collection(db, "incidents3d"), {
                 part: selectedObject.userData.name,
+                machine: currentLoadedMachine,
                 description: desc,
                 criticality: crit,
                 reporter: auth.currentUser.email,
@@ -366,7 +425,7 @@
                     log.innerHTML += `
                         <div class="incident-card">
                             <div class="pain-glow-text">DETECTED MECHANICAL PAIN</div>
-                            <strong>PART: ${data.part}</strong><br>
+                            <strong>MACHINE: ${data.machine || 'Unknown'} | PART: ${data.part}</strong><br>
                             <small>Criticality: ${data.criticality} | By: ${data.reporter}</small>
                             <p>${data.description}</p>
                         </div>`;
