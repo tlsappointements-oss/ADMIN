@@ -34,6 +34,21 @@
         .giant-triangle { font-size: 180px; color: white; filter: drop-shadow(0 0 30px gold); animation: pulse 0.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
+
+        /* NEW INCIDENT FEATURES STYLES */
+        #incidentSection { background: #0a0a0a; border: 1px solid #333; padding: 25px; margin-top: 40px; border-radius: 8px; }
+        .drawing-container { position: relative; width: 500px; height: 350px; background: #1a1a1a; border: 1px solid #444; margin: 20px 0; }
+        .part-hotspot { 
+            position: absolute; width: 30px; height: 30px; border: 2px solid #fff; border-radius: 50%; 
+            cursor: pointer; transition: 0.3s; background: rgba(255,255,255,0.1); 
+        }
+        .part-selected { background: rgba(227, 6, 19, 0.8) !important; border-color: #ff0000 !important; box-shadow: 0 0 15px #ff0000; }
+        .part-glowing { 
+            background: #ff0000 !important; box-shadow: 0 0 20px 10px rgba(255, 0, 0, 0.6); 
+            animation: glowPulse 0.8s infinite alternate; border-color: gold !important;
+        }
+        @keyframes glowPulse { from { opacity: 0.5; transform: scale(1); } to { opacity: 1; transform: scale(1.2); } }
+        .incident-card { background: #111; border-left: 5px solid #e30613; padding: 20px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -73,16 +88,39 @@
                 <tr><td colspan="5">Loading data from Firebase...</td></tr>
             </tbody>
         </table>
+
+        <div id="incidentSection">
+            <h2 id="incTitle">Demande d'Intervention</h2>
+            <div id="techView" style="display:none;">
+                <p style="color:#888;">Select the faulty part on the technical drawing:</p>
+                <div class="drawing-container">
+                    <img src="https://img.freepik.com/free-vector/blueprint-mechanical-part_23-2148281358.jpg" style="width:100%;height:100%;opacity:0.4;object-fit:cover;">
+                    <div class="part-hotspot" style="top:20%; left:40%;" onclick="selectPart('Hydraulic Valve', this)"></div>
+                    <div class="part-hotspot" style="top:50%; left:70%;" onclick="selectPart('Main Drive Motor', this)"></div>
+                    <div class="part-hotspot" style="top:75%; left:25%;" onclick="selectPart('Control Sensor', this)"></div>
+                </div>
+                <input type="text" id="incDesc" placeholder="Describe the problem..." style="width:100%; padding:10px; background:#111; color:white; border:1px solid #444; margin-bottom:10px;">
+                <select id="incCrit" style="width:100%; padding:10px; background:#111; color:white; border:1px solid #444; margin-bottom:10px;">
+                    <option value="Minor">Minor Effect</option>
+                    <option value="Production Stop">Critical - Production Stop</option>
+                </select>
+                <button onclick="submitIncident()">SEND TO MOHAMED</button>
+            </div>
+            <div id="mohamedView" style="display:none;">
+                <div id="incidentLog"></div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
         let alertInterval = null;
+        let selectedPart = "";
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
@@ -91,10 +129,14 @@
 
             if (email !== DIRECTOR) {
                 await setDoc(doc(db, "users", email), { email: email, lastSeen: serverTimestamp() }, { merge: true });
+                document.getElementById('techView').style.display = "block";
+            } else {
+                document.getElementById('adminPanel').style.display = "block";
+                document.getElementById('mohamedView').style.display = "block";
+                listenForIncidents();
             }
 
             if (email === DIRECTOR) {
-                document.getElementById('adminPanel').style.display = "block";
                 onSnapshot(collection(db, "users"), (snap) => {
                     techList = []; snap.forEach(d => techList.push(d.id));
                     loadMachinesLive();
@@ -103,6 +145,46 @@
                 loadMachinesLive();
             }
         });
+
+        // --- NEW INCIDENT FUNCTIONS ---
+        window.selectPart = (name, el) => {
+            document.querySelectorAll('.part-hotspot').forEach(h => h.classList.remove('part-selected'));
+            el.classList.add('part-selected');
+            selectedPart = name;
+        };
+
+        window.submitIncident = async () => {
+            if(!selectedPart) { alert("Please select a part on the drawing."); return; }
+            await addDoc(collection(db, "demandes"), {
+                reportedBy: auth.currentUser.email,
+                part: selectedPart,
+                description: document.getElementById('incDesc').value,
+                criticality: document.getElementById('incCrit').value,
+                time: serverTimestamp(),
+                machine: "Robot Arm XL-200" // Example
+            });
+            alert("Sent successfully.");
+        };
+
+        function listenForIncidents() {
+            onSnapshot(collection(db, "demandes"), (snap) => {
+                const log = document.getElementById('incidentLog');
+                log.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    log.innerHTML += `
+                        <div class="incident-card">
+                            <div class="part-hotspot part-glowing" style="position:relative; float:right;"></div>
+                            <h3 style="color:#e30613; margin:0;">${data.criticality}</h3>
+                            <p><strong>Part:</strong> ${data.part}</p>
+                            <p><strong>Description:</strong> ${data.description}</p>
+                            <p><strong>Probable Cause:</strong> Electrical Surge / Wear</p>
+                            <p><small>Last Maintenance: 05/01/2026 | Reported by: ${data.reportedBy}</small></p>
+                        </div>
+                    `;
+                });
+            });
+        }
 
         function loadMachinesLive() {
             const tableBody = document.getElementById('assetTable');
@@ -163,7 +245,6 @@
             });
         }
 
-        // --- UPDATED SIREN & VOICE LOGIC ---
         function startDangerCycle(name, section) {
             const trigger = () => {
                 const userName = auth.currentUser.email.split('@')[0];
@@ -171,13 +252,11 @@
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 overlay.style.display = 'flex';
                 
-                // 1. TORNADO SIREN SOUND (Synthesized)
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                // Pitch rises and falls like a tornado siren
                 osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 2);
                 osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 4);
                 osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 6);
@@ -187,7 +266,6 @@
                 gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 osc.start(); osc.stop(audioCtx.currentTime + 10);
 
-                // 2. VOICE ANNOUNCEMENT
                 const msg = new SpeechSynthesisUtterance();
                 msg.text = `Attention ${userName}. There is a breakdown. Please head to ${name} immediately.`;
                 msg.rate = 0.85;
