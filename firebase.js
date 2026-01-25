@@ -6,15 +6,11 @@ const firebaseConfig = {
   apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
   authDomain: "cars-website-558c0.firebaseapp.com",
   projectId: "cars-website-558c0",
-  storageBucket: "cars-website-558c0.firebasestorage.app",
+  storageBucket: "cars-website-558c0.appspot.com",
   messagingSenderId: "142475379783",
-  appId: "1:142475379783:web:2849d07fb6eb8da4715d62",
-  measurementId: "G-53ZQY6XJJR"
+  appId: "1:142475379783:web:2849d07fb6eb8da4715d62"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Export for maintenance.html
 export const auth = getAuth(app);
 export const db = getFirestore(app);
