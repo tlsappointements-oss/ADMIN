@@ -42,24 +42,23 @@
         .viewer-wrapper { width: 100%; height: 600px; background: #111; border: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         #interactiveImage { width: 100%; height: 100%; object-fit: contain; }
         
+        /* THE PRECISION HEAT GLOW */
         .hotspot {
             position: absolute;
-            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 50%;
             cursor: pointer;
             z-index: 5;
             transition: all 0.3s;
         }
-        .hotspot:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
         .hotspot.damaged {
-            border: 3px solid #ff3333;
-            background: rgba(255, 0, 0, 0.2);
-            box-shadow: 0 0 20px #ff3333;
-            animation: pulse-red 1.2s infinite;
+            background: radial-gradient(circle, rgba(255, 0, 0, 0.9) 0%, rgba(255, 0, 0, 0.2) 50%, transparent 80%);
+            box-shadow: 0 0 40px #ff0000;
+            animation: heat-pulse 1s infinite alternate;
+            border: none;
         }
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 5px #ff3333; transform: scale(1); }
-            50% { box-shadow: 0 0 30px #ff3333; transform: scale(1.05); }
-            100% { box-shadow: 0 0 5px #ff3333; transform: scale(1); }
+        @keyframes heat-pulse {
+            from { transform: scale(0.9); opacity: 0.7; filter: blur(2px); }
+            to { transform: scale(1.2); opacity: 1; filter: blur(8px); }
         }
 
         #historyLog { margin-top: 30px; background: #0a0a0a; padding: 15px; border: 1px solid #222; max-height: 300px; overflow-y: auto; }
@@ -133,14 +132,16 @@
         let techList = [];
         let alertInterval = null;
 
-        // COORDINATE MAPS FOR INTERACTIVE VIEW
+        // REAL INDUSTRIAL ASSET LIBRARY (Add your specific 105 URLs here)
         const MACHINE_SCHEMATICS = {
-            "MB-ASS-001": { img: "https://images.unsplash.com/photo-1565151537255-70335805477c?q=80&w=1000", parts: [{name:"Servo Motor A1", t:"45%", l:"35%", w:"12%", h:"12%"}, {name:"Hydraulic Line", t:"20%", l:"40%", w:"5%", h:"20%"}] },
-            "MB-ASS-006": { img: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=1000", parts: [{name:"Drive Belt", t:"30%", l:"20%", w:"50%", h:"10%"}, {name:"Inverter", t:"60%", l:"10%", w:"15%", h:"20%"}] },
-            "MB-ENG-001": { img: "https://images.unsplash.com/photo-1486006920555-c77dcf18193b?q=80&w=1000", parts: [{name:"Press Head", t:"20%", l:"40%", w:"20%", h:"30%"}] },
-            "MB-LOG-001": { img: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1000", parts: [{name:"Battery Pack", t:"70%", l:"30%", w:"40%", h:"20%"}] },
-            "DEFAULT": { img: "https://images.unsplash.com/photo-1537462715879-360eeb61a0ad?q=80&w=1000", parts: [{name:"Main Chassis", t:"25%", l:"25%", w:"50%", h:"50%"}] }
+            "MB-ASS-001": { img: "https://p0.pxfuel.com/preview/44/149/1010/robot-robotic-arm-arm-industry.jpg", parts: [{name:"Joint Axis Screw", t:"42%", l:"48%", w:"60px", h:"60px"}] },
+            "MB-ASS-006": { img: "https://img.freepik.com/premium-photo/conveyor-belt-factory-production-line-manufacture-process-industrial-background_103024-526.jpg", parts: [{name:"Drive Motor Pipe", t:"65%", l:"20%", w:"80px", h:"80px"}] },
+            "MB-ASS-029": { img: "https://p1.pxfuel.com/preview/959/347/439/exhaust-system-exhaust-pipe-tube-steel.jpg", parts: [{name:"Exhaust Valve", t:"30%", l:"50%", w:"70px", h:"70px"}] },
+            "MB-ENG-001": { img: "https://img.freepik.com/premium-photo/engine-assembly-line-modern-car-factory_255667-274.jpg", parts: [{name:"Cylinder Bolt", t:"45%", l:"40%", w:"50px", h:"50px"}] },
+            "DEFAULT": { img: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1500", parts: [{name:"Core Component", t:"50%", l:"50%", w:"100px", h:"100px"}] }
         };
+
+        
 
         const MACHINE_DATA = [
             { id: "MB-ASS-001", name: "Robotic Arm KUKA-X1", sec: "Assembly" },
@@ -271,7 +272,7 @@
             const container = document.getElementById('hotspotContainer');
             const schematic = MACHINE_SCHEMATICS[machineId] || MACHINE_SCHEMATICS.DEFAULT;
             
-            document.getElementById('maintTitle').innerText = `Inspection: ${name}`;
+            document.getElementById('maintTitle').innerText = `Precision Diagnostic: ${name}`;
             let html = `<img src="${schematic.img}" id="interactiveImage">`;
             
             schematic.parts.forEach(part => {
@@ -290,7 +291,7 @@
             if(confirm(`Fix ${partName}?`)) {
                 stopDangerCycle();
                 await updateDoc(doc(db, "machines", docId), { status: "WORKING", acknowledged: true });
-                alert("Repair validated. Machine online.");
+                alert("Component restored. Machine online.");
             }
         };
 
