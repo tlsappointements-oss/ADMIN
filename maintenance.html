@@ -4,28 +4,31 @@
     <meta charset="UTF-8">
     <title>Mercedes-Benz | Plant Operations</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; display: flex; }
-        .sidebar { width: 250px; border-right: 1px solid #333; height: 100vh; padding: 20px; }
-        .main { flex: 1; padding: 40px; }
-        #adminPanel { display: none; background: #111; border: 1px solid red; padding: 20px; margin-bottom: 20px; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
+        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; }
+        .main { margin-left: 285px; padding: 40px; flex: 1; }
+        #adminPanel { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #222; }
-        .status-working { color: #00ff00; font-weight: bold; }
+        th { text-align: left; padding: 15px; color: #666; border-bottom: 2px solid #222; font-size: 0.8rem; }
+        td { padding: 15px; border-bottom: 1px solid #1a1a1a; }
+        .status-pill { color: #00ff00; background: rgba(0, 255, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+        button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; }
+        button:hover { background: #fff; color: #000; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h2>MERCEDES</h2>
-        <p id="userEmail" style="font-size: 12px; color: #888;"></p>
-        <button onclick="logout()">Logout</button>
+        <h2 style="color: #e30613;">MERCEDES</h2>
+        <p id="userDisplay" style="font-size: 13px; color: #aaa;"></p>
+        <button onclick="logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
     </div>
 
     <div class="main">
         <div id="adminPanel">
-            <h3>DIRECTOR SYNC PANEL</h3>
-            <input type="file" id="jsonUpload" accept=".json">
-            <button onclick="syncDatabase()">Push 105 Machines to Live</button>
+            <h3>DIRECTOR SYNC</h3>
+            <input type="file" id="jsonInput" accept=".json">
+            <button onclick="syncDatabase()">PUSH 105 MACHINES</button>
         </div>
 
         <h1>Plant Asset Library</h1>
@@ -33,13 +36,14 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Machine Name</th>
+                    <th>Name</th>
                     <th>Section</th>
                     <th>Status</th>
                 </tr>
             </thead>
-            <tbody id="tableBody">
-                </tbody>
+            <tbody id="assetTable">
+                <tr><td colspan="4">Connecting to cars-website-558c0...</td></tr>
+            </tbody>
         </table>
     </div>
 
@@ -48,81 +52,50 @@
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { collection, onSnapshot, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const DIRECTOR_EMAIL = "mohamed.aouladzerouali@jobson.com";
+        const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
 
-        // 1. AUTH CHECK & VIEW SETUP
         onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                window.location.href = "login.html";
-                return;
-            }
-
+            if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
-            document.getElementById('userEmail').innerText = email;
-
-            // Show admin panel if it's Mohamed
-            if (email === DIRECTOR_EMAIL) {
-                document.getElementById('adminPanel').style.display = "block";
-            }
-
-            // START LISTENING TO DATA
-            startLiveListener();
+            document.getElementById('userDisplay').innerText = `USER: ${email}`;
+            if (email === DIRECTOR) document.getElementById('adminPanel').style.display = "block";
+            loadAssets();
         });
 
-        // 2. LIVE LISTENER (The part that shows data on the website)
-        function startLiveListener() {
-            const tbody = document.getElementById('tableBody');
-            
-            // This function runs every time the database changes
-            onSnapshot(collection(db, "machines"), (snapshot) => {
-                tbody.innerHTML = ""; // Clear table
-                
-                if (snapshot.empty) {
-                    tbody.innerHTML = "<tr><td colspan='4'>No machines found in database.</td></tr>";
-                    return;
-                }
-
-                snapshot.forEach((d) => {
-                    const m = d.data();
-                    const row = `
+        function loadAssets() {
+            const table = document.getElementById('assetTable');
+            onSnapshot(collection(db, "machines"), (snap) => {
+                table.innerHTML = "";
+                if (snap.empty) { table.innerHTML = "<tr><td colspan='4'>Empty database. Director must upload JSON.</td></tr>"; return; }
+                snap.forEach(docSnap => {
+                    const m = docSnap.data();
+                    table.innerHTML += `
                         <tr>
-                            <td>${m.machineId || d.id}</td>
+                            <td><b>${m.machineId}</b></td>
                             <td>${m.name}</td>
                             <td>${m.section}</td>
-                            <td class="status-working">${m.status}</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
+                            <td><span class="status-pill">${m.status}</span></td>
+                        </tr>`;
                 });
             });
         }
 
-        // 3. SYNC FUNCTION (Mohamed's Upload Tool)
         window.syncDatabase = async () => {
-            const fileInput = document.getElementById('jsonUpload');
-            const file = fileInput.files[0];
-            if (!file) return alert("Select machines.json first!");
-
+            const file = document.getElementById('jsonInput').files[0];
+            if (!file) return alert("Select file!");
             const reader = new FileReader();
             reader.onload = async (e) => {
-                try {
-                    const machines = JSON.parse(e.target.result);
-                    for (const item of machines) {
-                        await setDoc(doc(db, "machines", item.id), {
-                            machineId: item.id,
-                            name: item.name,
-                            section: item.section,
-                            description: item.desc || "",
-                            status: "WORKING",
-                            lastUpdated: serverTimestamp(),
-                            updatedBy: DIRECTOR_EMAIL
-                        }, { merge: true });
-                    }
-                    alert("Sync Complete!");
-                } catch (err) {
-                    console.error(err);
-                    alert("Error: check console.");
+                const data = JSON.parse(e.target.result);
+                for (const item of data) {
+                    await setDoc(doc(db, "machines", item.id), {
+                        machineId: item.id,
+                        name: item.name,
+                        section: item.section,
+                        status: "WORKING",
+                        lastUpdate: serverTimestamp()
+                    }, { merge: true });
                 }
+                alert("Database Updated!");
             };
             reader.readAsText(file);
         };
