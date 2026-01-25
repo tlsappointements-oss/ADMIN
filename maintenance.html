@@ -40,8 +40,12 @@
 
         #maintenance3DContainer { background: #050505; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-top: 40px; }
         #threeCanvas { width: 100%; height: 500px; background: #000; border: 1px solid #222; cursor: grab; }
-        .incident-card { background: #111; border-left: 5px solid #e30613; padding: 15px; margin-bottom: 10px; }
+        .incident-card { background: #111; border-left: 5px solid #e30613; padding: 15px; margin-bottom: 10px; border-bottom: 1px solid #222; }
         .pain-glow-text { color: #ff3333; text-shadow: 0 0 10px red; font-weight: bold; animation: pulse 1s infinite; }
+        
+        /* New Styles for History Log */
+        #historyLog { margin-top: 30px; background: #0a0a0a; padding: 15px; border: 1px solid #222; max-height: 300px; overflow-y: auto; }
+        .log-entry { font-size: 0.75rem; border-bottom: 1px solid #111; padding: 5px 0; color: #aaa; }
     </style>
 </head>
 <body>
@@ -74,7 +78,7 @@
                     <th>NAME</th>
                     <th>SECTION</th>
                     <th>STATUS</th>
-                    <th id="actionHeader"></th>
+                    <th id="actionHeader">ASSIGNMENT</th>
                 </tr>
             </thead>
             <tbody id="assetTable">
@@ -99,15 +103,21 @@
             </div>
 
             <div id="mohamedIncidentView" style="display:none;">
+                <h3 style="color:#e30613; border-bottom: 1px solid #333; padding-bottom:10px;">Live Incident Stream</h3>
                 <div id="incidentList3D"></div>
             </div>
+        </div>
+
+        <div id="historyLog">
+            <h4 style="margin:0 0 10px 0; color: #666; font-size: 0.7rem; text-transform: uppercase;">Operation History</h4>
+            <div id="historyContent"></div>
         </div>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
@@ -143,6 +153,7 @@
             } else {
                 loadMachinesLive();
             }
+            listenForHistory();
         });
 
         function init3D() {
@@ -201,76 +212,59 @@
             const machineGroup = new THREE.Group();
 
             const matSteel = new THREE.MeshPhongMaterial({ color: 0x777777, shininess: 80 });
-            const matYellow = new THREE.MeshPhongMaterial({ color: 0xffcc00 }); // Industrial yellow
+            const matYellow = new THREE.MeshPhongMaterial({ color: 0xffcc00 }); 
             const matDark = new THREE.MeshPhongMaterial({ color: 0x111111 });
             const matChrome = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 100 });
 
-            // --- DETAILED INDUSTRIAL ROBOT ---
             if (nameLower.includes("robot") || nameLower.includes("kuka") || nameLower.includes("fanuc")) {
-                // Axis 1: Base Plate
                 const base = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2, 0.8, 32), matDark);
                 base.position.y = 0.4; base.userData.name = "AXIS_1_ROTATION_BASE";
                 machineGroup.add(base); machineParts.push(base);
 
-                // Axis 2: Shoulder
                 const shoulder = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2, 1.5), matYellow);
                 shoulder.position.y = 1.8; shoulder.userData.name = "AXIS_2_SHOULDER";
                 machineGroup.add(shoulder); machineParts.push(shoulder);
 
-                // Axis 3: Main Boom
                 const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 5, 16), matYellow);
                 boom.position.set(0, 4.5, 0); boom.rotation.z = 0.2;
                 boom.userData.name = "AXIS_3_PRIMARY_ARM";
                 machineGroup.add(boom); machineParts.push(boom);
 
-                // Axis 4: Elbow Joint
                 const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.8, 20, 20), matSteel);
                 elbow.position.set(1, 7, 0); elbow.userData.name = "AXIS_4_ELBOW_PIVOT";
                 machineGroup.add(elbow); machineParts.push(elbow);
 
-                // Axis 5: Forearm
                 const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 3, 16), matYellow);
                 forearm.position.set(2.5, 7.5, 0); forearm.rotation.z = Math.PI/2.5;
                 forearm.userData.name = "AXIS_5_FOREARM_LINK";
                 machineGroup.add(forearm); machineParts.push(forearm);
 
-                // Axis 6: Tooling/Gripper
                 const tool = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1, 1), matSteel);
                 tool.position.set(4, 8, 0); tool.userData.name = "AXIS_6_END_EFFECTOR";
                 machineGroup.add(tool); machineParts.push(tool);
             } 
-            
-            // --- DETAILED CNC MILLING CENTER ---
             else if (nameLower.includes("cnc") || nameLower.includes("mill") || nameLower.includes("lathe")) {
-                // Main Enclosure Base
                 const cabinet = new THREE.Mesh(new THREE.BoxGeometry(6, 4, 6), matSteel);
                 cabinet.position.y = 2; cabinet.userData.name = "MAIN_MACHINE_CASTING";
                 machineGroup.add(cabinet); machineParts.push(cabinet);
 
-                // XY Worktable
                 const table = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 4), matChrome);
                 table.position.y = 4.25; table.userData.name = "XY_PRECISION_TABLE";
                 machineGroup.add(table); machineParts.push(table);
 
-                // Z-Axis Column
                 const column = new THREE.Mesh(new THREE.BoxGeometry(1.5, 6, 2), matSteel);
                 column.position.set(0, 7, -2); column.userData.name = "Z_AXIS_COLUMN";
                 machineGroup.add(column); machineParts.push(column);
 
-                // Spindle Motor
                 const spindle = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 2, 32), matDark);
                 spindle.position.set(0, 7.5, -0.5); spindle.userData.name = "HIGH_TORQUE_SPINDLE";
                 machineGroup.add(spindle); machineParts.push(spindle);
 
-                // Tool Changer Carrousel
                 const changer = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.3, 12), matYellow);
                 changer.position.set(-2, 8, -1.5); changer.userData.name = "AUTOMATIC_TOOL_CHANGER";
                 machineGroup.add(changer); machineParts.push(changer);
             }
-
-            // --- DETAILED CONVEYOR SYSTEM ---
             else if (nameLower.includes("conveyor") || nameLower.includes("transport")) {
-                // Support Legs
                 for(let x of [-1.5, 1.5]) {
                     for(let z of [-4, 0, 4]) {
                         const leg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.2), matSteel);
@@ -278,7 +272,6 @@
                         machineGroup.add(leg); machineParts.push(leg);
                     }
                 }
-                // Main Chassis Rails
                 const railL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 10), matSteel);
                 railL.position.set(-1.6, 2.5, 0); railL.userData.name = "FRAME_RAIL_LEFT";
                 machineGroup.add(railL); machineParts.push(railL);
@@ -287,7 +280,6 @@
                 railR.position.set(1.6, 2.5, 0); railR.userData.name = "FRAME_RAIL_RIGHT";
                 machineGroup.add(railR); machineParts.push(railR);
 
-                // Individual Rollers
                 for(let z = -4.5; z <= 4.5; z += 0.8) {
                     const roller = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 3, 16), matDark);
                     roller.rotation.z = Math.PI/2; roller.position.set(0, 2.7, z);
@@ -295,13 +287,10 @@
                     machineGroup.add(roller); machineParts.push(roller);
                 }
 
-                // Drive Motor and Gearbox
                 const motor = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1.2), matYellow);
                 motor.position.set(2.2, 2.5, 4); motor.userData.name = "CONVEYOR_DRIVE_MOTOR";
                 machineGroup.add(motor); machineParts.push(motor);
             }
-            
-            // --- GENERIC ASSET ---
             else {
                 const pod = new THREE.Mesh(new THREE.BoxGeometry(3, 6, 3), matSteel);
                 pod.position.y = 3; pod.userData.name = "MAIN_HOUSING";
@@ -342,7 +331,6 @@
             renderer.render(scene, camera);
         }
 
-        // --- CORE LOGIC (VITAL TINES) ---
         window.submit3DIncident = async () => {
             if(!selectedObject) return alert("Select the part in 3D first!");
             const desc = document.getElementById('panneDesc').value;
@@ -371,6 +359,18 @@
                             <small>Criticality: ${data.criticality} | By: ${data.reporter}</small>
                             <p>${data.description}</p>
                         </div>`;
+                });
+            });
+        }
+
+        function listenForHistory() {
+            const q = query(collection(db, "history"), orderBy("time", "desc"), limit(20));
+            onSnapshot(q, (snap) => {
+                const cont = document.getElementById('historyContent');
+                cont.innerHTML = "";
+                snap.forEach(d => {
+                    const h = d.data();
+                    cont.innerHTML += `<div class="log-entry">[${h.time?.toDate().toLocaleTimeString() || '...'}] ${h.msg}</div>`;
                 });
             });
         }
@@ -412,7 +412,7 @@
                             <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">TOGGLE</button>
                         `;
                     } else {
-                        rowHTML += `<span style="color:#555;">${m.assignedTech || 'Unassigned'}</span>`;
+                        rowHTML += `<span style="color:#888;">${m.assignedTech || 'Unassigned'}</span>`;
                     }
                     rowHTML += `</td></tr>`;
                     tableBody.innerHTML += rowHTML;
@@ -429,7 +429,6 @@
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 overlay.style.display = 'flex';
                 
-                // Audio Siren Logic
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
                 osc.type = 'sawtooth';
@@ -447,9 +446,23 @@
         }
 
         function stopDangerCycle() { clearTimeout(alertInterval); alertInterval = null; document.getElementById('dangerOverlay').style.display = 'none'; }
-        window.acknowledgeTask = async (id) => { stopDangerCycle(); await updateDoc(doc(db, "machines", id), { acknowledged: true }); };
-        window.assignTech = async (id, tech) => { await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false }); };
-        window.toggleMachineStatus = async (id, status) => { await updateDoc(doc(db, "machines", id), { status: status === "WORKING" ? "BREAKDOWN" : "WORKING", acknowledged: false }); };
+        
+        window.acknowledgeTask = async (id) => { 
+            stopDangerCycle(); 
+            await updateDoc(doc(db, "machines", id), { acknowledged: true }); 
+            await addDoc(collection(db, "history"), { msg: `Tech acknowledged mission for ${id}`, time: serverTimestamp() });
+        };
+        
+        window.assignTech = async (id, tech) => { 
+            await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false }); 
+            await addDoc(collection(db, "history"), { msg: `Director assigned ${tech} to ${id}`, time: serverTimestamp() });
+        };
+        
+        window.toggleMachineStatus = async (id, status) => { 
+            const newStatus = status === "WORKING" ? "BREAKDOWN" : "WORKING";
+            await updateDoc(doc(db, "machines", id), { status: newStatus, acknowledged: false }); 
+            await addDoc(collection(db, "history"), { msg: `Status of ${id} changed to ${newStatus}`, time: serverTimestamp() });
+        };
         
         window.syncDatabase = async () => {
             const file = document.getElementById('jsonInput').files[0];
