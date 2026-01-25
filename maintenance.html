@@ -1,413 +1,397 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Mercedes-Benz | Plant Operations</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
-        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10; }
-        .main { margin-left: 285px; padding: 40px; flex: 1; }
-        #adminPanel { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { text-align: left; padding: 15px; color: #666; border-bottom: 2px solid #222; font-size: 0.8rem; }
-        td { padding: 15px; border-bottom: 1px solid #1a1a1a; }
-        .status-working { color: #00ff00; background: rgba(0, 255, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-        .status-breakdown { color: #ff3333; background: rgba(255, 51, 51, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-        
-        button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; }
-        button:hover { background: #fff; color: #000; }
-        .btn-toggle { background: #222; border: 1px solid #444; font-size: 0.7rem; padding: 5px 10px; margin-left: 10px; }
+    <meta charset="UTF-8">
+    <title>Mercedes-Benz | Plant Operations</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
+        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10; }
+        .main { margin-left: 285px; padding: 40px; flex: 1; }
+        #adminPanel { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; padding: 15px; color: #666; border-bottom: 2px solid #222; font-size: 0.8rem; }
+        td { padding: 15px; border-bottom: 1px solid #1a1a1a; }
+        .status-working { color: #00ff00; background: rgba(0, 255, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+        .status-breakdown { color: #ff3333; background: rgba(255, 51, 51, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+        
+        button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; }
+        button:hover { background: #fff; color: #000; }
+        .btn-toggle { background: #222; border: 1px solid #444; font-size: 0.7rem; padding: 5px 10px; margin-left: 10px; }
 
-        .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; margin-right: 5px; }
-        .alert-triangle { color: #ff0000; font-size: 1.5rem; cursor: pointer; animation: blink 0.8s infinite; margin-right: 8px; vertical-align: middle; }
-        .intervenir-msg { color: #ff0000; font-size: 0.75rem; font-weight: bold; font-style: italic; text-transform: uppercase; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+        .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; margin-right: 5px; }
+        .alert-triangle { color: #ff0000; font-size: 1.5rem; cursor: pointer; animation: blink 0.8s infinite; margin-right: 8px; vertical-align: middle; }
+        .intervenir-msg { color: #ff0000; font-size: 0.75rem; font-weight: bold; font-style: italic; text-transform: uppercase; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
 
-        /* DANGER OVERLAY */
-        #dangerOverlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(150, 0, 0, 0.9); z-index: 9999; flex-direction: column;
-            justify-content: center; align-items: center; text-align: center;
-            animation: dangerFlash 0.4s infinite;
-        }
-        @keyframes dangerFlash { 0% { background: rgba(100, 0, 0, 0.95); } 50% { background: rgba(255, 0, 0, 1); } 100% { background: rgba(100, 0, 0, 0.95); } }
-        .giant-triangle { font-size: 180px; color: white; filter: drop-shadow(0 0 30px gold); animation: pulse 0.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
+        /* DANGER OVERLAY */
+        #dangerOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(150, 0, 0, 0.9); z-index: 9999; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            animation: dangerFlash 0.4s infinite;
+        }
+        @keyframes dangerFlash { 0% { background: rgba(100, 0, 0, 0.95); } 50% { background: rgba(255, 0, 0, 1); } 100% { background: rgba(100, 0, 0, 0.95); } }
+        .giant-triangle { font-size: 180px; color: white; filter: drop-shadow(0 0 30px gold); animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
 
-        /* 3D MAINTENANCE STYLES */
-        #maintenance3DContainer { display: none; background: #050505; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-top: 40px; position: relative; }
-        #threeCanvas { width: 100%; height: 400px; background: #000; border: 1px solid #222; cursor: grab; }
-        .incident-card { background: #111; border-left: 5px solid #e30613; padding: 15px; margin-bottom: 10px; cursor: pointer; }
-        .incident-card:hover { background: #1a1a1a; }
-        .pain-glow-text { color: #ff3333; text-shadow: 0 0 10px red; font-weight: bold; animation: pulse 1s infinite; }
-        .close-btn { position: absolute; right: 20px; top: 20px; color: #fff; cursor: pointer; background: #333; padding: 5px 10px; }
-    </style>
+        /* 3D MAINTENANCE STYLES */
+        #maintenance3DContainer { background: #050505; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-top: 40px; }
+        #threeCanvas { width: 100%; height: 400px; background: #000; border: 1px solid #222; cursor: grab; }
+        .incident-card { background: #111; border-left: 5px solid #e30613; padding: 15px; margin-bottom: 10px; }
+        .pain-glow-text { color: #ff3333; text-shadow: 0 0 10px red; font-weight: bold; animation: pulse 1s infinite; }
+    </style>
 </head>
 <body>
 
-    <div id="dangerOverlay">
-        <div class="giant-triangle">⚠️</div>
-        <div class="danger-text">CRITICAL PANNE</div>
-        <div id="dangerDescription" style="font-size: 1.8rem; margin-top: 15px; font-weight: bold; background: black; padding: 10px 20px;"></div>
-        <p style="margin-top: 20px; color: yellow;">CLICK THE SMALL TRIANGLE IN THE LIST TO ACKNOWLEDGE</p>
-    </div>
+    <div id="dangerOverlay">
+        <div class="giant-triangle">⚠️</div>
+        <div class="danger-text">CRITICAL PANNE</div>
+        <div id="dangerDescription" style="font-size: 1.8rem; margin-top: 15px; font-weight: bold; background: black; padding: 10px 20px;"></div>
+        <p style="margin-top: 20px; color: yellow;">CLICK THE SMALL TRIANGLE IN THE LIST TO ACKNOWLEDGE</p>
+    </div>
 
-    <div class="sidebar">
-        <h2 style="color: #e30613;">MERCEDES</h2>
-        <p id="userDisplay" style="font-size: 13px; color: #aaa;"></p>
-        <button onclick="logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
-    </div>
+    <div class="sidebar">
+        <h2 style="color: #e30613;">MERCEDES</h2>
+        <p id="userDisplay" style="font-size: 13px; color: #aaa;"></p>
+        <button onclick="logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
+    </div>
 
-    <div class="main">
-        <div id="adminPanel">
-            <h3 style="margin-top:0">DIRECTOR SYNC</h3>
-            <input type="file" id="jsonInput" accept=".json">
-            <button onclick="syncDatabase()">PUSH 105 MACHINES</button>
-        </div>
+    <div class="main">
+        <div id="adminPanel">
+            <h3 style="margin-top:0">DIRECTOR SYNC</h3>
+            <input type="file" id="jsonInput" accept=".json">
+            <button onclick="syncDatabase()">PUSH 105 MACHINES</button>
+        </div>
 
-        <h1>Plant Asset Library</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>MACHINE ID</th>
-                    <th>NAME</th>
-                    <th>SECTION</th>
-                    <th>STATUS</th>
-                    <th id="actionHeader"></th>
-                </tr>
-            </thead>
-            <tbody id="assetTable">
-                <tr><td colspan="5">Loading data from Firebase...</td></tr>
-            </tbody>
-        </table>
+        <h1>Plant Asset Library</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>MACHINE ID</th>
+                    <th>NAME</th>
+                    <th>SECTION</th>
+                    <th>STATUS</th>
+                    <th id="actionHeader"></th>
+                </tr>
+            </thead>
+            <tbody id="assetTable">
+                <tr><td colspan="5">Loading data from Firebase...</td></tr>
+            </tbody>
+        </table>
 
-        <div id="maintenance3DContainer">
-            <div class="close-btn" onclick="document.getElementById('maintenance3DContainer').style.display='none'">X CLOSE</div>
-            <h2 id="maintTitle">Demande d'Intervention (3D Digital Twin)</h2>
-            <h4 id="activeMachineName" style="color:#aaa;"></h4>
-            <div id="threeCanvas"></div>
-            <p style="font-size: 0.8rem; color: #888;">Rotate with mouse | Click component to select</p>
-            
-            <div id="techCreateIncident" style="display:none;">
-                <p>Selected Part: <b id="selectedPartName" style="color:#e30613;">None</b></p>
-                <textarea id="panneDesc" placeholder="Describe the failure..." style="width:100%; height:60px; background:#111; color:#fff; border:1px solid #333; padding:10px;"></textarea>
-                <select id="panneCrit" style="width:100%; margin-top:10px; padding:10px; background:#111; color:#fff;">
-                    <option value="Minor">Low Criticality</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="CRITICAL">CRITICAL - STOP LINE</option>
-                </select>
-                <button onclick="submit3DIncident()" style="margin-top:15px; width:100%;">SEND INCIDENT TO MOHAMED</button>
-            </div>
+        <div id="maintenance3DContainer">
+            <h2 id="maintTitle">Demande d'Intervention (3D Digital Twin)</h2>
+            <div id="threeCanvas"></div>
+            <p style="font-size: 0.8rem; color: #888;">Rotate with mouse | Click component to select</p>
+            
+            <div id="techCreateIncident" style="display:none;">
+                <p>Selected Part: <b id="selectedPartName" style="color:#e30613;">None</b></p>
+                <textarea id="panneDesc" placeholder="Describe the failure..." style="width:100%; height:60px; background:#111; color:#fff; border:1px solid #333; padding:10px;"></textarea>
+                <select id="panneCrit" style="width:100%; margin-top:10px; padding:10px; background:#111; color:#fff;">
+                    <option value="Minor">Low Criticality</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="CRITICAL">CRITICAL - STOP LINE</option>
+                </select>
+                <button onclick="submit3DIncident()" style="margin-top:15px; width:100%;">SEND INCIDENT TO MOHAMED</button>
+            </div>
 
-            <div id="mohamedIncidentView" style="display:none;">
-                <h3 style="color:#e30613">Active Incident Log</h3>
-                <div id="incidentList3D"></div>
-            </div>
-        </div>
-    </div>
+            <div id="mohamedIncidentView" style="display:none;">
+                <div id="incidentList3D"></div>
+            </div>
+        </div>
+    </div>
 
-    <script type="module">
-        import { auth, db } from './firebase.js';
-        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-        let techList = [];
-        let alertInterval = null;
+        const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
+        let techList = [];
+        let alertInterval = null;
 
-        // 3D Variables
-        let scene, camera, renderer, machineParts = [];
-        let raycaster = new THREE.Raycaster();
-        let mouse = new THREE.Vector2();
-        let selectedObject = null;
-        let activeGlowPart = "";
-        let currentTargetMachine = null;
+        // 3D Variables
+        let scene, camera, renderer, machineParts = [];
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let selectedObject = null;
+        let activeGlowPart = "";
 
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) { window.location.href = "login.html"; return; }
-            const email = user.email.toLowerCase();
-            document.getElementById('userDisplay').innerText = `USER: ${email}`;
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = "login.html"; return; }
+            const email = user.email.toLowerCase();
+            document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
-            if (email === DIRECTOR) {
-                document.getElementById('adminPanel').style.display = "block";
-                document.getElementById('mohamedIncidentView').style.display = "block";
-                listenFor3DIncidents();
-                onSnapshot(collection(db, "users"), (snap) => {
-                    techList = []; snap.forEach(d => techList.push(d.id));
-                    loadMachinesLive();
-                });
-            } else {
+            init3D(); // Start 3D Engine
+
+            if (email !== DIRECTOR) {
                 await setDoc(doc(db, "users", email), { email: email, lastSeen: serverTimestamp() }, { merge: true });
-                document.getElementById('techCreateIncident').style.display = "block";
-                loadMachinesLive();
-            }
-        });
+                document.getElementById('techCreateIncident').style.display = "block";
+            }
 
-        // --- 3D ENGINE LOGIC ---
-        function init3D() {
-            if(renderer) return; // Prevent multiple initializations
-            const container = document.getElementById('threeCanvas');
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, container.clientWidth / 400, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(container.clientWidth, 400);
-            container.appendChild(renderer.domElement);
+            if (email === DIRECTOR) {
+                document.getElementById('adminPanel').style.display = "block";
+                document.getElementById('mohamedIncidentView').style.display = "block";
+                listenFor3DIncidents();
+                onSnapshot(collection(db, "users"), (snap) => {
+                    techList = []; snap.forEach(d => techList.push(d.id));
+                    loadMachinesLive();
+                });
+            } else {
+                loadMachinesLive();
+            }
+        });
 
-            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-            scene.add(ambient);
-            const light = new THREE.PointLight(0xffffff, 1);
-            light.position.set(10, 10, 10);
-            scene.add(light);
+        // --- 3D ENGINE LOGIC ---
+        function init3D() {
+            const container = document.getElementById('threeCanvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / 400, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, 400);
+            container.appendChild(renderer.domElement);
 
-            // Create 3D Machine Parts
-            const partsData = [
-                { name: "Motor_Main", size: [1, 1.5, 1], pos: [0, 0, 0] },
-                { name: "Hydraulic_Arm", size: [0.4, 2, 0.4], pos: [0, 1.5, 0] },
-                { name: "Gearbox_Left", size: [0.8, 0.8, 0.8], pos: [-1, 0, 0] },
-                { name: "Sensor_Array", size: [0.3, 0.3, 0.3], pos: [0.5, 2.5, 0] }
-            ];
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambient);
+            const light = new THREE.PointLight(0xffffff, 1);
+            light.position.set(10, 10, 10);
+            scene.add(light);
 
-            partsData.forEach(p => {
-                const geo = new THREE.BoxGeometry(...p.size);
-                const mat = new THREE.MeshPhongMaterial({ color: 0x333333, shininess: 100 });
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.position.set(...p.pos);
-                mesh.userData.name = p.name;
-                scene.add(mesh);
-                machineParts.push(mesh);
-            });
+            // Create 3D Machine Parts
+            const partsData = [
+                { name: "Motor_Main", size: [1, 1.5, 1], pos: [0, 0, 0] },
+                { name: "Hydraulic_Arm", size: [0.4, 2, 0.4], pos: [0, 1.5, 0] },
+                { name: "Gearbox_Left", size: [0.8, 0.8, 0.8], pos: [-1, 0, 0] },
+                { name: "Sensor_Array", size: [0.3, 0.3, 0.3], pos: [0.5, 2.5, 0] }
+            ];
 
-            camera.position.z = 5;
-            camera.position.y = 1;
+            partsData.forEach(p => {
+                const geo = new THREE.BoxGeometry(...p.size);
+                const mat = new THREE.MeshPhongMaterial({ color: 0x333333, shininess: 100 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(...p.pos);
+                mesh.userData.name = p.name;
+                scene.add(mesh);
+                machineParts.push(mesh);
+            });
 
-            container.addEventListener('mousedown', on3DClick);
-            animate();
-        }
+            camera.position.z = 5;
+            camera.position.y = 1;
 
-        window.openMachine3D = (mId, mName, faultPart = "") => {
-            currentTargetMachine = { id: mId, name: mName };
-            document.getElementById('maintenance3DContainer').style.display = "block";
-            document.getElementById('activeMachineName').innerText = "Target: " + mName;
-            init3D();
-            activeGlowPart = faultPart; // Set the glow
-            // Clear previous selection colors
-            machineParts.forEach(p => p.material.color.setHex(0x333333));
-            document.getElementById('selectedPartName').innerText = "None";
+            // Interaction
+            container.addEventListener('mousedown', on3DClick);
+            animate();
+        }
+
+        function on3DClick(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(machineParts);
+
+            if (intersects.length > 0) {
+                if(selectedObject) selectedObject.material.color.setHex(0x333333);
+                selectedObject = intersects[0].object;
+                selectedObject.material.color.setHex(0xe30613); // Turn Red for Tech
+                document.getElementById('selectedPartName').innerText = selectedObject.userData.name;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            // Rotate the machine group for "free view"
+            scene.rotation.y += 0.005;
+
+            // Pain Glow Effect for Mohamed
+            if (activeGlowPart) {
+                const glow = (Math.sin(Date.now() * 0.005) + 1) / 2; // Pulsing 0 to 1
+                machineParts.forEach(p => {
+                    if(p.userData.name === activeGlowPart) {
+                        p.material.emissive.setRGB(glow, 0, 0);
+                        p.material.color.setRGB(glow, 0, 0);
+                    }
+                });
+            }
+            renderer.render(scene, camera);
+        }
+
+        window.submit3DIncident = async () => {
+            if(!selectedObject) return alert("Select the part in 3D first!");
+            const desc = document.getElementById('panneDesc').value;
+            const crit = document.getElementById('panneCrit').value;
+            await addDoc(collection(db, "incidents3d"), {
+                part: selectedObject.userData.name,
+                description: desc,
+                criticality: crit,
+                reporter: auth.currentUser.email,
+                time: serverTimestamp()
+            });
+            alert("Incident Sent to Mohamed!");
         };
 
-        function on3DClick(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(machineParts);
+        function listenFor3DIncidents() {
+            onSnapshot(collection(db, "incidents3d"), (snap) => {
+                const log = document.getElementById('incidentList3D');
+                log.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    activeGlowPart = data.part; // Start the 3D Glow
+                    log.innerHTML += `
+                        <div class="incident-card">
+                            <div class="pain-glow-text">DETECTED MECHANICAL PAIN</div>
+                            <strong>PART: ${data.part}</strong><br>
+                            <small>Criticality: ${data.criticality} | By: ${data.reporter}</small>
+                            <p>${data.description}</p>
+                            <hr style="border:0; border-top:1px solid #222">
+                            <small style="color:#666">Probable Cause: Overheating | Last Maint: 14/01/2026</small>
+                        </div>
+                    `;
+                });
+            });
+        }
 
-            if (intersects.length > 0) {
-                if(selectedObject) selectedObject.material.color.setHex(0x333333);
-                selectedObject = intersects[0].object;
-                selectedObject.material.color.setHex(0xe30613); 
-                document.getElementById('selectedPartName').innerText = selectedObject.userData.name;
-            }
-        }
+        function loadMachinesLive() {
+            const tableBody = document.getElementById('assetTable');
+            const currentUserEmail = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
 
-        function animate() {
-            requestAnimationFrame(animate);
-            scene.rotation.y += 0.005;
+            onSnapshot(collection(db, "machines"), (snapshot) => {
+                tableBody.innerHTML = "";
+                let pendingTask = null;
 
-            if (activeGlowPart) {
-                const glow = (Math.sin(Date.now() * 0.005) + 1) / 2;
-                machineParts.forEach(p => {
-                    if(p.userData.name === activeGlowPart) {
-                        p.material.emissive.setRGB(glow, 0, 0);
-                        p.material.color.setRGB(glow, 0, 0);
-                    } else {
-                        p.material.emissive.setRGB(0,0,0);
+                snapshot.forEach((snapshotDoc) => {
+                    const m = snapshotDoc.data();
+                    const machineDocId = snapshotDoc.id;
+                    const isWorking = m.status === "WORKING";
+                    const isAssignedToMe = m.assignedTech === currentUserEmail;
+
+                    if (!isWorking && isAssignedToMe && !m.acknowledged) {
+                        pendingTask = m;
                     }
-                });
-            }
-            renderer.render(scene, camera);
-        }
 
-        window.submit3DIncident = async () => {
-            if(!selectedObject) return alert("Select the part in 3D first!");
-            const desc = document.getElementById('panneDesc').value;
-            const crit = document.getElementById('panneCrit').value;
-            await addDoc(collection(db, "incidents3d"), {
-                machineId: currentTargetMachine.id,
-                machineName: currentTargetMachine.name,
-                part: selectedObject.userData.name,
-                description: desc,
-                criticality: crit,
-                reporter: auth.currentUser.email,
-                time: serverTimestamp()
-            });
-            alert("Incident Sent to Mohamed!");
-            document.getElementById('maintenance3DContainer').style.display = "none";
-        };
-
-        function listenFor3DIncidents() {
-            onSnapshot(collection(db, "incidents3d"), (snap) => {
-                const log = document.getElementById('incidentList3D');
-                log.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    log.innerHTML += `
-                        <div class="incident-card" onclick="openMachine3D('${data.machineId}', '${data.machineName}', '${data.part}')">
-                            <div class="pain-glow-text">DETECTED MECHANICAL PAIN - ${data.machineName}</div>
-                            <strong>PART: ${data.part}</strong><br>
-                            <small>Criticality: ${data.criticality} | By: ${data.reporter}</small>
-                            <p>${data.description}</p>
-                            <hr style="border:0; border-top:1px solid #222">
-                            <small style="color:#666">Click to view in 3D</small>
-                        </div>
-                    `;
-                });
-            });
-        }
-
-        function loadMachinesLive() {
-            const tableBody = document.getElementById('assetTable');
-            const currentUserEmail = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
-
-            onSnapshot(collection(db, "machines"), (snapshot) => {
-                tableBody.innerHTML = "";
-                let pendingTask = null;
-
-                snapshot.forEach((snapshotDoc) => {
-                    const m = snapshotDoc.data();
-                    const machineDocId = snapshotDoc.id;
-                    const isWorking = m.status === "WORKING";
-                    const isAssignedToMe = m.assignedTech === currentUserEmail;
-
-                    if (!isWorking && isAssignedToMe && !m.acknowledged) {
-                        pendingTask = m;
-                    }
-
-                    let rowHTML = `
-                        <tr>
-                            <td><b>${m.machineId || machineDocId}</b></td>
-                            <td>
-                                ${m.name} 
-                                <button class="btn-toggle" style="background:#444" onclick="openMachine3D('${machineDocId}', '${m.name}')">OPEN 3D</button>
+                    let rowHTML = `
+                        <tr>
+                            <td><b>${m.machineId || machineDocId}</b></td>
+                            <td>${m.name}</td>
+                            <td>${m.section}</td>
+                            <td>
+                                <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
+                                ${(!isWorking && isAssignedToMe) ? `
+                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}', '${m.name}')">⚠️</span>
+                                    <span class="intervenir-msg">please intervenir</span>
+                                ` : ''}
                             </td>
-                            <td>${m.section}</td>
-                            <td>
-                                <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
-                                ${(!isWorking && isAssignedToMe) ? `
-                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}', '${m.name}')">⚠️</span>
-                                    <span class="intervenir-msg">please intervenir</span>
-                                ` : ''}
-                            </td>
-                            <td>
-                    `;
+                            <td>
+                    `;
 
-                    if (currentUserEmail === DIRECTOR) {
-                        let options = techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('');
-                        rowHTML += `
-                            <select class="tech-select" onchange="assignTech('${machineDocId}', this.value)">
-                                <option value="">Assign Tech...</option>
-                                ${options}
-                            </select>
-                            <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">
-                                SET ${isWorking ? 'BREAKDOWN' : 'WORKING'}
-                            </button>
-                        `;
-                    } else {
-                        rowHTML += `<span style="color:#555; font-size:0.8rem;">${m.assignedTech || 'Unassigned'}</span>`;
-                    }
-                    rowHTML += `</td></tr>`;
-                    tableBody.innerHTML += rowHTML;
-                });
+                    if (currentUserEmail === DIRECTOR) {
+                        let options = techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('');
+                        rowHTML += `
+                            <select class="tech-select" onchange="assignTech('${machineDocId}', this.value)">
+                                <option value="">Assign Tech...</option>
+                                ${options}
+                            </select>
+                            <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">
+                                SET ${isWorking ? 'BREAKDOWN' : 'WORKING'}
+                            </button>
+                        `;
+                    } else {
+                        rowHTML += `<span style="color:#555; font-size:0.8rem;">${m.assignedTech || 'Unassigned'}</span>`;
+                    }
+                    rowHTML += `</td></tr>`;
+                    tableBody.innerHTML += rowHTML;
+                });
 
-                if (pendingTask && !alertInterval) {
-                    startDangerCycle(pendingTask.name, pendingTask.section);
-                } else if (!pendingTask) {
-                    stopDangerCycle();
-                }
-            });
-        }
+                if (pendingTask && !alertInterval) {
+                    startDangerCycle(pendingTask.name, pendingTask.section);
+                } else if (!pendingTask) {
+                    stopDangerCycle();
+                }
+            });
+        }
 
-        function startDangerCycle(name, section) {
-            const trigger = () => {
-                const userName = auth.currentUser.email.split('@')[0];
-                const overlay = document.getElementById('dangerOverlay');
-                document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
-                overlay.style.display = 'flex';
-                
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 2);
-                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 4);
-                osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 6);
-                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 8);
+        // --- UPDATED SIREN & VOICE LOGIC ---
+        function startDangerCycle(name, section) {
+            const trigger = () => {
+                const userName = auth.currentUser.email.split('@')[0];
+                const overlay = document.getElementById('dangerOverlay');
+                document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
+                overlay.style.display = 'flex';
+                
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 2);
+                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 4);
+                osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 6);
+                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 8);
 
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.start(); osc.stop(audioCtx.currentTime + 10);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 10);
 
-                const msg = new SpeechSynthesisUtterance();
-                msg.text = `Attention ${userName}. There is a breakdown. Please head to ${name} immediately.`;
-                msg.rate = 0.85;
-                window.speechSynthesis.speak(msg);
+                const msg = new SpeechSynthesisUtterance();
+                msg.text = `Attention ${userName}. There is a breakdown. Please head to ${name} immediately.`;
+                msg.rate = 0.85;
+                window.speechSynthesis.speak(msg);
 
-                setTimeout(() => {
-                    overlay.style.display = 'none';
-                    alertInterval = setTimeout(trigger, 5000);
-                }, 10000);
-            };
-            trigger();
-        }
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    alertInterval = setTimeout(trigger, 5000);
+                }, 10000);
+            };
+            trigger();
+        }
 
-        function stopDangerCycle() {
-            clearTimeout(alertInterval);
-            alertInterval = null;
-            window.speechSynthesis.cancel();
-            document.getElementById('dangerOverlay').style.display = 'none';
-        }
+        function stopDangerCycle() {
+            clearTimeout(alertInterval);
+            alertInterval = null;
+            window.speechSynthesis.cancel();
+            document.getElementById('dangerOverlay').style.display = 'none';
+        }
 
-        window.acknowledgeTask = async (docId, name) => {
-            stopDangerCycle();
-            await updateDoc(doc(db, "machines", docId), { acknowledged: true });
-        };
+        window.acknowledgeTask = async (docId, name) => {
+            stopDangerCycle();
+            await updateDoc(doc(db, "machines", docId), { acknowledged: true });
+        };
 
-        window.assignTech = async (docId, techEmail) => {
-            await updateDoc(doc(db, "machines", docId), { 
-                assignedTech: techEmail.toLowerCase(),
-                acknowledged: false 
-            });
-        };
+        window.assignTech = async (docId, techEmail) => {
+            await updateDoc(doc(db, "machines", docId), { 
+                assignedTech: techEmail.toLowerCase(),
+                acknowledged: false 
+            });
+        };
 
-        window.toggleMachineStatus = async (docId, currentStatus) => {
-            const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
-            await updateDoc(doc(db, "machines", docId), {
-                status: newStatus,
-                acknowledged: false
-            });
-        };
+        window.toggleMachineStatus = async (docId, currentStatus) => {
+            const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
+            await updateDoc(doc(db, "machines", docId), {
+                status: newStatus,
+                acknowledged: false
+            });
+        };
 
-        window.syncDatabase = async () => {
-            const file = document.getElementById('jsonInput').files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const data = JSON.parse(e.target.result);
-                for (const item of data) {
-                    await setDoc(doc(db, "machines", item.id), {
-                        machineId: item.id, name: item.name, section: item.section,
-                        status: "WORKING", assignedTech: "", acknowledged: false
-                    }, { merge: true });
-                }
-                alert("Sync Success!");
-            };
-            reader.readAsText(file);
-        };
+        window.syncDatabase = async () => {
+            const file = document.getElementById('jsonInput').files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = JSON.parse(e.target.result);
+                for (const item of data) {
+                    await setDoc(doc(db, "machines", item.id), {
+                        machineId: item.id, name: item.name, section: item.section,
+                        status: "WORKING", assignedTech: "", acknowledged: false
+                    }, { merge: true });
+                }
+                alert("Sync Success!");
+            };
+            reader.readAsText(file);
+        };
 
-        window.logout = () => signOut(auth);
-    </script>
+        window.logout = () => signOut(auth);
+    </script>
 </body>
 </html>
