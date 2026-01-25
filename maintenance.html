@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>Mercedes-Benz | Plant Operations</title>
     <style>
-        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; }
-        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
+        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10; }
         .main { margin-left: 285px; padding: 40px; flex: 1; }
         #adminPanel { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -18,14 +18,30 @@
         button:hover { background: #fff; color: #000; }
         .btn-toggle { background: #222; border: 1px solid #444; font-size: 0.7rem; padding: 5px 10px; margin-left: 10px; }
 
-        /* Tech Assignment Styles */
         .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; margin-right: 5px; }
         .alert-triangle { color: #ff0000; font-size: 1.5rem; cursor: pointer; animation: blink 0.8s infinite; margin-right: 8px; vertical-align: middle; }
         .intervenir-msg { color: #ff0000; font-size: 0.75rem; font-weight: bold; font-style: italic; text-transform: uppercase; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+
+        /* --- NEW DANGER OVERLAY STYLES --- */
+        #dangerOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(150, 0, 0, 0.9); z-index: 9999; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            animation: dangerFlash 0.5s infinite;
+        }
+        @keyframes dangerFlash { 0% { background: rgba(100, 0, 0, 0.9); } 50% { background: rgba(255, 0, 0, 1); } 100% { background: rgba(100, 0, 0, 0.9); } }
+        .giant-triangle { font-size: 150px; color: white; text-shadow: 0 0 30px #000; filter: drop-shadow(0 0 20px gold); }
+        .danger-text { font-size: 2.5rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; letter-spacing: 5px; }
     </style>
 </head>
 <body>
+
+    <div id="dangerOverlay">
+        <div class="giant-triangle">⚠️</div>
+        <div class="danger-text">DANGER: PANNE ASSIGNED</div>
+        <div id="dangerDescription" style="font-size: 1.5rem; margin-top: 10px;"></div>
+    </div>
 
     <div class="sidebar">
         <h2 style="color: #e30613;">MERCEDES</h2>
@@ -63,14 +79,14 @@
         import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-        let techList = []; // Automatically synced from Firestore
+        let techList = [];
+        let lastKnownAssignmentCount = 0;
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
-            // AUTO-REGISTRATION: Every login (except Director) is saved to 'users' collection
             if (email !== DIRECTOR) {
                 await setDoc(doc(db, "users", email), { email: email, lastSeen: serverTimestamp() }, { merge: true });
             }
@@ -78,8 +94,6 @@
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
                 document.getElementById('actionHeader').innerText = "ASSIGNMENT & ACTIONS";
-                
-                // Watch the 'users' collection to populate Mohamed's dropdown
                 onSnapshot(collection(db, "users"), (snap) => {
                     techList = [];
                     snap.forEach(d => techList.push(d.id));
@@ -95,13 +109,22 @@
             const currentUserEmail = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
 
             onSnapshot(collection(db, "machines"), (snapshot) => {
+                let currentAssignments = 0;
                 tableBody.innerHTML = "";
+                
                 snapshot.forEach((snapshotDoc) => {
                     const m = snapshotDoc.data();
                     const machineDocId = snapshotDoc.id;
                     const isWorking = m.status === "WORKING";
                     const statusClass = isWorking ? "status-working" : "status-breakdown";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
+
+                    if (!isWorking && isAssignedToMe) currentAssignments++;
+
+                    // --- TRIGGER DANGER ALERT ---
+                    if (!isWorking && isAssignedToMe && currentAssignments > lastKnownAssignmentCount) {
+                        triggerDangerAlert(m.name, m.section);
+                    }
 
                     let rowHTML = `
                         <tr>
@@ -136,17 +159,40 @@
                     rowHTML += `</td></tr>`;
                     tableBody.innerHTML += rowHTML;
                 });
+                lastKnownAssignmentCount = currentAssignments;
             });
+        }
+
+        // --- DANGER ALERT LOGIC ---
+        function triggerDangerAlert(machineName, section) {
+            const overlay = document.getElementById('dangerOverlay');
+            const desc = document.getElementById('dangerDescription');
+            
+            // Sound: Using a built-in browser beep at high frequency
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+            oscillator.connect(audioCtx.destination);
+            oscillator.start();
+
+            desc.innerText = `MACHINE: ${machineName} | SECTION: ${section}`;
+            overlay.style.display = 'flex';
+
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                oscillator.stop();
+            }, 10000); // 10 seconds duration
         }
 
         window.assignTech = async (docId, techEmail) => {
             try {
-                await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail });
+                await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase() });
             } catch (err) { console.error(err); }
         };
 
         window.openUrgencyInfo = (name) => {
-            alert(`🚨 PANNE URGENTE: ${name}\n\nURGENCY: CRITICAL\nTIMEFRAME: WITHIN 1 HOUR\nPlease report to the section immediately.`);
+            alert(`🚨 PANNE URGENTE: ${name}\n\nURGENCY: CRITICAL\nTIMEFRAME: WITHIN 1 HOUR`);
         };
 
         window.toggleMachineStatus = async (docId, currentStatus) => {
