@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Mercedes-Benz | Plant Operations</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
         .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10; }
@@ -35,20 +36,11 @@
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
 
-        /* NEW INCIDENT FEATURES STYLES */
-        #incidentSection { background: #0a0a0a; border: 1px solid #333; padding: 25px; margin-top: 40px; border-radius: 8px; }
-        .drawing-container { position: relative; width: 500px; height: 350px; background: #1a1a1a; border: 1px solid #444; margin: 20px 0; }
-        .part-hotspot { 
-            position: absolute; width: 30px; height: 30px; border: 2px solid #fff; border-radius: 50%; 
-            cursor: pointer; transition: 0.3s; background: rgba(255,255,255,0.1); 
-        }
-        .part-selected { background: rgba(227, 6, 19, 0.8) !important; border-color: #ff0000 !important; box-shadow: 0 0 15px #ff0000; }
-        .part-glowing { 
-            background: #ff0000 !important; box-shadow: 0 0 20px 10px rgba(255, 0, 0, 0.6); 
-            animation: glowPulse 0.8s infinite alternate; border-color: gold !important;
-        }
-        @keyframes glowPulse { from { opacity: 0.5; transform: scale(1); } to { opacity: 1; transform: scale(1.2); } }
-        .incident-card { background: #111; border-left: 5px solid #e30613; padding: 20px; margin-bottom: 15px; }
+        /* 3D MAINTENANCE STYLES */
+        #maintenance3DContainer { background: #050505; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-top: 40px; }
+        #threeCanvas { width: 100%; height: 400px; background: #000; border: 1px solid #222; cursor: grab; }
+        .incident-card { background: #111; border-left: 5px solid #e30613; padding: 15px; margin-bottom: 10px; }
+        .pain-glow-text { color: #ff3333; text-shadow: 0 0 10px red; font-weight: bold; animation: pulse 1s infinite; }
     </style>
 </head>
 <body>
@@ -89,25 +81,24 @@
             </tbody>
         </table>
 
-        <div id="incidentSection">
-            <h2 id="incTitle">Demande d'Intervention</h2>
-            <div id="techView" style="display:none;">
-                <p style="color:#888;">Select the faulty part on the technical drawing:</p>
-                <div class="drawing-container">
-                    <img src="https://img.freepik.com/free-vector/blueprint-mechanical-part_23-2148281358.jpg" style="width:100%;height:100%;opacity:0.4;object-fit:cover;">
-                    <div class="part-hotspot" style="top:20%; left:40%;" onclick="selectPart('Hydraulic Valve', this)"></div>
-                    <div class="part-hotspot" style="top:50%; left:70%;" onclick="selectPart('Main Drive Motor', this)"></div>
-                    <div class="part-hotspot" style="top:75%; left:25%;" onclick="selectPart('Control Sensor', this)"></div>
-                </div>
-                <input type="text" id="incDesc" placeholder="Describe the problem..." style="width:100%; padding:10px; background:#111; color:white; border:1px solid #444; margin-bottom:10px;">
-                <select id="incCrit" style="width:100%; padding:10px; background:#111; color:white; border:1px solid #444; margin-bottom:10px;">
-                    <option value="Minor">Minor Effect</option>
-                    <option value="Production Stop">Critical - Production Stop</option>
+        <div id="maintenance3DContainer">
+            <h2 id="maintTitle">Demande d'Intervention (3D Digital Twin)</h2>
+            <div id="threeCanvas"></div>
+            <p style="font-size: 0.8rem; color: #888;">Rotate with mouse | Click component to select</p>
+            
+            <div id="techCreateIncident" style="display:none;">
+                <p>Selected Part: <b id="selectedPartName" style="color:#e30613;">None</b></p>
+                <textarea id="panneDesc" placeholder="Describe the failure..." style="width:100%; height:60px; background:#111; color:#fff; border:1px solid #333; padding:10px;"></textarea>
+                <select id="panneCrit" style="width:100%; margin-top:10px; padding:10px; background:#111; color:#fff;">
+                    <option value="Minor">Low Criticality</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="CRITICAL">CRITICAL - STOP LINE</option>
                 </select>
-                <button onclick="submitIncident()">SEND TO MOHAMED</button>
+                <button onclick="submit3DIncident()" style="margin-top:15px; width:100%;">SEND INCIDENT TO MOHAMED</button>
             </div>
-            <div id="mohamedView" style="display:none;">
-                <div id="incidentLog"></div>
+
+            <div id="mohamedIncidentView" style="display:none;">
+                <div id="incidentList3D"></div>
             </div>
         </div>
     </div>
@@ -120,23 +111,30 @@
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
         let alertInterval = null;
-        let selectedPart = "";
+
+        // 3D Variables
+        let scene, camera, renderer, machineParts = [];
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let selectedObject = null;
+        let activeGlowPart = "";
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
+            init3D(); // Start 3D Engine
+
             if (email !== DIRECTOR) {
                 await setDoc(doc(db, "users", email), { email: email, lastSeen: serverTimestamp() }, { merge: true });
-                document.getElementById('techView').style.display = "block";
-            } else {
-                document.getElementById('adminPanel').style.display = "block";
-                document.getElementById('mohamedView').style.display = "block";
-                listenForIncidents();
+                document.getElementById('techCreateIncident').style.display = "block";
             }
 
             if (email === DIRECTOR) {
+                document.getElementById('adminPanel').style.display = "block";
+                document.getElementById('mohamedIncidentView').style.display = "block";
+                listenFor3DIncidents();
                 onSnapshot(collection(db, "users"), (snap) => {
                     techList = []; snap.forEach(d => techList.push(d.id));
                     loadMachinesLive();
@@ -146,40 +144,109 @@
             }
         });
 
-        // --- NEW INCIDENT FUNCTIONS ---
-        window.selectPart = (name, el) => {
-            document.querySelectorAll('.part-hotspot').forEach(h => h.classList.remove('part-selected'));
-            el.classList.add('part-selected');
-            selectedPart = name;
-        };
+        // --- 3D ENGINE LOGIC ---
+        function init3D() {
+            const container = document.getElementById('threeCanvas');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / 400, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, 400);
+            container.appendChild(renderer.domElement);
 
-        window.submitIncident = async () => {
-            if(!selectedPart) { alert("Please select a part on the drawing."); return; }
-            await addDoc(collection(db, "demandes"), {
-                reportedBy: auth.currentUser.email,
-                part: selectedPart,
-                description: document.getElementById('incDesc').value,
-                criticality: document.getElementById('incCrit').value,
-                time: serverTimestamp(),
-                machine: "Robot Arm XL-200" // Example
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambient);
+            const light = new THREE.PointLight(0xffffff, 1);
+            light.position.set(10, 10, 10);
+            scene.add(light);
+
+            // Create 3D Machine Parts
+            const partsData = [
+                { name: "Motor_Main", size: [1, 1.5, 1], pos: [0, 0, 0] },
+                { name: "Hydraulic_Arm", size: [0.4, 2, 0.4], pos: [0, 1.5, 0] },
+                { name: "Gearbox_Left", size: [0.8, 0.8, 0.8], pos: [-1, 0, 0] },
+                { name: "Sensor_Array", size: [0.3, 0.3, 0.3], pos: [0.5, 2.5, 0] }
+            ];
+
+            partsData.forEach(p => {
+                const geo = new THREE.BoxGeometry(...p.size);
+                const mat = new THREE.MeshPhongMaterial({ color: 0x333333, shininess: 100 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(...p.pos);
+                mesh.userData.name = p.name;
+                scene.add(mesh);
+                machineParts.push(mesh);
             });
-            alert("Sent successfully.");
+
+            camera.position.z = 5;
+            camera.position.y = 1;
+
+            // Interaction
+            container.addEventListener('mousedown', on3DClick);
+            animate();
+        }
+
+        function on3DClick(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(machineParts);
+
+            if (intersects.length > 0) {
+                if(selectedObject) selectedObject.material.color.setHex(0x333333);
+                selectedObject = intersects[0].object;
+                selectedObject.material.color.setHex(0xe30613); // Turn Red for Tech
+                document.getElementById('selectedPartName').innerText = selectedObject.userData.name;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            // Rotate the machine group for "free view"
+            scene.rotation.y += 0.005;
+
+            // Pain Glow Effect for Mohamed
+            if (activeGlowPart) {
+                const glow = (Math.sin(Date.now() * 0.005) + 1) / 2; // Pulsing 0 to 1
+                machineParts.forEach(p => {
+                    if(p.userData.name === activeGlowPart) {
+                        p.material.emissive.setRGB(glow, 0, 0);
+                        p.material.color.setRGB(glow, 0, 0);
+                    }
+                });
+            }
+            renderer.render(scene, camera);
+        }
+
+        window.submit3DIncident = async () => {
+            if(!selectedObject) return alert("Select the part in 3D first!");
+            const desc = document.getElementById('panneDesc').value;
+            const crit = document.getElementById('panneCrit').value;
+            await addDoc(collection(db, "incidents3d"), {
+                part: selectedObject.userData.name,
+                description: desc,
+                criticality: crit,
+                reporter: auth.currentUser.email,
+                time: serverTimestamp()
+            });
+            alert("Incident Sent to Mohamed!");
         };
 
-        function listenForIncidents() {
-            onSnapshot(collection(db, "demandes"), (snap) => {
-                const log = document.getElementById('incidentLog');
+        function listenFor3DIncidents() {
+            onSnapshot(collection(db, "incidents3d"), (snap) => {
+                const log = document.getElementById('incidentList3D');
                 log.innerHTML = "";
                 snap.forEach(d => {
                     const data = d.data();
+                    activeGlowPart = data.part; // Start the 3D Glow
                     log.innerHTML += `
                         <div class="incident-card">
-                            <div class="part-hotspot part-glowing" style="position:relative; float:right;"></div>
-                            <h3 style="color:#e30613; margin:0;">${data.criticality}</h3>
-                            <p><strong>Part:</strong> ${data.part}</p>
-                            <p><strong>Description:</strong> ${data.description}</p>
-                            <p><strong>Probable Cause:</strong> Electrical Surge / Wear</p>
-                            <p><small>Last Maintenance: 05/01/2026 | Reported by: ${data.reportedBy}</small></p>
+                            <div class="pain-glow-text">DETECTED MECHANICAL PAIN</div>
+                            <strong>PART: ${data.part}</strong><br>
+                            <small>Criticality: ${data.criticality} | By: ${data.reporter}</small>
+                            <p>${data.description}</p>
+                            <hr style="border:0; border-top:1px solid #222">
+                            <small style="color:#666">Probable Cause: Overheating | Last Maint: 14/01/2026</small>
                         </div>
                     `;
                 });
@@ -245,6 +312,7 @@
             });
         }
 
+        // --- UPDATED SIREN & VOICE LOGIC ---
         function startDangerCycle(name, section) {
             const trigger = () => {
                 const userName = auth.currentUser.email.split('@')[0];
