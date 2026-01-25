@@ -94,6 +94,7 @@
 
         <div id="maintenance3DContainer">
             <h2 id="maintTitle">Live 3D Industrial Feed</h2>
+            
             <div style="display: flex; gap: 20px; margin-bottom: 20px; align-items: start;">
                 <div style="flex: 1;">
                     <img id="machineImageDisplay" src="télécharger.webp" alt="Machine Visual">
@@ -109,6 +110,7 @@
                     </div>
                 </div>
             </div>
+            <p style="font-size: 0.8rem; color: #888;">Showing direct industrial CAD feed.</p>
         </div>
 
         <div id="historyLog">
@@ -127,15 +129,14 @@
         let alertInterval = null;
         let currentMachineDocId = ""; 
 
-        // UPDATED: Direct View links to prevent GrabCAD from blocking the connection
+        // UPDATED: Using the direct viewer parameters for the machines provided
         const MODEL_LINKS = {
-            KUKA: "https://grabcad.com/library/kuka-kr-6-1/details?render=viewer",
-            NUTRUNNER: "https://www.traceparts.com/en/viewer/60-15022019-074640",
-            CONVEYOR: "https://grabcad.com/library/conveyor-belt-38/details?render=viewer",
-            LASER: "https://grabcad.com/library/laser-cutting-machine-14/details?render=viewer",
-            ENGINE: "https://grabcad.com/library/v12-engine-1/details?render=viewer",
-            AGV: "https://grabcad.com/library/agv-v1-1/details?render=viewer",
-            SCANNER: "https://grabcad.com/library/3d-scanner-2/details?render=viewer",
+            "MB-ASS-001": "https://grabcad.com/library/kuka-kr-6-1/details?render=viewer",
+            "MB-ASS-002": "https://grabcad.com/library/kuka-kr16-2-1/details?render=viewer",
+            "MB-ASS-003": "https://www.traceparts.com/en/viewer/60-15022019-074640", // Nut Runner
+            "MB-ASS-006": "https://grabcad.com/library/belt-conveyor-73/details?render=viewer",
+            "MB-ASS-015": "https://grabcad.com/library/laser-cutting-machine-14/details?render=viewer", // Laser Welder substitute
+            "MB-ASS-031": "https://grabcad.com/library/industrial-lift-1/details?render=viewer", // Module Lift
             DEFAULT: "https://www.traceparts.com/en/viewer/60-15022019-074640"
         };
 
@@ -157,7 +158,7 @@
             listenForHistory();
         });
 
-        window.loadMachineModel = async (machineName, docId) => {
+        window.loadMachineModel = async (machineName, docId, machineId) => {
             currentMachineDocId = docId;
             document.getElementById('maintTitle').innerText = `Live Industrial Feed: ${machineName}`;
             
@@ -171,17 +172,8 @@
             }
 
             const iframe = document.getElementById('live3DFeed');
-            const name = machineName.toUpperCase();
-            let selectedLink = MODEL_LINKS.DEFAULT;
-
-            // Direct Mapping logic based on your library
-            if (name.includes("KUKA") || name.includes("ROBOT")) selectedLink = MODEL_LINKS.KUKA;
-            else if (name.includes("NUT") || name.includes("ATLAS")) selectedLink = MODEL_LINKS.NUTRUNNER;
-            else if (name.includes("CONVEYOR")) selectedLink = MODEL_LINKS.CONVEYOR;
-            else if (name.includes("LASER") || name.includes("WELDER")) selectedLink = MODEL_LINKS.LASER;
-            else if (name.includes("ENGINE") || name.includes("CRANK")) selectedLink = MODEL_LINKS.ENGINE;
-            else if (name.includes("AGV") || name.includes("CARRIER")) selectedLink = MODEL_LINKS.AGV;
-            else if (name.includes("SCANNER")) selectedLink = MODEL_LINKS.SCANNER;
+            // Check if we have a specific link for this ID, otherwise use default
+            let selectedLink = MODEL_LINKS[machineId] || MODEL_LINKS.DEFAULT;
 
             iframe.src = selectedLink;
             document.getElementById('maintenance3DContainer').scrollIntoView({ behavior: 'smooth' });
@@ -210,14 +202,15 @@
                 snapshot.forEach((snapshotDoc) => {
                     const m = snapshotDoc.data();
                     const machineDocId = snapshotDoc.id;
+                    const machineIdAttr = m.machineId || machineDocId;
                     const isWorking = m.status === "WORKING";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
                     if (!isWorking && isAssignedToMe && !m.acknowledged) pendingTask = m;
 
                     let rowHTML = `
                         <tr>
-                            <td><b>${m.machineId || machineDocId}</b></td>
-                            <td>${m.name} <button class="btn-3d" onclick="loadMachineModel('${m.name}', '${machineDocId}')">3D VIEW</button></td>
+                            <td><b>${machineIdAttr}</b></td>
+                            <td>${m.name} <button class="btn-3d" onclick="loadMachineModel('${m.name}', '${machineDocId}', '${machineIdAttr}')">3D VIEW</button></td>
                             <td>${m.section}</td>
                             <td>
                                 <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
@@ -243,6 +236,7 @@
             });
         }
 
+        // Standard logic for alerts and history remains same
         function startDangerCycle(name, section) {
             const trigger = () => {
                 const overlay = document.getElementById('dangerOverlay');
