@@ -152,7 +152,7 @@
             renderer.setSize(container.clientWidth, 400);
             container.appendChild(renderer.domElement);
 
-            addLights(); // Helper to add lights
+            addLights(); 
 
             camera.position.z = 5;
             camera.position.y = 1;
@@ -170,16 +170,19 @@
             scene.add(light);
         }
 
-        // --- UPDATED LOAD FUNCTION TO ENSURE VISUAL CHANGE ---
+        // --- FIXED LOAD FUNCTION ---
         window.loadMachineModel = (machineName) => {
             document.getElementById('maintTitle').innerText = `Maintenance: ${machineName}`;
             
-            // Clear entire scene to ensure it resets visually
+            // 1. CLEAR SCENE
             if (scene) {
-                scene.clear();
-                addLights(); // Put lights back
+                while(scene.children.length > 0){ 
+                    scene.remove(scene.children[0]); 
+                }
+                addLights();
             }
             
+            // 2. RESET TRACKING
             machineParts = [];
             activeGlowPart = "";
             selectedObject = null;
@@ -188,32 +191,35 @@
             let partsData = [];
             const nameLower = machineName.toLowerCase();
 
-            // Create different shapes/colors so the user sees the change
+            // 3. DEFINE DISTINCT MODELS
             if (nameLower.includes("robotic")) {
                 partsData = [
-                    { name: "Base_Joint", size: [1.5, 0.4, 1.5], pos: [0, -1, 0] },
-                    { name: "Main_Arm", size: [0.3, 2, 0.3], pos: [0, 0, 0] },
-                    { name: "Claw_Motor", size: [0.6, 0.6, 0.6], pos: [0, 1, 0] }
+                    { name: "ROBOT_BASE", size: [1.8, 0.4, 1.8], pos: [0, -1, 0], color: 0x444444 },
+                    { name: "SWIVEL_JOINT", size: [0.6, 0.8, 0.6], pos: [0, -0.4, 0], color: 0xe30613 },
+                    { name: "MAIN_ARM", size: [0.3, 2.5, 0.3], pos: [0, 1, 0], color: 0xe30613 }
                 ];
-            } else if (nameLower.includes("nut runner")) {
+            } else if (nameLower.includes("nut runner") || nameLower.includes("vissage")) {
                 partsData = [
-                    { name: "Pistol_Grip", size: [0.5, 1.2, 0.5], pos: [0, 0, 0] },
-                    { name: "Torque_Sensor", size: [0.4, 0.4, 1.5], pos: [0, 0.4, 0.5] }
+                    { name: "HANDLE", size: [0.5, 1.5, 0.5], pos: [0, 0, 0], color: 0x222222 },
+                    { name: "DRIVE_UNIT", size: [0.7, 0.7, 1.2], pos: [0, 0.8, 0.3], color: 0x0055aa },
+                    { name: "SOCKET", size: [0.2, 0.2, 0.8], pos: [0, 0.8, 1], color: 0xaaaaaa }
                 ];
             } else {
                 partsData = [
-                    { name: "Motor_Main", size: [1, 1.5, 1], pos: [0, 0, 0] },
-                    { name: "Hydraulic_Arm", size: [0.4, 2, 0.4], pos: [0, 1.5, 0] },
-                    { name: "Gearbox_Left", size: [0.8, 0.8, 0.8], pos: [-1, 0, 0] }
+                    { name: "MOTOR_BLOCK", size: [1.2, 1.2, 1.2], pos: [0, 0, 0], color: 0x666666 },
+                    { name: "COOLING_FAN", size: [1, 1, 0.2], pos: [0, 0, 0.7], color: 0x333333 },
+                    { name: "SENSOR_MOD", size: [0.4, 0.4, 0.4], pos: [0.8, 0.8, 0], color: 0xffcc00 }
                 ];
             }
 
+            // 4. RENDER
             partsData.forEach(p => {
                 const geo = new THREE.BoxGeometry(...p.size);
-                const mat = new THREE.MeshPhongMaterial({ color: 0x333333, shininess: 100 });
+                const mat = new THREE.MeshPhongMaterial({ color: p.color, shininess: 100 });
                 const mesh = new THREE.Mesh(geo, mat);
                 mesh.position.set(...p.pos);
                 mesh.userData.name = p.name;
+                mesh.userData.originalColor = p.color; // Save for resetting glow
                 scene.add(mesh);
                 machineParts.push(mesh);
             });
@@ -227,10 +233,6 @@
             const intersects = raycaster.intersectObjects(machineParts);
 
             if (intersects.length > 0) {
-                if(selectedObject) {
-                    selectedObject.material.color.setHex(0x333333);
-                    selectedObject.material.emissive.setHex(0x000000);
-                }
                 selectedObject = intersects[0].object;
                 activeGlowPart = selectedObject.userData.name;
                 document.getElementById('selectedPartName').innerText = selectedObject.userData.name;
@@ -239,16 +241,15 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            scene.rotation.y += 0.005;
+            if (scene) scene.rotation.y += 0.005;
+            
             if (activeGlowPart) {
                 const glow = (Math.sin(Date.now() * 0.005) + 1) / 2;
                 machineParts.forEach(p => {
                     if(p.userData.name === activeGlowPart) {
                         p.material.emissive.setRGB(glow, 0, 0);
-                        p.material.color.setRGB(glow, 0, 0);
                     } else {
                         p.material.emissive.setRGB(0, 0, 0);
-                        p.material.color.setHex(0x333333);
                     }
                 });
             }
