@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -18,11 +18,11 @@
         button:hover { background: #fff; color: #000; }
         .btn-toggle { background: #222; border: 1px solid #444; font-size: 0.7rem; padding: 5px 10px; margin-left: 10px; }
 
-        /* New Styles for Alerts */
-        .alert-triangle { color: #ffcc00; cursor: pointer; font-size: 1.2rem; animation: blinker 1s linear infinite; margin-left: 10px; vertical-align: middle; }
-        @keyframes blinker { 50% { opacity: 0; } }
-        .flowing-msg { color: #ffcc00; font-size: 0.7rem; font-style: italic; margin-left: 5px; }
-        .tech-select { background: #111; color: #ccc; border: 1px solid #333; padding: 5px; font-size: 0.75rem; margin-right: 5px; }
+        /* New Tech Styles */
+        .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; margin-right: 5px; }
+        .alert-triangle { color: #ffcc00; font-size: 1.2rem; cursor: pointer; animation: blink 1s infinite; margin-right: 8px; vertical-align: middle; }
+        .intervenir-msg { color: #ffcc00; font-size: 0.75rem; font-weight: bold; font-style: italic; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -49,8 +49,7 @@
                     <th>NAME</th>
                     <th>SECTION</th>
                     <th>STATUS</th>
-                    <th id="actionHeader"></th> 
-                </tr>
+                    <th id="actionHeader"></th> </tr>
             </thead>
             <tbody id="assetTable">
                 <tr><td colspan="5">Loading data from Firebase...</td></tr>
@@ -64,22 +63,22 @@
         import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-
-        // Hardcoded list of Jobson Technicians
-        const TECHNICIANS = [
-            "tech.alpha@jobson.com",
-            "tech.beta@jobson.com",
-            "tech.gamma@jobson.com"
-        ];
+        // Mock list of technicians - You can add more here
+        const TECH_LIST = ["amine@jobson.com", "yassine@jobson.com", "omar@jobson.com", "technicien1@jobson.com"];
 
         onAuthStateChanged(auth, (user) => {
-            if (!user) { window.location.href = "login.html"; return; }
+            if (!user) {
+                window.location.href = "login.html";
+                return;
+            }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
+
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
-                document.getElementById('actionHeader').innerText = "ACTIONS / ASSIGNMENT";
+                document.getElementById('actionHeader').innerText = "ASSIGNMENT & ACTIONS";
             }
+            
             loadMachinesLive();
         });
 
@@ -89,6 +88,7 @@
 
             onSnapshot(collection(db, "machines"), (snapshot) => {
                 tableBody.innerHTML = "";
+                
                 if (snapshot.empty) {
                     tableBody.innerHTML = "<tr><td colspan='5'>No machines found.</td></tr>";
                     return;
@@ -96,34 +96,93 @@
 
                 snapshot.forEach((snapshotDoc) => {
                     const m = snapshotDoc.data();
-                    const docId = snapshotDoc.id;
+                    const machineDocId = snapshotDoc.id;
                     const isWorking = m.status === "WORKING";
                     const statusClass = isWorking ? "status-working" : "status-breakdown";
-                    const isAssignedToMe = m.assignedTo === currentUserEmail;
+                    const isAssignedToMe = m.assignedTech === currentUserEmail;
 
                     let rowHTML = `
                         <tr>
-                            <td><b>${m.machineId || docId}</b></td>
+                            <td><b>${m.machineId || machineDocId}</b></td>
                             <td>${m.name}</td>
                             <td>${m.section}</td>
                             <td>
                                 <span class="${statusClass}">${m.status}</span>
-                                ${(!isWorking && isAssignedToMe) ? 
-                                    `<span class="alert-triangle" onclick="showTaskDetails('${m.name}', '${m.urgency}', '${m.timeframe}')">⚠️</span>
-                                     <span class="flowing-msg">Please intervenir!</span>` : ''}
+                                ${(!isWorking && isAssignedToMe) ? `
+                                    <span class="alert-triangle" onclick="openUrgencyInfo('${m.name}', 'CRITICAL', '2 Hours')">⚠️</span>
+                                    <span class="intervenir-msg">please intervenir</span>
+                                ` : ''}
                             </td>
                             <td>
                     `;
 
                     if (currentUserEmail === DIRECTOR) {
+                        let options = TECH_LIST.map(tech => `<option value="${tech}" ${m.assignedTech === tech ? 'selected' : ''}>${tech}</option>`).join('');
                         rowHTML += `
-                            <select class="tech-select" onchange="assignTech('${docId}', this.value)">
-                                <option value="">Assign Tech...</option>
-                                ${TECHNICIANS.map(t => `<option value="${t}" ${m.assignedTo === t ? 'selected' : ''}>${t.split('@')[0]}</option>`).join('')}
+                            <select class="tech-select" onchange="assignTech('${machineDocId}', this.value)">
+                                <option value="">Assign Technician...</option>
+                                ${options}
                             </select>
-                            <button class="btn-toggle" onclick="toggleMachineStatus('${docId}', '${m.status}')">
+                            <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">
                                 SET ${isWorking ? 'BREAKDOWN' : 'WORKING'}
                             </button>
                         `;
                     } else {
-                        rowHTML += `<span style="color:#555; font
+                        rowHTML += `<span style="color:#555; font-size:0.8rem;">Assigned: ${m.assignedTech || 'None'}</span>`;
+                    }
+
+                    rowHTML += `</td></tr>`;
+                    tableBody.innerHTML += rowHTML;
+                });
+            });
+        }
+
+        window.assignTech = async (docId, techEmail) => {
+            try {
+                await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail });
+            } catch (err) { alert("Error assigning tech."); }
+        };
+
+        window.openUrgencyInfo = (name, urgency, timeframe) => {
+            alert(`⚠️ PANNE URGENTE: ${name}\n\nUrgency Level: ${urgency}\nEstimated Resolution Time: ${timeframe}\nPlease proceed to the section immediately.`);
+        };
+
+        window.toggleMachineStatus = async (docId, currentStatus) => {
+            const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
+            try {
+                const machineRef = doc(db, "machines", docId);
+                await updateDoc(machineRef, {
+                    status: newStatus,
+                    lastUpdate: serverTimestamp(),
+                    modifiedBy: DIRECTOR
+                });
+            } catch (err) { alert("Error modifying machine status."); }
+        };
+
+        window.syncDatabase = async () => {
+            const file = document.getElementById('jsonInput').files[0];
+            if (!file) return alert("Select file!");
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    for (const item of data) {
+                        await setDoc(doc(db, "machines", item.id), {
+                            machineId: item.id,
+                            name: item.name,
+                            section: item.section,
+                            status: item.status || "WORKING",
+                            assignedTech: "",
+                            lastUpdate: serverTimestamp()
+                        }, { merge: true });
+                    }
+                    alert("Sync Success!");
+                } catch (err) { alert("Error reading JSON."); }
+            };
+            reader.readAsText(file);
+        };
+
+        window.logout = () => signOut(auth);
+    </script>
+</body>
+</html>
