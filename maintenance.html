@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Mercedes-Benz | Plant Operations</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
         .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10; }
@@ -17,15 +19,13 @@
         button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; }
         button:hover { background: #fff; color: #000; }
         .btn-toggle { background: #222; border: 1px solid #444; font-size: 0.7rem; padding: 5px 10px; margin-left: 10px; }
-        .btn-delete { background: #331111; color: #ff3333; border: 1px solid #552222; font-size: 0.7rem; padding: 5px 10px; margin-left: 5px; }
-        .btn-delete:hover { background: #ff3333; color: #fff; }
-
         .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; margin-right: 5px; }
         .alert-triangle { color: #ff0000; font-size: 1.5rem; cursor: pointer; animation: blink 0.8s infinite; margin-right: 8px; vertical-align: middle; }
+        .intervenir-msg { color: #ff0000; font-size: 0.75rem; font-weight: bold; font-style: italic; text-transform: uppercase; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
 
-        .btn-inspect { background: #444; color: #fff; font-size: 0.6rem; padding: 2px 6px; margin-left: 5px; vertical-align: middle; cursor: pointer; border-radius: 3px; }
-        .btn-inspect:hover { background: #e30613; }
+        .btn-3d { background: #444; color: #fff; font-size: 0.6rem; padding: 2px 6px; margin-left: 5px; vertical-align: middle; cursor: pointer; }
+        .btn-3d:hover { background: #666; }
 
         #dangerOverlay {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -39,32 +39,9 @@
         .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
 
         #maintenance3DContainer { background: #050505; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-top: 40px; }
-        .viewer-wrapper { width: 100%; height: 600px; background: #111; border: 1px solid #333; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        #interactiveImage { width: 100%; height: 100%; object-fit: contain; }
-        
-        /* THE PRECISION HEAT GLOW */
-        .hotspot {
-            position: absolute;
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 5;
-            transition: all 0.3s;
-        }
-        .hotspot.damaged {
-            background: radial-gradient(circle, rgba(255, 0, 0, 0.9) 0%, rgba(255, 0, 0, 0.2) 50%, transparent 80%);
-            box-shadow: 0 0 40px #ff0000;
-            animation: heat-pulse 1s infinite alternate;
-            border: none;
-        }
-        @keyframes heat-pulse {
-            from { transform: scale(0.9); opacity: 0.7; filter: blur(2px); }
-            to { transform: scale(1.2); opacity: 1; filter: blur(8px); }
-        }
-
-        #historyLog { margin-top: 30px; background: #0a0a0a; padding: 15px; border: 1px solid #222; max-height: 300px; overflow-y: auto; }
-        .log-entry { font-size: 0.75rem; border-bottom: 1px solid #111; padding: 5px 0; color: #aaa; }
-        .search-container { margin-bottom: 20px; }
-        #machineSearch { width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: white; border-radius: 4px; }
+        #threeCanvas { width: 100%; height: 400px; background: #000; border: 1px solid #222; cursor: grab; }
+        .incident-card { background: #111; border-left: 5px solid #e30613; padding: 15px; margin-bottom: 10px; }
+        .pain-glow-text { color: #ff3333; text-shadow: 0 0 10px red; font-weight: bold; animation: pulse 1s infinite; }
     </style>
 </head>
 <body>
@@ -73,7 +50,7 @@
         <div class="giant-triangle">⚠️</div>
         <div class="danger-text">CRITICAL PANNE</div>
         <div id="dangerDescription" style="font-size: 1.8rem; margin-top: 15px; font-weight: bold; background: black; padding: 10px 20px;"></div>
-        <p style="margin-top: 20px; color: yellow;">SELECT THE GLOWING PART TO REPAIR</p>
+        <p style="margin-top: 20px; color: yellow;">CLICK THE SMALL TRIANGLE IN THE LIST TO ACKNOWLEDGE</p>
     </div>
 
     <div class="sidebar">
@@ -85,15 +62,11 @@
     <div class="main">
         <div id="adminPanel">
             <h3 style="margin-top:0">DIRECTOR SYNC</h3>
-            <button onclick="pushAllMachines()">INJECT 105 ASSETS</button>
+            <input type="file" id="jsonInput" accept=".json">
+            <button onclick="syncDatabase()">PUSH 105 MACHINES</button>
         </div>
 
         <h1>Plant Asset Library</h1>
-
-        <div class="search-container">
-            <input type="text" id="machineSearch" placeholder="Search by ID, Name or Section (e.g. Paint Shop)..." onkeyup="filterTable()">
-        </div>
-
         <table>
             <thead>
                 <tr>
@@ -101,163 +74,68 @@
                     <th>NAME</th>
                     <th>SECTION</th>
                     <th>STATUS</th>
-                    <th>ASSIGNMENT</th>
+                    <th id="actionHeader"></th>
                 </tr>
             </thead>
             <tbody id="assetTable">
-                <tr><td colspan="5">Initializing Mercedes Asset Cloud...</td></tr>
+                <tr><td colspan="5">Loading data from Firebase...</td></tr>
             </tbody>
         </table>
 
         <div id="maintenance3DContainer">
-            <h2 id="maintTitle">Interactive Maintenance View</h2>
-            <div class="viewer-wrapper" id="hotspotContainer">
-                <p id="viewerPlaceholder">Select a machine from the list to inspect internal parts</p>
+            <h2 id="maintTitle">Demande d'Intervention (3D Digital Twin)</h2>
+            <div id="threeCanvas"></div>
+            <p style="font-size: 0.8rem; color: #888;">Left Click: Rotate | Right Click: Pan | Scroll: Zoom | Click component to select</p>
+            
+            <div id="techCreateIncident" style="display:none;">
+                <p>Selected Part: <b id="selectedPartName" style="color:#e30613;">None</b></p>
+                <textarea id="panneDesc" placeholder="Describe the failure..." style="width:100%; height:60px; background:#111; color:#fff; border:1px solid #333; padding:10px;"></textarea>
+                <select id="panneCrit" style="width:100%; margin-top:10px; padding:10px; background:#111; color:#fff;">
+                    <option value="Minor">Low Criticality</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="CRITICAL">CRITICAL - STOP LINE</option>
+                </select>
+                <button onclick="submit3DIncident()" style="margin-top:15px; width:100%;">SEND INCIDENT TO MOHAMED</button>
             </div>
-            <p style="font-size: 0.8rem; color: #888; margin-top:10px;">Status: Connected to Real-time Asset Monitoring</p>
-        </div>
 
-        <div id="historyLog">
-            <h4 style="margin:0 0 10px 0; color: #666; font-size: 0.7rem; text-transform: uppercase;">Operation History</h4>
-            <div id="historyContent"></div>
+            <div id="mohamedIncidentView" style="display:none;">
+                <div id="incidentList3D"></div>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
         let alertInterval = null;
 
-        // REAL INDUSTRIAL ASSET LIBRARY (Add your specific 105 URLs here)
-        const MACHINE_SCHEMATICS = {
-            "MB-ASS-001": { img: "https://p0.pxfuel.com/preview/44/149/1010/robot-robotic-arm-arm-industry.jpg", parts: [{name:"Joint Axis Screw", t:"42%", l:"48%", w:"60px", h:"60px"}] },
-            "MB-ASS-006": { img: "https://img.freepik.com/premium-photo/conveyor-belt-factory-production-line-manufacture-process-industrial-background_103024-526.jpg", parts: [{name:"Drive Motor Pipe", t:"65%", l:"20%", w:"80px", h:"80px"}] },
-            "MB-ASS-029": { img: "https://p1.pxfuel.com/preview/959/347/439/exhaust-system-exhaust-pipe-tube-steel.jpg", parts: [{name:"Exhaust Valve", t:"30%", l:"50%", w:"70px", h:"70px"}] },
-            "MB-ENG-001": { img: "https://img.freepik.com/premium-photo/engine-assembly-line-modern-car-factory_255667-274.jpg", parts: [{name:"Cylinder Bolt", t:"45%", l:"40%", w:"50px", h:"50px"}] },
-            "DEFAULT": { img: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1500", parts: [{name:"Core Component", t:"50%", l:"50%", w:"100px", h:"100px"}] }
-        };
+        // 3D Variables
+        let scene, camera, renderer, machineParts = [], controls;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let selectedObject = null;
+        let activeGlowPart = "";
 
-        
-
-        const MACHINE_DATA = [
-            { id: "MB-ASS-001", name: "Robotic Arm KUKA-X1", sec: "Assembly" },
-            { id: "MB-ASS-002", name: "Robotic Arm KUKA-X2", sec: "Assembly" },
-            { id: "MB-ASS-003", name: "Nut Runner Station A1", sec: "Assembly" },
-            { id: "MB-ASS-004", name: "Nut Runner Station A2", sec: "Assembly" },
-            { id: "MB-ASS-005", name: "Glass Fit Robot G1", sec: "Assembly" },
-            { id: "MB-ASS-006", name: "Interior Line Conveyor", sec: "Assembly" },
-            { id: "MB-ASS-007", name: "Marriage Station 1", sec: "Assembly" },
-            { id: "MB-ASS-008", name: "Marriage Station 2", sec: "Assembly" },
-            { id: "MB-ASS-009", name: "Fluid Fill Station", sec: "Assembly" },
-            { id: "MB-ASS-010", name: "Seat Installation Lift", sec: "Assembly" },
-            { id: "MB-ASS-011", name: "Battery Mount Station", sec: "Assembly" },
-            { id: "MB-ASS-012", name: "Final Trim Press", sec: "Assembly" },
-            { id: "MB-ASS-013", name: "Wheel Mount Robot W1", sec: "Assembly" },
-            { id: "MB-ASS-014", name: "Wheel Mount Robot W2", sec: "Assembly" },
-            { id: "MB-ASS-015", name: "Roof Laser Welder", sec: "Assembly" },
-            { id: "MB-ASS-016", name: "Door Seal Press", sec: "Assembly" },
-            { id: "MB-ASS-017", name: "Underbody Bolting A", sec: "Assembly" },
-            { id: "MB-ASS-018", name: "Underbody Bolting B", sec: "Assembly" },
-            { id: "MB-ASS-019", name: "Front Fascia Station", sec: "Assembly" },
-            { id: "MB-ASS-020", name: "Harness Router H1", sec: "Assembly" },
-            { id: "MB-ASS-021", name: "Harness Router H2", sec: "Assembly" },
-            { id: "MB-ASS-022", name: "Tire Pressure Station", sec: "Assembly" },
-            { id: "MB-ASS-023", name: "Sunroof Fit Unit", sec: "Assembly" },
-            { id: "MB-ASS-024", name: "Mirror Mount Robot", sec: "Assembly" },
-            { id: "MB-ASS-025", name: "Emblem Press", sec: "Assembly" },
-            { id: "MB-ASS-026", name: "Headlight Aiming Cell", sec: "Assembly" },
-            { id: "MB-ASS-027", name: "Sound Deadening Robot", sec: "Assembly" },
-            { id: "MB-ASS-028", name: "Brake Line Bender", sec: "Assembly" },
-            { id: "MB-ASS-029", name: "Exhaust Lift Unit", sec: "Assembly" },
-            { id: "MB-ASS-030", name: "Fuel Tank Station", sec: "Assembly" },
-            { id: "MB-ASS-031", name: "Cockpit Module Lift", sec: "Assembly" },
-            { id: "MB-ASS-032", name: "Center Console Unit", sec: "Assembly" },
-            { id: "MB-ASS-033", name: "Floor Carpet Press", sec: "Assembly" },
-            { id: "MB-ASS-034", name: "Steering Column Tool", sec: "Assembly" },
-            { id: "MB-ASS-035", name: "Airbag Test Unit", sec: "Assembly" },
-            { id: "MB-ASS-036", name: "Wiper Motor Station", sec: "Assembly" },
-            { id: "MB-ASS-037", name: "Speaker Fit Robot", sec: "Assembly" },
-            { id: "MB-ASS-038", name: "Trunk Liner Unit", sec: "Assembly" },
-            { id: "MB-ASS-039", name: "Hood Latch Station", sec: "Assembly" },
-            { id: "MB-ASS-040", name: "Badging Station B2", sec: "Assembly" },
-            { id: "MB-ENG-001", name: "Crankshaft Press", sec: "Engine Prep" },
-            { id: "MB-ENG-002", name: "Piston Inserter P1", sec: "Engine Prep" },
-            { id: "MB-ENG-003", name: "Cylinder Head Bolt", sec: "Engine Prep" },
-            { id: "MB-ENG-004", name: "Leak Test Cell 1", sec: "Engine Prep" },
-            { id: "MB-ENG-005", name: "Cold Test Rig", sec: "Engine Prep" },
-            { id: "MB-ENG-006", name: "Flywheel Press", sec: "Engine Prep" },
-            { id: "MB-ENG-007", name: "Oil Fill Pump", sec: "Engine Prep" },
-            { id: "MB-ENG-008", name: "Valve Lash Adjuster", sec: "Engine Prep" },
-            { id: "MB-ENG-009", name: "Timing Chain Tool", sec: "Engine Prep" },
-            { id: "MB-ENG-010", name: "Camshaft Grinder", sec: "Engine Prep" },
-            { id: "MB-ENG-011", name: "Engine Conveyor E1", sec: "Engine Prep" },
-            { id: "MB-ENG-012", name: "Turbocharger Mount", sec: "Engine Prep" },
-            { id: "MB-ENG-013", name: "Alternator Torque T1", sec: "Engine Prep" },
-            { id: "MB-ENG-014", name: "Belt Tensioner Unit", sec: "Engine Prep" },
-            { id: "MB-ENG-015", name: "Starter Motor Test", sec: "Engine Prep" },
-            { id: "MB-ENG-016", name: "Exhaust Manifold Fit", sec: "Engine Prep" },
-            { id: "MB-ENG-017", name: "Sensors Plug-in Robot", sec: "Engine Prep" },
-            { id: "MB-ENG-018", name: "Fuel Rail Inserter", sec: "Engine Prep" },
-            { id: "MB-ENG-019", name: "Spark Plug Torque", sec: "Engine Prep" },
-            { id: "MB-ENG-020", name: "Final Engine Wash", sec: "Engine Prep" },
-            { id: "MB-LOG-001", name: "AGV Carrier 101", sec: "Logistics" },
-            { id: "MB-LOG-002", name: "AGV Carrier 102", sec: "Logistics" },
-            { id: "MB-LOG-003", name: "AGV Carrier 103", sec: "Logistics" },
-            { id: "MB-LOG-004", name: "High-Bay Crane 1", sec: "Logistics" },
-            { id: "MB-LOG-005", name: "High-Bay Crane 2", sec: "Logistics" },
-            { id: "MB-LOG-006", name: "Pallet Wrapper W1", sec: "Logistics" },
-            { id: "MB-LOG-007", name: "Battery Charger S1", sec: "Logistics" },
-            { id: "MB-LOG-008", name: "Dock Leveler D1", sec: "Logistics" },
-            { id: "MB-LOG-009", name: "Smart Conveyor B2", sec: "Logistics" },
-            { id: "MB-LOG-010", name: "Barcode Scanner Portal", sec: "Logistics" },
-            { id: "MB-PNT-001", name: "E-Coat Dip Tank", sec: "Paint Shop" },
-            { id: "MB-PNT-002", name: "Drying Oven 1", sec: "Paint Shop" },
-            { id: "MB-PNT-003", name: "Spray Booth Alpha", sec: "Paint Shop" },
-            { id: "MB-PNT-004", name: "Spray Booth Beta", sec: "Paint Shop" },
-            { id: "MB-PNT-005", name: "Sanding Robot S1", sec: "Paint Shop" },
-            { id: "MB-PNT-006", name: "Sealer Robot S2", sec: "Paint Shop" },
-            { id: "MB-PNT-007", name: "Air Filtration U1", sec: "Paint Shop" },
-            { id: "MB-PNT-008", name: "Mixing Station M1", sec: "Paint Shop" },
-            { id: "MB-PNT-009", name: "Primer Robot P1", sec: "Paint Shop" },
-            { id: "MB-PNT-010", name: "Quality Light Tunnel", sec: "Paint Shop" },
-            { id: "MB-PNT-011", name: "Paint Pump Unit 1", sec: "Paint Shop" },
-            { id: "MB-PNT-012", name: "Paint Pump Unit 2", sec: "Paint Shop" },
-            { id: "MB-PNT-013", name: "Sludge Separator", sec: "Paint Shop" },
-            { id: "MB-PNT-014", name: "Flash-off Zone 1", sec: "Paint Shop" },
-            { id: "MB-PNT-015", name: "Wax Injection Unit", sec: "Paint Shop" },
-            { id: "MB-PNT-016", name: "Inspection Deck A", sec: "Paint Shop" },
-            { id: "MB-PNT-017", name: "Conveyor Line P1", sec: "Paint Shop" },
-            { id: "MB-PNT-018", name: "Conveyor Line P2", sec: "Paint Shop" },
-            { id: "MB-PNT-019", name: "Solvent Recovery U1", sec: "Paint Shop" },
-            { id: "MB-PNT-020", name: "Burn-off Oven", sec: "Paint Shop" },
-            { id: "MB-PNT-021", name: "Robot Atomizer A1", sec: "Paint Shop" },
-            { id: "MB-PNT-022", name: "Robot Atomizer A2", sec: "Paint Shop" },
-            { id: "MB-PNT-023", name: "Robot Atomizer A3", sec: "Paint Shop" },
-            { id: "MB-PNT-024", name: "Robot Atomizer A4", sec: "Paint Shop" },
-            { id: "MB-PNT-025", name: "Dust Collector U1", sec: "Paint Shop" },
-            { id: "MB-QC-001", name: "Laser Scanner 3D", sec: "Quality" },
-            { id: "MB-QC-002", name: "Rain Test Chamber", sec: "Quality" },
-            { id: "MB-QC-003", name: "Dynamic Dyno 01", sec: "Quality" },
-            { id: "MB-QC-004", name: "Wheel Align Laser", sec: "Quality" },
-            { id: "MB-QC-005", name: "Brake Force Tester", sec: "Quality" },
-            { id: "MB-QC-006", name: "Squeak & Rattle Track", sec: "Quality" },
-            { id: "MB-QC-007", name: "Exhaust Emission Lab", sec: "Quality" },
-            { id: "MB-QC-008", name: "Electrical Audit Cell", sec: "Quality" },
-            { id: "MB-QC-009", name: "Gap & Flush Sensor", sec: "Quality" },
-            { id: "MB-QC-010", name: "Final Finish Deck", sec: "Quality" }
-        ];
-
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
+            if (!scene) init3D(); 
+
+            if (email !== DIRECTOR) {
+                await setDoc(doc(db, "users", email), { email: email, lastSeen: serverTimestamp() }, { merge: true });
+                document.getElementById('techCreateIncident').style.display = "block";
+            }
+
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
+                document.getElementById('mohamedIncidentView').style.display = "block";
+                listenFor3DIncidents();
                 onSnapshot(collection(db, "users"), (snap) => {
                     techList = []; snap.forEach(d => techList.push(d.id));
                     loadMachinesLive();
@@ -265,114 +143,334 @@
             } else {
                 loadMachinesLive();
             }
-            listenForHistory();
         });
 
-        window.loadInspectView = (name, docId, machineId, status) => {
-            const container = document.getElementById('hotspotContainer');
-            const schematic = MACHINE_SCHEMATICS[machineId] || MACHINE_SCHEMATICS.DEFAULT;
+        function init3D() {
+            const container = document.getElementById('threeCanvas');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050505);
             
-            document.getElementById('maintTitle').innerText = `Precision Diagnostic: ${name}`;
-            let html = `<img src="${schematic.img}" id="interactiveImage">`;
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / 400, 0.1, 1000);
+            camera.position.set(8, 6, 10);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, 400);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            if (THREE.OrbitControls) {
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+            }
+
+            addLights(); 
+            animate();
+            container.addEventListener('mousedown', on3DClick);
+            loadMachineModel("General System");
+        }
+
+        function addLights() {
+            const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambient);
+            const p1 = new THREE.PointLight(0xffffff, 0.8);
+            p1.position.set(10, 10, 10);
+            scene.add(p1);
+        }
+
+        window.loadMachineModel = (machineName) => {
+            document.getElementById('maintTitle').innerText = `Maintenance Digital Twin: ${machineName}`;
             
-            schematic.parts.forEach(part => {
-                const isGlow = (status === "BREAKDOWN");
-                html += `<div class="hotspot ${isGlow ? 'damaged' : ''}" 
-                             style="top:${part.t}; left:${part.l}; width:${part.w}; height:${part.h};"
-                             onclick="repairAction('${docId}', '${part.name}')"
-                             title="${part.name}"></div>`;
+            const toRemove = [];
+            scene.traverse(child => { if(child.isMesh) toRemove.push(child); });
+            toRemove.forEach(obj => {
+                if(obj.geometry) obj.geometry.dispose();
+                scene.remove(obj);
             });
 
-            container.innerHTML = html;
-            container.parentElement.scrollIntoView({ behavior: 'smooth' });
-        };
+            machineParts = [];
+            activeGlowPart = "";
+            selectedObject = null;
+            document.getElementById('selectedPartName').innerText = "None";
 
-        window.repairAction = async (docId, partName) => {
-            if(confirm(`Fix ${partName}?`)) {
-                stopDangerCycle();
-                await updateDoc(doc(db, "machines", docId), { status: "WORKING", acknowledged: true });
-                alert("Component restored. Machine online.");
+            const nameLower = machineName.toLowerCase();
+            const machineGroup = new THREE.Group();
+
+            // Industrial Materials
+            const matOrange = new THREE.MeshPhongMaterial({ color: 0xff5500, emissive: 0x000000 });
+            const matSteel = new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x000000, shininess: 100 });
+            const matDark = new THREE.MeshPhongMaterial({ color: 0x222222, emissive: 0x000000 });
+
+            // CORRECT DETAILED DESIGNS
+            if (nameLower.includes("robot") || nameLower.includes("kuka") || nameLower.includes("fanuc")) {
+                const base = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, 0.6, 32), matSteel);
+                base.position.y = 0.3; base.userData.name = "AXIS_1_ROTATION_BASE";
+                machineGroup.add(base); machineParts.push(base);
+                
+                const shoulder = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), matOrange);
+                shoulder.position.y = 1.2; shoulder.userData.name = "AXIS_2_SHOULDER_JOINT";
+                machineGroup.add(shoulder); machineParts.push(shoulder);
+
+                const lowerArm = new THREE.Mesh(new THREE.BoxGeometry(0.6, 3, 0.6), matOrange);
+                lowerArm.position.y = 3.3; lowerArm.userData.name = "MAIN_LIFT_ARM_LINK";
+                machineGroup.add(lowerArm); machineParts.push(lowerArm);
+
+                const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), matSteel);
+                elbow.position.y = 4.8; elbow.userData.name = "AXIS_3_ELBOW";
+                machineGroup.add(elbow); machineParts.push(elbow);
+
+                const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2, 16), matOrange);
+                upperArm.rotation.z = Math.PI / 4; upperArm.position.set(0.7, 5.5, 0);
+                upperArm.userData.name = "AXIS_4_FOREARM";
+                machineGroup.add(upperArm); machineParts.push(upperArm);
+
+                const tool = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.8), matDark);
+                tool.position.set(1.5, 6.2, 0); tool.userData.name = "END_EFFECTOR_TOOL";
+                machineGroup.add(tool); machineParts.push(tool);
+
+            } else if (nameLower.includes("cnc") || nameLower.includes("mill") || nameLower.includes("press")) {
+                const body = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 4), matDark);
+                body.position.y = 2.5; body.userData.name = "MAIN_MACHINE_ENCLOSURE";
+                machineGroup.add(body); machineParts.push(body);
+
+                const table = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.4, 3.5), matSteel);
+                table.position.y = 1.2; table.userData.name = "X_Y_AXIS_WORKTABLE";
+                machineGroup.add(table); machineParts.push(table);
+
+                const spindle = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.5, 32), matSteel);
+                spindle.position.y = 3.5; spindle.userData.name = "HIGH_SPEED_SPINDLE_MOTOR";
+                machineGroup.add(spindle); machineParts.push(spindle);
+
+                const panel = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1, 0.8), matOrange);
+                panel.position.set(2.1, 3, 1); panel.userData.name = "OPERATOR_HMI_INTERFACE";
+                machineGroup.add(panel); machineParts.push(panel);
+
+            } else if (nameLower.includes("conveyor") || nameLower.includes("line")) {
+                const railL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 8), matSteel);
+                railL.position.set(-1, 0.4, 0); railL.userData.name = "LEFT_CHASSIS_RAIL";
+                machineGroup.add(railL); machineParts.push(railL);
+
+                const railR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 8), matSteel);
+                railR.position.set(1, 0.4, 0); railR.userData.name = "RIGHT_CHASSIS_RAIL";
+                machineGroup.add(railR); machineParts.push(railR);
+
+                for(let z = -3.5; z <= 3.5; z += 0.7) {
+                    const roller = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.8, 16), matDark);
+                    roller.rotation.z = Math.PI/2; roller.position.set(0, 0.6, z);
+                    roller.userData.name = `DRIVE_ROLLER_UNIT_${Math.floor(z+4)}`;
+                    machineGroup.add(roller); machineParts.push(roller);
+                }
+
+                const motor = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.8), matOrange);
+                motor.position.set(1.3, 0.4, 3); motor.userData.name = "ASYNCHRONOUS_DRIVE_MOTOR";
+                machineGroup.add(motor); machineParts.push(motor);
+
+            } else {
+                const cabinet = new THREE.Mesh(new THREE.BoxGeometry(2, 4, 1.5), matSteel);
+                cabinet.position.y = 2; cabinet.userData.name = "POWER_CONTROL_CABINET";
+                machineGroup.add(cabinet); machineParts.push(cabinet);
+                
+                const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.8), new THREE.MeshBasicMaterial({color: 0x002200}));
+                screen.position.set(0, 2.5, 0.76); screen.userData.name = "SYSTEM_STATUS_DISPLAY";
+                machineGroup.add(screen); machineParts.push(screen);
             }
+
+            scene.add(machineGroup);
+            if(controls) controls.reset();
         };
 
-        function loadMachinesLive() {
-            const tableBody = document.getElementById('assetTable');
-            const currentUser = auth.currentUser.email.toLowerCase();
-            onSnapshot(collection(db, "machines"), (snapshot) => {
-                tableBody.innerHTML = "";
-                let pendingTask = null;
-                snapshot.forEach((snapDoc) => {
-                    const m = snapDoc.data();
-                    const id = snapDoc.id;
-                    const isWorking = m.status === "WORKING";
-                    const isAssigned = m.assignedTech === currentUser;
-                    
-                    if(!isWorking && isAssigned && !m.acknowledged) pendingTask = m;
+        function on3DClick(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(machineParts);
 
-                    let row = `<tr>
-                        <td><b>${m.machineId}</b></td>
-                        <td>${m.name} <button class="btn-inspect" onclick="loadInspectView('${m.name}','${id}','${m.machineId}','${m.status}')">INSPECT</button></td>
-                        <td>${m.section}</td>
-                        <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span></td>
-                        <td>`;
-                    
-                    if(currentUser === DIRECTOR) {
-                        let opts = techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('');
-                        row += `<select onchange="assignTech('${id}', this.value)"><option value="">Unassigned</option>${opts}</select>
-                                <button class="btn-toggle" onclick="toggleStatus('${id}','${m.status}')">TGL</button>
-                                <button class="btn-delete" onclick="deleteMachine('${id}')">X</button>`;
+            if (intersects.length > 0) {
+                selectedObject = intersects[0].object;
+                activeGlowPart = selectedObject.userData.name;
+                document.getElementById('selectedPartName').innerText = selectedObject.userData.name;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) controls.update(); 
+            if (activeGlowPart) {
+                const glow = (Math.sin(Date.now() * 0.005) + 1) / 2;
+                machineParts.forEach(p => {
+                    if(p.userData.name === activeGlowPart) {
+                        if(p.material.emissive) p.material.emissive.setRGB(glow * 0.6, 0, 0);
                     } else {
-                        row += `<span>${m.assignedTech || 'Unassigned'}</span>`;
+                        if(p.material.emissive) p.material.emissive.setRGB(0, 0, 0);
                     }
-                    row += `</td></tr>`;
-                    tableBody.innerHTML += row;
                 });
-                if(pendingTask && !alertInterval) startDangerCycle(pendingTask.name, pendingTask.section);
-                else if(!pendingTask) stopDangerCycle();
+            }
+            renderer.render(scene, camera);
+        }
+
+        window.submit3DIncident = async () => {
+            if(!selectedObject) return alert("Select the part in 3D first!");
+            const desc = document.getElementById('panneDesc').value;
+            const crit = document.getElementById('panneCrit').value;
+            await addDoc(collection(db, "incidents3d"), {
+                part: selectedObject.userData.name,
+                description: desc,
+                criticality: crit,
+                reporter: auth.currentUser.email,
+                time: serverTimestamp()
+            });
+            alert("Incident Sent to Mohamed!");
+            document.getElementById('panneDesc').value = "";
+        };
+
+        function listenFor3DIncidents() {
+            onSnapshot(collection(db, "incidents3d"), (snap) => {
+                const log = document.getElementById('incidentList3D');
+                log.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    log.innerHTML += `
+                        <div class="incident-card">
+                            <div class="pain-glow-text">DETECTED MECHANICAL PAIN</div>
+                            <strong>PART: ${data.part}</strong><br>
+                            <small>Criticality: ${data.criticality} | By: ${data.reporter}</small>
+                            <p>${data.description}</p>
+                            <hr style="border:0; border-top:1px solid #222">
+                            <small style="color:#666">Probable Cause: Overheating</small>
+                        </div>
+                    `;
+                });
             });
         }
 
-        window.pushAllMachines = async () => {
-            if(!confirm("Push all 105 machines to Firebase?")) return;
-            for(const m of MACHINE_DATA) {
-                await setDoc(doc(db, "machines", m.id), {
-                    machineId: m.id, name: m.name, section: m.sec,
-                    status: "WORKING", assignedTech: "", acknowledged: false
-                }, { merge: true });
-            }
-            alert("Database Synced Successfully.");
-        };
+        function loadMachinesLive() {
+            const tableBody = document.getElementById('assetTable');
+            const currentUserEmail = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
+
+            onSnapshot(collection(db, "machines"), (snapshot) => {
+                tableBody.innerHTML = "";
+                let pendingTask = null;
+
+                snapshot.forEach((snapshotDoc) => {
+                    const m = snapshotDoc.data();
+                    const machineDocId = snapshotDoc.id;
+                    const isWorking = m.status === "WORKING";
+                    const isAssignedToMe = m.assignedTech === currentUserEmail;
+
+                    if (!isWorking && isAssignedToMe && !m.acknowledged) pendingTask = m;
+
+                    let rowHTML = `
+                        <tr>
+                            <td><b>${m.machineId || machineDocId}</b></td>
+                            <td>${m.name} <button class="btn-3d" onclick="loadMachineModel('${m.name}')">OPEN 3D</button></td>
+                            <td>${m.section}</td>
+                            <td>
+                                <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
+                                ${(!isWorking && isAssignedToMe) ? `
+                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}', '${m.name}')">⚠️</span>
+                                    <span class="intervenir-msg">please intervenir</span>
+                                ` : ''}
+                            </td>
+                            <td>
+                    `;
+
+                    if (currentUserEmail === DIRECTOR) {
+                        let options = techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('');
+                        rowHTML += `
+                            <select class="tech-select" onchange="assignTech('${machineDocId}', this.value)">
+                                <option value="">Assign Tech...</option>${options}
+                            </select>
+                            <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">
+                                SET ${isWorking ? 'BREAKDOWN' : 'WORKING'}
+                            </button>
+                        `;
+                    } else {
+                        rowHTML += `<span style="color:#555; font-size:0.8rem;">${m.assignedTech || 'Unassigned'}</span>`;
+                    }
+                    rowHTML += `</td></tr>`;
+                    tableBody.innerHTML += rowHTML;
+                });
+
+                if (pendingTask && !alertInterval) startDangerCycle(pendingTask.name, pendingTask.section);
+                else if (!pendingTask) stopDangerCycle();
+            });
+        }
 
         function startDangerCycle(name, section) {
             const trigger = () => {
+                const userName = auth.currentUser.email.split('@')[0];
                 const overlay = document.getElementById('dangerOverlay');
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 overlay.style.display = 'flex';
-                const msg = new SpeechSynthesisUtterance(`Emergency breakdown at ${name}`);
+                
+                // Siren Sound Logic
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 2);
+                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 4);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 10);
+
+                const msg = new SpeechSynthesisUtterance();
+                msg.text = `Attention ${userName}. There is a breakdown at ${name}.`;
                 window.speechSynthesis.speak(msg);
-                alertInterval = setTimeout(() => { overlay.style.display = 'none'; alertInterval = setTimeout(trigger, 5000); }, 8000);
+
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    alertInterval = setTimeout(trigger, 5000);
+                }, 10000);
             };
             trigger();
         }
 
-        function stopDangerCycle() { clearTimeout(alertInterval); alertInterval = null; document.getElementById('dangerOverlay').style.display = 'none'; }
-        window.toggleStatus = async (id, s) => { await updateDoc(doc(db, "machines", id), { status: s === "WORKING" ? "BREAKDOWN" : "WORKING", acknowledged: false }); };
-        window.assignTech = async (id, t) => { await updateDoc(doc(db, "machines", id), { assignedTech: t.toLowerCase(), acknowledged: false }); };
-        window.deleteMachine = async (id) => { if(confirm("Del?")) await deleteDoc(doc(db, "machines", id)); };
-        
-        function listenForHistory() {
-            onSnapshot(query(collection(db, "history"), orderBy("time", "desc"), limit(10)), (snap) => {
-                const cont = document.getElementById('historyContent');
-                cont.innerHTML = "";
-                snap.forEach(d => { cont.innerHTML += `<div class="log-entry">[${d.data().time?.toDate().toLocaleTimeString() || '...'}] ${d.data().msg}</div>`; });
-            });
+        function stopDangerCycle() {
+            clearTimeout(alertInterval);
+            alertInterval = null;
+            window.speechSynthesis.cancel();
+            document.getElementById('dangerOverlay').style.display = 'none';
         }
 
-        window.filterTable = () => {
-            let input = document.getElementById("machineSearch").value.toLowerCase();
-            let rows = document.getElementById("assetTable").getElementsByTagName("tr");
-            for(let row of rows) { row.style.display = row.innerText.toLowerCase().includes(input) ? "" : "none"; }
+        window.acknowledgeTask = async (docId, name) => {
+            stopDangerCycle();
+            await updateDoc(doc(db, "machines", docId), { acknowledged: true });
         };
+
+        window.assignTech = async (docId, techEmail) => {
+            await updateDoc(doc(db, "machines", docId), { 
+                assignedTech: techEmail.toLowerCase(),
+                acknowledged: false 
+            });
+        };
+
+        window.toggleMachineStatus = async (docId, currentStatus) => {
+            const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
+            await updateDoc(doc(db, "machines", docId), {
+                status: newStatus,
+                acknowledged: false
+            });
+        };
+
+        window.syncDatabase = async () => {
+            const file = document.getElementById('jsonInput').files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = JSON.parse(e.target.result);
+                for (const item of data) {
+                    await setDoc(doc(db, "machines", item.id), {
+                        machineId: item.id, name: item.name, section: item.section,
+                        status: "WORKING", assignedTech: "", acknowledged: false
+                    }, { merge: true });
+                }
+                alert("Sync Success!");
+            };
+            reader.readAsText(file);
+        };
+
         window.logout = () => signOut(auth);
     </script>
 </body>
