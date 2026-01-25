@@ -42,9 +42,11 @@
         .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
 
         #maintenance3DContainer { background: #050505; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-top: 40px; }
-        #threeCanvas { width: 100%; height: 500px; background: #000; border: 1px solid #222; cursor: grab; }
+        #threeCanvas { width: 100%; height: 500px; background: #000; border: 1px solid #222; cursor: grab; position: relative; }
         
-        /* NEW FEATURE: Machine Image Style */
+        #external3DLink { position: absolute; bottom: 20px; right: 20px; z-index: 100; display: none; background: #e30613; color: white; text-decoration: none; padding: 10px 15px; font-weight: bold; font-size: 0.8rem; border-radius: 4px; }
+        #external3DLink:hover { background: white; color: black; }
+
         #machineImageDisplay { width: 100%; max-height: 250px; object-fit: contain; margin-bottom: 15px; border: 1px solid #333; background: #000; }
         
         .incident-card { background: #111; border-left: 5px solid #e30613; padding: 15px; margin-bottom: 10px; border-bottom: 1px solid #222; }
@@ -116,8 +118,10 @@
                         <button onclick="uploadMachineImage()" style="padding: 5px 10px; font-size: 0.7rem; margin-top:5px;">SAVE PHOTO</button>
                     </div>
                 </div>
-                <div style="flex: 2; height: 500px; border: 1px solid #333;">
-                    <div id="threeCanvas"></div>
+                <div style="flex: 2; height: 500px; border: 1px solid #333; position: relative;">
+                    <div id="threeCanvas">
+                         <a id="external3DLink" href="#" target="_blank">VIEW CAD MODEL 🔗</a>
+                    </div>
                 </div>
             </div>
 
@@ -161,13 +165,33 @@
         let techList = [];
         let alertInterval = null;
 
+        // LIBRARY OF 3D MODELS
+        const MODEL_LIBRARY = {
+            "MB-ASS-001": "https://grabcad.com/library/kuka-kr-6-1",
+            "MB-ASS-002": "https://grabcad.com/library/all-kuka-models-1",
+            "MB-ASS-003": "https://www.traceparts.com/en/search/atlas-copco-assembly-tools-and-solutions-assembly-solutions-pneumatic-assembly-tools-pneumatic-nutrunners?CatalogPath=ATLAS_COPCO%3AATLAS_COPCO.010.010.020",
+            "MB-ASS-006": "https://grabcad.com/library/tag/conveyor",
+            "MB-ASS-015": "https://grabcad.com/library/robotic-welding-station-1",
+            "MB-ASS-031": "https://grabcad.com/library/tag/lifter",
+            "MB-ENG-001": "https://grabcad.com/library/crank-shaft-assembly-1",
+            "MB-ENG-004": "https://grabcad.com/library/tag/test-bench",
+            "MB-ENG-011": "https://machine-world.net/library/industrial-3d-model-engine-assembly-line/",
+            "MB-LOG-001": "https://grabcad.com/library/mack-autonomous-guided-vehicle-for-warehouse-1",
+            "MB-LOG-004": "https://grabcad.com/library/as-rs-stacker-crane-1",
+            "MB-LOG-006": "https://grabcad.com/library/pallet-wrapping-machine-1",
+            "MB-PNT-003": "https://grabcad.com/library/paint-booth-2",
+            "MB-PNT-009": "https://grabcad.com/library/robot-painting-production-line-1",
+            "MB-QC-001": "https://grabcad.com/library/3d-scanner-5",
+            "MB-QC-003": "https://grabcad.com/library/chassis-dynamometer-1"
+        };
+
         let scene, camera, renderer, machineParts = [], controls;
         let raycaster = new THREE.Raycaster();
         let mouse = new THREE.Vector2();
         let selectedObject = null;
         let activeGlowPart = "";
         let currentLoadedMachine = "";
-        let currentMachineDocId = ""; // To store the specific DB ID for the loaded machine
+        let currentMachineDocId = ""; 
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
@@ -221,7 +245,7 @@
             addLights(); 
             animate();
             container.addEventListener('mousedown', on3DClick);
-            loadMachineModel("Factory Overview", "root");
+            loadMachineModel("Factory Overview", "root", "MB-ROOT");
         }
 
         function addLights() {
@@ -234,7 +258,6 @@
             scene.add(fillLight);
         }
 
-        // NEW FEATURE: Upload Image to Firebase as Base64 (for simplicity without Storage bucket setup)
         window.uploadMachineImage = async () => {
             if(!currentMachineDocId || currentMachineDocId === "root") return alert("Select a specific machine first!");
             const file = document.getElementById('machineImgInput').files[0];
@@ -252,12 +275,20 @@
             reader.readAsDataURL(file);
         };
 
-        window.loadMachineModel = async (machineName, docId) => {
+        window.loadMachineModel = async (machineName, docId, machineId) => {
             currentLoadedMachine = machineName;
             currentMachineDocId = docId;
             document.getElementById('maintTitle').innerText = `High-Detail Twin: ${machineName}`;
             
-            // NEW FEATURE: Sync Image
+            // Integrate External 3D Library Link
+            const linkBtn = document.getElementById('external3DLink');
+            if(MODEL_LIBRARY[machineId]) {
+                linkBtn.href = MODEL_LIBRARY[machineId];
+                linkBtn.style.display = "block";
+            } else {
+                linkBtn.style.display = "none";
+            }
+
             if(docId !== "root") {
                 const d = await getDoc(doc(db, "machines", docId));
                 if(d.exists() && d.data().imageUrl) {
@@ -295,7 +326,7 @@
                 shoulder.position.y = 1.8; shoulder.userData.name = "AXIS_2_SHOULDER";
                 machineGroup.add(shoulder); machineParts.push(shoulder);
             } 
-            else if (nameLower.includes("cnc")) {
+            else if (nameLower.includes("cnc") || nameLower.includes("press")) {
                 const cabinet = new THREE.Mesh(new THREE.BoxGeometry(6, 4, 6), matSteel);
                 cabinet.position.y = 2; cabinet.userData.name = "MAIN_MACHINE_CASTING";
                 machineGroup.add(cabinet); machineParts.push(cabinet);
@@ -452,7 +483,7 @@
                     let rowHTML = `
                         <tr>
                             <td><b>${m.machineId || machineDocId}</b></td>
-                            <td>${m.name} <button class="btn-3d" onclick="loadMachineModel('${m.name}', '${machineDocId}')">3D VIEW</button></td>
+                            <td>${m.name} <button class="btn-3d" onclick="loadMachineModel('${m.name}', '${machineDocId}', '${m.machineId}')">3D VIEW</button></td>
                             <td>${m.section}</td>
                             <td>
                                 <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
