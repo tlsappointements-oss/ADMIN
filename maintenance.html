@@ -107,7 +107,7 @@
                 </div>
                 <div style="flex: 2; height: 600px; border: 1px solid #333;">
                     <div class="viewer-wrapper">
-                        <iframe id="live3DFeed" src="https://www.traceparts.com/en/viewer/60-15022019-074640" allowfullscreen></iframe>
+                        <iframe id="live3DFeed" src="https://sketchfab.com/models/0d68f78f99e346f1917f69427e02df35/embed" allowfullscreen></iframe>
                     </div>
                 </div>
             </div>
@@ -130,11 +130,11 @@
         let alertInterval = null;
         let currentMachineDocId = ""; 
 
-        // SMART FEED LINK MAPPING (Categorized by Name keywords)
+        // UPDATED: Using Embed-Ready links to avoid connection refusal
         const MODEL_LINKS = {
-            ROBOT: "https://grabcad.com/library/kuka-kr-6-1/details?render=viewer",
-            CONVEYOR: "https://grabcad.com/library/conveyor-belt-38/details?render=viewer",
-            ENGINE: "https://grabcad.com/library/v12-engine-1/details?render=viewer",
+            ROBOT: "https://sketchfab.com/models/0d68f78f99e346f1917f69427e02df35/embed",
+            CONVEYOR: "https://sketchfab.com/models/7880e6c5678848f59d57186a51d45920/embed",
+            ENGINE: "https://sketchfab.com/models/9f48512198004119934e64f0b2f15591/embed",
             NUTRUNNER: "https://www.traceparts.com/en/viewer/60-15022019-074640",
             DEFAULT: "https://www.traceparts.com/en/viewer/60-15022019-074640"
         };
@@ -157,12 +157,10 @@
             listenForHistory();
         });
 
-        // FIXED: DYNAMIC MODEL LOADING TO PREVENT REPETITION
         window.loadMachineModel = async (machineName, docId) => {
             currentMachineDocId = docId;
             document.getElementById('maintTitle').innerText = `Live Industrial Feed: ${machineName}`;
             
-            // Sync Photo
             if(docId !== "root") {
                 const d = await getDoc(doc(db, "machines", docId));
                 if(d.exists() && d.data().imageUrl) {
@@ -172,11 +170,11 @@
                 }
             }
 
-            // Sync 3D Iframe based on Name Keywords
             const iframe = document.getElementById('live3DFeed');
             const name = machineName.toUpperCase();
             let selectedLink = MODEL_LINKS.DEFAULT;
 
+            // SMART MAPPING FOR 105 MACHINES
             if (name.includes("KUKA") || name.includes("ROBOT") || name.includes("ARM")) {
                 selectedLink = MODEL_LINKS.ROBOT;
             } else if (name.includes("CONVEYOR") || name.includes("BELT")) {
