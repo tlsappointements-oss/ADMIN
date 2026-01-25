@@ -24,6 +24,9 @@
         .intervenir-msg { color: #ff0000; font-size: 0.75rem; font-weight: bold; font-style: italic; text-transform: uppercase; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
 
+        /* NEW STYLE FOR 3D BUTTON */
+        .btn-3d { background: #444; color: #fff; font-size: 0.6rem; padding: 2px 6px; margin-left: 5px; vertical-align: middle; }
+
         /* DANGER OVERLAY */
         #dangerOverlay {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -124,7 +127,7 @@
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
-            init3D(); // Start 3D Engine
+            init3D(); 
 
             if (email !== DIRECTOR) {
                 await setDoc(doc(db, "users", email), { email: email, lastSeen: serverTimestamp() }, { merge: true });
@@ -144,7 +147,6 @@
             }
         });
 
-        // --- 3D ENGINE LOGIC ---
         function init3D() {
             const container = document.getElementById('threeCanvas');
             scene = new THREE.Scene();
@@ -159,12 +161,35 @@
             light.position.set(10, 10, 10);
             scene.add(light);
 
-            // Create 3D Machine Parts
-            const partsData = [
+            camera.position.z = 5;
+            camera.position.y = 1;
+
+            container.addEventListener('mousedown', on3DClick);
+            animate();
+            
+            // Initial machine load (defaults)
+            loadMachineModel("General System");
+        }
+
+        // --- NEW FEATURE: DYNAMIC MODEL LOADING ---
+        window.loadMachineModel = (machineName) => {
+            document.getElementById('maintTitle').innerText = `Maintenance: ${machineName}`;
+            
+            // Clear existing parts
+            machineParts.forEach(p => scene.remove(p));
+            machineParts = [];
+
+            // Simple Logic: Vary sizes based on machine name to simulate different models
+            const isRobotic = machineName.toLowerCase().includes("robotic");
+            
+            const partsData = isRobotic ? [
+                { name: "Servo_Base", size: [1.2, 0.5, 1.2], pos: [0, -0.5, 0] },
+                { name: "Joint_Alpha", size: [0.4, 1.5, 0.4], pos: [0, 0.5, 0] },
+                { name: "End_Effector", size: [0.6, 0.6, 0.6], pos: [0, 1.5, 0] }
+            ] : [
                 { name: "Motor_Main", size: [1, 1.5, 1], pos: [0, 0, 0] },
                 { name: "Hydraulic_Arm", size: [0.4, 2, 0.4], pos: [0, 1.5, 0] },
-                { name: "Gearbox_Left", size: [0.8, 0.8, 0.8], pos: [-1, 0, 0] },
-                { name: "Sensor_Array", size: [0.3, 0.3, 0.3], pos: [0.5, 2.5, 0] }
+                { name: "Gearbox_Left", size: [0.8, 0.8, 0.8], pos: [-1, 0, 0] }
             ];
 
             partsData.forEach(p => {
@@ -176,14 +201,7 @@
                 scene.add(mesh);
                 machineParts.push(mesh);
             });
-
-            camera.position.z = 5;
-            camera.position.y = 1;
-
-            // Interaction
-            container.addEventListener('mousedown', on3DClick);
-            animate();
-        }
+        };
 
         function on3DClick(event) {
             const rect = renderer.domElement.getBoundingClientRect();
@@ -195,19 +213,16 @@
             if (intersects.length > 0) {
                 if(selectedObject) selectedObject.material.color.setHex(0x333333);
                 selectedObject = intersects[0].object;
-                selectedObject.material.color.setHex(0xe30613); // Turn Red for Tech
+                selectedObject.material.color.setHex(0xe30613); 
                 document.getElementById('selectedPartName').innerText = selectedObject.userData.name;
             }
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            // Rotate the machine group for "free view"
             scene.rotation.y += 0.005;
-
-            // Pain Glow Effect for Mohamed
             if (activeGlowPart) {
-                const glow = (Math.sin(Date.now() * 0.005) + 1) / 2; // Pulsing 0 to 1
+                const glow = (Math.sin(Date.now() * 0.005) + 1) / 2;
                 machineParts.forEach(p => {
                     if(p.userData.name === activeGlowPart) {
                         p.material.emissive.setRGB(glow, 0, 0);
@@ -238,7 +253,7 @@
                 log.innerHTML = "";
                 snap.forEach(d => {
                     const data = d.data();
-                    activeGlowPart = data.part; // Start the 3D Glow
+                    activeGlowPart = data.part;
                     log.innerHTML += `
                         <div class="incident-card">
                             <div class="pain-glow-text">DETECTED MECHANICAL PAIN</div>
@@ -246,7 +261,7 @@
                             <small>Criticality: ${data.criticality} | By: ${data.reporter}</small>
                             <p>${data.description}</p>
                             <hr style="border:0; border-top:1px solid #222">
-                            <small style="color:#666">Probable Cause: Overheating | Last Maint: 14/01/2026</small>
+                            <small style="color:#666">Probable Cause: Overheating</small>
                         </div>
                     `;
                 });
@@ -274,7 +289,10 @@
                     let rowHTML = `
                         <tr>
                             <td><b>${m.machineId || machineDocId}</b></td>
-                            <td>${m.name}</td>
+                            <td>
+                                ${m.name} 
+                                <button class="btn-3d" onclick="loadMachineModel('${m.name}')">OPEN 3D</button>
+                            </td>
                             <td>${m.section}</td>
                             <td>
                                 <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
@@ -312,7 +330,6 @@
             });
         }
 
-        // --- UPDATED SIREN & VOICE LOGIC ---
         function startDangerCycle(name, section) {
             const trigger = () => {
                 const userName = auth.currentUser.email.split('@')[0];
@@ -327,16 +344,13 @@
                 osc.frequency.setValueAtTime(300, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 2);
                 osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 4);
-                osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 6);
-                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 8);
 
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 osc.start(); osc.stop(audioCtx.currentTime + 10);
 
                 const msg = new SpeechSynthesisUtterance();
-                msg.text = `Attention ${userName}. There is a breakdown. Please head to ${name} immediately.`;
-                msg.rate = 0.85;
+                msg.text = `Attention ${userName}. There is a breakdown at ${name}.`;
                 window.speechSynthesis.speak(msg);
 
                 setTimeout(() => {
