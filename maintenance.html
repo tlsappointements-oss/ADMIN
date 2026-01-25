@@ -36,14 +36,34 @@
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
 
-        /* NEW 3D STYLES */
-        #threeContainer { display: none; margin-top: 30px; background: #0a0a0a; border: 1px solid #333; padding: 20px; border-radius: 10px; }
-        #canvas3d { width: 100%; height: 450px; cursor: crosshair; }
-        .incident-item { background: #1a1a1a; padding: 15px; margin: 10px 0; border-left: 4px solid #e30613; cursor: pointer; }
-        .incident-item:hover { background: #252525; }
+        /* NEW 3D MODAL STYLING */
+        #twinModal { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); z-index: 10000; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #threeContainer { width: 80%; height: 60%; background: #050505; border: 1px solid #333; position: relative; }
+        .close-twin { position: absolute; top: 20px; right: 40px; font-size: 30px; cursor: pointer; color: #fff; }
+        .twin-info { width: 80%; padding: 20px; background: #111; margin-top: 10px; border-left: 5px solid #e30613; }
     </style>
 </head>
 <body>
+
+    <div id="twinModal">
+        <span class="close-twin" onclick="closeTwin()">&times; CLOSE TWIN</span>
+        <h2 id="twinTitle" style="color:#e30613; margin-bottom: 10px;">MACHINE DIGITAL TWIN</h2>
+        <div id="threeContainer"></div>
+        <div class="twin-info" id="twinInfoPanel">
+            <div id="techInputArea" style="display:none;">
+                <p>Selected Part: <b id="selectedPartName" style="color:#ff3333">None</b></p>
+                <textarea id="issueDesc" placeholder="Describe the damage..." style="width:100%; height:50px; background:#222; color:#fff; border:1px solid #444; padding:10px;"></textarea>
+                <button onclick="submitIntervention()" style="margin-top:10px;">SUBMIT INTERVENTION REQUEST</button>
+            </div>
+            <div id="mohamedDisplayArea" style="display:none;">
+                <h3 id="painStatus" style="color:#ff3333; animation: blink 0.8s infinite;">⚠️ MECHANICAL PAIN DETECTED</h3>
+                <p id="reportedIssue"></p>
+            </div>
+        </div>
+    </div>
 
     <div id="dangerOverlay">
         <div class="giant-triangle">⚠️</div>
@@ -80,36 +100,23 @@
                 <tr><td colspan="5">Loading data from Firebase...</td></tr>
             </tbody>
         </table>
-
-        <div id="threeContainer">
-            <h2 id="maintHeader">Digital Twin Analysis</h2>
-            <div id="canvas3d"></div>
-            <div id="techReportBox" style="display:none;">
-                <p>Selected Part: <b id="selectedPart" style="color:red">None</b></p>
-                <textarea id="issueDesc" placeholder="Describe the pain..." style="width:100%; background:#111; color:white; border:1px solid #444; padding:10px;"></textarea>
-                <button onclick="submitIntervention()" style="margin-top:10px; width:100%">SEND TO DIRECTOR</button>
-            </div>
-        </div>
-
-        <div id="mohamedInbox" style="display:none; margin-top:20px;">
-            <h3>Intervention Requests</h3>
-            <div id="requestList"></div>
-        </div>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
         let alertInterval = null;
 
-        // 3D Engine Variables
-        let scene, camera, renderer, machineGroup, raycaster, mouse;
-        let activeGlowPart = null;
-        let currentMachineData = null;
+        // 3D VARIABLES
+        let scene, camera, renderer, machineParts = [];
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let selectedObject = null;
+        let currentOpenMachineId = null;
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
@@ -118,120 +125,113 @@
 
             if (email !== DIRECTOR) {
                 await setDoc(doc(db, "users", email), { email: email, lastSeen: serverTimestamp() }, { merge: true });
-            } else {
-                document.getElementById('adminPanel').style.display = "block";
-                document.getElementById('mohamedInbox').style.display = "block";
-                listenForRequests();
-            }
+            }
 
-            loadMachinesLive();
+            if (email === DIRECTOR) {
+                document.getElementById('adminPanel').style.display = "block";
+                onSnapshot(collection(db, "users"), (snap) => {
+                    techList = []; snap.forEach(d => techList.push(d.id));
+                    loadMachinesLive();
+                });
+            } else {
+                loadMachinesLive();
+            }
         });
 
-        // --- 3D SYSTEM ---
-        function init3D(machineId) {
-            document.getElementById('threeContainer').style.display = "block";
-            const container = document.getElementById('canvas3d');
+        // --- 3D ENGINE FUNCTIONS ---
+        function init3D(brokenPartName = null) {
+            const container = document.getElementById('threeContainer');
             container.innerHTML = "";
-            
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, container.clientWidth / 450, 0.1, 1000);
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth/container.clientHeight, 0.1, 1000);
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(container.clientWidth, 450);
+            renderer.setSize(container.clientWidth, container.clientHeight);
             container.appendChild(renderer.domElement);
 
-            const light = new THREE.DirectionalLight(0xffffff, 1);
-            light.position.set(5, 5, 5).normalize();
-            scene.add(light);
-            scene.add(new THREE.AmbientLight(0x404040));
+            const light = new THREE.PointLight(0xffffff, 1.2);
+            light.position.set(5, 5, 5);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.4), light);
 
-            machineGroup = new THREE.Group();
-            
-            // Generate a 3D model unique to the machine ID (simulated parts)
-            for(let i=0; i<4; i++) {
-                const geometry = new THREE.BoxGeometry(1, Math.random() * 2 + 1, 1);
-                const material = new THREE.MeshPhongMaterial({ color: 0x555555 });
-                const part = new THREE.Mesh(geometry, material);
-                part.position.x = (i - 1.5) * 1.5;
-                part.userData.partName = `Module_${machineId}_${i+1}`;
-                machineGroup.add(part);
-            }
-            scene.add(machineGroup);
-            camera.position.z = 7;
-
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2();
-
-            container.addEventListener('click', (event) => {
-                const rect = renderer.domElement.getBoundingClientRect();
-                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-                
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObjects(machineGroup.children);
-                if(intersects.length > 0 && auth.currentUser.email !== DIRECTOR) {
-                    machineGroup.children.forEach(c => c.material.color.setHex(0x555555));
-                    const selected = intersects[0].object;
-                    selected.material.color.setHex(0xe30613);
-                    document.getElementById('selectedPart').innerText = selected.userData.partName;
-                }
+            machineParts = [];
+            const partNames = ["Main_Motor", "Piston_A", "Sensor_Module", "Power_Unit"];
+            partNames.forEach((name, i) => {
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const material = new THREE.MeshPhongMaterial({ color: 0x333333 });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.x = (i - 1.5) * 1.5;
+                mesh.userData.name = name;
+                scene.add(mesh);
+                machineParts.push(mesh);
             });
 
+            camera.position.z = 5;
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+                scene.rotation.y += 0.005;
+                
+                // PAIN GLOW LOGIC (Mohamed View)
+                if (brokenPartName) {
+                    const glow = (Math.sin(Date.now() * 0.005) + 1) / 2;
+                    machineParts.forEach(p => {
+                        if(p.userData.name === brokenPartName) {
+                            p.material.emissive.setRGB(glow, 0, 0);
+                        }
+                    });
+                }
+                renderer.render(scene, camera);
+            };
             animate();
+
+            container.addEventListener('mousedown', (e) => {
+                if (auth.currentUser.email.toLowerCase() === DIRECTOR) return;
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(machineParts);
+                if (intersects.length > 0) {
+                    if(selectedObject) selectedObject.material.color.setHex(0x333333);
+                    selectedObject = intersects[0].object;
+                    selectedObject.material.color.setHex(0xe30613);
+                    document.getElementById('selectedPartName').innerText = selectedObject.userData.name;
+                }
+            });
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            if (activeGlowPart) {
-                const glow = Math.sin(Date.now() * 0.008) * 0.5 + 0.5;
-                machineGroup.children.forEach(c => {
-                    if(c.userData.partName === activeGlowPart) {
-                        c.material.emissive.setRGB(glow, 0, 0);
-                    }
-                });
+        window.openTwin = (machineId, machineName, brokenPart = null, desc = null) => {
+            currentOpenMachineId = machineId;
+            document.getElementById('twinModal').style.display = 'flex';
+            document.getElementById('twinTitle').innerText = machineName + " | DIGITAL TWIN";
+            
+            if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+                document.getElementById('mohamedDisplayArea').style.display = brokenPart ? 'block' : 'none';
+                document.getElementById('reportedIssue').innerText = desc || "No active pain reports.";
+                init3D(brokenPart);
+            } else {
+                document.getElementById('techInputArea').style.display = 'block';
+                init3D();
             }
-            renderer.render(scene, camera);
-        }
+        };
 
-        // --- NEW FEATURES ACTIONS ---
-        window.openTech3D = (id, name) => {
-            currentMachineData = { id, name };
-            document.getElementById('maintHeader').innerText = `Reporting: ${name}`;
-            document.getElementById('techReportBox').style.display = "block";
-            init3D(id);
+        window.closeTwin = () => {
+            document.getElementById('twinModal').style.display = 'none';
+            document.getElementById('techInputArea').style.display = 'none';
+            document.getElementById('mohamedDisplayArea').style.display = 'none';
         };
 
         window.submitIntervention = async () => {
-            const partName = document.getElementById('selectedPart').innerText;
-            if(partName === "None") return alert("Select part in 3D!");
-            await addDoc(collection(db, "demandes"), {
-                machineId: currentMachineData.id,
-                machineName: currentMachineData.name,
-                part: partName,
-                desc: document.getElementById('issueDesc').value,
-                tech: auth.currentUser.email,
-                timestamp: serverTimestamp()
+            if(!selectedObject) return alert("Select the part in 3D first!");
+            const desc = document.getElementById('issueDesc').value;
+            await updateDoc(doc(db, "machines", currentOpenMachineId), {
+                status: "BREAKDOWN",
+                brokenPart: selectedObject.userData.name,
+                issueDescription: desc,
+                acknowledged: false
             });
-            alert("Sent!");
-            document.getElementById('threeContainer').style.display = "none";
+            alert("Intervention Request Sent!");
+            closeTwin();
         };
-
-        function listenForRequests() {
-            onSnapshot(collection(db, "demandes"), (snap) => {
-                const list = document.getElementById('requestList');
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    const item = document.createElement('div');
-                    item.className = "incident-item";
-                    item.innerHTML = `<b>${data.machineName}</b> - ${data.part} <br> <small>${data.desc}</small>`;
-                    item.onclick = () => {
-                        init3D(data.machineId);
-                        activeGlowPart = data.part;
-                    };
-                    list.appendChild(item);
-                });
-            });
-        }
 
         function loadMachinesLive() {
             const tableBody = document.getElementById('assetTable');
@@ -254,13 +254,16 @@
                     let rowHTML = `
                         <tr>
                             <td><b>${m.machineId || machineDocId}</b></td>
-                            <td>${m.name}</td>
+                            <td>
+                                ${m.name} 
+                                <button class="btn-toggle" style="background:#444" onclick="openTwin('${machineDocId}', '${m.name}', '${m.brokenPart || ''}', '${m.issueDescription || ''}')">3D TWIN</button>
+                            </td>
                             <td>${m.section}</td>
                             <td>
                                 <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
                                 ${(!isWorking && isAssignedToMe) ? `
                                     <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}', '${m.name}')">⚠️</span>
-                                    <span class="intervenir-msg" onclick="openTech3D('${machineDocId}', '${m.name}')" style="cursor:pointer"> [OPEN 3D TWIN]</span>
+                                    <span class="intervenir-msg">please intervenir</span>
                                 ` : ''}
                             </td>
                             <td>
@@ -292,7 +295,6 @@
             });
         }
 
-        // --- UPDATED SIREN & VOICE LOGIC ---
         function startDangerCycle(name, section) {
             const trigger = () => {
                 const userName = auth.currentUser.email.split('@')[0];
@@ -348,10 +350,12 @@
 
         window.toggleMachineStatus = async (docId, currentStatus) => {
             const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
-            await updateDoc(doc(db, "machines", docId), {
-                status: newStatus,
-                acknowledged: false
-            });
+            const updateData = { status: newStatus, acknowledged: false };
+            if (newStatus === "WORKING") {
+                updateData.brokenPart = null;
+                updateData.issueDescription = null;
+            }
+            await updateDoc(doc(db, "machines", docId), updateData);
         };
 
         window.syncDatabase = async () => {
