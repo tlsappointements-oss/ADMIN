@@ -182,8 +182,8 @@
         }
 
         window.loadMachineModel = (machineName) => {
-            console.log("Loading Detailed Model for:", machineName);
-            document.getElementById('maintTitle').innerText = `Maintenance: ${machineName}`;
+            console.log("Generating Real 3D Design for:", machineName);
+            document.getElementById('maintTitle').innerText = `Maintenance Digital Twin: ${machineName}`;
             
             if (scene) {
                 while(scene.children.length > 0){ 
@@ -200,69 +200,94 @@
             document.getElementById('selectedPartName').innerText = "None";
 
             const nameLower = machineName.toLowerCase();
+            const machineGroup = new THREE.Group();
 
-            // --- DETAILED DESIGN LOGIC ---
+            // --- UNIQUE REAL 3D ARCHITECTURES ---
+            
             if (nameLower.includes("robot") || nameLower.includes("kuka")) {
-                const orangeMat = new THREE.MeshPhongMaterial({ color: 0xff4400 });
-                const greyMat = new THREE.MeshPhongMaterial({ color: 0x444444 });
+                const orange = new THREE.MeshPhongMaterial({ color: 0xff4400, shininess: 80 });
+                const steel = new THREE.MeshPhongMaterial({ color: 0x777777, shininess: 100 });
 
-                // Base
-                const base = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 0.4, 32), greyMat);
-                base.position.y = -1.5; base.userData.name = "ROTATION_BASE";
-                scene.add(base); machineParts.push(base);
+                const base = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 0.4, 32), steel);
+                base.position.y = -1.5; base.userData.name = "FOUNDATION_AXIS_1";
+                machineGroup.add(base); machineParts.push(base);
 
-                // Arm 1
-                const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 2, 0.4), orangeMat);
-                arm1.position.y = -0.5; arm1.userData.name = "LOWER_ARM_AXIS_2";
-                scene.add(arm1); machineParts.push(arm1);
+                const lowerArm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.5, 0.6), orange);
+                lowerArm.position.y = -0.2; lowerArm.userData.name = "MAIN_LIFT_ARM_A2";
+                machineGroup.add(lowerArm); machineParts.push(lowerArm);
 
-                // Joint
-                const joint = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), greyMat);
-                joint.position.y = 0.5; joint.userData.name = "ELBOW_JOINT";
-                scene.add(joint); machineParts.push(joint);
+                const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 32), steel);
+                elbow.position.y = 1.0; elbow.userData.name = "ELBOW_JOINT_A3";
+                machineGroup.add(elbow); machineParts.push(elbow);
 
-                // Arm 2
-                const arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.5, 0.3), orangeMat);
-                arm2.position.set(0.5, 0.8, 0); arm2.rotation.z = Math.PI/3;
-                arm2.userData.name = "UPPER_ARM_AXIS_4";
-                scene.add(arm2); machineParts.push(arm2);
+                const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5, 16), orange);
+                upperArm.rotation.z = Math.PI/3; upperArm.position.set(0.6, 1.4, 0);
+                upperArm.userData.name = "FOREARM_AXIS_4";
+                machineGroup.add(upperArm); machineParts.push(upperArm);
 
-                // Tool
-                const tool = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.2, 0.6, 16), greyMat);
-                tool.position.set(1.1, 1.2, 0); tool.userData.name = "WELDING_TIP";
-                scene.add(tool); machineParts.push(tool);
+                const tool = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.5, 16), steel);
+                tool.position.set(1.4, 1.8, 0); tool.userData.name = "END_EFFECTOR_FLANGE";
+                machineGroup.add(tool); machineParts.push(tool);
 
-            } else if (nameLower.includes("nut") || nameLower.includes("vissage") || nameLower.includes("atlas")) {
-                const metalMat = new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 100 });
-                const handleMat = new THREE.MeshPhongMaterial({ color: 0x222222 });
+            } else if (nameLower.includes("cnc") || nameLower.includes("milling") || nameLower.includes("press")) {
+                const darkMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
+                const glassMat = new THREE.MeshPhongMaterial({ color: 0x88ccff, transparent: true, opacity: 0.4 });
+                const steelMat = new THREE.MeshPhongMaterial({ color: 0xcccccc, shininess: 120 });
 
-                // Handle
-                const handle = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.2, 0.6), handleMat);
-                handle.position.y = -0.5; handle.userData.name = "ERGONOMIC_GRIP";
-                scene.add(handle); machineParts.push(handle);
+                const chassis = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 3), darkMat);
+                chassis.userData.name = "MACHINE_CHASSIS_FRAME";
+                machineGroup.add(chassis); machineParts.push(chassis);
 
-                // Main Motor
-                const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.8, 32), metalMat);
-                motor.rotation.x = Math.PI / 2; motor.position.z = 0.5;
-                motor.userData.name = "MOTOR_HOUSING";
-                scene.add(motor); machineParts.push(motor);
+                const window = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2), glassMat);
+                window.position.z = 1.51; window.userData.name = "SAFETY_VIEWPORT";
+                machineGroup.add(window); machineParts.push(window);
 
-                // Socket
-                const socket = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.6, 8), metalMat);
-                socket.rotation.x = Math.PI / 2; socket.position.z = 1.6;
-                socket.userData.name = "DRIVE_SOCKET";
-                scene.add(socket); machineParts.push(socket);
+                const spindle = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.2, 32), steelMat);
+                spindle.position.y = 0.5; spindle.userData.name = "MAIN_SPINDLE_MOTOR";
+                machineGroup.add(spindle); machineParts.push(spindle);
+
+                const bed = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.3, 2.5), steelMat);
+                bed.position.y = -1.2; bed.userData.name = "PRECISION_WORK_TABLE";
+                machineGroup.add(bed); machineParts.push(bed);
+
+            } else if (nameLower.includes("conveyor") || nameLower.includes("line")) {
+                const railMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
+                const rollerMat = new THREE.MeshPhongMaterial({ color: 0x999999, shininess: 50 });
+
+                const railL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 5), railMat);
+                railL.position.x = -0.8; railL.userData.name = "LEFT_LOAD_RAIL";
+                machineGroup.add(railL); machineParts.push(railL);
+
+                const railR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 5), railMat);
+                railR.position.x = 0.8; railR.userData.name = "RIGHT_LOAD_RAIL";
+                machineGroup.add(railR); machineParts.push(railR);
+
+                for(let i = -2; i <= 2; i += 0.5) {
+                    const roller = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.5, 16), rollerMat);
+                    roller.rotation.z = Math.PI / 2; roller.position.z = i;
+                    roller.userData.name = `DRIVE_ROLLER_${i*2}`;
+                    machineGroup.add(roller); machineParts.push(roller);
+                }
 
             } else {
-                // Generic Control Station
-                const cabinet = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.5, 0.8), new THREE.MeshPhongMaterial({color: 0xcccccc}));
-                cabinet.userData.name = "CONTROL_CABINET";
-                scene.add(cabinet); machineParts.push(cabinet);
+                // DETAILED CONTROL STATION
+                const frameMat = new THREE.MeshPhongMaterial({ color: 0xbbbbbb });
+                const screenMat = new THREE.MeshBasicMaterial({ color: 0x002200 });
 
-                const screen = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.6), new THREE.MeshBasicMaterial({color: 0x00ff00}));
-                screen.position.set(0, 0.5, 0.41); screen.userData.name = "HMI_DISPLAY";
-                scene.add(screen); machineParts.push(screen);
+                const cabinet = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 1), frameMat);
+                cabinet.userData.name = "ELECTRONIC_CONTROL_CABINET";
+                machineGroup.add(cabinet); machineParts.push(cabinet);
+
+                const hmi = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.8), screenMat);
+                hmi.position.set(0, 0.5, 0.51); hmi.userData.name = "HMI_TOUCH_INTERFACE";
+                machineGroup.add(hmi); machineParts.push(hmi);
+
+                const vent = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.1), frameMat);
+                vent.position.set(0.6, 1, 0.5); vent.userData.name = "COOLING_FAN_UNIT";
+                machineGroup.add(vent); machineParts.push(vent);
             }
+
+            scene.add(machineGroup);
         };
 
         function on3DClick(event) {
@@ -287,9 +312,9 @@
                 const glow = (Math.sin(Date.now() * 0.005) + 1) / 2;
                 machineParts.forEach(p => {
                     if(p.userData.name === activeGlowPart) {
-                        p.material.emissive.setRGB(glow * 0.5, 0, 0);
+                        if(p.material.emissive) p.material.emissive.setRGB(glow * 0.5, 0, 0);
                     } else {
-                        p.material.emissive.setRGB(0, 0, 0);
+                        if(p.material.emissive) p.material.emissive.setRGB(0, 0, 0);
                     }
                 });
             }
