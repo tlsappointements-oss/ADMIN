@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Mercedes-Benz | Plant Operations</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
         .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10; }
@@ -84,7 +85,7 @@
         <div id="maintenance3DContainer">
             <h2 id="maintTitle">Demande d'Intervention (3D Digital Twin)</h2>
             <div id="threeCanvas"></div>
-            <p style="font-size: 0.8rem; color: #888;">Rotate with mouse | Click component to select</p>
+            <p style="font-size: 0.8rem; color: #888;">Left Click: Rotate | Right Click: Pan | Scroll: Zoom | Click component to select</p>
             
             <div id="techCreateIncident" style="display:none;">
                 <p>Selected Part: <b id="selectedPartName" style="color:#e30613;">None</b></p>
@@ -113,7 +114,7 @@
         let alertInterval = null;
 
         // 3D Variables
-        let scene, camera, renderer, machineParts = [];
+        let scene, camera, renderer, machineParts = [], controls;
         let raycaster = new THREE.Raycaster();
         let mouse = new THREE.Vector2();
         let selectedObject = null;
@@ -151,6 +152,10 @@
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, 400);
             container.appendChild(renderer.domElement);
+
+            // INTEGRATED FEATURE: OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Smooth motion
 
             addLights(); 
 
@@ -202,8 +207,6 @@
             const nameLower = machineName.toLowerCase();
             const machineGroup = new THREE.Group();
 
-            // --- UNIQUE REAL 3D ARCHITECTURES ---
-            
             if (nameLower.includes("robot") || nameLower.includes("kuka")) {
                 const orange = new THREE.MeshPhongMaterial({ color: 0xff4400, shininess: 80 });
                 const steel = new THREE.MeshPhongMaterial({ color: 0x777777, shininess: 100 });
@@ -238,9 +241,9 @@
                 chassis.userData.name = "MACHINE_CHASSIS_FRAME";
                 machineGroup.add(chassis); machineParts.push(chassis);
 
-                const window = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2), glassMat);
-                window.position.z = 1.51; window.userData.name = "SAFETY_VIEWPORT";
-                machineGroup.add(window); machineParts.push(window);
+                const win = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2), glassMat);
+                win.position.z = 1.51; win.userData.name = "SAFETY_VIEWPORT";
+                machineGroup.add(win); machineParts.push(win);
 
                 const spindle = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.2, 32), steelMat);
                 spindle.position.y = 0.5; spindle.userData.name = "MAIN_SPINDLE_MOTOR";
@@ -270,7 +273,6 @@
                 }
 
             } else {
-                // DETAILED CONTROL STATION
                 const frameMat = new THREE.MeshPhongMaterial({ color: 0xbbbbbb });
                 const screenMat = new THREE.MeshBasicMaterial({ color: 0x002200 });
 
@@ -288,6 +290,8 @@
             }
 
             scene.add(machineGroup);
+            // Reset controls focus when model changes
+            if(controls) controls.reset();
         };
 
         function on3DClick(event) {
@@ -306,7 +310,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            if (scene) scene.rotation.y += 0.005;
+            if (controls) controls.update(); // Update OrbitControls
             
             if (activeGlowPart) {
                 const glow = (Math.sin(Date.now() * 0.005) + 1) / 2;
