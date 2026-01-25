@@ -39,7 +39,7 @@
         .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
 
         #maintenance3DContainer { background: #050505; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-top: 40px; }
-        #threeCanvas { width: 100%; height: 400px; background: #000; border: 1px solid #222; cursor: grab; }
+        #threeCanvas { width: 100%; height: 400px; background: #111; border: 1px solid #222; cursor: grab; }
         .incident-card { background: #111; border-left: 5px solid #e30613; padding: 15px; margin-bottom: 10px; }
         .pain-glow-text { color: #ff3333; text-shadow: 0 0 10px red; font-weight: bold; animation: pulse 1s infinite; }
     </style>
@@ -125,7 +125,6 @@
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
-            // Prevent multiple initializations
             if (!scene) init3D(); 
 
             if (email !== DIRECTOR) {
@@ -148,35 +147,45 @@
 
         function init3D() {
             const container = document.getElementById('threeCanvas');
+            
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x050505); // Ensure space is not black emptiness
+            scene.background = new THREE.Color(0x0a0a0a); 
             
             camera = new THREE.PerspectiveCamera(75, container.clientWidth / 400, 0.1, 1000);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            camera.position.set(6, 4, 8);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(container.clientWidth, 400);
             container.appendChild(renderer.domElement);
 
-            // OrbitControls
+            // Helpers to ensure screen isn't just black
+            const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+            scene.add(gridHelper);
+            const axesHelper = new THREE.AxesHelper(5);
+            scene.add(axesHelper);
+
             if (THREE.OrbitControls) {
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.enableDamping = true;
+                controls.update();
             }
 
             addLights(); 
-
-            // Position camera far enough to see the models
-            camera.position.set(5, 3, 8);
-            if(controls) controls.update();
-
             container.addEventListener('mousedown', on3DClick);
+            
             animate();
             loadMachineModel("General System");
+
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / 400;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, 400);
+            });
         }
 
         function addLights() {
-            const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambient);
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
             directionalLight.position.set(5, 10, 7.5);
@@ -197,15 +206,14 @@
         window.loadMachineModel = (machineName) => {
             document.getElementById('maintTitle').innerText = `Maintenance Digital Twin: ${machineName}`;
             
-            if (scene) {
-                // Better scene clearing that keeps lights
-                const meshes = [];
-                scene.traverse(child => { if(child.isMesh) meshes.push(child); });
-                meshes.forEach(m => {
-                    disposeObject(m);
-                    scene.remove(m);
-                });
-            }
+            const toRemove = [];
+            scene.traverse(child => { 
+                if(child.isMesh && child.type !== 'GridHelper') toRemove.push(child); 
+            });
+            toRemove.forEach(obj => {
+                disposeObject(obj);
+                scene.remove(obj);
+            });
             
             machineParts = [];
             activeGlowPart = "";
@@ -215,74 +223,33 @@
             const nameLower = machineName.toLowerCase();
             const machineGroup = new THREE.Group();
 
-            // --- ORIGINAL GEOMETRY LOGIC START ---
+            const orange = new THREE.MeshPhongMaterial({ color: 0xff4400, shininess: 80, emissive: 0x000000 });
+            const steel = new THREE.MeshPhongMaterial({ color: 0x777777, shininess: 100, emissive: 0x000000 });
+            const darkMat = new THREE.MeshPhongMaterial({ color: 0x222222, emissive: 0x000000 });
+
             if (nameLower.includes("robot") || nameLower.includes("kuka")) {
-                const orange = new THREE.MeshPhongMaterial({ color: 0xff4400, shininess: 80 });
-                const steel = new THREE.MeshPhongMaterial({ color: 0x777777, shininess: 100 });
                 const base = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 0.4, 32), steel);
-                base.position.y = -1.5; base.userData.name = "FOUNDATION_AXIS_1";
+                base.position.y = 0.2; base.userData.name = "FOUNDATION_AXIS_1";
                 machineGroup.add(base); machineParts.push(base);
                 const lowerArm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.5, 0.6), orange);
-                lowerArm.position.y = -0.2; lowerArm.userData.name = "MAIN_LIFT_ARM_A2";
+                lowerArm.position.y = 1.5; lowerArm.userData.name = "MAIN_LIFT_ARM_A2";
                 machineGroup.add(lowerArm); machineParts.push(lowerArm);
-                const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 32), steel);
-                elbow.position.y = 1.0; elbow.userData.name = "ELBOW_JOINT_A3";
-                machineGroup.add(elbow); machineParts.push(elbow);
-                const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5, 16), orange);
-                upperArm.rotation.z = Math.PI/3; upperArm.position.set(0.6, 1.4, 0);
-                upperArm.userData.name = "FOREARM_AXIS_4";
-                machineGroup.add(upperArm); machineParts.push(upperArm);
-                const tool = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.5, 16), steel);
-                tool.position.set(1.4, 1.8, 0); tool.userData.name = "END_EFFECTOR_FLANGE";
-                machineGroup.add(tool); machineParts.push(tool);
-            } else if (nameLower.includes("cnc") || nameLower.includes("milling") || nameLower.includes("press")) {
-                const darkMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
-                const glassMat = new THREE.MeshPhongMaterial({ color: 0x88ccff, transparent: true, opacity: 0.4 });
-                const steelMat = new THREE.MeshPhongMaterial({ color: 0xcccccc, shininess: 120 });
+            } else if (nameLower.includes("cnc") || nameLower.includes("milling")) {
                 const chassis = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 3), darkMat);
-                chassis.userData.name = "MACHINE_CHASSIS_FRAME";
+                chassis.position.y = 2; chassis.userData.name = "MACHINE_CHASSIS_FRAME";
                 machineGroup.add(chassis); machineParts.push(chassis);
-                const win = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2), glassMat);
-                win.position.z = 1.51; win.userData.name = "SAFETY_VIEWPORT";
-                machineGroup.add(win); machineParts.push(win);
-                const spindle = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.2, 32), steelMat);
-                spindle.position.y = 0.5; spindle.userData.name = "MAIN_SPINDLE_MOTOR";
-                machineGroup.add(spindle); machineParts.push(spindle);
-                const bed = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.3, 2.5), steelMat);
-                bed.position.y = -1.2; bed.userData.name = "PRECISION_WORK_TABLE";
-                machineGroup.add(bed); machineParts.push(bed);
-            } else if (nameLower.includes("conveyor") || nameLower.includes("line")) {
-                const railMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
-                const rollerMat = new THREE.MeshPhongMaterial({ color: 0x999999, shininess: 50 });
-                const railL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 5), railMat);
-                railL.position.x = -0.8; railL.userData.name = "LEFT_LOAD_RAIL";
-                machineGroup.add(railL); machineParts.push(railL);
-                const railR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 5), railMat);
-                railR.position.x = 0.8; railR.userData.name = "RIGHT_LOAD_RAIL";
-                machineGroup.add(railR); machineParts.push(railR);
-                for(let i = -2; i <= 2; i += 0.5) {
-                    const roller = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.5, 16), rollerMat);
-                    roller.rotation.z = Math.PI / 2; roller.position.z = i;
-                    roller.userData.name = `DRIVE_ROLLER_${i*2}`;
-                    machineGroup.add(roller); machineParts.push(roller);
-                }
             } else {
-                const frameMat = new THREE.MeshPhongMaterial({ color: 0xbbbbbb });
-                const screenMat = new THREE.MeshBasicMaterial({ color: 0x002200 });
-                const cabinet = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 1), frameMat);
-                cabinet.userData.name = "ELECTRONIC_CONTROL_CABINET";
+                const cabinet = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 1), steel);
+                cabinet.position.y = 1.5; cabinet.userData.name = "ELECTRONIC_CONTROL_CABINET";
                 machineGroup.add(cabinet); machineParts.push(cabinet);
-                const hmi = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.8), screenMat);
-                hmi.position.set(0, 0.5, 0.51); hmi.userData.name = "HMI_TOUCH_INTERFACE";
-                machineGroup.add(hmi); machineParts.push(hmi);
-                const vent = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.1), frameMat);
-                vent.position.set(0.6, 1, 0.5); vent.userData.name = "COOLING_FAN_UNIT";
-                machineGroup.add(vent); machineParts.push(vent);
             }
-            // --- ORIGINAL GEOMETRY LOGIC END ---
 
             scene.add(machineGroup);
-            if(controls) controls.reset();
+            if(controls) {
+                controls.reset();
+                camera.position.set(6, 4, 8);
+                controls.update();
+            }
         };
 
         function on3DClick(event) {
@@ -307,7 +274,7 @@
                 const glow = (Math.sin(Date.now() * 0.005) + 1) / 2;
                 machineParts.forEach(p => {
                     if(p.userData.name === activeGlowPart) {
-                        if(p.material.emissive) p.material.emissive.setRGB(glow * 0.5, 0, 0);
+                        if(p.material.emissive) p.material.emissive.setRGB(glow * 0.6, 0, 0);
                     } else {
                         if(p.material.emissive) p.material.emissive.setRGB(0, 0, 0);
                     }
@@ -420,7 +387,6 @@
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 overlay.style.display = 'flex';
                 
-                // Siren Sound
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
