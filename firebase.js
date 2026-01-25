@@ -2,15 +2,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// REPLACE THESE with your actual keys from the Firebase Console
 const firebaseConfig = {
-  apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
-  authDomain: "cars-website-558c0.firebaseapp.com",
-  projectId: "cars-website-558c0",
-  storageBucket: "cars-website-558c0.appspot.com",
-  messagingSenderId: "142475379783",
-  appId: "1:142475379783:web:2849d07fb6eb8da4715d62"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Export services so they can be used in other files
 export const auth = getAuth(app);
 export const db = getFirestore(app);
