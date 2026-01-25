@@ -26,7 +26,8 @@
 
     <div class="main">
         <div id="adminPanel">
-            <h3>DIRECTOR SYNC</h3>
+            <h3 style="margin-top:0">DIRECTOR SYNC</h3>
+            <p style="font-size:0.8rem; color:#888">Upload machines.json to update cars-website-558c0</p>
             <input type="file" id="jsonInput" accept=".json">
             <button onclick="syncDatabase()">PUSH 105 MACHINES</button>
         </div>
@@ -35,67 +36,95 @@
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Section</th>
-                    <th>Status</th>
+                    <th>MACHINE ID</th>
+                    <th>NAME</th>
+                    <th>SECTION</th>
+                    <th>STATUS</th>
                 </tr>
             </thead>
             <tbody id="assetTable">
-                <tr><td colspan="4">Connecting to cars-website-558c0...</td></tr>
+                <tr><td colspan="4">Loading data from Firebase...</td></tr>
             </tbody>
         </table>
     </div>
 
     <script type="module">
+        // Importing from your ORIGINAL firebase.js
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { collection, onSnapshot, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
 
+        // 1. Monitor User Login
         onAuthStateChanged(auth, (user) => {
-            if (!user) { window.location.href = "login.html"; return; }
+            if (!user) {
+                window.location.href = "login.html";
+                return;
+            }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
-            if (email === DIRECTOR) document.getElementById('adminPanel').style.display = "block";
-            loadAssets();
+
+            // Reveal upload panel if user is Mohamed
+            if (email === DIRECTOR) {
+                document.getElementById('adminPanel').style.display = "block";
+            }
+            
+            // Start showing the machines
+            loadMachinesLive();
         });
 
-        function loadAssets() {
-            const table = document.getElementById('assetTable');
-            onSnapshot(collection(db, "machines"), (snap) => {
-                table.innerHTML = "";
-                if (snap.empty) { table.innerHTML = "<tr><td colspan='4'>Empty database. Director must upload JSON.</td></tr>"; return; }
-                snap.forEach(docSnap => {
-                    const m = docSnap.data();
-                    table.innerHTML += `
+        // 2. Real-Time Table Loader
+        function loadMachinesLive() {
+            const tableBody = document.getElementById('assetTable');
+            
+            // This looks at your 'machines' collection in Firestore
+            onSnapshot(collection(db, "machines"), (snapshot) => {
+                tableBody.innerHTML = "";
+                
+                if (snapshot.empty) {
+                    tableBody.innerHTML = "<tr><td colspan='4'>No machines found. Director must upload JSON.</td></tr>";
+                    return;
+                }
+
+                snapshot.forEach((snapshotDoc) => {
+                    const m = snapshotDoc.data();
+                    tableBody.innerHTML += `
                         <tr>
-                            <td><b>${m.machineId}</b></td>
+                            <td><b>${m.machineId || snapshotDoc.id}</b></td>
                             <td>${m.name}</td>
                             <td>${m.section}</td>
                             <td><span class="status-pill">${m.status}</span></td>
-                        </tr>`;
+                        </tr>
+                    `;
                 });
             });
         }
 
+        // 3. Mohamed's Push Function
         window.syncDatabase = async () => {
             const file = document.getElementById('jsonInput').files[0];
-            if (!file) return alert("Select file!");
+            if (!file) return alert("Select the JSON file first!");
+
             const reader = new FileReader();
             reader.onload = async (e) => {
-                const data = JSON.parse(e.target.result);
-                for (const item of data) {
-                    await setDoc(doc(db, "machines", item.id), {
-                        machineId: item.id,
-                        name: item.name,
-                        section: item.section,
-                        status: "WORKING",
-                        lastUpdate: serverTimestamp()
-                    }, { merge: true });
+                try {
+                    const data = JSON.parse(e.target.result);
+                    for (const item of data) {
+                        // Creates or updates each machine using its "id"
+                        await setDoc(doc(db, "machines", item.id), {
+                            machineId: item.id,
+                            name: item.name,
+                            section: item.section,
+                            status: item.status || "WORKING",
+                            lastUpdate: serverTimestamp()
+                        }, { merge: true });
+                    }
+                    alert("Sync Success! Machines are now live.");
+                } catch (err) {
+                    console.error(err);
+                    alert("Error reading JSON file.");
                 }
-                alert("Database Updated!");
             };
             reader.readAsText(file);
         };
