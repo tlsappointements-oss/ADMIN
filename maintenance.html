@@ -39,7 +39,6 @@
         .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
 
         #maintenance3DContainer { background: #050505; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-top: 40px; }
-        
         .viewer-wrapper { width: 100%; height: 600px; background: #111; border: 1px solid #333; position: relative; }
         #live3DFeed { width: 100%; height: 100%; border: none; }
         
@@ -95,7 +94,6 @@
 
         <div id="maintenance3DContainer">
             <h2 id="maintTitle">Live 3D Industrial Feed</h2>
-            
             <div style="display: flex; gap: 20px; margin-bottom: 20px; align-items: start;">
                 <div style="flex: 1;">
                     <img id="machineImageDisplay" src="télécharger.webp" alt="Machine Visual">
@@ -107,11 +105,10 @@
                 </div>
                 <div style="flex: 2; height: 600px; border: 1px solid #333;">
                     <div class="viewer-wrapper">
-                        <iframe id="live3DFeed" src="https://sketchfab.com/models/0d68f78f99e346f1917f69427e02df35/embed" allowfullscreen></iframe>
+                        <iframe id="live3DFeed" src="https://www.traceparts.com/en/viewer/60-15022019-074640" allowfullscreen></iframe>
                     </div>
                 </div>
             </div>
-            <p style="font-size: 0.8rem; color: #888;">Showing live verified CAD models. Use the viewer controls to inspect components.</p>
         </div>
 
         <div id="historyLog">
@@ -130,12 +127,15 @@
         let alertInterval = null;
         let currentMachineDocId = ""; 
 
-        // UPDATED: Using Embed-Ready links to avoid connection refusal
+        // UPDATED: Direct View links to prevent GrabCAD from blocking the connection
         const MODEL_LINKS = {
-            ROBOT: "https://sketchfab.com/models/0d68f78f99e346f1917f69427e02df35/embed",
-            CONVEYOR: "https://sketchfab.com/models/7880e6c5678848f59d57186a51d45920/embed",
-            ENGINE: "https://sketchfab.com/models/9f48512198004119934e64f0b2f15591/embed",
+            KUKA: "https://grabcad.com/library/kuka-kr-6-1/details?render=viewer",
             NUTRUNNER: "https://www.traceparts.com/en/viewer/60-15022019-074640",
+            CONVEYOR: "https://grabcad.com/library/conveyor-belt-38/details?render=viewer",
+            LASER: "https://grabcad.com/library/laser-cutting-machine-14/details?render=viewer",
+            ENGINE: "https://grabcad.com/library/v12-engine-1/details?render=viewer",
+            AGV: "https://grabcad.com/library/agv-v1-1/details?render=viewer",
+            SCANNER: "https://grabcad.com/library/3d-scanner-2/details?render=viewer",
             DEFAULT: "https://www.traceparts.com/en/viewer/60-15022019-074640"
         };
 
@@ -174,16 +174,14 @@
             const name = machineName.toUpperCase();
             let selectedLink = MODEL_LINKS.DEFAULT;
 
-            // SMART MAPPING FOR 105 MACHINES
-            if (name.includes("KUKA") || name.includes("ROBOT") || name.includes("ARM")) {
-                selectedLink = MODEL_LINKS.ROBOT;
-            } else if (name.includes("CONVEYOR") || name.includes("BELT")) {
-                selectedLink = MODEL_LINKS.CONVEYOR;
-            } else if (name.includes("ENGINE") || name.includes("MOTOR")) {
-                selectedLink = MODEL_LINKS.ENGINE;
-            } else if (name.includes("NUT") || name.includes("ATLAS")) {
-                selectedLink = MODEL_LINKS.NUTRUNNER;
-            }
+            // Direct Mapping logic based on your library
+            if (name.includes("KUKA") || name.includes("ROBOT")) selectedLink = MODEL_LINKS.KUKA;
+            else if (name.includes("NUT") || name.includes("ATLAS")) selectedLink = MODEL_LINKS.NUTRUNNER;
+            else if (name.includes("CONVEYOR")) selectedLink = MODEL_LINKS.CONVEYOR;
+            else if (name.includes("LASER") || name.includes("WELDER")) selectedLink = MODEL_LINKS.LASER;
+            else if (name.includes("ENGINE") || name.includes("CRANK")) selectedLink = MODEL_LINKS.ENGINE;
+            else if (name.includes("AGV") || name.includes("CARRIER")) selectedLink = MODEL_LINKS.AGV;
+            else if (name.includes("SCANNER")) selectedLink = MODEL_LINKS.SCANNER;
 
             iframe.src = selectedLink;
             document.getElementById('maintenance3DContainer').scrollIntoView({ behavior: 'smooth' });
