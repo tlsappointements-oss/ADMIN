@@ -152,11 +152,7 @@
             renderer.setSize(container.clientWidth, 400);
             container.appendChild(renderer.domElement);
 
-            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-            scene.add(ambient);
-            const light = new THREE.PointLight(0xffffff, 1);
-            light.position.set(10, 10, 10);
-            scene.add(light);
+            addLights(); // Helper to add lights
 
             camera.position.z = 5;
             camera.position.y = 1;
@@ -166,25 +162,40 @@
             loadMachineModel("General System");
         }
 
-        // --- FIXED: LOAD DIFFERENT MODELS ON CLICK ---
+        function addLights() {
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambient);
+            const light = new THREE.PointLight(0xffffff, 1);
+            light.position.set(10, 10, 10);
+            scene.add(light);
+        }
+
+        // --- UPDATED LOAD FUNCTION TO ENSURE VISUAL CHANGE ---
         window.loadMachineModel = (machineName) => {
             document.getElementById('maintTitle').innerText = `Maintenance: ${machineName}`;
             
-            // Clear current objects from scene
-            machineParts.forEach(p => scene.remove(p));
+            // Clear entire scene to ensure it resets visually
+            if (scene) {
+                scene.clear();
+                addLights(); // Put lights back
+            }
+            
             machineParts = [];
             activeGlowPart = "";
+            selectedObject = null;
             document.getElementById('selectedPartName').innerText = "None";
 
-            // Logic to create different shapes for different machines
             let partsData = [];
-            if (machineName.includes("Robotic")) {
+            const nameLower = machineName.toLowerCase();
+
+            // Create different shapes/colors so the user sees the change
+            if (nameLower.includes("robotic")) {
                 partsData = [
                     { name: "Base_Joint", size: [1.5, 0.4, 1.5], pos: [0, -1, 0] },
                     { name: "Main_Arm", size: [0.3, 2, 0.3], pos: [0, 0, 0] },
                     { name: "Claw_Motor", size: [0.6, 0.6, 0.6], pos: [0, 1, 0] }
                 ];
-            } else if (machineName.includes("Nut Runner")) {
+            } else if (nameLower.includes("nut runner")) {
                 partsData = [
                     { name: "Pistol_Grip", size: [0.5, 1.2, 0.5], pos: [0, 0, 0] },
                     { name: "Torque_Sensor", size: [0.4, 0.4, 1.5], pos: [0, 0.4, 0.5] }
