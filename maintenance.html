@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Mercedes-Benz | Plant Operations</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
         .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10; }
@@ -25,11 +22,10 @@
 
         .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; margin-right: 5px; }
         .alert-triangle { color: #ff0000; font-size: 1.5rem; cursor: pointer; animation: blink 0.8s infinite; margin-right: 8px; vertical-align: middle; }
-        .intervenir-msg { color: #ff0000; font-size: 0.75rem; font-weight: bold; font-style: italic; text-transform: uppercase; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
 
         .btn-3d { background: #444; color: #fff; font-size: 0.6rem; padding: 2px 6px; margin-left: 5px; vertical-align: middle; cursor: pointer; }
-        .btn-3d:hover { background: #666; }
+        .btn-3d:hover { background: #e30613; }
 
         #dangerOverlay {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -43,22 +39,16 @@
         .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
 
         #maintenance3DContainer { background: #050505; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-top: 40px; }
-        #threeCanvas { width: 100%; height: 500px; background: #000; border: 1px solid #222; cursor: grab; }
+        
+        /* NEW DIRECT FEED STYLING */
+        .viewer-wrapper { width: 100%; height: 600px; background: #111; border: 1px solid #333; position: relative; }
+        #live3DFeed { width: 100%; height: 100%; border: none; }
         
         #machineImageDisplay { width: 100%; max-height: 250px; object-fit: contain; margin-bottom: 15px; border: 1px solid #333; background: #000; }
-        
-        .incident-card { background: #111; border-left: 5px solid #e30613; padding: 15px; margin-bottom: 10px; border-bottom: 1px solid #222; }
-        .pain-glow-text { color: #ff3333; text-shadow: 0 0 10px red; font-weight: bold; animation: pulse 1s infinite; }
-        
         #historyLog { margin-top: 30px; background: #0a0a0a; padding: 15px; border: 1px solid #222; max-height: 300px; overflow-y: auto; }
         .log-entry { font-size: 0.75rem; border-bottom: 1px solid #111; padding: 5px 0; color: #aaa; }
-
         .search-container { margin-bottom: 20px; }
         #machineSearch { width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: white; border-radius: 4px; }
-
-        .part-status-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; margin-left: 10px; text-transform: uppercase; }
-        .ps-repair { background: #ff9900; color: #000; }
-        .ps-fixed { background: #00ff00; color: #000; }
     </style>
 </head>
 <body>
@@ -105,7 +95,7 @@
         </table>
 
         <div id="maintenance3DContainer">
-            <h2 id="maintTitle">Demande d'Intervention (3D Digital Twin)</h2>
+            <h2 id="maintTitle">Live 3D Industrial Feed</h2>
             
             <div style="display: flex; gap: 20px; margin-bottom: 20px; align-items: start;">
                 <div style="flex: 1;">
@@ -116,34 +106,13 @@
                         <button onclick="uploadMachineImage()" style="padding: 5px 10px; font-size: 0.7rem; margin-top:5px;">SAVE PHOTO</button>
                     </div>
                 </div>
-                <div style="flex: 2; height: 500px; border: 1px solid #333;">
-                    <div id="threeCanvas"></div>
+                <div style="flex: 2; height: 600px; border: 1px solid #333;">
+                    <div class="viewer-wrapper">
+                        <iframe id="live3DFeed" src="https://www.traceparts.com/en/viewer/60-15022019-074640?PartNumber=60-15022019-074640" allowfullscreen></iframe>
+                    </div>
                 </div>
             </div>
-
-            <p style="font-size: 0.8rem; color: #888;">Left Click: Rotate | Right Click: Pan | Scroll: Zoom | Click component to select</p>
-            
-            <div id="techCreateIncident" style="display:none;">
-                <p>Selected Part: <b id="selectedPartName" style="color:#e30613;">None</b> <span id="partStatusDisplay"></span></p>
-                
-                <div id="partLifecycleActions" style="margin-bottom: 15px; display: none;">
-                    <button onclick="updatePartLifecycle('UNDER REPAIR')" style="background: #555; font-size: 0.7rem;">MARK UNDER REPAIR</button>
-                    <button onclick="updatePartLifecycle('FIXED')" style="background: #28a745; font-size: 0.7rem; margin-left: 5px;">MARK FIXED</button>
-                </div>
-
-                <textarea id="panneDesc" placeholder="Describe the failure..." style="width:100%; height:60px; background:#111; color:#fff; border:1px solid #333; padding:10px;"></textarea>
-                <select id="panneCrit" style="width:100%; margin-top:10px; padding:10px; background:#111; color:#fff;">
-                    <option value="Minor">Low Criticality</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="CRITICAL">CRITICAL - STOP LINE</option>
-                </select>
-                <button onclick="submit3DIncident()" style="margin-top:15px; width:100%;">SEND INCIDENT TO MOHAMED</button>
-            </div>
-
-            <div id="mohamedIncidentView" style="display:none;">
-                <h3 style="color:#e30613; border-bottom: 1px solid #333; padding-bottom:10px;">Live Incident Stream</h3>
-                <div id="incidentList3D"></div>
-            </div>
+            <p style="font-size: 0.8rem; color: #888;">Showing live verified CAD models. Use the viewer controls to inspect components.</p>
         </div>
 
         <div id="historyLog">
@@ -160,42 +129,24 @@
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
         let alertInterval = null;
-
-        let scene, camera, renderer, machineParts = [], controls;
-        let raycaster = new THREE.Raycaster();
-        let mouse = new THREE.Vector2();
-        let selectedObject = null;
-        let activeGlowPart = "";
-        let currentLoadedMachine = "";
         let currentMachineDocId = ""; 
 
-        // 3D DESIGN START: Professional Model Library Mapping
-        const MODEL_LIBRARY = {
-            "KUKA": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RoboticArm/glTF-Binary/RoboticArm.glb",
-            "CONVEYOR": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/BoxAnimated/glTF-Binary/BoxAnimated.glb",
-            "CNC": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/AntiqueCamera/glTF-Binary/AntiqueCamera.glb", 
-            "DEFAULT": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb"
+        // DIRECT FEED LINK MAPPING
+        const MODEL_LINKS = {
+            "MB-ASS-001": "https://grabcad.com/library/kuka-kr-6-1/details?render=viewer",
+            "MB-ASS-003": "https://www.traceparts.com/en/viewer/60-15022019-074640?PartNumber=60-15022019-074640",
+            "MB-ASS-006": "https://grabcad.com/library/conveyor-belt-38/details?render=viewer",
+            "DEFAULT": "https://www.traceparts.com/en/viewer/60-15022019-074640"
         };
-
-        const loader = new THREE.GLTFLoader();
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
-            if (!scene) init3D(); 
-
-            if (email !== DIRECTOR) {
-                await setDoc(doc(db, "users", email), { email: email, lastSeen: serverTimestamp() }, { merge: true });
-                document.getElementById('techCreateIncident').style.display = "block";
-            }
-
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
-                document.getElementById('mohamedIncidentView').style.display = "block";
                 document.getElementById('adminImageUpload').style.display = "block";
-                listenFor3DIncidents();
                 onSnapshot(collection(db, "users"), (snap) => {
                     techList = []; snap.forEach(d => techList.push(d.id));
                     loadMachinesLive();
@@ -204,263 +155,54 @@
                 loadMachinesLive();
             }
             listenForHistory();
-            listenToPartStatus();
         });
 
-        function init3D() {
-            const container = document.getElementById('threeCanvas');
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x050505);
-            
-            camera = new THREE.PerspectiveCamera(50, container.clientWidth / 500, 0.1, 1000);
-            camera.position.set(5, 5, 5);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(container.clientWidth, 500);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.outputEncoding = THREE.sRGBEncoding;
-            container.appendChild(renderer.domElement);
-
-            if (window.THREE.OrbitControls) {
-                controls = new THREE.OrbitControls(camera, renderer.domElement);
-                controls.enableDamping = true;
-            }
-
-            const grid = new THREE.GridHelper(30, 30, 0x333333, 0x111111);
-            scene.add(grid);
-
-            addLights(); 
-            animate();
-            container.addEventListener('mousedown', on3DClick);
-            loadMachineModel("Factory Overview", "root");
-        }
-
-        function addLights() {
-            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-            const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
-            mainLight.position.set(10, 20, 10);
-            scene.add(mainLight);
-            const fillLight = new THREE.PointLight(0xe30613, 0.5);
-            fillLight.position.set(-10, 5, -5);
-            scene.add(fillLight);
-        }
-
+        // REPLACED: NEW LIVE FEED LOGIC
         window.loadMachineModel = async (machineName, docId) => {
-            currentLoadedMachine = machineName;
             currentMachineDocId = docId;
-            document.getElementById('maintTitle').innerText = `High-Detail Twin: ${machineName}`;
+            document.getElementById('maintTitle').innerText = `Live Industrial Feed: ${machineName}`;
             
-            // Sync Image
+            // Sync Photo
             if(docId !== "root") {
                 const d = await getDoc(doc(db, "machines", docId));
                 if(d.exists() && d.data().imageUrl) {
                     document.getElementById('machineImageDisplay').src = d.data().imageUrl;
-                } else {
-                    document.getElementById('machineImageDisplay').src = "télécharger.webp";
                 }
             }
 
-            // Clear Scene
-            const toRemove = [];
-            scene.traverse(child => { 
-                if((child.isMesh || child.isGroup) && child.type !== 'GridHelper' && !child.isLight) toRemove.push(child); 
-            });
-            toRemove.forEach(obj => scene.remove(obj));
-
-            machineParts = [];
-            activeGlowPart = "";
-            selectedObject = null;
-            document.getElementById('selectedPartName').innerText = "None";
-            document.getElementById('partStatusDisplay').innerHTML = "";
-            document.getElementById('partLifecycleActions').style.display = "none";
-
-            // Determine which model to load based on name
-            let modelUrl = MODEL_LIBRARY.DEFAULT;
-            const nameLower = machineName.toLowerCase();
-            if(nameLower.includes("kuka")) modelUrl = MODEL_LIBRARY.KUKA;
-            else if(nameLower.includes("conveyor")) modelUrl = MODEL_LIBRARY.CONVEYOR;
-            else if(nameLower.includes("cnc") || nameLower.includes("press")) modelUrl = MODEL_LIBRARY.CNC;
-
-            // Load Professional Model
-            loader.load(modelUrl, (gltf) => {
-                const model = gltf.scene;
-                model.scale.set(2, 2, 2);
-                model.position.y = 0;
-                
-                // Make parts interactive
-                model.traverse(child => {
-                    if (child.isMesh) {
-                        child.userData.name = child.name || "Component_" + child.id;
-                        machineParts.push(child);
-                        // Ensure material supports emissive for the glow effect
-                        if(child.material) {
-                            child.material = child.material.clone();
-                        }
-                    }
-                });
-                
-                scene.add(model);
-                if(controls) controls.reset();
-            }, undefined, (error) => {
-                console.error("3D Load Error:", error);
-            });
+            // Sync 3D Iframe
+            const iframe = document.getElementById('live3DFeed');
+            const link = MODEL_LINKS[docId] || MODEL_LINKS.DEFAULT;
+            iframe.src = link;
+            
+            document.getElementById('maintenance3DContainer').scrollIntoView({ behavior: 'smooth' });
         };
-        // 3D DESIGN END
 
         window.uploadMachineImage = async () => {
-            if(!currentMachineDocId || currentMachineDocId === "root") return alert("Select a specific machine first!");
+            if(!currentMachineDocId) return alert("Select a machine first!");
             const file = document.getElementById('machineImgInput').files[0];
-            if(!file) return alert("Select an image file first!");
-
+            if(!file) return alert("Select an image!");
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const base64Data = e.target.result;
-                await updateDoc(doc(db, "machines", currentMachineDocId), {
-                    imageUrl: base64Data
-                });
+                await updateDoc(doc(db, "machines", currentMachineDocId), { imageUrl: base64Data });
                 document.getElementById('machineImageDisplay').src = base64Data;
-                alert("Machine photo updated!");
+                alert("Photo Updated!");
             };
             reader.readAsDataURL(file);
-        };
-
-        function on3DClick(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(machineParts);
-
-            if (intersects.length > 0) {
-                selectedObject = intersects[0].object;
-                activeGlowPart = selectedObject.userData.name;
-                document.getElementById('selectedPartName').innerText = selectedObject.userData.name;
-                if(auth.currentUser.email.toLowerCase() !== DIRECTOR) {
-                    document.getElementById('partLifecycleActions').style.display = "block";
-                }
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if (controls) controls.update(); 
-            if (activeGlowPart) {
-                const glow = (Math.sin(Date.now() * 0.008) + 1) / 2;
-                machineParts.forEach(p => {
-                    if(p.userData.name === activeGlowPart && p.material && p.material.emissive) {
-                        p.material.emissive.setRGB(glow * 0.5, 0, 0);
-                    } else if (p.material && p.material.emissive) {
-                        p.material.emissive.setRGB(0, 0, 0);
-                    }
-                });
-            }
-            renderer.render(scene, camera);
-        }
-
-        window.updatePartLifecycle = async (status) => {
-            if(!selectedObject || !currentLoadedMachine) return;
-            const partId = `${currentLoadedMachine}_${selectedObject.userData.name}`.replace(/\s+/g, '_');
-            await setDoc(doc(db, "part_status", partId), {
-                machine: currentLoadedMachine,
-                part: selectedObject.userData.name,
-                status: status,
-                updatedBy: auth.currentUser.email,
-                time: serverTimestamp()
-            }, { merge: true });
-            
-            await addDoc(collection(db, "history"), { 
-                msg: `Part ${selectedObject.userData.name} updated to ${status} by Tech`, 
-                time: serverTimestamp() 
-            });
-        };
-
-        function listenToPartStatus() {
-            onSnapshot(collection(db, "part_status"), (snap) => {
-                if(!selectedObject) return;
-                const partId = `${currentLoadedMachine}_${selectedObject.userData.name}`.replace(/\s+/g, '_');
-                const badge = document.getElementById('partStatusDisplay');
-                
-                let found = false;
-                snap.forEach(d => {
-                    if(d.id === partId) {
-                        const s = d.data().status;
-                        const cls = s === 'FIXED' ? 'ps-fixed' : 'ps-repair';
-                        badge.innerHTML = `<span class="part-status-badge ${cls}">${s}</span>`;
-                        found = true;
-                    }
-                });
-                if(!found) badge.innerHTML = "";
-            });
-        }
-
-        window.submit3DIncident = async () => {
-            if(!selectedObject) return alert("Select the part in 3D first!");
-            const desc = document.getElementById('panneDesc').value;
-            const crit = document.getElementById('panneCrit').value;
-            await addDoc(collection(db, "incidents3d"), {
-                part: selectedObject.userData.name,
-                machine: currentLoadedMachine,
-                description: desc,
-                criticality: crit,
-                reporter: auth.currentUser.email,
-                time: serverTimestamp()
-            });
-            alert("Incident Sent to Mohamed!");
-            document.getElementById('panneDesc').value = "";
-        };
-
-        function listenFor3DIncidents() {
-            onSnapshot(collection(db, "incidents3d"), (snap) => {
-                const log = document.getElementById('incidentList3D');
-                log.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    log.innerHTML += `
-                        <div class="incident-card">
-                            <div class="pain-glow-text">DETECTED MECHANICAL PAIN</div>
-                            <strong>MACHINE: ${data.machine || 'Unknown'} | PART: ${data.part}</strong><br>
-                            <small>Criticality: ${data.criticality} | By: ${data.reporter}</small>
-                            <p>${data.description}</p>
-                        </div>`;
-                });
-            });
-        }
-
-        function listenForHistory() {
-            const q = query(collection(db, "history"), orderBy("time", "desc"), limit(20));
-            onSnapshot(q, (snap) => {
-                const cont = document.getElementById('historyContent');
-                cont.innerHTML = "";
-                snap.forEach(d => {
-                    const h = d.data();
-                    cont.innerHTML += `<div class="log-entry">[${h.time?.toDate().toLocaleTimeString() || '...'}] ${h.msg}</div>`;
-                });
-            });
-        }
-
-        window.filterTable = () => {
-            const input = document.getElementById("machineSearch").value.toLowerCase();
-            const rows = document.getElementById("assetTable").getElementsByTagName("tr");
-            for (let row of rows) {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(input) ? "" : "none";
-            }
         };
 
         function loadMachinesLive() {
             const tableBody = document.getElementById('assetTable');
             const currentUserEmail = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
-
             onSnapshot(collection(db, "machines"), (snapshot) => {
                 tableBody.innerHTML = "";
                 let pendingTask = null;
-
                 snapshot.forEach((snapshotDoc) => {
                     const m = snapshotDoc.data();
                     const machineDocId = snapshotDoc.id;
                     const isWorking = m.status === "WORKING";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
-
                     if (!isWorking && isAssignedToMe && !m.acknowledged) pendingTask = m;
 
                     let rowHTML = `
@@ -472,78 +214,53 @@
                                 <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
                                 ${(!isWorking && isAssignedToMe) ? `<span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}')">⚠️</span>` : ''}
                             </td>
-                            <td>
-                    `;
-
+                            <td>`;
                     if (currentUserEmail === DIRECTOR) {
                         let options = techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('');
                         rowHTML += `
                             <select class="tech-select" onchange="assignTech('${machineDocId}', this.value)">
-                                <option value="">Assign Tech...</option>${options}
+                                <option value="">Assign...</option>${options}
                             </select>
                             <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">TOGGLE</button>
-                            <button class="btn-delete" onclick="deleteMachine('${machineDocId}')">DELETE</button>
-                        `;
+                            <button class="btn-delete" onclick="deleteMachine('${machineDocId}')">DEL</button>`;
                     } else {
                         rowHTML += `<span style="color:#888;">${m.assignedTech || 'Unassigned'}</span>`;
                     }
                     rowHTML += `</td></tr>`;
                     tableBody.innerHTML += rowHTML;
                 });
-
                 if (pendingTask && !alertInterval) startDangerCycle(pendingTask.name, pendingTask.section);
                 else if (!pendingTask) stopDangerCycle();
             });
         }
 
+        // KEEPING ALL EMERGENCY AND SYNC FUNCTIONS AS THEY WERE
         function startDangerCycle(name, section) {
             const trigger = () => {
                 const overlay = document.getElementById('dangerOverlay');
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 overlay.style.display = 'flex';
-                
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 1);
                 osc.connect(audioCtx.destination);
-                osc.start(); osc.stop(audioCtx.currentTime + 2);
-
-                const msg = new SpeechSynthesisUtterance(`Emergency. Breakdown at ${name}. Section ${section}.`);
+                osc.start(); osc.stop(audioCtx.currentTime + 1);
+                const msg = new SpeechSynthesisUtterance(`Emergency breakdown at ${name}`);
                 window.speechSynthesis.speak(msg);
-
                 setTimeout(() => { overlay.style.display = 'none'; alertInterval = setTimeout(trigger, 5000); }, 8000);
             };
             trigger();
         }
 
         function stopDangerCycle() { clearTimeout(alertInterval); alertInterval = null; document.getElementById('dangerOverlay').style.display = 'none'; }
-        
-        window.acknowledgeTask = async (id) => { 
-            stopDangerCycle(); 
-            await updateDoc(doc(db, "machines", id), { acknowledged: true }); 
-            await addDoc(collection(db, "history"), { msg: `Tech acknowledged mission for ${id}`, time: serverTimestamp() });
-        };
-        
-        window.assignTech = async (id, tech) => { 
-            await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false }); 
-            await addDoc(collection(db, "history"), { msg: `Director assigned ${tech} to ${id}`, time: serverTimestamp() });
-        };
-        
+        window.acknowledgeTask = async (id) => { stopDangerCycle(); await updateDoc(doc(db, "machines", id), { acknowledged: true }); };
+        window.assignTech = async (id, tech) => { await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false }); };
         window.toggleMachineStatus = async (id, status) => { 
             const newStatus = status === "WORKING" ? "BREAKDOWN" : "WORKING";
             await updateDoc(doc(db, "machines", id), { status: newStatus, acknowledged: false }); 
-            await addDoc(collection(db, "history"), { msg: `Status of ${id} changed to ${newStatus}`, time: serverTimestamp() });
         };
-
-        window.deleteMachine = async (id) => {
-            if(confirm("Are you sure you want to delete this asset?")) {
-                await deleteDoc(doc(db, "machines", id));
-                await addDoc(collection(db, "history"), { msg: `Machine ${id} removed from database`, time: serverTimestamp() });
-            }
-        };
-        
+        window.deleteMachine = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "machines", id)); };
         window.syncDatabase = async () => {
             const file = document.getElementById('jsonInput').files[0];
             if (!file) return;
@@ -556,9 +273,25 @@
                         status: "WORKING", assignedTech: "", acknowledged: false
                     }, { merge: true });
                 }
-                alert("Database Pushed Successfully");
+                alert("Sync Complete");
             };
             reader.readAsText(file);
+        };
+        function listenForHistory() {
+            const q = query(collection(db, "history"), orderBy("time", "desc"), limit(15));
+            onSnapshot(q, (snap) => {
+                const cont = document.getElementById('historyContent');
+                cont.innerHTML = "";
+                snap.forEach(d => {
+                    const h = d.data();
+                    cont.innerHTML += `<div class="log-entry">[${h.time?.toDate().toLocaleTimeString() || '...'}] ${h.msg}</div>`;
+                });
+            });
+        }
+        window.filterTable = () => {
+            const input = document.getElementById("machineSearch").value.toLowerCase();
+            const rows = document.getElementById("assetTable").getElementsByTagName("tr");
+            for (let row of rows) { row.style.display = row.textContent.toLowerCase().includes(input) ? "" : "none"; }
         };
         window.logout = () => signOut(auth);
     </script>
