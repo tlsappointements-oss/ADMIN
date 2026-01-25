@@ -170,7 +170,6 @@
             scene.add(light);
         }
 
-        // --- NEW RECOVERY & DISPOSAL LOGIC ---
         function disposeObject(obj) {
             if (obj.geometry) obj.geometry.dispose();
             if (obj.material) {
@@ -183,9 +182,9 @@
         }
 
         window.loadMachineModel = (machineName) => {
+            console.log("Loading Model for:", machineName); // Debug Check
             document.getElementById('maintTitle').innerText = `Maintenance: ${machineName}`;
             
-            // 1. COMPLETELY WIPE GPU MEMORY & SCENE
             if (scene) {
                 while(scene.children.length > 0){ 
                     let child = scene.children[0];
@@ -195,7 +194,6 @@
                 addLights();
             }
             
-            // 2. RESET TRACKING
             machineParts = [];
             activeGlowPart = "";
             selectedObject = null;
@@ -204,25 +202,27 @@
             let partsData = [];
             const nameLower = machineName.toLowerCase();
 
-            // 3. DEFINE DISTINCT MODELS WITH RADICAL COLOR CHANGES
-            if (nameLower.includes("robotic") || nameLower.includes("kuka")) {
+            // Distinct Shapes Logic
+            if (nameLower.includes("robot") || nameLower.includes("kuka")) {
+                // TALL RED ROBOT
                 partsData = [
-                    { name: "ROBOT_BASE", size: [2, 0.5, 2], pos: [0, -1, 0], color: 0xff0000 }, // RED
-                    { name: "ARM_SEGMENT", size: [0.4, 3, 0.4], pos: [0, 0.5, 0], color: 0xff0000 }
+                    { name: "ROBOT_BASE", size: [1.5, 0.4, 1.5], pos: [0, -1, 0], color: 0xff0000 },
+                    { name: "MAIN_ARM", size: [0.4, 3, 0.4], pos: [0, 0.5, 0], color: 0xff0000 }
                 ];
             } else if (nameLower.includes("nut") || nameLower.includes("vissage")) {
+                // THIN BLUE TOOL
                 partsData = [
-                    { name: "TOOL_BODY", size: [0.6, 0.6, 2], pos: [0, 0, 0], color: 0x0000ff }, // BLUE
-                    { name: "SOCKET_HEAD", size: [0.3, 0.3, 0.8], pos: [0, 0, 1.2], color: 0xcccccc }
+                    { name: "TOOL_BODY", size: [0.5, 0.5, 2.5], pos: [0, 0, 0], color: 0x0000ff },
+                    { name: "HEAD", size: [0.2, 0.2, 0.6], pos: [0, 0, 1.5], color: 0xcccccc }
                 ];
             } else {
+                // RANDOM COLOR BOX (To show it refreshed even if name doesn't match)
+                const randomColor = Math.floor(Math.random()*16777215);
                 partsData = [
-                    { name: "GENERIC_BLOCK", size: [1.5, 1.5, 1.5], pos: [0, 0, 0], color: 0x00ff00 }, // GREEN
-                    { name: "STATUS_LIGHT", size: [0.2, 0.5, 0.2], pos: [0, 1, 0], color: 0x333333 }
+                    { name: "GENERAL_COMPONENT", size: [2, 1, 1], pos: [0, 0, 0], color: randomColor }
                 ];
             }
 
-            // 4. RENDER NEW SHAPES
             partsData.forEach(p => {
                 const geo = new THREE.BoxGeometry(...p.size);
                 const mat = new THREE.MeshPhongMaterial({ color: p.color, shininess: 100 });
