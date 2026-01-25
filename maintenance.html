@@ -11,9 +11,13 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th { text-align: left; padding: 15px; color: #666; border-bottom: 2px solid #222; font-size: 0.8rem; }
         td { padding: 15px; border-bottom: 1px solid #1a1a1a; }
-        .status-pill { color: #00ff00; background: rgba(0, 255, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+        /* Dynamic Status Pill colors */
+        .status-working { color: #00ff00; background: rgba(0, 255, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+        .status-breakdown { color: #ff3333; background: rgba(255, 51, 51, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+        
         button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; }
         button:hover { background: #fff; color: #000; }
+        .btn-toggle { background: #222; border: 1px solid #444; font-size: 0.7rem; padding: 5px 10px; margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -40,23 +44,22 @@
                     <th>NAME</th>
                     <th>SECTION</th>
                     <th>STATUS</th>
-                </tr>
+                    <th id="actionHeader"></th> </tr>
             </thead>
             <tbody id="assetTable">
-                <tr><td colspan="4">Loading data from Firebase...</td></tr>
+                <tr><td colspan="5">Loading data from Firebase...</td></tr>
             </tbody>
         </table>
     </div>
 
     <script type="module">
-        // Importing from your ORIGINAL firebase.js
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // Added updateDoc to imports
+        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
 
-        // 1. Monitor User Login
         onAuthStateChanged(auth, (user) => {
             if (!user) {
                 window.location.href = "login.html";
@@ -65,53 +68,82 @@
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
-            // Reveal upload panel if user is Mohamed
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
+                document.getElementById('actionHeader').innerText = "ACTIONS";
             }
             
-            // Start showing the machines
             loadMachinesLive();
         });
 
-        // 2. Real-Time Table Loader
+        // Updated Table Loader with Manual Toggle
         function loadMachinesLive() {
             const tableBody = document.getElementById('assetTable');
-            
-            // This looks at your 'machines' collection in Firestore
+            const currentUserEmail = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
+
             onSnapshot(collection(db, "machines"), (snapshot) => {
                 tableBody.innerHTML = "";
                 
                 if (snapshot.empty) {
-                    tableBody.innerHTML = "<tr><td colspan='4'>No machines found. Director must upload JSON.</td></tr>";
+                    tableBody.innerHTML = "<tr><td colspan='5'>No machines found.</td></tr>";
                     return;
                 }
 
                 snapshot.forEach((snapshotDoc) => {
                     const m = snapshotDoc.data();
-                    tableBody.innerHTML += `
+                    const machineDocId = snapshotDoc.id;
+                    const isWorking = m.status === "WORKING";
+                    const statusClass = isWorking ? "status-working" : "status-breakdown";
+
+                    let rowHTML = `
                         <tr>
-                            <td><b>${m.machineId || snapshotDoc.id}</b></td>
+                            <td><b>${m.machineId || machineDocId}</b></td>
                             <td>${m.name}</td>
                             <td>${m.section}</td>
-                            <td><span class="status-pill">${m.status}</span></td>
-                        </tr>
+                            <td><span class="${statusClass}">${m.status}</span></td>
+                            <td>
                     `;
+
+                    // Only Mohamed sees the "Toggle" button
+                    if (currentUserEmail === DIRECTOR) {
+                        rowHTML += `
+                            <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">
+                                SET ${isWorking ? 'BREAKDOWN' : 'WORKING'}
+                            </button>
+                        `;
+                    }
+
+                    rowHTML += `</td></tr>`;
+                    tableBody.innerHTML += rowHTML;
                 });
             });
         }
 
-        // 3. Mohamed's Push Function
+        // New Manual Modify Function
+        window.toggleMachineStatus = async (docId, currentStatus) => {
+            const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
+            try {
+                const machineRef = doc(db, "machines", docId);
+                await updateDoc(machineRef, {
+                    status: newStatus,
+                    lastUpdate: serverTimestamp(),
+                    modifiedBy: DIRECTOR
+                });
+                // The onSnapshot listener above will update the table automatically!
+            } catch (err) {
+                console.error("Update failed:", err);
+                alert("Error modifying machine status.");
+            }
+        };
+
         window.syncDatabase = async () => {
             const file = document.getElementById('jsonInput').files[0];
-            if (!file) return alert("Select the JSON file first!");
-
+            if (!file) return alert("Select file!");
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
                     for (const item of data) {
-                        // Creates or updates each machine using its "id"
                         await setDoc(doc(db, "machines", item.id), {
                             machineId: item.id,
                             name: item.name,
@@ -120,10 +152,9 @@
                             lastUpdate: serverTimestamp()
                         }, { merge: true });
                     }
-                    alert("Sync Success! Machines are now live.");
+                    alert("Sync Success!");
                 } catch (err) {
-                    console.error(err);
-                    alert("Error reading JSON file.");
+                    alert("Error reading JSON.");
                 }
             };
             reader.readAsText(file);

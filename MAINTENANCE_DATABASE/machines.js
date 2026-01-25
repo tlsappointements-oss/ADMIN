@@ -1,5 +1,5 @@
 [
-  { "id": "MB-ASS-001", "name": "Robotic Arm KUKA-X1", "section": "Assembly", "desc": "Main Chassis Welding Unit", "status": "WORKING" },
+  { "id": "MB-ASS-001", "name": "Robotic Arm KUKA-X1", "section": "Assembly", "desc": "Main Chassis Welding Unit", "status": "PANNE" },
   { "id": "MB-ASS-002", "name": "Robotic Arm KUKA-X2", "section": "Assembly", "desc": "Main Chassis Welding Unit", "status": "WORKING" },
   { "id": "MB-ASS-003", "name": "Nut Runner Station A1", "section": "Assembly", "desc": "Torque Fastening - Front Axle", "status": "WORKING" },
   { "id": "MB-ASS-004", "name": "Nut Runner Station A2", "section": "Assembly", "desc": "Torque Fastening - Rear Axle", "status": "WORKING" },
