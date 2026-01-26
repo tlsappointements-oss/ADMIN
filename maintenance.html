@@ -148,11 +148,19 @@
         let isFirstAlert = true;
         let pc = null;
         let localStream = null;
+        let audioCtx = null; // Fix: Defined globally
 
         const servers = { 
             iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }],
             iceCandidatePoolSize: 10
         };
+
+        // NEW: Unlock audio on first user gesture
+        document.addEventListener('click', () => {
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }, { once: false });
 
         function updateWebRTCUI(state) {
             const label = document.getElementById('webrtcState');
@@ -392,7 +400,9 @@
             document.getElementById('callMachineName').innerText = name;
             if (isFirstAlert) {
                 try {
-                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    // Fix: Use the global audioCtx to handle user gesture properly
+                    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'sawtooth';
@@ -403,7 +413,7 @@
                     osc.start(); osc.stop(audioCtx.currentTime + 4);
                     const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}. Connecting.`);
                     window.speechSynthesis.speak(msg);
-                } catch(e) {}
+                } catch(e) { console.warn("Audio Context blocked. Waiting for click."); }
                 isFirstAlert = false;
             }
         }
