@@ -151,7 +151,6 @@
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // PERMANENTLY FIXED CONSTANT
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
         let allMachines = [];
@@ -160,10 +159,7 @@
         let localStream = null;
         let audioCtx = null;
 
-        const servers = { 
-            iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }],
-            iceCandidatePoolSize: 10
-        };
+        const servers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
         window.activateAudioSystem = async () => {
             try {
@@ -172,14 +168,10 @@
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 document.getElementById('audioActivator').style.background = "#00ff00";
                 document.getElementById('audioActivator').innerText = "✅ MIC READY";
-            } catch (err) {
-                alert("Permission denied. You must allow microphone access.");
-            }
+            } catch (err) { alert("Mic Permission Required."); }
         };
 
-        window.handleFirstInteraction = () => {
-            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-        };
+        window.handleFirstInteraction = () => audioCtx?.resume();
 
         function updateWebRTCUI(state) {
             const label = document.getElementById('webrtcState');
@@ -193,10 +185,8 @@
         }
 
         window.showPage = (id) => {
-            const pages = ['mainPage', 'interventionPage', 'missionPage'];
-            pages.forEach(p => {
-                const el = document.getElementById(p);
-                if (el) el.style.display = (p === id ? 'block' : 'none');
+            ['mainPage', 'interventionPage', 'missionPage'].forEach(p => {
+                document.getElementById(p).style.display = (p === id ? 'block' : 'none');
             });
         };
 
@@ -206,249 +196,139 @@
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
             const isDirector = (email === DIRECTOR.toLowerCase());
-            const hangBtn = document.getElementById('hangUpBtn');
-            const hangWarn = document.getElementById('hangupWarning');
+            document.getElementById('hangUpBtn').style.display = isDirector ? "flex" : "none";
+            document.getElementById('hangupWarning').style.display = isDirector ? "none" : "block";
 
-            if (!isDirector) {
-                if(hangBtn) hangBtn.style.display = "none";
-                if(hangWarn) hangWarn.style.display = "block";
-            } else {
-                if(hangBtn) hangBtn.style.display = "flex";
-                if(hangWarn) hangWarn.style.display = "none";
-                
+            if (isDirector) {
                 document.getElementById('adminPanel').style.display = "block";
-                onSnapshot(collection(db, "users"), (snap) => {
+                onSnapshot(collection(db, "users"), snap => {
                     techList = []; snap.forEach(d => techList.push(d.id.toLowerCase()));
                 });
                 loadAdminApprovals();
             }
-            
             loadMachinesLive();
             listenForIncomingCallSignals(email);
         });
 
         function loadMachinesLive() {
-            const tableBody = document.getElementById('assetTable');
-            const currentUserEmail = auth.currentUser.email.toLowerCase();
-
             onSnapshot(collection(db, "machines"), (snapshot) => {
+                const tableBody = document.getElementById('assetTable');
+                const currentUserEmail = auth.currentUser.email.toLowerCase();
                 tableBody.innerHTML = "";
-                allMachines = [];
                 let pendingTask = null;
 
-                snapshot.forEach((snapshotDoc) => {
-                    const m = snapshotDoc.data();
-                    const machineDocId = snapshotDoc.id;
-                    allMachines.push({id: machineDocId, ...m});
+                snapshot.forEach((docSnap) => {
+                    const m = docSnap.data();
+                    const id = docSnap.id;
+                    const isMe = m.assignedTech?.toLowerCase() === currentUserEmail;
+                    if (m.status === "BREAKDOWN" && !m.acknowledged && (isMe || currentUserEmail === DIRECTOR)) pendingTask = m;
 
-                    const isWorking = m.status === "WORKING";
-                    const isAssignedToMe = m.assignedTech?.toLowerCase() === currentUserEmail;
-
-                    if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR.toLowerCase())) {
-                        pendingTask = m;
-                    }
-
-                    let rowHTML = `
+                    tableBody.innerHTML += `
                         <tr>
-                            <td><b>${m.machineId || machineDocId}</b></td>
+                            <td><b>${m.machineId || id}</b></td>
                             <td>${m.name}</td>
                             <td>${m.section}</td>
+                            <td><span class="${m.status === 'WORKING' ? 'status-working' : 'status-breakdown'}">${m.status}</span></td>
                             <td>
-                                <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
-                                ${(!isWorking && isAssignedToMe) ? `
-                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}')">⚠️</span>
-                                    <span class="intervenir-msg">please intervenir</span>
-                                ` : ''}
+                                ${currentUserEmail === DIRECTOR ? `
+                                    <select class="tech-select" onchange="assignTech('${id}', this.value)">
+                                        <option value="">Assign...</option>
+                                        ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
+                                    </select>
+                                    <button class="btn-toggle" onclick="toggleMachineStatus('${id}', '${m.status}')">TOGGLE</button>
+                                ` : (isMe && m.status === 'BREAKDOWN' ? `<button onclick="acknowledgeTask('${id}')">ACKNOWLEDGE</button>` : m.assignedTech || 'Unassigned')}
                             </td>
-                            <td>
-                    `;
-
-                    if (currentUserEmail === DIRECTOR.toLowerCase()) {
-                        let options = techList.map(t => `<option value="${t}" ${m.assignedTech?.toLowerCase() === t ? 'selected' : ''}>${t}</option>`).join('');
-                        rowHTML += `
-                            <select class="tech-select" onchange="assignTech('${machineDocId}', this.value)">
-                                <option value="">Assign Tech...</option>
-                                ${options}
-                            </select>
-                            <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">SET ${isWorking ? 'BREAKDOWN' : 'WORKING'}</button>
-                        `;
-                    } else {
-                        rowHTML += `<span style="color:#555; font-size:0.8rem;">${m.assignedTech || 'Unassigned'}</span>`;
-                    }
-                    rowHTML += `</td></tr>`;
-                    tableBody.innerHTML += rowHTML;
+                        </tr>`;
                 });
 
                 if (pendingTask) {
                     startDangerCycle(pendingTask.name, pendingTask.section);
-                    if (currentUserEmail === DIRECTOR.toLowerCase() && isFirstAlert) {
-                        initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
-                    }
-                } else {
-                    stopDangerCycle();
-                }
+                    if (currentUserEmail === DIRECTOR && isFirstAlert) initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
+                } else stopDangerCycle();
             });
         }
 
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
-            const techClean = techEmail.toLowerCase();
-            
             const callDoc = doc(db, "emergency_calls", "active_session");
-            await setDoc(callDoc, { active: false }); // Force reset for Mohamed
-            
             pc = new RTCPeerConnection(servers);
             pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
+            pc.ontrack = e => document.getElementById('remoteAudio').srcObject = e.streams[0];
+            if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
-            pc.ontrack = (event) => {
-                const remoteAudio = document.getElementById('remoteAudio');
-                remoteAudio.srcObject = event.streams[0];
-                remoteAudio.play();
-            };
-            
-            if (localStream) {
-                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            }
-
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
-                }
-            };
+            pc.onicecandidate = e => e.candidate && addDoc(collection(callDoc, "offerCandidates"), e.candidate.toJSON());
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
+            await setDoc(callDoc, { offer: {type: offer.type, sdp: offer.sdp}, tech: techEmail.toLowerCase(), machine: machineName, active: true });
 
-            await setDoc(callDoc, {
-                offer: { type: offer.type, sdp: offer.sdp },
-                tech: techClean,
-                machine: machineName,
-                active: true,
-                timestamp: Date.now()
-            }, { merge: true });
-
-            onSnapshot(callDoc, (snap) => {
-                const data = snap.data();
-                if (data?.answer && !pc.currentRemoteDescription) {
-                    pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-                }
+            onSnapshot(callDoc, s => {
+                const d = s.data();
+                if (d?.answer && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(d.answer));
             });
-
-            onSnapshot(collection(callDoc, "answerCandidates"), (snap) => {
-                snap.docChanges().forEach((change) => {
-                    if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                });
-            });
+            onSnapshot(collection(callDoc, "answerCandidates"), s => s.docChanges().forEach(c => c.type === "added" && pc.addIceCandidate(new RTCIceCandidate(c.doc.data()))));
         }
 
         async function listenForIncomingCallSignals(myEmail) {
-            const myEmailClean = myEmail.toLowerCase();
-            const callDoc = doc(db, "emergency_calls", "active_session");
-            
-            onSnapshot(callDoc, async (snap) => {
-                if (!snap.exists()) { if (pc) cleanupCall(); return; }
-                const data = snap.data();
-
-                if (data?.active && data.tech === myEmailClean && !pc) {
+            onSnapshot(doc(db, "emergency_calls", "active_session"), async s => {
+                const d = s.data();
+                if (d?.active && d.tech === myEmail.toLowerCase() && !pc) {
                     document.getElementById('callPopup').style.display = 'block';
-                    document.getElementById('callMachineName').innerText = data.machine;
+                    document.getElementById('callMachineName').innerText = d.machine;
                     document.getElementById('joinCallBtn').style.display = 'block';
 
                     window.acceptCall = async () => {
                         document.getElementById('joinCallBtn').style.display = 'none';
-                        updateWebRTCUI('connecting...');
                         pc = new RTCPeerConnection(servers);
                         pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
-                        
-                        if (localStream) {
-                            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-                        }
-                        
-                        pc.ontrack = (event) => { 
-                            const remoteAudio = document.getElementById('remoteAudio');
-                            remoteAudio.srcObject = event.streams[0];
-                            remoteAudio.play();
-                        };
+                        pc.ontrack = e => document.getElementById('remoteAudio').srcObject = e.streams[0];
+                        if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
-                        pc.onicecandidate = (event) => {
-                            if (event.candidate) addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
-                        };
-
-                        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        pc.onicecandidate = e => e.candidate && addDoc(collection(doc(db, "emergency_calls", "active_session"), "answerCandidates"), e.candidate.toJSON());
+                        
+                        await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
-                        await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
+                        await updateDoc(doc(db, "emergency_calls", "active_session"), { answer: {type: answer.type, sdp: answer.sdp} });
 
-                        onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
-                            snap.docChanges().forEach((change) => {
-                                if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                            });
-                        });
+                        onSnapshot(collection(doc(db, "emergency_calls", "active_session"), "offerCandidates"), s => s.docChanges().forEach(c => c.type === "added" && pc.addIceCandidate(new RTCIceCandidate(c.doc.data()))));
                     };
-                }
+                } else if (!d?.active && pc) cleanupCall();
             });
         }
 
         window.endEmergencyCall = async () => {
-            if (auth.currentUser.email.toLowerCase() !== DIRECTOR.toLowerCase()) return;
-            await deleteDoc(doc(db, "emergency_calls", "active_session"));
-            cleanupCall();
+            if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+                await deleteDoc(doc(db, "emergency_calls", "active_session"));
+                cleanupCall();
+            }
         };
 
-        function cleanupCall() {
-            updateWebRTCUI('offline');
-            if (pc) { pc.close(); pc = null; }
-            document.getElementById('callPopup').style.display = 'none';
-            isFirstAlert = true; 
+        function cleanupCall() { 
+            if (pc) pc.close(); pc = null; 
+            document.getElementById('callPopup').style.display = 'none'; 
+            updateWebRTCUI('offline'); isFirstAlert = true; 
         }
 
         function startDangerCycle(name, section) {
-            const currentUserEmail = auth.currentUser.email.toLowerCase();
-            if (currentUserEmail !== DIRECTOR.toLowerCase()) {
+            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) {
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 document.getElementById('dangerOverlay').style.display = 'flex';
             }
-            if (isFirstAlert) {
-                if (audioCtx && audioCtx.state === 'running') {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'sawtooth';
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                    osc.start(); osc.stop(audioCtx.currentTime + 3);
-                }
-                isFirstAlert = false;
-            }
+            isFirstAlert = false;
         }
 
-        function stopDangerCycle() {
-            document.getElementById('dangerOverlay').style.display = 'none';
-        }
-
-        window.acknowledgeTask = async (docId) => {
-            stopDangerCycle();
-            try { await updateDoc(doc(db, "machines", docId), { acknowledged: true }); } catch(e) { console.error(e); }
-        };
-
-        window.assignTech = async (docId, techEmail) => {
-            try { await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase(), acknowledged: false }); } catch(e) { console.error(e); }
-        };
-
-        window.toggleMachineStatus = async (docId, currentStatus) => {
-            const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
-            try { await updateDoc(doc(db, "machines", docId), { status: newStatus, acknowledged: false }); } catch(e) { console.error(e); }
-        };
-
+        function stopDangerCycle() { document.getElementById('dangerOverlay').style.display = 'none'; }
+        window.acknowledgeTask = id => updateDoc(doc(db, "machines", id), { acknowledged: true });
+        window.assignTech = (id, t) => updateDoc(doc(db, "machines", id), { assignedTech: t.toLowerCase(), acknowledged: false });
+        window.toggleMachineStatus = (id, s) => updateDoc(doc(db, "machines", id), { status: s === 'WORKING' ? 'BREAKDOWN' : 'WORKING', acknowledged: false });
         window.logout = () => signOut(auth);
 
         function loadAdminApprovals() {
-            const list = document.getElementById('adminApprovalList');
-            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
+            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), snap => {
+                const list = document.getElementById('adminApprovalList');
                 list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    list.innerHTML += `<div class="card"><b>${data.status}: ${data.machineName || 'Machine'}</b></div>`;
-                });
+                snap.forEach(d => list.innerHTML += `<div class="card"><b>${d.data().status}: ${d.data().machineName}</b></div>`);
             });
         }
     </script>
