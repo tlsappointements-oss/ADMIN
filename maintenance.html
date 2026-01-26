@@ -49,17 +49,22 @@
         .caller-avatar { width: 100px; height: 100px; border-radius: 50%; background: #222; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 3px solid #e30613; animation: ringPulse 1.5s infinite; }
         @keyframes ringPulse { 0% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(227, 6, 19, 0); } 100% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0); } }
         .btn-hangup { background: #ff3333; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; margin: 20px auto 0; font-size: 1.5rem; transition: 0.3s; border: none; color: white; cursor: pointer; }
+        
+        #joinCallBtn { background: #00ff00; color: #000; padding: 12px 25px; border-radius: 30px; border: none; font-weight: 900; margin-bottom: 10px; animation: pulse 1s infinite; }
     </style>
 </head>
 <body>
 
-    <audio id="remoteAudio" autoplay></audio>
+    <audio id="remoteAudio" autoplay playsinline></audio>
 
     <div id="callPopup">
         <div class="caller-avatar">👤</div>
         <h2 id="callHeader" style="margin: 0; color: #fff;">DIRECTOR CALL</h2>
         <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 10px 0;"></p>
-        <p id="callStatusText" style="font-size: 0.9rem; color: #aaa;">CONNECTING VOICE...</p>
+        <p id="callStatusText" style="font-size: 0.9rem; color: #aaa;">INCOMING...</p>
+        
+        <button id="joinCallBtn" style="display:none;" onclick="acceptCall()">JOIN VOICE</button>
+        
         <button id="hangUpBtn" class="btn-hangup" onclick="endEmergencyCall()">📞</button>
         <p id="hangupWarning" style="font-size: 0.7rem; color: #666; margin-top: 10px; display: none;">ONLY MOHAMED CAN END THIS CALL</p>
     </div>
@@ -233,15 +238,14 @@
             });
         }
 
-        // --- WEB RTC LOGIC (INTEGRATED & FIXED) ---
+        // --- UPDATED WEB RTC LOGIC (CONCERNED PART) ---
 
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
             
-            // Clean subcollections before starting
-            const offerCandidates = collection(callDoc, "offerCandidates");
-            const answerCandidates = collection(callDoc, "answerCandidates");
+            document.getElementById('callPopup').style.display = 'block';
+            document.getElementById('callStatusText').innerText = "RINGING TECHNICIAN...";
 
             pc = new RTCPeerConnection(servers);
             
@@ -250,7 +254,7 @@
 
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    addDoc(offerCandidates, event.candidate.toJSON());
+                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
                 }
             };
 
@@ -265,7 +269,10 @@
                 answer: null
             });
 
-            // Listen for Answer
+            pc.ontrack = (event) => {
+                document.getElementById('remoteAudio').srcObject = event.streams[0];
+            };
+
             onSnapshot(callDoc, (snap) => {
                 const data = snap.data();
                 if (data?.answer && !pc.currentRemoteDescription) {
@@ -275,12 +282,9 @@
                 if (data?.active === false) cleanupCall();
             });
 
-            // Listen for Callee ICE
-            onSnapshot(answerCandidates, (snap) => {
+            onSnapshot(collection(callDoc, "answerCandidates"), (snap) => {
                 snap.docChanges().forEach((change) => {
-                    if (change.type === "added") {
-                        pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                    }
+                    if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
                 });
             });
         }
@@ -290,42 +294,42 @@
             onSnapshot(callDoc, async (snap) => {
                 const data = snap.data();
                 if (data?.active && data.tech === myEmail && !pc) {
+                    // Show Popup + Join Button
                     document.getElementById('callPopup').style.display = 'block';
                     document.getElementById('callMachineName').innerText = data.machine;
+                    document.getElementById('callStatusText').innerText = "DIRECTOR CALLING...";
+                    document.getElementById('joinCallBtn').style.display = 'block';
 
-                    pc = new RTCPeerConnection(servers);
-                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+                    // Define what happens when Technician clicks "JOIN"
+                    window.acceptCall = async () => {
+                        document.getElementById('joinCallBtn').style.display = 'none';
+                        document.getElementById('callStatusText').innerText = "CONNECTING...";
+                        
+                        pc = new RTCPeerConnection(servers);
+                        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-                    pc.ontrack = (event) => {
-                        document.getElementById('remoteAudio').srcObject = event.streams[0];
-                    };
+                        pc.ontrack = (event) => {
+                            document.getElementById('remoteAudio').srcObject = event.streams[0];
+                        };
 
-                    const offerCandidates = collection(callDoc, "offerCandidates");
-                    const answerCandidates = collection(callDoc, "answerCandidates");
+                        pc.onicecandidate = (event) => {
+                            if (event.candidate) addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
+                        };
 
-                    pc.onicecandidate = (event) => {
-                        if (event.candidate) addDoc(answerCandidates, event.candidate.toJSON());
-                    };
+                        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        const answer = await pc.createAnswer();
+                        await pc.setLocalDescription(answer);
+                        
+                        await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
 
-                    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-                    
-                    await updateDoc(callDoc, { 
-                        answer: { type: answer.type, sdp: answer.sdp } 
-                    });
-
-                    onSnapshot(offerCandidates, (snap) => {
-                        snap.docChanges().forEach((change) => {
-                            if (change.type === "added") {
-                                pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                            }
+                        onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
+                            snap.docChanges().forEach((change) => {
+                                if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                            });
                         });
-                    });
-
-                    stopDangerCycle();
-                    document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
+                        document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
+                    };
                 } else if (data?.active === false && pc) {
                     cleanupCall();
                 }
@@ -339,6 +343,7 @@
 
         function cleanupCall() {
             document.getElementById('callStatusText').innerText = "CALL ENDED";
+            document.getElementById('joinCallBtn').style.display = 'none';
             setTimeout(() => {
                 document.getElementById('callPopup').style.display = 'none';
                 if (localStream) {
