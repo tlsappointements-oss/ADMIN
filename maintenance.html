@@ -5,9 +5,11 @@
     <title>Mercedes-Benz | Plant Operations</title>
     <style>
         body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
-        /* FIXED: Sidebar now stays ABOVE the danger overlay */
-        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10001; }
+        
+        /* UPDATED: HIGHER Z-INDEX TO ENSURE SIDEBAR IS ALWAYS ABOVE OVERLAYS */
+        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10005; }
         .main { margin-left: 285px; padding: 40px; flex: 1; }
+        
         #adminPanel, #interventionPanel, #missionPanel, #encyclopediaPanel { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
         
         .card { background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
@@ -19,7 +21,6 @@
         td { padding: 15px; border-bottom: 1px solid #1a1a1a; }
         .status-working { color: #00ff00; background: rgba(0, 255, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
         .status-breakdown { color: #ff3333; background: rgba(255, 51, 51, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-        .status-pending { color: #ffa500; background: rgba(255, 165, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
         
         button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; }
         button:hover { background: #fff; color: #000; }
@@ -28,44 +29,28 @@
 
         .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; margin-right: 5px; }
         .alert-triangle { color: #ff0000; font-size: 1.5rem; cursor: pointer; animation: blink 0.8s infinite; margin-right: 8px; vertical-align: middle; }
-        .intervenir-msg { color: #ff0000; font-size: 0.75rem; font-weight: bold; font-style: italic; text-transform: uppercase; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
-
+        
         #dangerOverlay {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(150, 0, 0, 0.9); z-index: 9999; flex-direction: column;
             justify-content: center; align-items: center; text-align: center;
-            animation: dangerFlash 0.4s infinite;
         }
-        @keyframes dangerFlash { 0% { background: rgba(100, 0, 0, 0.95); } 50% { background: rgba(255, 0, 0, 1); } 100% { background: rgba(100, 0, 0, 0.95); } }
-        .giant-triangle { font-size: 180px; color: white; filter: drop-shadow(0 0 30px gold); animation: pulse 0.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
 
+        /* UPDATED CALL POPUP */
         #callPopup {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 350px; background: #111; border: 2px solid #e30613; border-radius: 20px;
-            padding: 30px; text-align: center; z-index: 10000; box-shadow: 0 0 50px rgba(227, 6, 19, 0.5);
+            width: 350px; background: #111; border: 3px solid #e30613; border-radius: 20px;
+            padding: 30px; text-align: center; z-index: 10002; box-shadow: 0 0 100px #ff0000;
         }
-        .caller-avatar { width: 100px; height: 100px; border-radius: 50%; background: #222; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 3px solid #e30613; animation: ringPulse 1.5s infinite; }
-        @keyframes ringPulse { 0% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(227, 6, 19, 0); } 100% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0); } }
-        .btn-hangup { background: #ff3333; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; margin: 20px auto 0; font-size: 1.5rem; transition: 0.3s; border: none; color: white; cursor: pointer; }
-        
-        #joinCallBtn { background: #00ff00; color: #000; padding: 12px 25px; border-radius: 30px; border: none; font-weight: 900; margin-bottom: 10px; animation: pulse 1s infinite; }
-
-        #connectionStatusLine { 
-            font-size: 0.7rem; color: #777; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px;
-            border-top: 1px solid #222; padding-top: 10px; display: flex; align-items: center; justify-content: center;
-        }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #555; transition: 0.3s; }
-        .dot-active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
-        .dot-error { background: #ff3333; }
 
         #audioActivator {
             background: #ffcc00; color: #000; border: none; padding: 15px;
             font-weight: 900; width: 100%; margin-bottom: 20px; border-radius: 5px;
-            cursor: pointer; display: block; animation: pulse 2s infinite;
+            cursor: pointer; display: block; position: relative; z-index: 10006;
         }
+
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; background: #555; margin-right: 5px; }
+        .dot-active { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
     </style>
 </head>
 <body onclick="handleFirstInteraction()">
@@ -73,93 +58,48 @@
     <audio id="remoteAudio" autoplay playsinline></audio>
 
     <div id="callPopup">
-        <div class="caller-avatar">👤</div>
-        <h2 id="callHeader" style="margin: 0; color: #fff;">DIRECTOR CALL</h2>
-        <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 10px 0;"></p>
-        <p id="callStatusText" style="font-size: 0.9rem; color: #aaa;">INCOMING...</p>
-        
-        <button id="joinCallBtn" style="display:none;" onclick="acceptCall()">JOIN VOICE</button>
-        
-        <button id="hangUpBtn" class="btn-hangup" onclick="endEmergencyCall()">📞</button>
-        <p id="hangupWarning" style="font-size: 0.7rem; color: #666; margin-top: 10px; display: none;">ONLY MOHAMED CAN END THIS CALL</p>
-
-        <div id="connectionStatusLine">
-            <span id="statusDot" class="status-dot"></span>
-            SIGNAL: <span id="webrtcState">OFFLINE</span>
+        <div style="font-size: 3rem; margin-bottom: 10px;">🎙️</div>
+        <h2 id="callHeader">EMERGENCY LINE</h2>
+        <p id="callMachineName" style="color: #e30613; font-weight: bold;"></p>
+        <button id="joinCallBtn" style="display:none; background:#00ff00; color:#000; padding:15px; border-radius:30px; margin-bottom:10px;" onclick="acceptCall()">JOIN CALL NOW</button>
+        <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:60px; height:60px; border:none; color:white; font-size:1.5rem;" onclick="endEmergencyCall()">📞</button>
+        <div style="margin-top:15px; font-size:12px; border-top:1px solid #333; padding-top:10px;">
+            <span id="statusDot" class="status-dot"></span> STATUS: <span id="webrtcState">IDLE</span>
         </div>
     </div>
 
     <div id="dangerOverlay">
         <div class="giant-triangle">⚠️</div>
-        <div class="danger-text">CRITICAL PANNE</div>
-        <div id="dangerDescription" style="font-size: 1.8rem; margin-top: 15px; font-weight: bold; background: black; padding: 10px 20px;"></div>
+        <div style="font-size: 3rem; font-weight: 900;">CRITICAL BREAKDOWN</div>
+        <div id="dangerDescription" style="background:black; padding:10px; margin-top:20px;"></div>
     </div>
 
     <div class="sidebar">
         <h2 style="color: #e30613;">MERCEDES</h2>
-        
-        <button id="audioActivator" onclick="activateAudioSystem()">⚠️ CLICK TO ALLOW MIC & SOUND</button>
-
-        <p id="userDisplay" style="font-size: 13px; color: #aaa;"></p>
-        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+        <button id="audioActivator" onclick="activateAudioSystem()">STEP 1: ENABLE MIC</button>
+        <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
         <button class="btn-nav" onclick="showPage('mainPage')">🏠 Dashboard</button>
-        <button class="btn-nav" onclick="showPage('interventionPage')">📝 Demande d'Intervention</button>
-        <button class="btn-nav" onclick="showPage('missionPage')">🛠️ Ordre de Mission</button>
         <button onclick="logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
     </div>
 
     <div class="main">
-        <div id="adminPanel">
-            <h3 style="margin-top:0">DIRECTOR SYNC & APPROVALS</h3>
-            <div id="adminApprovalList"></div>
-        </div>
-
+        <div id="adminPanel"><h3>DIRECTOR PANEL</h3><div id="adminApprovalList"></div></div>
         <div id="mainPage">
             <h1>Plant Asset Library</h1>
             <table>
-                <thead>
-                    <tr>
-                        <th>MACHINE ID</th>
-                        <th>NAME</th>
-                        <th>SECTION</th>
-                        <th>STATUS</th>
-                        <th id="actionHeader"></th>
-                    </tr>
-                </thead>
-                <tbody id="assetTable">
-                    <tr><td colspan="5">Loading data from Firebase...</td></tr>
-                </tbody>
+                <thead><tr><th>ID</th><th>NAME</th><th>SECTION</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+                <tbody id="assetTable"></tbody>
             </table>
-        </div>
-
-        <div id="interventionPage" style="display:none">
-            <h1>Nouvelle Demande d'Intervention</h1>
-            <div class="card">
-                <select id="requestMachineSelect"></select>
-                <textarea id="requestIssue" placeholder="Describe the problem in detail..."></textarea>
-                <button onclick="submitIntervention()">SUBMIT REQUEST</button>
-            </div>
-        </div>
-
-        <div id="missionPage" style="display:none">
-            <h1>Mes Ordres de Mission</h1>
-            <div id="missionList"></div>
         </div>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-        let techList = [];
-        let isFirstAlert = true;
-        let pc = null;
-        let localStream = null;
-        let audioCtx = null;
-        let micReady = false;
-
+        let techList = [], isFirstAlert = true, micReady = false, pc = null, localStream = null, audioCtx = null;
         const servers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
         window.activateAudioSystem = async () => {
@@ -167,109 +107,83 @@
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 await audioCtx.resume();
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                localStream.getAudioTracks()[0].enabled = true; 
                 micReady = true;
                 document.getElementById('audioActivator').style.background = "#00ff00";
                 document.getElementById('audioActivator').innerText = "✅ MIC READY";
-            } catch (err) { alert("Mic Permission Required."); }
+            } catch (e) { alert("Mic Error: " + e.message); }
         };
 
-        window.handleFirstInteraction = () => audioCtx?.resume();
+        window.handleFirstInteraction = () => { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); };
 
-        function updateWebRTCUI(state) {
-            const label = document.getElementById('webrtcState');
-            const dot = document.getElementById('statusDot');
-            if (label) label.innerText = state.toUpperCase();
-            if (dot) {
-                dot.className = "status-dot";
-                if(state === 'connected') dot.classList.add('dot-active');
-                if(['failed', 'closed', 'disconnected'].includes(state)) dot.classList.add('dot-error');
-            }
-        }
-
-        window.showPage = (id) => {
-            ['mainPage', 'interventionPage', 'missionPage'].forEach(p => {
-                document.getElementById(p).style.display = (p === id ? 'block' : 'none');
-            });
-        };
-
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, user => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
-            document.getElementById('userDisplay').innerText = `USER: ${email}`;
-
-            const isDirector = (email === DIRECTOR.toLowerCase());
-            document.getElementById('hangUpBtn').style.display = isDirector ? "flex" : "none";
-            document.getElementById('hangupWarning').style.display = isDirector ? "none" : "block";
-
-            if (isDirector) {
+            document.getElementById('userDisplay').innerText = email;
+            if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
-                onSnapshot(collection(db, "users"), snap => {
-                    techList = []; snap.forEach(d => techList.push(d.id.toLowerCase()));
-                });
-                loadAdminApprovals();
+                onSnapshot(collection(db, "users"), s => { techList = []; s.forEach(d => techList.push(d.id.toLowerCase())); });
             }
-            loadMachinesLive();
-            listenForIncomingCallSignals(email);
+            loadData(email);
+            listenForCalls(email);
         });
 
-        function loadMachinesLive() {
-            onSnapshot(collection(db, "machines"), (snapshot) => {
-                const tableBody = document.getElementById('assetTable');
-                const currentUserEmail = auth.currentUser.email.toLowerCase();
-                tableBody.innerHTML = "";
-                let pendingTask = null;
+        function loadData(me) {
+            onSnapshot(collection(db, "machines"), snap => {
+                const tbody = document.getElementById('assetTable');
+                tbody.innerHTML = "";
+                let alertM = null;
 
-                snapshot.forEach((docSnap) => {
-                    const m = docSnap.data();
-                    const id = docSnap.id;
-                    const isMe = m.assignedTech?.toLowerCase() === currentUserEmail;
-                    if (m.status === "BREAKDOWN" && !m.acknowledged && (isMe || currentUserEmail === DIRECTOR)) pendingTask = m;
-
-                    tableBody.innerHTML += `
-                        <tr>
-                            <td><b>${m.machineId || id}</b></td>
-                            <td>${m.name}</td>
-                            <td>${m.section}</td>
-                            <td><span class="${m.status === 'WORKING' ? 'status-working' : 'status-breakdown'}">${m.status}</span></td>
-                            <td>
-                                ${currentUserEmail === DIRECTOR ? `
-                                    <select class="tech-select" onchange="assignTech('${id}', this.value)">
-                                        <option value="">Assign...</option>
-                                        ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
-                                    </select>
-                                    <button class="btn-toggle" onclick="toggleMachineStatus('${id}', '${m.status}')">TOGGLE</button>
-                                ` : (isMe && m.status === 'BREAKDOWN' ? `<button onclick="acknowledgeTask('${id}')">ACKNOWLEDGE</button>` : m.assignedTech || 'Unassigned')}
-                            </td>
-                        </tr>`;
+                snap.forEach(d => {
+                    const m = d.data();
+                    const isMe = m.assignedTech?.toLowerCase() === me;
+                    if (m.status === "BREAKDOWN" && !m.acknowledged && (isMe || me === DIRECTOR)) alertM = m;
+                    
+                    tbody.innerHTML += `<tr>
+                        <td>${m.machineId || d.id}</td><td>${m.name}</td><td>${m.section}</td>
+                        <td><span class="${m.status === 'WORKING' ? 'status-working' : 'status-breakdown'}">${m.status}</span></td>
+                        <td>
+                            ${me === DIRECTOR ? `
+                                <select onchange="assign('${d.id}', this.value)"><option>Assign...</option>
+                                ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
+                                <button onclick="toggle('${d.id}', '${m.status}')">TOGGLE</button>
+                            ` : (isMe && m.status === 'BREAKDOWN' ? `<button onclick="ack('${d.id}')">ACKNOWLEDGE</button>` : m.assignedTech || '---')}
+                        </td>
+                    </tr>`;
                 });
 
-                if (pendingTask) {
-                    startDangerCycle(pendingTask.name, pendingTask.section);
-                    // FIXED: DIRECTOR ONLY CALLS IF MIC IS READY
-                    if (currentUserEmail === DIRECTOR && isFirstAlert && micReady) initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
-                } else stopDangerCycle();
+                if (alertM) {
+                    showDanger(alertM.name);
+                    if (me === DIRECTOR && isFirstAlert && micReady) {
+                        initiateVoiceCall(alertM.assignedTech, alertM.name);
+                        isFirstAlert = false;
+                    }
+                } else stopDanger();
             });
         }
 
-        async function initiateVoiceCall(techEmail, machineName) {
-            if (!techEmail || pc) return;
+        async function initiateVoiceCall(tech, machine) {
+            if (!tech || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
             
-            // Show popup for Mohamed too
+            // MOHAMED UI FIX
             document.getElementById('callPopup').style.display = 'block';
-            document.getElementById('callMachineName').innerText = "CALLING: " + techEmail;
-            document.getElementById('callStatusText').innerText = "CONNECTING...";
+            document.getElementById('callMachineName').innerText = "CALLING: " + tech;
+            document.getElementById('webrtcState').innerText = "SIGNALING...";
 
             pc = new RTCPeerConnection(servers);
-            pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
-            pc.ontrack = e => document.getElementById('remoteAudio').srcObject = e.streams[0];
-            if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-
             pc.onicecandidate = e => e.candidate && addDoc(collection(callDoc, "offerCandidates"), e.candidate.toJSON());
+            pc.ontrack = e => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
+            pc.onconnectionstatechange = () => {
+                document.getElementById('webrtcState').innerText = pc.connectionState;
+                if(pc.connectionState === 'connected') document.getElementById('statusDot').classList.add('dot-active');
+            };
+            
+            if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            await setDoc(callDoc, { offer: {type: offer.type, sdp: offer.sdp}, tech: techEmail.toLowerCase(), machine: machineName, active: true });
+            await setDoc(callDoc, { offer: {type: offer.type, sdp: offer.sdp}, tech: tech.toLowerCase(), machine, active: true });
 
             onSnapshot(callDoc, s => {
                 const d = s.data();
@@ -278,69 +192,46 @@
             onSnapshot(collection(callDoc, "answerCandidates"), s => s.docChanges().forEach(c => c.type === "added" && pc.addIceCandidate(new RTCIceCandidate(c.doc.data()))));
         }
 
-        async function listenForIncomingCallSignals(myEmail) {
+        function listenForCalls(me) {
             onSnapshot(doc(db, "emergency_calls", "active_session"), async s => {
                 const d = s.data();
-                if (d?.active && d.tech === myEmail.toLowerCase() && !pc) {
+                if (d?.active && d.tech === me.toLowerCase() && !pc) {
                     document.getElementById('callPopup').style.display = 'block';
-                    document.getElementById('callMachineName').innerText = d.machine;
                     document.getElementById('joinCallBtn').style.display = 'block';
+                    document.getElementById('callMachineName').innerText = "DIRECTOR CALLING...";
 
                     window.acceptCall = async () => {
-                        if (!micReady) { alert("Enable Microphone first!"); return; }
+                        if (!micReady) { alert("Enable Mic First!"); return; }
                         document.getElementById('joinCallBtn').style.display = 'none';
                         pc = new RTCPeerConnection(servers);
-                        pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
-                        pc.ontrack = e => document.getElementById('remoteAudio').srcObject = e.streams[0];
-                        if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-
+                        pc.ontrack = e => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
+                        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
                         pc.onicecandidate = e => e.candidate && addDoc(collection(doc(db, "emergency_calls", "active_session"), "answerCandidates"), e.candidate.toJSON());
-                        
                         await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
                         await updateDoc(doc(db, "emergency_calls", "active_session"), { answer: {type: answer.type, sdp: answer.sdp} });
-
                         onSnapshot(collection(doc(db, "emergency_calls", "active_session"), "offerCandidates"), s => s.docChanges().forEach(c => c.type === "added" && pc.addIceCandidate(new RTCIceCandidate(c.doc.data()))));
                     };
-                } else if (!d?.active && pc) cleanupCall();
+                } else if (!d && pc) cleanup();
             });
         }
 
         window.endEmergencyCall = async () => {
             if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
                 await deleteDoc(doc(db, "emergency_calls", "active_session"));
-                cleanupCall();
+                cleanup();
             }
         };
 
-        function cleanupCall() { 
-            if (pc) pc.close(); pc = null; 
-            document.getElementById('callPopup').style.display = 'none'; 
-            updateWebRTCUI('offline'); isFirstAlert = true; 
-        }
-
-        function startDangerCycle(name, section) {
-            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) {
-                document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
-                document.getElementById('dangerOverlay').style.display = 'flex';
-            }
-            isFirstAlert = false;
-        }
-
-        function stopDangerCycle() { document.getElementById('dangerOverlay').style.display = 'none'; }
-        window.acknowledgeTask = id => updateDoc(doc(db, "machines", id), { acknowledged: true });
-        window.assignTech = (id, t) => updateDoc(doc(db, "machines", id), { assignedTech: t.toLowerCase(), acknowledged: false });
-        window.toggleMachineStatus = (id, s) => updateDoc(doc(db, "machines", id), { status: s === 'WORKING' ? 'BREAKDOWN' : 'WORKING', acknowledged: false });
+        function cleanup() { if(pc) pc.close(); pc = null; document.getElementById('callPopup').style.display = 'none'; isFirstAlert = true; }
+        function showDanger(t) { if (auth.currentUser.email.toLowerCase() !== DIRECTOR) { document.getElementById('dangerDescription').innerText = t; document.getElementById('dangerOverlay').style.display = 'flex'; } }
+        function stopDanger() { document.getElementById('dangerOverlay').style.display = 'none'; }
+        window.assign = (id, t) => updateDoc(doc(db, "machines", id), { assignedTech: t.toLowerCase(), acknowledged: false });
+        window.toggle = (id, s) => updateDoc(doc(db, "machines", id), { status: s === 'WORKING' ? 'BREAKDOWN' : 'WORKING', acknowledged: false });
+        window.ack = (id) => updateDoc(doc(db, "machines", id), { acknowledged: true });
         window.logout = () => signOut(auth);
-
-        function loadAdminApprovals() {
-            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), snap => {
-                const list = document.getElementById('adminApprovalList');
-                list.innerHTML = "";
-                snap.forEach(d => list.innerHTML += `<div class="card"><b>${d.data().status}: ${d.data().machineName}</b></div>`);
-            });
-        }
+        window.showPage = p => { document.getElementById('mainPage').style.display = 'block'; };
     </script>
 </body>
 </html>
