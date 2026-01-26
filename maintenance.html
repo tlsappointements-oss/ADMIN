@@ -157,15 +157,20 @@
         function updateWebRTCUI(state) {
             const label = document.getElementById('webrtcState');
             const dot = document.getElementById('statusDot');
-            label.innerText = state.toUpperCase();
-            dot.className = "status-dot";
-            if(state === 'connected') dot.classList.add('dot-active');
-            if(state === 'failed' || state === 'closed' || state === 'disconnected') dot.classList.add('dot-error');
+            if (label) label.innerText = state.toUpperCase();
+            if (dot) {
+                dot.className = "status-dot";
+                if(state === 'connected') dot.classList.add('dot-active');
+                if(state === 'failed' || state === 'closed' || state === 'disconnected') dot.classList.add('dot-error');
+            }
         }
 
         window.showPage = (id) => {
             const pages = ['mainPage', 'interventionPage', 'missionPage'];
-            pages.forEach(p => document.getElementById(p).style.display = (p === id ? 'block' : 'none'));
+            pages.forEach(p => {
+                const el = document.getElementById(p);
+                if (el) el.style.display = (p === id ? 'block' : 'none');
+            });
         };
 
         onAuthStateChanged(auth, async (user) => {
@@ -176,18 +181,18 @@
             const hangBtn = document.getElementById('hangUpBtn');
             const hangWarn = document.getElementById('hangupWarning');
             if (email !== DIRECTOR) {
-                hangBtn.style.display = "none";
-                hangWarn.style.display = "block";
+                if(hangBtn) hangBtn.style.display = "none";
+                if(hangWarn) hangWarn.style.display = "block";
             } else {
-                hangBtn.style.display = "flex";
-                hangWarn.style.display = "none";
+                if(hangBtn) hangBtn.style.display = "flex";
+                if(hangWarn) hangWarn.style.display = "none";
             }
 
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
                 onSnapshot(collection(db, "users"), (snap) => {
                     techList = []; snap.forEach(d => techList.push(d.id));
-                });
+                }, (err) => console.error("User list error:", err));
                 loadAdminApprovals();
             }
             
@@ -212,7 +217,6 @@
                     const isWorking = m.status === "WORKING";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
 
-                    // Fixed logic: Detect pending tasks based on your collection names
                     if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR)) {
                         pendingTask = m;
                     }
@@ -256,6 +260,9 @@
                 } else {
                     stopDangerCycle();
                 }
+            }, (error) => {
+                console.error("Firebase Read Error:", error);
+                tableBody.innerHTML = `<tr><td colspan="5" style="color:red">Error: ${error.message}. Check Firebase Rules!</td></tr>`;
             });
         }
 
@@ -264,7 +271,6 @@
             updateWebRTCUI('signaling...');
             
             const callDoc = doc(db, "emergency_calls", "active_session");
-            // Safer deletion
             try { await deleteDoc(callDoc); } catch(e) {}
 
             pc = new RTCPeerConnection(servers);
@@ -277,7 +283,7 @@
 
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
+                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON()).catch(e => console.error("ICE Error:", e));
                 }
             };
 
@@ -290,7 +296,7 @@
                 machine: machineName,
                 active: true,
                 timestamp: Date.now()
-            });
+            }).catch(e => console.error("Call SetDoc Error:", e));
 
             pc.ontrack = (event) => { document.getElementById('remoteAudio').srcObject = event.streams[0]; };
 
@@ -358,8 +364,10 @@
 
         window.endEmergencyCall = async () => {
             if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-            await deleteDoc(doc(db, "emergency_calls", "active_session"));
-            cleanupCall();
+            try {
+                await deleteDoc(doc(db, "emergency_calls", "active_session"));
+                cleanupCall();
+            } catch(e) { console.error("End call error:", e); }
         };
 
         function cleanupCall() {
@@ -383,17 +391,19 @@
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = name;
             if (isFirstAlert) {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 2);
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                osc.start(); osc.stop(audioCtx.currentTime + 4);
-                const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}. Connecting.`);
-                window.speechSynthesis.speak(msg);
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 2);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    osc.start(); osc.stop(audioCtx.currentTime + 4);
+                    const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}. Connecting.`);
+                    window.speechSynthesis.speak(msg);
+                } catch(e) {}
                 isFirstAlert = false;
             }
         }
@@ -405,16 +415,22 @@
 
         window.acknowledgeTask = async (docId) => {
             stopDangerCycle();
-            await updateDoc(doc(db, "machines", docId), { acknowledged: true });
+            try {
+                await updateDoc(doc(db, "machines", docId), { acknowledged: true });
+            } catch(e) { alert("Permission Denied or Machine Not Found."); console.error(e); }
         };
 
         window.assignTech = async (docId, techEmail) => {
-            await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase(), acknowledged: false });
+            try {
+                await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase(), acknowledged: false });
+            } catch(e) { console.error("Assignment error:", e); }
         };
 
         window.toggleMachineStatus = async (docId, currentStatus) => {
             const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
-            await updateDoc(doc(db, "machines", docId), { status: newStatus, acknowledged: false });
+            try {
+                await updateDoc(doc(db, "machines", docId), { status: newStatus, acknowledged: false });
+            } catch(e) { console.error("Status toggle error:", e); }
         };
 
         window.logout = () => signOut(auth);
@@ -427,10 +443,10 @@
                     const data = d.data();
                     const card = document.createElement('div');
                     card.className = "card";
-                    card.innerHTML = `<b>${data.status}: ${data.machineName}</b>`;
+                    card.innerHTML = `<b>${data.status}: ${data.machineName || 'Machine'}</b>`;
                     list.appendChild(card);
                 });
-            });
+            }, (e) => console.error("Interventions error:", e));
         }
     </script>
 </body>
