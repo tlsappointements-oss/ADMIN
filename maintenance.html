@@ -122,7 +122,7 @@
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc, query, where, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
@@ -131,7 +131,12 @@
         let pc = null;
         let localStream = null;
 
-        const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
+        const servers = { 
+            iceServers: [
+                { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
+            ],
+            iceCandidatePoolSize: 10
+        };
 
         window.showPage = (id) => {
             const pages = ['mainPage', 'interventionPage', 'missionPage'];
@@ -228,21 +233,21 @@
             });
         }
 
-        // --- WEB RTC LOGIC (FIXED) ---
+        // --- WEB RTC LOGIC (INTEGRATED & FIXED) ---
 
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
             
-            // Clean up old candidates from previous sessions
+            // Clean subcollections before starting
             const offerCandidates = collection(callDoc, "offerCandidates");
             const answerCandidates = collection(callDoc, "answerCandidates");
 
             pc = new RTCPeerConnection(servers);
+            
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-            // Push candidates to sub-collection
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
                     addDoc(offerCandidates, event.candidate.toJSON());
@@ -270,7 +275,7 @@
                 if (data?.active === false) cleanupCall();
             });
 
-            // Listen for Technician's ICE candidates
+            // Listen for Callee ICE
             onSnapshot(answerCandidates, (snap) => {
                 snap.docChanges().forEach((change) => {
                     if (change.type === "added") {
@@ -296,8 +301,9 @@
                         document.getElementById('remoteAudio').srcObject = event.streams[0];
                     };
 
-                    // Send candidates to Director
+                    const offerCandidates = collection(callDoc, "offerCandidates");
                     const answerCandidates = collection(callDoc, "answerCandidates");
+
                     pc.onicecandidate = (event) => {
                         if (event.candidate) addDoc(answerCandidates, event.candidate.toJSON());
                     };
@@ -310,8 +316,7 @@
                         answer: { type: answer.type, sdp: answer.sdp } 
                     });
 
-                    // Listen for Director's ICE candidates
-                    onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
+                    onSnapshot(offerCandidates, (snap) => {
                         snap.docChanges().forEach((change) => {
                             if (change.type === "added") {
                                 pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
