@@ -52,7 +52,6 @@
         
         #joinCallBtn { background: #00ff00; color: #000; padding: 12px 25px; border-radius: 30px; border: none; font-weight: 900; margin-bottom: 10px; animation: pulse 1s infinite; }
 
-        /* CONNECTION STATUS UI */
         #connectionStatusLine { 
             font-size: 0.7rem; color: #777; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px;
             border-top: 1px solid #222; padding-top: 10px; display: flex; align-items: center; justify-content: center;
@@ -161,7 +160,7 @@
             label.innerText = state.toUpperCase();
             dot.className = "status-dot";
             if(state === 'connected') dot.classList.add('dot-active');
-            if(state === 'failed' || state === 'closed') dot.classList.add('dot-error');
+            if(state === 'failed' || state === 'closed' || state === 'disconnected') dot.classList.add('dot-error');
         }
 
         window.showPage = (id) => {
@@ -213,6 +212,7 @@
                     const isWorking = m.status === "WORKING";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
 
+                    // Fixed logic: Detect pending tasks based on your collection names
                     if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR)) {
                         pendingTask = m;
                     }
@@ -264,8 +264,8 @@
             updateWebRTCUI('signaling...');
             
             const callDoc = doc(db, "emergency_calls", "active_session");
-            // Ensure document is clean
-            await deleteDoc(callDoc);
+            // Safer deletion
+            try { await deleteDoc(callDoc); } catch(e) {}
 
             pc = new RTCPeerConnection(servers);
             pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
@@ -273,12 +273,8 @@
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            } catch (e) {
-                console.error(e);
-                return;
-            }
+            } catch (e) { console.error("Mic Error:", e); return; }
 
-            // Collect ICE candidates and store in a sub-collection
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
                     addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
@@ -292,12 +288,12 @@
                 offer: { type: offer.type, sdp: offer.sdp },
                 tech: techEmail,
                 machine: machineName,
-                active: true
+                active: true,
+                timestamp: Date.now()
             });
 
             pc.ontrack = (event) => { document.getElementById('remoteAudio').srcObject = event.streams[0]; };
 
-            // Listen for Answer
             onSnapshot(callDoc, (snap) => {
                 const data = snap.data();
                 if (data?.answer && !pc.currentRemoteDescription) {
@@ -306,7 +302,6 @@
                 }
             });
 
-            // Listen for Remote ICE
             onSnapshot(collection(callDoc, "answerCandidates"), (snap) => {
                 snap.docChanges().forEach((change) => {
                     if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
@@ -368,9 +363,9 @@
         };
 
         function cleanupCall() {
+            updateWebRTCUI('offline');
             document.getElementById('callStatusText').innerText = "CALL ENDED";
             document.getElementById('joinCallBtn').style.display = 'none';
-            updateWebRTCUI('offline');
             setTimeout(() => {
                 document.getElementById('callPopup').style.display = 'none';
                 if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -384,8 +379,6 @@
             if (currentUserEmail !== DIRECTOR) {
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 document.getElementById('dangerOverlay').style.display = 'flex';
-            } else {
-                document.getElementById('dangerOverlay').style.display = 'none';
             }
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = name;
