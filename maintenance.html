@@ -61,7 +61,7 @@
         .dot-error { background: #ff3333; }
     </style>
 </head>
-<body>
+<body onclick="handleFirstInteraction()">
 
     <audio id="remoteAudio" autoplay playsinline></audio>
 
@@ -148,19 +148,30 @@
         let isFirstAlert = true;
         let pc = null;
         let localStream = null;
-        let audioCtx = null; // Fix: Defined globally
+        let audioCtx = null;
 
         const servers = { 
             iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }],
             iceCandidatePoolSize: 10
         };
 
-        // NEW: Unlock audio on first user gesture
-        document.addEventListener('click', () => {
-            if (audioCtx && audioCtx.state === 'suspended') {
+        // AUDIO INITIALIZATION: Runs when user first clicks anywhere on the page
+        window.handleFirstInteraction = () => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                // Play a silent 0.01s sound to "prime" the engine
+                const oscillator = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0; // Silent
+                oscillator.connect(gain);
+                gain.connect(audioCtx.destination);
+                oscillator.start(0);
+                oscillator.stop(0.01);
+                console.log("Audio Context initialized and unlocked.");
+            } else if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
-        }, { once: false });
+        };
 
         function updateWebRTCUI(state) {
             const label = document.getElementById('webrtcState');
@@ -398,11 +409,10 @@
             }
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = name;
+            
             if (isFirstAlert) {
-                try {
-                    // Fix: Use the global audioCtx to handle user gesture properly
-                    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    
+                // If context exists and is running, we can play sounds
+                if (audioCtx && audioCtx.state === 'running') {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'sawtooth';
@@ -411,9 +421,12 @@
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
                     osc.start(); osc.stop(audioCtx.currentTime + 4);
+
                     const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}. Connecting.`);
                     window.speechSynthesis.speak(msg);
-                } catch(e) { console.warn("Audio Context blocked. Waiting for click."); }
+                } else {
+                    console.warn("AudioContext suspended. Click the page to enable sound.");
+                }
                 isFirstAlert = false;
             }
         }
@@ -427,7 +440,7 @@
             stopDangerCycle();
             try {
                 await updateDoc(doc(db, "machines", docId), { acknowledged: true });
-            } catch(e) { alert("Permission Denied or Machine Not Found."); console.error(e); }
+            } catch(e) { alert("Error acknowledging."); console.error(e); }
         };
 
         window.assignTech = async (docId, techEmail) => {
