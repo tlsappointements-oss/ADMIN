@@ -148,10 +148,9 @@
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
-        let alertInterval = null;
         let allMachines = [];
         let isFirstAlert = true;
-        let pc = null; // WebRTC Peer Connection
+        let pc = null;
         let localStream = null;
 
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
@@ -171,20 +170,21 @@
             if (email !== DIRECTOR) {
                 hangBtn.style.display = "none";
                 hangWarn.style.display = "block";
+            } else {
+                hangBtn.style.display = "flex";
+                hangWarn.style.display = "none";
             }
 
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
                 onSnapshot(collection(db, "users"), (snap) => {
                     techList = []; snap.forEach(d => techList.push(d.id));
-                    loadMachinesLive();
                 });
-            } else {
-                loadMachinesLive();
-                loadMyMissions(email);
+                loadAdminApprovals();
             }
             
-            // Start listening for signaling data (WebRTC)
+            loadMachinesLive();
+            if (email !== DIRECTOR) loadMyMissions(email);
             listenForIncomingCallSignals(email);
         });
 
@@ -195,7 +195,7 @@
 
             onSnapshot(collection(db, "machines"), (snapshot) => {
                 tableBody.innerHTML = "";
-                requestSelect.innerHTML = "";
+                if(requestSelect) requestSelect.innerHTML = "";
                 allMachines = [];
                 let pendingTask = null;
 
@@ -203,13 +203,13 @@
                     const m = snapshotDoc.data();
                     const machineDocId = snapshotDoc.id;
                     allMachines.push({id: machineDocId, ...m});
-                    requestSelect.innerHTML += `<option value="${machineDocId}">${m.name}</option>`;
+                    if(requestSelect) requestSelect.innerHTML += `<option value="${machineDocId}">${m.name}</option>`;
 
                     const isWorking = m.status === "WORKING";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
 
-                    // THE TRIGGER: Start Alert and Call if Panne is fresh
-                    if (!isWorking && (isAssignedToMe || currentUserEmail === DIRECTOR) && !m.acknowledged) {
+                    // UPDATED: If Director OR assigned tech, trigger the danger cycle
+                    if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR)) {
                         pendingTask = m;
                     }
 
@@ -246,7 +246,6 @@
 
                 if (pendingTask) {
                     startDangerCycle(pendingTask.name, pendingTask.section);
-                    // Mohamed initiates the WebRTC session automatically
                     if (currentUserEmail === DIRECTOR && isFirstAlert) {
                         initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
                     }
@@ -256,7 +255,6 @@
             });
         }
 
-        // --- WEB RTC LOGIC ---
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
@@ -265,6 +263,13 @@
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
+            // Candidate collection
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    updateDoc(callDoc, { offerCandidates: event.candidate.toJSON() });
+                }
+            };
+
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
@@ -272,14 +277,15 @@
                 offer: { type: offer.type, sdp: offer.sdp },
                 tech: techEmail,
                 machine: machineName,
-                active: true
+                active: true,
+                answer: null
             });
 
             onSnapshot(callDoc, (snap) => {
                 const data = snap.data();
                 if (data?.answer && !pc.currentRemoteDescription) {
                     pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    stopDangerCycle(); // Mute Siren when call connects
+                    stopDangerCycle();
                     document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
                 }
                 if (data?.active === false) cleanupCall();
@@ -289,7 +295,7 @@
         async function listenForIncomingCallSignals(myEmail) {
             onSnapshot(doc(db, "emergency_calls", "active_session"), async (snap) => {
                 const data = snap.data();
-                if (data?.active && data.tech === myEmail) {
+                if (data?.active && data.tech === myEmail && !pc) {
                     document.getElementById('callPopup').style.display = 'block';
                     document.getElementById('callMachineName').innerText = data.machine;
 
@@ -304,9 +310,12 @@
                     await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                     const answer = await pc.createAnswer();
                     await pc.setLocalDescription(answer);
-                    await updateDoc(doc(db, "emergency_calls", "active_session"), { answer: { type: answer.type, sdp: answer.sdp } });
                     
-                    stopDangerCycle(); // Mute siren for tech too
+                    await updateDoc(doc(db, "emergency_calls", "active_session"), { 
+                        answer: { type: answer.type, sdp: answer.sdp } 
+                    });
+                    
+                    stopDangerCycle();
                     document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
                 } else if (data?.active === false) {
                     cleanupCall();
@@ -323,17 +332,21 @@
             document.getElementById('callStatusText').innerText = "CALL ENDED";
             setTimeout(() => {
                 document.getElementById('callPopup').style.display = 'none';
-                if (localStream) localStream.getTracks().forEach(t => t.stop());
-                if (pc) pc.close();
+                if (localStream) {
+                    localStream.getTracks().forEach(t => t.stop());
+                    localStream = null;
+                }
+                if (pc) {
+                    pc.close();
+                    pc = null;
+                }
                 isFirstAlert = true; 
             }, 2000);
         }
 
-        // --- DANGER / SIREN CYCLE ---
         function startDangerCycle(name, section) {
-            const overlay = document.getElementById('dangerOverlay');
             document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
-            overlay.style.display = 'flex';
+            document.getElementById('dangerOverlay').style.display = 'flex';
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = name;
 
@@ -348,10 +361,9 @@
                 gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
                 osc.start(); osc.stop(audioCtx.currentTime + 4);
                 
-                const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}. Connecting to Mohamed.`);
+                const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}. Connecting.`);
                 window.speechSynthesis.speak(msg);
-                
-                isFirstAlert = false; // Next alerts will be silent
+                isFirstAlert = false;
             }
         }
 
@@ -360,7 +372,6 @@
             document.getElementById('dangerOverlay').style.display = 'none';
         }
 
-        // --- REST OF ORIGINAL LOGIC (Interventions, etc) ---
         window.submitIntervention = async () => {
             const mId = document.getElementById('requestMachineSelect').value;
             const issue = document.getElementById('requestIssue').value;
