@@ -43,9 +43,29 @@
         .giant-triangle { font-size: 180px; color: white; filter: drop-shadow(0 0 30px gold); animation: pulse 0.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
+
+        /* EMERGENCY CALL POPUP */
+        #callPopup {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 350px; background: #111; border: 2px solid #e30613; border-radius: 20px;
+            padding: 30px; text-align: center; z-index: 10000; box-shadow: 0 0 50px rgba(227, 6, 19, 0.5);
+        }
+        .caller-avatar { width: 100px; height: 100px; border-radius: 50%; background: #222; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 3px solid #e30613; animation: ringPulse 1.5s infinite; }
+        @keyframes ringPulse { 0% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(227, 6, 19, 0); } 100% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0); } }
+        .btn-hangup { background: #ff3333; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; margin: 20px auto 0; font-size: 1.5rem; transition: 0.3s; }
+        .btn-hangup:disabled { background: #444; opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
+
+    <div id="callPopup">
+        <div class="caller-avatar">👤</div>
+        <h2 style="margin: 0; color: #fff;">DIRECTOR CALL</h2>
+        <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 10px 0;"></p>
+        <p style="font-size: 0.9rem; color: #aaa;">CRITICAL PANNE DETECTED</p>
+        <button id="hangUpBtn" class="btn-hangup" onclick="endEmergencyCall()">📞</button>
+        <p id="hangupWarning" style="font-size: 0.7rem; color: #666; margin-top: 10px; display: none;">ONLY MOHAMED CAN END THIS CALL</p>
+    </div>
 
     <div id="dangerOverlay">
         <div class="giant-triangle">⚠️</div>
@@ -134,6 +154,7 @@
         let techList = [];
         let alertInterval = null;
         let allMachines = [];
+        let callAudio = null;
 
         window.showPage = (id) => {
             const pages = ['mainPage', 'interventionPage', 'missionPage'];
@@ -144,6 +165,14 @@
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
+
+            // Control Hangup Button accessibility
+            const hangBtn = document.getElementById('hangUpBtn');
+            const hangWarn = document.getElementById('hangupWarning');
+            if (email !== DIRECTOR) {
+                hangBtn.disabled = true;
+                hangWarn.style.display = "block";
+            }
 
             if (email !== DIRECTOR) {
                 await setDoc(doc(db, "users", email), { email: email, lastSeen: serverTimestamp() }, { merge: true });
@@ -183,8 +212,10 @@
                     const isWorking = m.status === "WORKING";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
 
+                    // TRIGGER AUTOMATIC CALL
                     if (!isWorking && isAssignedToMe && !m.acknowledged) {
                         pendingTask = m;
+                        triggerEmergencyCall(m.name);
                     }
 
                     let rowHTML = `
@@ -224,12 +255,51 @@
                     startDangerCycle(pendingTask.name, pendingTask.section);
                 } else if (!pendingTask) {
                     stopDangerCycle();
+                    endEmergencyCall(); // Close call if panne is cleared
                 }
             });
         }
 
-        // --- NEW FEATURE: INTERVENTION WORKFLOW ---
+        // --- NEW FEATURE: EMERGENCY CALL SYSTEM ---
+        function triggerEmergencyCall(machineName) {
+            const popup = document.getElementById('callPopup');
+            document.getElementById('callMachineName').innerText = machineName;
+            popup.style.display = 'block';
 
+            // Ringing Sound Effect
+            if (!callAudio) {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                // Pulse ringing pattern
+                setInterval(() => {
+                    if (popup.style.display === 'block') {
+                        gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.1);
+                        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+                    }
+                }, 1000);
+                osc.start();
+                callAudio = { osc, gain };
+            }
+        }
+
+        window.endEmergencyCall = () => {
+            const currentUser = auth.currentUser.email.toLowerCase();
+            if (currentUser === DIRECTOR) {
+                document.getElementById('callPopup').style.display = 'none';
+                if (callAudio) {
+                    callAudio.gain.gain.setValueAtTime(0, 0);
+                }
+            } else {
+                alert("Restricted: Only Mohamed can end the emergency call.");
+            }
+        };
+
+        // --- INTERVENTION WORKFLOW ---
         window.submitIntervention = async () => {
             const mId = document.getElementById('requestMachineSelect').value;
             const issue = document.getElementById('requestIssue').value;
@@ -256,18 +326,10 @@
                     const data = d.data();
                     const card = document.createElement('div');
                     card.className = "card";
-                    
                     if(data.status === "PENDING_MOHAMED") {
-                        card.innerHTML = `
-                            <b>NEW REQUEST: ${data.machineName}</b><br>${data.issue}<br>
-                            <button onclick="approveIntervention('${d.id}', '${data.machineId}')">APPROVE MISSION</button>
-                        `;
+                        card.innerHTML = `<b>NEW REQUEST: ${data.machineName}</b><br>${data.issue}<br><button onclick="approveIntervention('${d.id}', '${data.machineId}')">APPROVE MISSION</button>`;
                     } else {
-                        card.innerHTML = `
-                            <b>REPORT READY: ${data.machineName}</b><br>
-                            <i>Report: ${data.report}</i><br>
-                            <button onclick="finalizeMission('${d.id}', '${data.machineId}')">APPROVE & RESTART MACHINE</button>
-                        `;
+                        card.innerHTML = `<b>REPORT READY: ${data.machineName}</b><br><i>Report: ${data.report}</i><br><button onclick="finalizeMission('${d.id}', '${data.machineId}')">APPROVE & RESTART MACHINE</button>`;
                     }
                     list.appendChild(card);
                 });
@@ -282,7 +344,6 @@
         window.finalizeMission = async (intId, mId) => {
             await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED" });
             await updateDoc(doc(db, "machines", mId), { status: "WORKING" });
-            alert("Machine is now Working Automatically!");
         };
 
         function loadMyMissions(email) {
@@ -293,16 +354,7 @@
                     const data = d.data();
                     const card = document.createElement('div');
                     card.className = "card";
-                    card.innerHTML = `
-                        <h3>Mission: ${data.machineName}</h3>
-                        <p>Issue: ${data.issue}</p>
-                        <hr>
-                        <label class="checklist-item"><input type="checkbox" id="check1_${d.id}"> Safety Lockout Done</label>
-                        <label class="checklist-item"><input type="checkbox" id="check2_${d.id}"> Part Replaced</label>
-                        <label class="checklist-item"><input type="checkbox" id="check3_${d.id}"> Calibration Verified</label>
-                        <textarea id="report_${d.id}" placeholder="Final Report Description"></textarea>
-                        <button onclick="submitMissionReport('${d.id}')">SUBMIT TO MOHAMED</button>
-                    `;
+                    card.innerHTML = `<h3>Mission: ${data.machineName}</h3><p>Issue: ${data.issue}</p><hr><label class="checklist-item"><input type="checkbox" id="check1_${d.id}"> Safety Lockout Done</label><label class="checklist-item"><input type="checkbox" id="check2_${d.id}"> Part Replaced</label><label class="checklist-item"><input type="checkbox" id="check3_${d.id}"> Calibration Verified</label><textarea id="report_${d.id}" placeholder="Final Report Description"></textarea><button onclick="submitMissionReport('${d.id}')">SUBMIT TO MOHAMED</button>`;
                     list.appendChild(card);
                 });
             });
@@ -313,14 +365,9 @@
             const c1 = document.getElementById(`check1_${intId}`).checked;
             const c2 = document.getElementById(`check2_${intId}`).checked;
             const c3 = document.getElementById(`check3_${intId}`).checked;
-
             if(!report || !c1 || !c2 || !c3) return alert("Please finish all steps and write the report");
-
-            await updateDoc(doc(db, "interventions", intId), { 
-                status: "TECH_COMPLETED",
-                report: report
-            });
-            alert("Report submitted for final approval!");
+            await updateDoc(doc(db, "interventions", intId), { status: "TECH_COMPLETED", report: report });
+            alert("Report submitted!");
         };
 
         window.viewMachineDetails = async (mId) => {
@@ -331,37 +378,24 @@
             document.getElementById('encyclopediaPanel').style.display = 'block';
         };
 
-        // --- ORIGINAL SIREN & VOICE LOGIC ---
         function startDangerCycle(name, section) {
             const trigger = () => {
                 const userName = auth.currentUser.email.split('@')[0];
                 const overlay = document.getElementById('dangerOverlay');
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 overlay.style.display = 'flex';
-                
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(300, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 2);
-                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 4);
-                osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 6);
-                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 8);
-
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.start(); osc.stop(audioCtx.currentTime + 10);
-
-                const msg = new SpeechSynthesisUtterance();
-                msg.text = `Attention ${userName}. There is a breakdown. Please head to ${name} immediately.`;
-                msg.rate = 0.85;
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 8);
+                const msg = new SpeechSynthesisUtterance(`Attention ${userName}. Breakdown at ${name}.`);
                 window.speechSynthesis.speak(msg);
-
-                setTimeout(() => {
-                    overlay.style.display = 'none';
-                    alertInterval = setTimeout(trigger, 5000);
-                }, 10000);
+                setTimeout(() => { overlay.style.display = 'none'; alertInterval = setTimeout(trigger, 5000); }, 10000);
             };
             trigger();
         }
@@ -379,18 +413,12 @@
         };
 
         window.assignTech = async (docId, techEmail) => {
-            await updateDoc(doc(db, "machines", docId), { 
-                assignedTech: techEmail.toLowerCase(),
-                acknowledged: false 
-            });
+            await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase(), acknowledged: false });
         };
 
         window.toggleMachineStatus = async (docId, currentStatus) => {
             const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
-            await updateDoc(doc(db, "machines", docId), {
-                status: newStatus,
-                acknowledged: false
-            });
+            await updateDoc(doc(db, "machines", docId), { status: newStatus, acknowledged: false });
         };
 
         window.syncDatabase = async () => {
@@ -400,10 +428,7 @@
             reader.onload = async (e) => {
                 const data = JSON.parse(e.target.result);
                 for (const item of data) {
-                    await setDoc(doc(db, "machines", item.id), {
-                        machineId: item.id, name: item.name, section: item.section,
-                        status: "WORKING", assignedTech: "", acknowledged: false
-                    }, { merge: true });
+                    await setDoc(doc(db, "machines", item.id), { machineId: item.id, name: item.name, section: item.section, status: "WORKING", assignedTech: "", acknowledged: false }, { merge: true });
                 }
                 alert("Sync Success!");
             };
