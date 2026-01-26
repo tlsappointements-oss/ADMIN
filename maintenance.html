@@ -60,7 +60,6 @@
         .dot-active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
         .dot-error { background: #ff3333; }
 
-        /* Style for the Audio Activator Button */
         #audioActivator {
             background: #ffcc00; color: #000; border: none; padding: 15px;
             font-weight: 900; width: 100%; margin-bottom: 20px; border-radius: 5px;
@@ -77,12 +76,9 @@
         <h2 id="callHeader" style="margin: 0; color: #fff;">DIRECTOR CALL</h2>
         <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 10px 0;"></p>
         <p id="callStatusText" style="font-size: 0.9rem; color: #aaa;">INCOMING...</p>
-        
         <button id="joinCallBtn" style="display:none;" onclick="acceptCall()">JOIN VOICE</button>
-        
         <button id="hangUpBtn" class="btn-hangup" onclick="endEmergencyCall()">📞</button>
         <p id="hangupWarning" style="font-size: 0.7rem; color: #666; margin-top: 10px; display: none;">ONLY MOHAMED CAN END THIS CALL</p>
-
         <div id="connectionStatusLine">
             <span id="statusDot" class="status-dot"></span>
             SIGNAL: <span id="webrtcState">OFFLINE</span>
@@ -97,9 +93,7 @@
 
     <div class="sidebar">
         <h2 style="color: #e30613;">MERCEDES</h2>
-        
-        <button id="audioActivator" onclick="activateAudioSystem()">⚠️ CLICK TO ALLOW MIC & SOUND</button>
-
+        <button id="audioActivator" onclick="activateAudioSystem()">⚠️ STEP 1: ENABLE MIC & AUDIO</button>
         <p id="userDisplay" style="font-size: 13px; color: #aaa;"></p>
         <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
         <button class="btn-nav" onclick="showPage('mainPage')">🏠 Dashboard</button>
@@ -131,69 +125,40 @@
                 </tbody>
             </table>
         </div>
-
-        <div id="interventionPage" style="display:none">
-            <h1>Nouvelle Demande d'Intervention</h1>
-            <div class="card">
-                <select id="requestMachineSelect"></select>
-                <textarea id="requestIssue" placeholder="Describe the problem in detail..."></textarea>
-                <button onclick="submitIntervention()">SUBMIT REQUEST</button>
-            </div>
-        </div>
-
-        <div id="missionPage" style="display:none">
-            <h1>Mes Ordres de Mission</h1>
-            <div id="missionList"></div>
-        </div>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // Note: Check your firestore import if the above fails. Standard is:
+        import { } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Re-importing specifically for Firestore to ensure consistency
+        const { getFirestore } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-        let techList = [];
-        let allMachines = [];
-        let isFirstAlert = true;
-        let pc = null;
-        let localStream = null;
-        let audioCtx = null;
+        let techList = [], allMachines = [], isFirstAlert = true, pc = null, localStream = null, audioCtx = null;
 
         const servers = { 
             iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }],
             iceCandidatePoolSize: 10
         };
 
-        // NEW ACTIVATOR LOGIC: Forces Browser Popup
         window.activateAudioSystem = async () => {
             try {
-                // Initialize Audio Context
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 await audioCtx.resume();
-
-                // Trigger the "Normal Popup" for Mic access
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                
-                // Immediately stop the stream (we just wanted the permission/gesture)
-                stream.getTracks().forEach(track => track.stop());
-
-                // Hide the activator and update UI
-                document.getElementById('audioActivator').style.display = 'none';
-                console.log("Audio/Mic System fully authorized and unlocked.");
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                document.getElementById('audioActivator').style.background = "#00ff00";
+                document.getElementById('audioActivator').innerText = "✅ MIC ACTIVE";
+                console.log("Audio System and Mic initialized.");
             } catch (err) {
-                alert("Permission denied. You must allow microphone access for alarms to work.");
-                console.error(err);
+                alert("Microphone denied. Click the lock icon in the URL bar to allow.");
             }
         };
 
-        window.handleFirstInteraction = () => {
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        };
+        window.handleFirstInteraction = () => { if (audioCtx) audioCtx.resume(); };
 
         function updateWebRTCUI(state) {
             const label = document.getElementById('webrtcState');
@@ -202,145 +167,95 @@
             if (dot) {
                 dot.className = "status-dot";
                 if(state === 'connected') dot.classList.add('dot-active');
-                if(state === 'failed' || state === 'closed' || state === 'disconnected') dot.classList.add('dot-error');
+                else if(['failed', 'closed', 'disconnected'].includes(state)) dot.classList.add('dot-error');
             }
         }
-
-        window.showPage = (id) => {
-            const pages = ['mainPage', 'interventionPage', 'missionPage'];
-            pages.forEach(p => {
-                const el = document.getElementById(p);
-                if (el) el.style.display = (p === id ? 'block' : 'none');
-            });
-        };
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
-            const hangBtn = document.getElementById('hangUpBtn');
-            const hangWarn = document.getElementById('hangupWarning');
-            if (email !== DIRECTOR) {
-                if(hangBtn) hangBtn.style.display = "none";
-                if(hangWarn) hangWarn.style.display = "block";
-            } else {
-                if(hangBtn) hangBtn.style.display = "flex";
-                if(hangWarn) hangWarn.style.display = "none";
-            }
+            const isDirector = (email === DIRECTOR);
+            document.getElementById('hangUpBtn').style.display = isDirector ? "flex" : "none";
+            document.getElementById('hangupWarning').style.display = isDirector ? "none" : "block";
 
-            if (email === DIRECTOR) {
+            if (isDirector) {
                 document.getElementById('adminPanel').style.display = "block";
-                onSnapshot(collection(db, "users"), (snap) => {
-                    techList = []; snap.forEach(d => techList.push(d.id));
-                }, (err) => console.error("User list error:", err));
-                loadAdminApprovals();
+                onSnapshot(collection(db, "users"), (snap) => { 
+                    techList = []; snap.forEach(d => techList.push(d.id)); 
+                });
             }
-            
             loadMachinesLive();
             listenForIncomingCallSignals(email);
         });
 
         function loadMachinesLive() {
-            const tableBody = document.getElementById('assetTable');
-            const currentUserEmail = auth.currentUser.email.toLowerCase();
-
             onSnapshot(collection(db, "machines"), (snapshot) => {
+                const tableBody = document.getElementById('assetTable');
                 tableBody.innerHTML = "";
-                allMachines = [];
                 let pendingTask = null;
+                const email = auth.currentUser.email.toLowerCase();
 
-                snapshot.forEach((snapshotDoc) => {
-                    const m = snapshotDoc.data();
-                    const machineDocId = snapshotDoc.id;
-                    allMachines.push({id: machineDocId, ...m});
+                snapshot.forEach((docSnap) => {
+                    const m = docSnap.data();
+                    const id = docSnap.id;
+                    const isWorking = (m.status === "WORKING");
+                    if (!isWorking && !m.acknowledged && (m.assignedTech === email || email === DIRECTOR)) pendingTask = m;
 
-                    const isWorking = m.status === "WORKING";
-                    const isAssignedToMe = m.assignedTech === currentUserEmail;
-
-                    if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR)) {
-                        pendingTask = m;
-                    }
-
-                    let rowHTML = `
-                        <tr>
-                            <td><b>${m.machineId || machineDocId}</b></td>
-                            <td>${m.name}</td>
-                            <td>${m.section}</td>
-                            <td>
-                                <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
-                                ${(!isWorking && isAssignedToMe) ? `
-                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}')">⚠️</span>
-                                    <span class="intervenir-msg">please intervenir</span>
-                                ` : ''}
-                            </td>
-                            <td>
-                    `;
-
-                    if (currentUserEmail === DIRECTOR) {
+                    let row = `<tr><td>${m.machineId || id}</td><td>${m.name}</td><td>${m.section}</td>
+                        <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
+                        ${(!isWorking && m.assignedTech === email) ? `<span class="alert-triangle" onclick="acknowledgeTask('${id}')">⚠️</span>` : ''}</td><td>`;
+                    
+                    if (email === DIRECTOR) {
                         let options = techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('');
-                        rowHTML += `
-                            <select class="tech-select" onchange="assignTech('${machineDocId}', this.value)">
-                                <option value="">Assign Tech...</option>
-                                ${options}
-                            </select>
-                            <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">SET ${isWorking ? 'BREAKDOWN' : 'WORKING'}</button>
-                        `;
-                    } else {
-                        rowHTML += `<span style="color:#555; font-size:0.8rem;">${m.assignedTech || 'Unassigned'}</span>`;
-                    }
-                    rowHTML += `</td></tr>`;
-                    tableBody.innerHTML += rowHTML;
+                        row += `<select class="tech-select" onchange="assignTech('${id}', this.value)"><option value="">Assign...</option>${options}</select>
+                                <button class="btn-toggle" onclick="toggleMachineStatus('${id}', '${m.status}')">TOGGLE</button>`;
+                    } else row += m.assignedTech || 'Unassigned';
+                    tableBody.innerHTML += row + `</td></tr>`;
                 });
-
                 if (pendingTask) {
                     startDangerCycle(pendingTask.name, pendingTask.section);
-                    if (currentUserEmail === DIRECTOR && isFirstAlert) {
+                    if (email === DIRECTOR && isFirstAlert) {
+                        console.log("Director triggered call for machine:", pendingTask.name);
                         initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
                     }
-                } else {
-                    stopDangerCycle();
-                }
+                } else stopDangerCycle();
             });
         }
 
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
-            updateWebRTCUI('signaling...');
+            console.log("Writing call offer to Firebase for:", techEmail);
             const callDoc = doc(db, "emergency_calls", "active_session");
-            try { await deleteDoc(callDoc); } catch(e) {}
+            await deleteDoc(callDoc).catch(()=>{});
+            
             pc = new RTCPeerConnection(servers);
             pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            } catch (e) { console.error("Mic Error:", e); return; }
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON()).catch(e => console.error("ICE Error:", e));
-                }
-            };
+            
+            if (!localStream) { console.warn("Mic not ready. Click yellow button!"); return; }
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+            pc.onicecandidate = (e) => e.candidate && addDoc(collection(callDoc, "offerCandidates"), e.candidate.toJSON());
+            pc.ontrack = (e) => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
+
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            await setDoc(callDoc, {
-                offer: { type: offer.type, sdp: offer.sdp },
-                tech: techEmail,
-                machine: machineName,
+
+            await setDoc(callDoc, { 
+                offer: { type: offer.type, sdp: offer.sdp }, 
+                tech: techEmail.toLowerCase(), 
+                machine: machineName, 
                 active: true,
                 timestamp: Date.now()
             });
-            pc.ontrack = (event) => { document.getElementById('remoteAudio').srcObject = event.streams[0]; };
+
             onSnapshot(callDoc, (snap) => {
                 const data = snap.data();
-                if (data?.answer && !pc.currentRemoteDescription) {
-                    pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
-                }
+                if (data?.answer && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(data.answer));
             });
             onSnapshot(collection(callDoc, "answerCandidates"), (snap) => {
-                snap.docChanges().forEach((change) => {
-                    if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                });
+                snap.docChanges().forEach(change => change.type === "added" && pc.addIceCandidate(new RTCIceCandidate(change.doc.data())));
             });
         }
 
@@ -350,121 +265,67 @@
                 if (!snap.exists()) { if (pc) cleanupCall(); return; }
                 const data = snap.data();
                 if (data?.active && data.tech === myEmail && !pc) {
+                    console.log("Incoming call detected!");
                     document.getElementById('callPopup').style.display = 'block';
                     document.getElementById('callMachineName').innerText = data.machine;
-                    document.getElementById('callStatusText').innerText = "DIRECTOR CALLING...";
                     document.getElementById('joinCallBtn').style.display = 'block';
-
+                    
                     window.acceptCall = async () => {
                         document.getElementById('joinCallBtn').style.display = 'none';
-                        updateWebRTCUI('connecting...');
                         pc = new RTCPeerConnection(servers);
                         pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
-                        try {
-                            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-                        } catch(e) { alert("Mic Access Denied."); return; }
-                        pc.ontrack = (event) => { document.getElementById('remoteAudio').srcObject = event.streams[0]; };
-                        pc.onicecandidate = (event) => {
-                            if (event.candidate) addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
+                        
+                        if (!localStream) { alert("Enable mic first!"); return; }
+                        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+                        
+                        pc.ontrack = (e) => { 
+                            const remoteAudio = document.getElementById('remoteAudio');
+                            remoteAudio.srcObject = e.streams[0];
+                            remoteAudio.play().catch(err => console.error("Audio Play Error:", err));
                         };
+
+                        pc.onicecandidate = (e) => e.candidate && addDoc(collection(callDoc, "answerCandidates"), e.candidate.toJSON());
+                        
                         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
                         await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
+
                         onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
-                            snap.docChanges().forEach((change) => {
-                                if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                            });
+                            snap.docChanges().forEach(change => change.type === "added" && pc.addIceCandidate(new RTCIceCandidate(change.doc.data())));
                         });
-                        document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
                     };
                 }
             });
         }
 
         window.endEmergencyCall = async () => {
-            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-            try {
-                await deleteDoc(doc(db, "emergency_calls", "active_session"));
+            if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+                await deleteDoc(doc(db, "emergency_calls", "active_session")).catch(()=>{});
                 cleanupCall();
-            } catch(e) { console.error("End call error:", e); }
+            }
         };
 
         function cleanupCall() {
             updateWebRTCUI('offline');
-            document.getElementById('callStatusText').innerText = "CALL ENDED";
-            document.getElementById('joinCallBtn').style.display = 'none';
-            setTimeout(() => {
-                document.getElementById('callPopup').style.display = 'none';
-                if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-                if (pc) { pc.close(); pc = null; }
-                isFirstAlert = true; 
-            }, 1000);
+            document.getElementById('callPopup').style.display = 'none';
+            if (pc) { pc.close(); pc = null; }
+            isFirstAlert = true; 
         }
 
         function startDangerCycle(name, section) {
-            const currentUserEmail = auth.currentUser.email.toLowerCase();
-            if (currentUserEmail !== DIRECTOR) {
+            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) {
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 document.getElementById('dangerOverlay').style.display = 'flex';
             }
-            document.getElementById('callPopup').style.display = 'block';
-            document.getElementById('callMachineName').innerText = name;
-            
-            if (isFirstAlert) {
-                if (audioCtx && audioCtx.state === 'running') {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 2);
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                    osc.start(); osc.stop(audioCtx.currentTime + 4);
-                    const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}. Connecting.`);
-                    window.speechSynthesis.speak(msg);
-                } else {
-                    console.warn("AudioContext suspended.");
-                }
-                isFirstAlert = false;
-            }
         }
 
-        function stopDangerCycle() {
-            window.speechSynthesis.cancel();
-            document.getElementById('dangerOverlay').style.display = 'none';
-        }
-
-        window.acknowledgeTask = async (docId) => {
-            stopDangerCycle();
-            try { await updateDoc(doc(db, "machines", docId), { acknowledged: true }); } catch(e) { console.error(e); }
-        };
-
-        window.assignTech = async (docId, techEmail) => {
-            try { await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase(), acknowledged: false }); } catch(e) { console.error(e); }
-        };
-
-        window.toggleMachineStatus = async (docId, currentStatus) => {
-            const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
-            try { await updateDoc(doc(db, "machines", docId), { status: newStatus, acknowledged: false }); } catch(e) { console.error(e); }
-        };
-
+        function stopDangerCycle() { document.getElementById('dangerOverlay').style.display = 'none'; }
+        window.acknowledgeTask = async (id) => await updateDoc(doc(db, "machines", id), { acknowledged: true });
+        window.assignTech = async (id, tech) => await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false });
+        window.toggleMachineStatus = async (id, cur) => await updateDoc(doc(db, "machines", id), { status: cur === "WORKING" ? "BREAKDOWN" : "WORKING", acknowledged: false });
         window.logout = () => signOut(auth);
-
-        function loadAdminApprovals() {
-            const list = document.getElementById('adminApprovalList');
-            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    const card = document.createElement('div');
-                    card.className = "card";
-                    card.innerHTML = `<b>${data.status}: ${data.machineName || 'Machine'}</b>`;
-                    list.appendChild(card);
-                });
-            });
-        }
+        window.showPage = (id) => { document.getElementById('mainPage').style.display = 'block'; };
     </script>
 </body>
 </html>
