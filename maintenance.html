@@ -60,7 +60,6 @@
         .dot-active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
         .dot-error { background: #ff3333; }
 
-        /* Style for the Audio Activator Button */
         #audioActivator {
             background: #ffcc00; color: #000; border: none; padding: 15px;
             font-weight: 900; width: 100%; margin-bottom: 20px; border-radius: 5px;
@@ -154,39 +153,33 @@
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
-        let allMachines = [];
-        let isFirstAlert = true;
         let pc = null;
         let localStream = null;
         let audioCtx = null;
+        let isFirstAlert = true;
 
-        const servers = { 
-            iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }],
-            iceCandidatePoolSize: 10
+        // UPDATED: High-reliability ICE configuration with a relay fallback
+        const servers = {
+            iceServers: [
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+            ]
         };
 
         window.activateAudioSystem = async () => {
-            console.log("Activating Audio System...");
             try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 await audioCtx.resume();
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 document.getElementById('audioActivator').style.background = "#00ff00";
-                document.getElementById('audioActivator').innerText = "✅ MIC READY";
-                console.log("Microphone Access Granted.");
+                document.getElementById('audioActivator').innerText = "✅ MIC AUTHORIZED";
             } catch (err) {
-                alert("Permission denied. You must allow microphone access.");
-                console.error(err);
+                alert("Please check microphone permissions in browser settings.");
             }
         };
 
-        window.handleFirstInteraction = () => {
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        };
+        window.handleFirstInteraction = () => { if (audioCtx) audioCtx.resume(); };
 
         function updateWebRTCUI(state) {
             const label = document.getElementById('webrtcState');
@@ -195,147 +188,95 @@
             if (dot) {
                 dot.className = "status-dot";
                 if(state === 'connected') dot.classList.add('dot-active');
-                if(state === 'failed' || state === 'closed' || state === 'disconnected') dot.classList.add('dot-error');
+                if(['failed', 'closed', 'disconnected'].includes(state)) dot.classList.add('dot-error');
             }
         }
-
-        window.showPage = (id) => {
-            const pages = ['mainPage', 'interventionPage', 'missionPage'];
-            pages.forEach(p => {
-                const el = document.getElementById(p);
-                if (el) el.style.display = (p === id ? 'block' : 'none');
-            });
-        };
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
-            const hangBtn = document.getElementById('hangUpBtn');
-            const hangWarn = document.getElementById('hangupWarning');
-            if (email !== DIRECTOR) {
-                if(hangBtn) hangBtn.style.display = "none";
-                if(hangWarn) hangWarn.style.display = "block";
-            } else {
-                if(hangBtn) hangBtn.style.display = "flex";
-                if(hangWarn) hangWarn.style.display = "none";
-            }
+            const isDirector = (email === DIRECTOR);
+            document.getElementById('hangUpBtn').style.display = isDirector ? "flex" : "none";
+            document.getElementById('hangupWarning').style.display = isDirector ? "none" : "block";
 
-            if (email === DIRECTOR) {
+            if (isDirector) {
                 document.getElementById('adminPanel').style.display = "block";
-                onSnapshot(collection(db, "users"), (snap) => {
-                    techList = []; snap.forEach(d => techList.push(d.id));
-                }, (err) => console.error("User list error:", err));
+                onSnapshot(collection(db, "users"), (snap) => { techList = []; snap.forEach(d => techList.push(d.id)); });
                 loadAdminApprovals();
             }
-            
             loadMachinesLive();
             listenForIncomingCallSignals(email);
         });
 
         function loadMachinesLive() {
-            const tableBody = document.getElementById('assetTable');
-            const currentUserEmail = auth.currentUser.email.toLowerCase();
-
             onSnapshot(collection(db, "machines"), (snapshot) => {
+                const tableBody = document.getElementById('assetTable');
                 tableBody.innerHTML = "";
-                allMachines = [];
                 let pendingTask = null;
+                const email = auth.currentUser.email.toLowerCase();
 
                 snapshot.forEach((snapshotDoc) => {
                     const m = snapshotDoc.data();
-                    const machineDocId = snapshotDoc.id;
-                    allMachines.push({id: machineDocId, ...m});
-
+                    const id = snapshotDoc.id;
                     const isWorking = m.status === "WORKING";
-                    const isAssignedToMe = m.assignedTech === currentUserEmail;
+                    const isAssignedToMe = m.assignedTech === email;
 
-                    if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR)) {
-                        pendingTask = m;
-                    }
+                    if (!isWorking && !m.acknowledged && (isAssignedToMe || email === DIRECTOR)) pendingTask = m;
 
-                    let rowHTML = `
-                        <tr>
-                            <td><b>${m.machineId || machineDocId}</b></td>
-                            <td>${m.name}</td>
-                            <td>${m.section}</td>
-                            <td>
-                                <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
-                                ${(!isWorking && isAssignedToMe) ? `
-                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}')">⚠️</span>
-                                    <span class="intervenir-msg">please intervenir</span>
-                                ` : ''}
-                            </td>
-                            <td>
-                    `;
-
-                    if (currentUserEmail === DIRECTOR) {
+                    let rowHTML = `<tr><td>${m.machineId || id}</td><td>${m.name}</td><td>${m.section}</td>
+                        <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
+                        ${(!isWorking && isAssignedToMe) ? `<span class="alert-triangle" onclick="acknowledgeTask('${id}')">⚠️</span>` : ''}</td><td>`;
+                    
+                    if (email === DIRECTOR) {
                         let options = techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('');
-                        rowHTML += `
-                            <select class="tech-select" onchange="assignTech('${machineDocId}', this.value)">
-                                <option value="">Assign Tech...</option>
-                                ${options}
-                            </select>
-                            <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">SET ${isWorking ? 'BREAKDOWN' : 'WORKING'}</button>
-                        `;
-                    } else {
-                        rowHTML += `<span style="color:#555; font-size:0.8rem;">${m.assignedTech || 'Unassigned'}</span>`;
-                    }
-                    rowHTML += `</td></tr>`;
-                    tableBody.innerHTML += rowHTML;
+                        rowHTML += `<select onchange="assignTech('${id}', this.value)"><option value="">Assign...</option>${options}</select>
+                        <button onclick="toggleMachineStatus('${id}', '${m.status}')">SET ${isWorking ? 'BREAKDOWN' : 'WORKING'}</button>`;
+                    } else rowHTML += m.assignedTech || 'Unassigned';
+                    tableBody.innerHTML += rowHTML + "</td></tr>";
                 });
 
                 if (pendingTask) {
                     startDangerCycle(pendingTask.name, pendingTask.section);
-                    if (currentUserEmail === DIRECTOR && isFirstAlert) {
-                        initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
-                    }
-                } else {
-                    stopDangerCycle();
-                }
+                    if (email === DIRECTOR && isFirstAlert) initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
+                } else stopDangerCycle();
             });
         }
 
+        // --- IMPROVED CALL SIGNALING ---
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
-            console.log("Director initiating call to:", techEmail);
-            updateWebRTCUI('signaling...');
-            
             const callDoc = doc(db, "emergency_calls", "active_session");
             await deleteDoc(callDoc).catch(()=>{});
-            
+
             pc = new RTCPeerConnection(servers);
             pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
             
-            if (localStream) {
-                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            }
-
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
-                }
-            };
+            if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            pc.onicecandidate = (e) => e.candidate && addDoc(collection(callDoc, "callerCandidates"), e.candidate.toJSON());
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
+            
+            await setDoc(callDoc, { 
+                offer: { type: offer.type, sdp: offer.sdp }, 
+                tech: techEmail.toLowerCase(), 
+                machine: machineName, active: true 
+            });
 
-            // DIAGNOSTIC LOG FOR FIREBASE WRITE
-            await setDoc(callDoc, {
-                offer: { type: offer.type, sdp: offer.sdp },
-                tech: techEmail.toLowerCase(),
-                machine: machineName,
-                active: true,
-                timestamp: Date.now()
-            }).then(() => console.log("SUCCESS: Call record created in Firebase!"))
-              .catch(err => console.error("FIREBASE WRITE ERROR:", err));
+            // FORCE SHOW POPUP IMMEDIATELY FOR DIRECTOR
+            document.getElementById('callPopup').style.display = 'block';
+            document.getElementById('callMachineName').innerText = machineName;
+            document.getElementById('callStatusText').innerText = "CALLING TECHNICIAN...";
 
             onSnapshot(callDoc, (snap) => {
                 const data = snap.data();
-                if (data?.answer && !pc.currentRemoteDescription) {
-                    pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-                }
+                if (data?.answer && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            });
+
+            onSnapshot(collection(callDoc, "techCandidates"), (snap) => {
+                snap.docChanges().forEach(change => change.type === "added" && pc.addIceCandidate(new RTCIceCandidate(change.doc.data())));
             });
         }
 
@@ -344,41 +285,35 @@
             onSnapshot(callDoc, async (snap) => {
                 if (!snap.exists()) { if (pc) cleanupCall(); return; }
                 const data = snap.data();
+                
+                // FORCE SHOW POPUP IMMEDIATELY FOR TECHNICIAN
                 if (data?.active && data.tech === myEmail && !pc) {
-                    console.log("Incoming call signal detected for me!");
                     document.getElementById('callPopup').style.display = 'block';
                     document.getElementById('callMachineName').innerText = data.machine;
                     document.getElementById('joinCallBtn').style.display = 'block';
+                    document.getElementById('callStatusText').innerText = "MOHAMED IS CALLING...";
 
                     window.acceptCall = async () => {
                         document.getElementById('joinCallBtn').style.display = 'none';
-                        updateWebRTCUI('connecting...');
                         pc = new RTCPeerConnection(servers);
                         pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
+                        if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
                         
-                        if (localStream) {
-                            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-                        }
-                        
-                        pc.ontrack = (event) => { 
-                            const remoteAudio = document.getElementById('remoteAudio');
-                            remoteAudio.srcObject = event.streams[0]; 
-                            remoteAudio.play().catch(e => console.error("Audio playback error:", e));
+                        pc.ontrack = (e) => { 
+                            const remote = document.getElementById('remoteAudio');
+                            remote.srcObject = e.streams[0];
+                            remote.play();
                         };
 
-                        pc.onicecandidate = (event) => {
-                            if (event.candidate) addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
-                        };
-
+                        pc.onicecandidate = (e) => e.candidate && addDoc(collection(callDoc, "techCandidates"), e.candidate.toJSON());
+                        
                         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
                         await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
 
-                        onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
-                            snap.docChanges().forEach((change) => {
-                                if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                            });
+                        onSnapshot(collection(callDoc, "callerCandidates"), (snap) => {
+                            snap.docChanges().forEach(change => change.type === "added" && pc.addIceCandidate(new RTCIceCandidate(change.doc.data())));
                         });
                     };
                 }
@@ -386,69 +321,52 @@
         }
 
         window.endEmergencyCall = async () => {
-            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-            try {
-                await deleteDoc(doc(db, "emergency_calls", "active_session"));
+            if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+                await deleteDoc(doc(db, "emergency_calls", "active_session")).catch(()=>{});
                 cleanupCall();
-            } catch(e) { console.error("End call error:", e); }
+            }
         };
 
         function cleanupCall() {
             updateWebRTCUI('offline');
-            if (pc) { pc.close(); pc = null; }
             document.getElementById('callPopup').style.display = 'none';
+            if (pc) { pc.close(); pc = null; }
             isFirstAlert = true; 
         }
 
+        // Dashboard & UI Utils
         function startDangerCycle(name, section) {
-            const currentUserEmail = auth.currentUser.email.toLowerCase();
-            if (currentUserEmail !== DIRECTOR) {
+            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) {
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 document.getElementById('dangerOverlay').style.display = 'flex';
             }
-            if (isFirstAlert) {
-                if (audioCtx && audioCtx.state === 'running') {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'sawtooth';
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                    osc.start(); osc.stop(audioCtx.currentTime + 3);
-                }
+            if (isFirstAlert && audioCtx?.state === 'running') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth'; osc.connect(gain); gain.connect(audioCtx.destination);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 3);
                 isFirstAlert = false;
             }
         }
-
-        function stopDangerCycle() {
-            document.getElementById('dangerOverlay').style.display = 'none';
-        }
-
-        window.acknowledgeTask = async (docId) => {
-            stopDangerCycle();
-            try { await updateDoc(doc(db, "machines", docId), { acknowledged: true }); } catch(e) { console.error(e); }
-        };
-
-        window.assignTech = async (docId, techEmail) => {
-            try { await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase(), acknowledged: false }); } catch(e) { console.error(e); }
-        };
-
-        window.toggleMachineStatus = async (docId, currentStatus) => {
-            const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
-            try { await updateDoc(doc(db, "machines", docId), { status: newStatus, acknowledged: false }); } catch(e) { console.error(e); }
-        };
-
+        function stopDangerCycle() { document.getElementById('dangerOverlay').style.display = 'none'; }
+        window.acknowledgeTask = async (id) => await updateDoc(doc(db, "machines", id), { acknowledged: true });
+        window.assignTech = async (id, email) => await updateDoc(doc(db, "machines", id), { assignedTech: email.toLowerCase(), acknowledged: false });
+        window.toggleMachineStatus = async (id, cur) => await updateDoc(doc(db, "machines", id), { status: cur === "WORKING" ? "BREAKDOWN" : "WORKING", acknowledged: false });
         window.logout = () => signOut(auth);
-
         function loadAdminApprovals() {
-            const list = document.getElementById('adminApprovalList');
             onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
+                const list = document.getElementById('adminApprovalList');
                 list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    list.innerHTML += `<div class="card"><b>${data.status}: ${data.machineName || 'Machine'}</b></div>`;
-                });
+                snap.forEach(d => { list.innerHTML += `<div class="card"><b>${d.data().status}: ${d.data().machineName}</b></div>`; });
             });
         }
+        window.showPage = (id) => {
+            ['mainPage', 'interventionPage', 'missionPage'].forEach(p => {
+                const el = document.getElementById(p);
+                if(el) el.style.display = (p === id ? 'block' : 'none');
+            });
+        };
     </script>
 </body>
 </html>
