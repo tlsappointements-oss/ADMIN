@@ -238,15 +238,14 @@
             });
         }
 
-        // --- UPDATED WEB RTC LOGIC (CONCERNED PART) ---
+        // --- UPDATED CALL LOGIC (FIXED END CALL) ---
 
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
             
-            // PERMANENT FIX: Force clear the document state before starting
-            // This ensures the "incoming" state is fresh for the receiver.
-            await setDoc(callDoc, { active: false });
+            // Step 1: Force delete any old session before starting
+            await deleteDoc(callDoc);
 
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callStatusText').innerText = "RINGING TECHNICIAN...";
@@ -263,34 +262,35 @@
 
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    const candRef = collection(doc(db, "emergency_calls", "active_session"), "offerCandidates");
-                    addDoc(candRef, event.candidate.toJSON());
+                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
                 }
             };
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
-            // Activate the call session
             await setDoc(callDoc, {
                 offer: { type: offer.type, sdp: offer.sdp },
                 tech: techEmail,
                 machine: machineName,
-                active: true,
-                answer: null
+                active: true
             });
 
             pc.ontrack = (event) => {
                 document.getElementById('remoteAudio').srcObject = event.streams[0];
             };
 
+            // Watch for answer or IF THE DOC IS DELETED (meaning call ended)
             onSnapshot(callDoc, (snap) => {
+                if (!snap.exists()) {
+                    cleanupCall();
+                    return;
+                }
                 const data = snap.data();
                 if (data?.answer && !pc.currentRemoteDescription) {
                     pc.setRemoteDescription(new RTCSessionDescription(data.answer));
                     document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
                 }
-                if (data?.active === false) cleanupCall();
             });
 
             onSnapshot(collection(callDoc, "answerCandidates"), (snap) => {
@@ -303,6 +303,12 @@
         async function listenForIncomingCallSignals(myEmail) {
             const callDoc = doc(db, "emergency_calls", "active_session");
             onSnapshot(callDoc, async (snap) => {
+                // If document is gone, end the UI for the technician
+                if (!snap.exists()) {
+                    if (pc) cleanupCall();
+                    return;
+                }
+
                 const data = snap.data();
                 if (data?.active && data.tech === myEmail && !pc) {
                     document.getElementById('callPopup').style.display = 'block';
@@ -312,8 +318,6 @@
 
                     window.acceptCall = async () => {
                         document.getElementById('joinCallBtn').style.display = 'none';
-                        document.getElementById('callStatusText').innerText = "CONNECTING...";
-                        
                         pc = new RTCPeerConnection(servers);
                         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
@@ -324,15 +328,13 @@
 
                         pc.onicecandidate = (event) => {
                             if (event.candidate) {
-                                const candRef = collection(doc(db, "emergency_calls", "active_session"), "answerCandidates");
-                                addDoc(candRef, event.candidate.toJSON());
+                                addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
                             }
                         };
 
                         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
-                        
                         await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
 
                         onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
@@ -342,15 +344,15 @@
                         });
                         document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
                     };
-                } else if (data?.active === false && pc) {
-                    cleanupCall();
                 }
             });
         }
 
         window.endEmergencyCall = async () => {
             if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-            await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false });
+            // HARD FIX: Delete the document. This forces 'snap.exists()' to be false for the technician.
+            await deleteDoc(doc(db, "emergency_calls", "active_session"));
+            cleanupCall();
         };
 
         function cleanupCall() {
@@ -367,8 +369,10 @@
                     pc = null;
                 }
                 isFirstAlert = true; 
-            }, 2000);
+            }, 1000);
         }
+
+        // --- END UPDATED CALL LOGIC ---
 
         function startDangerCycle(name, section) {
             document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
