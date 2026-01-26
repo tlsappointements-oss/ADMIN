@@ -10,7 +10,6 @@
         #adminPanel, #interventionPanel, #missionPanel, #encyclopediaPanel { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
         
         .card { background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
-        .checklist-item { display: block; margin: 10px 0; font-size: 0.9rem; }
         input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -18,16 +17,12 @@
         td { padding: 15px; border-bottom: 1px solid #1a1a1a; }
         .status-working { color: #00ff00; background: rgba(0, 255, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
         .status-breakdown { color: #ff3333; background: rgba(255, 51, 51, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-        .status-pending { color: #ffa500; background: rgba(255, 165, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
         
         button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; }
         button:hover { background: #fff; color: #000; }
-        .btn-toggle { background: #222; border: 1px solid #444; font-size: 0.7rem; padding: 5px 10px; margin-left: 10px; }
         .btn-nav { width: 100%; margin-top: 10px; text-align: left; background: transparent; color: #aaa; border: 1px solid #222; }
 
-        .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; margin-right: 5px; }
         .alert-triangle { color: #ff0000; font-size: 1.5rem; cursor: pointer; animation: blink 0.8s infinite; margin-right: 8px; vertical-align: middle; }
-        .intervenir-msg { color: #ff0000; font-size: 0.75rem; font-weight: bold; font-style: italic; text-transform: uppercase; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
 
         #dangerOverlay {
@@ -39,7 +34,6 @@
         @keyframes dangerFlash { 0% { background: rgba(100, 0, 0, 0.95); } 50% { background: rgba(255, 0, 0, 1); } 100% { background: rgba(100, 0, 0, 0.95); } }
         .giant-triangle { font-size: 180px; color: white; filter: drop-shadow(0 0 30px gold); animation: pulse 0.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        .danger-text { font-size: 3rem; font-weight: 900; color: white; margin-top: 20px; text-transform: uppercase; }
 
         #callPopup {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -48,8 +42,17 @@
         }
         .caller-avatar { width: 100px; height: 100px; border-radius: 50%; background: #222; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 3px solid #e30613; animation: ringPulse 1.5s infinite; }
         @keyframes ringPulse { 0% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(227, 6, 19, 0); } 100% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0); } }
-        .btn-hangup { background: #ff3333; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; margin: 20px auto 0; font-size: 1.5rem; transition: 0.3s; border: none; color: white; cursor: pointer; }
         
+        /* STATUS INDICATOR STYLES */
+        #connectionStatusLine { 
+            font-size: 0.7rem; color: #555; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px;
+            border-top: 1px solid #222; padding-top: 10px; display: flex; align-items: center; justify-content: center;
+        }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #444; transition: 0.3s; }
+        .dot-active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+        .dot-error { background: #ff3333; box-shadow: 0 0 8px #ff3333; }
+
+        .btn-hangup { background: #ff3333; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; margin: 20px auto 0; font-size: 1.5rem; border: none; color: white; cursor: pointer; }
         #joinCallBtn { background: #00ff00; color: #000; padding: 12px 25px; border-radius: 30px; border: none; font-weight: 900; margin-bottom: 10px; animation: pulse 1s infinite; }
     </style>
 </head>
@@ -61,12 +64,16 @@
         <div class="caller-avatar">👤</div>
         <h2 id="callHeader" style="margin: 0; color: #fff;">DIRECTOR CALL</h2>
         <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 10px 0;"></p>
-        <p id="callStatusText" style="font-size: 0.9rem; color: #aaa;">INCOMING...</p>
+        <p id="callStatusText" style="font-size: 0.9rem; color: #aaa;">INITIALIZING...</p>
         
         <button id="joinCallBtn" style="display:none;" onclick="acceptCall()">JOIN VOICE</button>
-        
         <button id="hangUpBtn" class="btn-hangup" onclick="endEmergencyCall()">📞</button>
-        <p id="hangupWarning" style="font-size: 0.7rem; color: #666; margin-top: 10px; display: none;">ONLY MOHAMED CAN END THIS CALL</p>
+        <p id="hangupWarning" style="font-size: 0.7rem; color: #666; margin-top: 10px; display: none;">ONLY DIRECTOR CAN END THIS CALL</p>
+
+        <div id="connectionStatusLine">
+            <span id="statusDot" class="status-dot"></span>
+            SIGNAL: <span id="webrtcState">OFFLINE</span>
+        </div>
     </div>
 
     <div id="dangerOverlay">
@@ -78,81 +85,51 @@
     <div class="sidebar">
         <h2 style="color: #e30613;">MERCEDES</h2>
         <p id="userDisplay" style="font-size: 13px; color: #aaa;"></p>
-        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
         <button class="btn-nav" onclick="showPage('mainPage')">🏠 Dashboard</button>
-        <button class="btn-nav" onclick="showPage('interventionPage')">📝 Demande d'Intervention</button>
-        <button class="btn-nav" onclick="showPage('missionPage')">🛠️ Ordre de Mission</button>
         <button onclick="logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
     </div>
 
     <div class="main">
-        <div id="adminPanel">
-            <h3 style="margin-top:0">DIRECTOR SYNC & APPROVALS</h3>
-            <div id="adminApprovalList"></div>
-        </div>
-
+        <div id="adminPanel"><h3>DIRECTOR APPROVALS</h3><div id="adminApprovalList"></div></div>
         <div id="mainPage">
             <h1>Plant Asset Library</h1>
             <table>
-                <thead>
-                    <tr>
-                        <th>MACHINE ID</th>
-                        <th>NAME</th>
-                        <th>SECTION</th>
-                        <th>STATUS</th>
-                        <th id="actionHeader"></th>
-                    </tr>
-                </thead>
-                <tbody id="assetTable">
-                    <tr><td colspan="5">Loading data from Firebase...</td></tr>
-                </tbody>
+                <thead><tr><th>MACHINE ID</th><th>NAME</th><th>SECTION</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+                <tbody id="assetTable"><tr><td colspan="5">Loading...</td></tr></tbody>
             </table>
-        </div>
-
-        <div id="interventionPage" style="display:none">
-            <h1>Nouvelle Demande d'Intervention</h1>
-            <div class="card">
-                <select id="requestMachineSelect"></select>
-                <textarea id="requestIssue" placeholder="Describe the problem in detail..."></textarea>
-                <button onclick="submitIntervention()">SUBMIT REQUEST</button>
-            </div>
-        </div>
-
-        <div id="missionPage" style="display:none">
-            <h1>Mes Ordres de Mission</h1>
-            <div id="missionList"></div>
         </div>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
-        let allMachines = [];
         let isFirstAlert = true;
         let pc = null;
         let localStream = null;
 
-        const servers = { 
-            iceServers: [
-                { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
-            ],
-            iceCandidatePoolSize: 10
-        };
+        const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
 
-        window.showPage = (id) => {
-            const pages = ['mainPage', 'interventionPage', 'missionPage'];
-            pages.forEach(p => document.getElementById(p).style.display = (p === id ? 'block' : 'none'));
-        };
+        // Helper to update the visual indicator
+        function updateWebRTCStatus(state) {
+            const label = document.getElementById('webrtcState');
+            const dot = document.getElementById('statusDot');
+            label.innerText = state.toUpperCase();
+            
+            dot.className = "status-dot"; // Reset
+            if (state === 'connected') dot.classList.add('dot-active');
+            else if (state === 'failed' || state === 'disconnected') dot.classList.add('dot-error');
+        }
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
+            // Set UI restrictions
             const hangBtn = document.getElementById('hangUpBtn');
             const hangWarn = document.getElementById('hangupWarning');
             if (email !== DIRECTOR) {
@@ -165,104 +142,38 @@
 
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
-                onSnapshot(collection(db, "users"), (snap) => {
-                    techList = []; snap.forEach(d => techList.push(d.id));
-                });
-                loadAdminApprovals();
+                onSnapshot(collection(db, "users"), (snap) => { techList = []; snap.forEach(d => techList.push(d.id)); });
             }
             
             loadMachinesLive();
-            listenForIncomingCallSignals(email);
+            listenForCalls(email);
         });
 
-        function loadMachinesLive() {
-            const tableBody = document.getElementById('assetTable');
-            const currentUserEmail = auth.currentUser.email.toLowerCase();
-
-            onSnapshot(collection(db, "machines"), (snapshot) => {
-                tableBody.innerHTML = "";
-                allMachines = [];
-                let pendingTask = null;
-
-                snapshot.forEach((snapshotDoc) => {
-                    const m = snapshotDoc.data();
-                    const machineDocId = snapshotDoc.id;
-                    allMachines.push({id: machineDocId, ...m});
-
-                    const isWorking = m.status === "WORKING";
-                    const isAssignedToMe = m.assignedTech === currentUserEmail;
-
-                    if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR)) {
-                        pendingTask = m;
-                    }
-
-                    let rowHTML = `
-                        <tr>
-                            <td><b>${m.machineId || machineDocId}</b></td>
-                            <td>${m.name}</td>
-                            <td>${m.section}</td>
-                            <td>
-                                <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
-                                ${(!isWorking && isAssignedToMe) ? `
-                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}')">⚠️</span>
-                                    <span class="intervenir-msg">please intervenir</span>
-                                ` : ''}
-                            </td>
-                            <td>
-                    `;
-
-                    if (currentUserEmail === DIRECTOR) {
-                        let options = techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('');
-                        rowHTML += `
-                            <select class="tech-select" onchange="assignTech('${machineDocId}', this.value)">
-                                <option value="">Assign Tech...</option>
-                                ${options}
-                            </select>
-                            <button class="btn-toggle" onclick="toggleMachineStatus('${machineDocId}', '${m.status}')">SET ${isWorking ? 'BREAKDOWN' : 'WORKING'}</button>
-                        `;
-                    } else {
-                        rowHTML += `<span style="color:#555; font-size:0.8rem;">${m.assignedTech || 'Unassigned'}</span>`;
-                    }
-                    rowHTML += `</td></tr>`;
-                    tableBody.innerHTML += rowHTML;
-                });
-
-                if (pendingTask) {
-                    startDangerCycle(pendingTask.name, pendingTask.section);
-                    if (currentUserEmail === DIRECTOR && isFirstAlert) {
-                        initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
-                    }
-                } else {
-                    stopDangerCycle();
-                }
-            });
-        }
+        // --- ENHANCED VOICE CALL LOGIC ---
 
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
-            
-            // Clean up previous stale session data
-            await deleteDoc(callDoc);
 
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = machineName;
             document.getElementById('callStatusText').innerText = "RINGING TECHNICIAN...";
+            updateWebRTCStatus('signaling');
+
+            await deleteDoc(callDoc); // Clear stale session
 
             pc = new RTCPeerConnection(servers);
             
+            // Monitor Connection State
+            pc.onconnectionstatechange = () => updateWebRTCStatus(pc.connectionState);
+
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            } catch (e) {
-                console.error("Mic access failed", e);
-                return;
-            }
+            } catch (e) { console.error("Mic error", e); return; }
 
             pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
-                }
+                if (event.candidate) addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
             };
 
             const offer = await pc.createOffer();
@@ -275,15 +186,9 @@
                 active: true
             });
 
-            pc.ontrack = (event) => {
-                document.getElementById('remoteAudio').srcObject = event.streams[0];
-            };
+            pc.ontrack = (event) => { document.getElementById('remoteAudio').srcObject = event.streams[0]; };
 
             onSnapshot(callDoc, (snap) => {
-                if (!snap.exists()) {
-                    cleanupCall();
-                    return;
-                }
                 const data = snap.data();
                 if (data?.answer && !pc.currentRemoteDescription) {
                     pc.setRemoteDescription(new RTCSessionDescription(data.answer));
@@ -292,19 +197,14 @@
             });
 
             onSnapshot(collection(callDoc, "answerCandidates"), (snap) => {
-                snap.docChanges().forEach((change) => {
-                    if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                });
+                snap.docChanges().forEach((c) => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); });
             });
         }
 
-        async function listenForIncomingCallSignals(myEmail) {
+        async function listenForCalls(myEmail) {
             const callDoc = doc(db, "emergency_calls", "active_session");
             onSnapshot(callDoc, async (snap) => {
-                if (!snap.exists()) {
-                    if (pc) cleanupCall();
-                    return;
-                }
+                if (!snap.exists()) { if (pc) cleanupCall(); return; }
 
                 const data = snap.data();
                 if (data?.active && data.tech === myEmail && !pc) {
@@ -315,19 +215,19 @@
 
                     window.acceptCall = async () => {
                         document.getElementById('joinCallBtn').style.display = 'none';
+                        updateWebRTCStatus('connecting');
+                        
                         pc = new RTCPeerConnection(servers);
+                        pc.onconnectionstatechange = () => updateWebRTCStatus(pc.connectionState);
+
                         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-                        pc.ontrack = (event) => {
-                            document.getElementById('remoteAudio').srcObject = event.streams[0];
+                        pc.onicecandidate = (event) => {
+                            if (event.candidate) addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
                         };
 
-                        pc.onicecandidate = (event) => {
-                            if (event.candidate) {
-                                addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
-                            }
-                        };
+                        pc.ontrack = (event) => { document.getElementById('remoteAudio').srcObject = event.streams[0]; };
 
                         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                         const answer = await pc.createAnswer();
@@ -335,9 +235,7 @@
                         await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
 
                         onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
-                            snap.docChanges().forEach((change) => {
-                                if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                            });
+                            snap.docChanges().forEach((c) => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); });
                         });
                         document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
                     };
@@ -352,33 +250,66 @@
         };
 
         function cleanupCall() {
+            updateWebRTCStatus('offline');
             document.getElementById('callStatusText').innerText = "CALL ENDED";
             document.getElementById('joinCallBtn').style.display = 'none';
             setTimeout(() => {
                 document.getElementById('callPopup').style.display = 'none';
-                if (localStream) {
-                    localStream.getTracks().forEach(t => t.stop());
-                    localStream = null;
-                }
-                if (pc) {
-                    pc.close();
-                    pc = null;
-                }
-                isFirstAlert = true; 
+                if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+                if (pc) { pc.close(); pc = null; }
+                isFirstAlert = true;
             }, 1000);
+        }
+
+        // --- DASHBOARD LOGIC ---
+
+        function loadMachinesLive() {
+            const tableBody = document.getElementById('assetTable');
+            const currentUserEmail = auth.currentUser.email.toLowerCase();
+
+            onSnapshot(collection(db, "machines"), (snapshot) => {
+                tableBody.innerHTML = "";
+                let pendingTask = null;
+
+                snapshot.forEach((snapshotDoc) => {
+                    const m = snapshotDoc.data();
+                    const mid = snapshotDoc.id;
+                    const isWorking = m.status === "WORKING";
+                    const isAssignedToMe = m.assignedTech === currentUserEmail;
+
+                    if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR)) {
+                        pendingTask = m;
+                    }
+
+                    let row = `<tr><td><b>${mid}</b></td><td>${m.name}</td><td>${m.section}</td>
+                        <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
+                        ${(!isWorking && isAssignedToMe) ? '<span class="alert-triangle" onclick="acknowledgeTask(\''+mid+'\')">⚠️</span>' : ''}</td><td>`;
+                    
+                    if (currentUserEmail === DIRECTOR) {
+                        let opts = techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('');
+                        row += `<select onchange="assignTech('${mid}', this.value)"><option value="">Assign...</option>${opts}</select>`;
+                    } else { row += `<span>${m.assignedTech || 'Unassigned'}</span>`; }
+                    row += `</td></tr>`;
+                    tableBody.innerHTML += row;
+                });
+
+                if (pendingTask) {
+                    startDangerCycle(pendingTask.name, pendingTask.section);
+                    if (currentUserEmail === DIRECTOR && isFirstAlert) {
+                        initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
+                    }
+                } else {
+                    stopDangerCycle();
+                }
+            });
         }
 
         function startDangerCycle(name, section) {
             const currentUserEmail = auth.currentUser.email.toLowerCase();
-            
-            // Only show red danger overlay for non-Director users
             if (currentUserEmail !== DIRECTOR) {
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 document.getElementById('dangerOverlay').style.display = 'flex';
-            } else {
-                document.getElementById('dangerOverlay').style.display = 'none';
             }
-
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = name;
 
@@ -391,48 +322,23 @@
                 osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 2);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                osc.start(); osc.stop(audioCtx.currentTime + 4);
+                osc.start(); osc.stop(audioCtx.currentTime + 3);
                 
-                const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}. Connecting.`);
+                const msg = new SpeechSynthesisUtterance(`Emergency Breakdown at ${name}. Connecting Director.`);
                 window.speechSynthesis.speak(msg);
                 isFirstAlert = false;
             }
         }
 
         function stopDangerCycle() {
-            window.speechSynthesis.cancel();
             document.getElementById('dangerOverlay').style.display = 'none';
+            window.speechSynthesis.cancel();
         }
 
-        window.acknowledgeTask = async (docId) => {
-            stopDangerCycle();
-            await updateDoc(doc(db, "machines", docId), { acknowledged: true });
-        };
-
-        window.assignTech = async (docId, techEmail) => {
-            await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase(), acknowledged: false });
-        };
-
-        window.toggleMachineStatus = async (docId, currentStatus) => {
-            const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
-            await updateDoc(doc(db, "machines", docId), { status: newStatus, acknowledged: false });
-        };
-
+        window.acknowledgeTask = async (id) => { stopDangerCycle(); await updateDoc(doc(db, "machines", id), { acknowledged: true }); };
+        window.assignTech = async (id, tech) => { await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false }); };
         window.logout = () => signOut(auth);
-
-        function loadAdminApprovals() {
-            const list = document.getElementById('adminApprovalList');
-            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    const card = document.createElement('div');
-                    card.className = "card";
-                    card.innerHTML = `<b>${data.status}: ${data.machineName}</b>`;
-                    list.appendChild(card);
-                });
-            });
-        }
+        window.showPage = (id) => { document.getElementById('mainPage').style.display = 'block'; };
     </script>
 </body>
 </html>
