@@ -5,7 +5,8 @@
     <title>Mercedes-Benz | Plant Operations</title>
     <style>
         body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
-        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10; }
+        /* FIXED: Sidebar now stays ABOVE the danger overlay */
+        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10001; }
         .main { margin-left: 285px; padding: 40px; flex: 1; }
         #adminPanel, #interventionPanel, #missionPanel, #encyclopediaPanel { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
         
@@ -153,11 +154,11 @@
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
-        let allMachines = [];
         let isFirstAlert = true;
         let pc = null;
         let localStream = null;
         let audioCtx = null;
+        let micReady = false;
 
         const servers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
@@ -166,6 +167,7 @@
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 await audioCtx.resume();
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                micReady = true;
                 document.getElementById('audioActivator').style.background = "#00ff00";
                 document.getElementById('audioActivator').innerText = "✅ MIC READY";
             } catch (err) { alert("Mic Permission Required."); }
@@ -243,7 +245,8 @@
 
                 if (pendingTask) {
                     startDangerCycle(pendingTask.name, pendingTask.section);
-                    if (currentUserEmail === DIRECTOR && isFirstAlert) initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
+                    // FIXED: DIRECTOR ONLY CALLS IF MIC IS READY
+                    if (currentUserEmail === DIRECTOR && isFirstAlert && micReady) initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
                 } else stopDangerCycle();
             });
         }
@@ -251,6 +254,12 @@
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
+            
+            // Show popup for Mohamed too
+            document.getElementById('callPopup').style.display = 'block';
+            document.getElementById('callMachineName').innerText = "CALLING: " + techEmail;
+            document.getElementById('callStatusText').innerText = "CONNECTING...";
+
             pc = new RTCPeerConnection(servers);
             pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
             pc.ontrack = e => document.getElementById('remoteAudio').srcObject = e.streams[0];
@@ -278,6 +287,7 @@
                     document.getElementById('joinCallBtn').style.display = 'block';
 
                     window.acceptCall = async () => {
+                        if (!micReady) { alert("Enable Microphone first!"); return; }
                         document.getElementById('joinCallBtn').style.display = 'none';
                         pc = new RTCPeerConnection(servers);
                         pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
