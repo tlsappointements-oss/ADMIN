@@ -59,6 +59,13 @@
         .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #555; transition: 0.3s; }
         .dot-active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
         .dot-error { background: #ff3333; }
+
+        /* Style for the Audio Activator Button */
+        #audioActivator {
+            background: #ffcc00; color: #000; border: none; padding: 15px;
+            font-weight: 900; width: 100%; margin-bottom: 20px; border-radius: 5px;
+            cursor: pointer; display: block; animation: pulse 2s infinite;
+        }
     </style>
 </head>
 <body onclick="handleFirstInteraction()">
@@ -90,6 +97,9 @@
 
     <div class="sidebar">
         <h2 style="color: #e30613;">MERCEDES</h2>
+        
+        <button id="audioActivator" onclick="activateAudioSystem()">⚠️ CLICK TO ALLOW MIC & SOUND</button>
+
         <p id="userDisplay" style="font-size: 13px; color: #aaa;"></p>
         <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
         <button class="btn-nav" onclick="showPage('mainPage')">🏠 Dashboard</button>
@@ -155,20 +165,32 @@
             iceCandidatePoolSize: 10
         };
 
-        // AUDIO INITIALIZATION: Runs when user first clicks anywhere on the page
+        // NEW ACTIVATOR LOGIC: Forces Browser Popup
+        window.activateAudioSystem = async () => {
+            try {
+                // Initialize Audio Context
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                await audioCtx.resume();
+
+                // Trigger the "Normal Popup" for Mic access
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Immediately stop the stream (we just wanted the permission/gesture)
+                stream.getTracks().forEach(track => track.stop());
+
+                // Hide the activator and update UI
+                document.getElementById('audioActivator').style.display = 'none';
+                console.log("Audio/Mic System fully authorized and unlocked.");
+            } catch (err) {
+                alert("Permission denied. You must allow microphone access for alarms to work.");
+                console.error(err);
+            }
+        };
+
         window.handleFirstInteraction = () => {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                // Play a silent 0.01s sound to "prime" the engine
-                const oscillator = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                gain.gain.value = 0; // Silent
-                oscillator.connect(gain);
-                gain.connect(audioCtx.destination);
-                oscillator.start(0);
-                oscillator.stop(0.01);
-                console.log("Audio Context initialized and unlocked.");
-            } else if (audioCtx.state === 'suspended') {
+            if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
         };
@@ -279,46 +301,35 @@
                 } else {
                     stopDangerCycle();
                 }
-            }, (error) => {
-                console.error("Firebase Read Error:", error);
-                tableBody.innerHTML = `<tr><td colspan="5" style="color:red">Error: ${error.message}. Check Firebase Rules!</td></tr>`;
             });
         }
 
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
             updateWebRTCUI('signaling...');
-            
             const callDoc = doc(db, "emergency_calls", "active_session");
             try { await deleteDoc(callDoc); } catch(e) {}
-
             pc = new RTCPeerConnection(servers);
             pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
-            
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
             } catch (e) { console.error("Mic Error:", e); return; }
-
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
                     addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON()).catch(e => console.error("ICE Error:", e));
                 }
             };
-
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-
             await setDoc(callDoc, {
                 offer: { type: offer.type, sdp: offer.sdp },
                 tech: techEmail,
                 machine: machineName,
                 active: true,
                 timestamp: Date.now()
-            }).catch(e => console.error("Call SetDoc Error:", e));
-
+            });
             pc.ontrack = (event) => { document.getElementById('remoteAudio').srcObject = event.streams[0]; };
-
             onSnapshot(callDoc, (snap) => {
                 const data = snap.data();
                 if (data?.answer && !pc.currentRemoteDescription) {
@@ -326,7 +337,6 @@
                     document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
                 }
             });
-
             onSnapshot(collection(callDoc, "answerCandidates"), (snap) => {
                 snap.docChanges().forEach((change) => {
                     if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
@@ -338,7 +348,6 @@
             const callDoc = doc(db, "emergency_calls", "active_session");
             onSnapshot(callDoc, async (snap) => {
                 if (!snap.exists()) { if (pc) cleanupCall(); return; }
-
                 const data = snap.data();
                 if (data?.active && data.tech === myEmail && !pc) {
                     document.getElementById('callPopup').style.display = 'block';
@@ -351,25 +360,18 @@
                         updateWebRTCUI('connecting...');
                         pc = new RTCPeerConnection(servers);
                         pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
-
                         try {
                             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
                         } catch(e) { alert("Mic Access Denied."); return; }
-
                         pc.ontrack = (event) => { document.getElementById('remoteAudio').srcObject = event.streams[0]; };
-                        
                         pc.onicecandidate = (event) => {
-                            if (event.candidate) {
-                                addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
-                            }
+                            if (event.candidate) addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
                         };
-
                         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
                         await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
-
                         onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
                             snap.docChanges().forEach((change) => {
                                 if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
@@ -411,7 +413,6 @@
             document.getElementById('callMachineName').innerText = name;
             
             if (isFirstAlert) {
-                // If context exists and is running, we can play sounds
                 if (audioCtx && audioCtx.state === 'running') {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
@@ -421,11 +422,10 @@
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
                     osc.start(); osc.stop(audioCtx.currentTime + 4);
-
                     const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}. Connecting.`);
                     window.speechSynthesis.speak(msg);
                 } else {
-                    console.warn("AudioContext suspended. Click the page to enable sound.");
+                    console.warn("AudioContext suspended.");
                 }
                 isFirstAlert = false;
             }
@@ -438,22 +438,16 @@
 
         window.acknowledgeTask = async (docId) => {
             stopDangerCycle();
-            try {
-                await updateDoc(doc(db, "machines", docId), { acknowledged: true });
-            } catch(e) { alert("Error acknowledging."); console.error(e); }
+            try { await updateDoc(doc(db, "machines", docId), { acknowledged: true }); } catch(e) { console.error(e); }
         };
 
         window.assignTech = async (docId, techEmail) => {
-            try {
-                await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase(), acknowledged: false });
-            } catch(e) { console.error("Assignment error:", e); }
+            try { await updateDoc(doc(db, "machines", docId), { assignedTech: techEmail.toLowerCase(), acknowledged: false }); } catch(e) { console.error(e); }
         };
 
         window.toggleMachineStatus = async (docId, currentStatus) => {
             const newStatus = currentStatus === "WORKING" ? "BREAKDOWN" : "WORKING";
-            try {
-                await updateDoc(doc(db, "machines", docId), { status: newStatus, acknowledged: false });
-            } catch(e) { console.error("Status toggle error:", e); }
+            try { await updateDoc(doc(db, "machines", docId), { status: newStatus, acknowledged: false }); } catch(e) { console.error(e); }
         };
 
         window.logout = () => signOut(auth);
@@ -469,7 +463,7 @@
                     card.innerHTML = `<b>${data.status}: ${data.machineName || 'Machine'}</b>`;
                     list.appendChild(card);
                 });
-            }, (e) => console.error("Interventions error:", e));
+            });
         }
     </script>
 </body>
