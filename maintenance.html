@@ -244,23 +244,34 @@
             if (!techEmail || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
             
+            // PERMANENT FIX: Force clear the document state before starting
+            // This ensures the "incoming" state is fresh for the receiver.
+            await setDoc(callDoc, { active: false });
+
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callStatusText').innerText = "RINGING TECHNICIAN...";
 
             pc = new RTCPeerConnection(servers);
             
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            } catch (e) {
+                console.error("Mic access failed", e);
+                return;
+            }
 
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
+                    const candRef = collection(doc(db, "emergency_calls", "active_session"), "offerCandidates");
+                    addDoc(candRef, event.candidate.toJSON());
                 }
             };
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
+            // Activate the call session
             await setDoc(callDoc, {
                 offer: { type: offer.type, sdp: offer.sdp },
                 tech: techEmail,
@@ -294,13 +305,11 @@
             onSnapshot(callDoc, async (snap) => {
                 const data = snap.data();
                 if (data?.active && data.tech === myEmail && !pc) {
-                    // Show Popup + Join Button
                     document.getElementById('callPopup').style.display = 'block';
                     document.getElementById('callMachineName').innerText = data.machine;
                     document.getElementById('callStatusText').innerText = "DIRECTOR CALLING...";
                     document.getElementById('joinCallBtn').style.display = 'block';
 
-                    // Define what happens when Technician clicks "JOIN"
                     window.acceptCall = async () => {
                         document.getElementById('joinCallBtn').style.display = 'none';
                         document.getElementById('callStatusText').innerText = "CONNECTING...";
@@ -314,7 +323,10 @@
                         };
 
                         pc.onicecandidate = (event) => {
-                            if (event.candidate) addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
+                            if (event.candidate) {
+                                const candRef = collection(doc(db, "emergency_calls", "active_session"), "answerCandidates");
+                                addDoc(candRef, event.candidate.toJSON());
+                            }
                         };
 
                         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
