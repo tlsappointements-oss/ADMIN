@@ -84,9 +84,6 @@
         <div id="adminPanel">
             <h3 style="margin-top:0">DIRECTOR SYNC & APPROVALS</h3>
             <div id="adminApprovalList"></div>
-            <hr style="border-color: #333;">
-            <input type="file" id="jsonInput" accept=".json">
-            <button onclick="syncDatabase()">PUSH 105 MACHINES</button>
         </div>
 
         <div id="mainPage">
@@ -120,31 +117,12 @@
             <h1>Mes Ordres de Mission</h1>
             <div id="missionList"></div>
         </div>
-
-        <div id="encyclopediaPanel">
-            <button onclick="document.getElementById('encyclopediaPanel').style.display='none'" style="float:right">CLOSE</button>
-            <h2 id="encName"></h2>
-            <div style="display:flex; gap:20px;">
-                <div style="flex:1">
-                    <h3>Components</h3>
-                    <ul id="encComponents"></ul>
-                </div>
-                <div style="flex:1">
-                    <h3>Fixing Guide</h3>
-                    <p id="encGuide"></p>
-                </div>
-                <div style="flex:1">
-                    <h3>Maintenance History</h3>
-                    <ul id="encHistory"></ul>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc, query, where, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
@@ -184,18 +162,15 @@
             }
             
             loadMachinesLive();
-            if (email !== DIRECTOR) loadMyMissions(email);
             listenForIncomingCallSignals(email);
         });
 
         function loadMachinesLive() {
             const tableBody = document.getElementById('assetTable');
-            const requestSelect = document.getElementById('requestMachineSelect');
             const currentUserEmail = auth.currentUser.email.toLowerCase();
 
             onSnapshot(collection(db, "machines"), (snapshot) => {
                 tableBody.innerHTML = "";
-                if(requestSelect) requestSelect.innerHTML = "";
                 allMachines = [];
                 let pendingTask = null;
 
@@ -203,25 +178,23 @@
                     const m = snapshotDoc.data();
                     const machineDocId = snapshotDoc.id;
                     allMachines.push({id: machineDocId, ...m});
-                    if(requestSelect) requestSelect.innerHTML += `<option value="${machineDocId}">${m.name}</option>`;
 
                     const isWorking = m.status === "WORKING";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
 
-                    // UPDATED: If Director OR assigned tech, trigger the danger cycle
                     if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR)) {
                         pendingTask = m;
                     }
 
                     let rowHTML = `
                         <tr>
-                            <td><b style="cursor:pointer; text-decoration:underline" onclick="viewMachineDetails('${machineDocId}')">${m.machineId || machineDocId}</b></td>
+                            <td><b>${m.machineId || machineDocId}</b></td>
                             <td>${m.name}</td>
                             <td>${m.section}</td>
                             <td>
                                 <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
                                 ${(!isWorking && isAssignedToMe) ? `
-                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}', '${m.name}')">⚠️</span>
+                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}')">⚠️</span>
                                     <span class="intervenir-msg">please intervenir</span>
                                 ` : ''}
                             </td>
@@ -255,18 +228,24 @@
             });
         }
 
+        // --- WEB RTC LOGIC (FIXED) ---
+
         async function initiateVoiceCall(techEmail, machineName) {
-            if (!techEmail) return;
+            if (!techEmail || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
             
+            // Clean up old candidates from previous sessions
+            const offerCandidates = collection(callDoc, "offerCandidates");
+            const answerCandidates = collection(callDoc, "answerCandidates");
+
             pc = new RTCPeerConnection(servers);
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-            // Candidate collection
+            // Push candidates to sub-collection
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    updateDoc(callDoc, { offerCandidates: event.candidate.toJSON() });
+                    addDoc(offerCandidates, event.candidate.toJSON());
                 }
             };
 
@@ -281,19 +260,29 @@
                 answer: null
             });
 
+            // Listen for Answer
             onSnapshot(callDoc, (snap) => {
                 const data = snap.data();
                 if (data?.answer && !pc.currentRemoteDescription) {
                     pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    stopDangerCycle();
                     document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
                 }
                 if (data?.active === false) cleanupCall();
             });
+
+            // Listen for Technician's ICE candidates
+            onSnapshot(answerCandidates, (snap) => {
+                snap.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                    }
+                });
+            });
         }
 
         async function listenForIncomingCallSignals(myEmail) {
-            onSnapshot(doc(db, "emergency_calls", "active_session"), async (snap) => {
+            const callDoc = doc(db, "emergency_calls", "active_session");
+            onSnapshot(callDoc, async (snap) => {
                 const data = snap.data();
                 if (data?.active && data.tech === myEmail && !pc) {
                     document.getElementById('callPopup').style.display = 'block';
@@ -307,17 +296,32 @@
                         document.getElementById('remoteAudio').srcObject = event.streams[0];
                     };
 
+                    // Send candidates to Director
+                    const answerCandidates = collection(callDoc, "answerCandidates");
+                    pc.onicecandidate = (event) => {
+                        if (event.candidate) addDoc(answerCandidates, event.candidate.toJSON());
+                    };
+
                     await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                     const answer = await pc.createAnswer();
                     await pc.setLocalDescription(answer);
                     
-                    await updateDoc(doc(db, "emergency_calls", "active_session"), { 
+                    await updateDoc(callDoc, { 
                         answer: { type: answer.type, sdp: answer.sdp } 
                     });
-                    
+
+                    // Listen for Director's ICE candidates
+                    onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
+                        snap.docChanges().forEach((change) => {
+                            if (change.type === "added") {
+                                pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                            }
+                        });
+                    });
+
                     stopDangerCycle();
                     document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
-                } else if (data?.active === false) {
+                } else if (data?.active === false && pc) {
                     cleanupCall();
                 }
             });
@@ -372,65 +376,7 @@
             document.getElementById('dangerOverlay').style.display = 'none';
         }
 
-        window.submitIntervention = async () => {
-            const mId = document.getElementById('requestMachineSelect').value;
-            const issue = document.getElementById('requestIssue').value;
-            if(!issue) return alert("Please describe the issue");
-            await addDoc(collection(db, "interventions"), {
-                machineId: mId,
-                machineName: allMachines.find(x => x.id === mId).name,
-                issue: issue,
-                requester: auth.currentUser.email,
-                status: "PENDING_MOHAMED",
-                timestamp: serverTimestamp()
-            });
-            alert("Request sent to Mohamed!");
-            showPage('mainPage');
-        };
-
-        function loadAdminApprovals() {
-            const list = document.getElementById('adminApprovalList');
-            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    const card = document.createElement('div');
-                    card.className = "card";
-                    if(data.status === "PENDING_MOHAMED") {
-                        card.innerHTML = `<b>NEW REQUEST: ${data.machineName}</b><br><button onclick="approveIntervention('${d.id}', '${data.machineId}')">APPROVE MISSION</button>`;
-                    } else {
-                        card.innerHTML = `<b>REPORT READY: ${data.machineName}</b><br><button onclick="finalizeMission('${d.id}', '${data.machineId}')">APPROVE & RESTART</button>`;
-                    }
-                    list.appendChild(card);
-                });
-            });
-        }
-
-        window.approveIntervention = async (intId, mId) => {
-            await updateDoc(doc(db, "interventions", intId), { status: "APPROVED" });
-            await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN" });
-        };
-
-        window.finalizeMission = async (intId, mId) => {
-            await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED" });
-            await updateDoc(doc(db, "machines", mId), { status: "WORKING" });
-        };
-
-        function loadMyMissions(email) {
-            const list = document.getElementById('missionList');
-            onSnapshot(query(collection(db, "interventions"), where("status", "==", "APPROVED")), (snap) => {
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    const card = document.createElement('div');
-                    card.className = "card";
-                    card.innerHTML = `<h3>Mission: ${data.machineName}</h3><textarea id="report_${d.id}"></textarea><button onclick="submitMissionReport('${d.id}')">SUBMIT</button>`;
-                    list.appendChild(card);
-                });
-            });
-        }
-
-        window.acknowledgeTask = async (docId, name) => {
+        window.acknowledgeTask = async (docId) => {
             stopDangerCycle();
             await updateDoc(doc(db, "machines", docId), { acknowledged: true });
         };
@@ -445,6 +391,20 @@
         };
 
         window.logout = () => signOut(auth);
+
+        function loadAdminApprovals() {
+            const list = document.getElementById('adminApprovalList');
+            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    const card = document.createElement('div');
+                    card.className = "card";
+                    card.innerHTML = `<b>${data.status}: ${data.machineName}</b>`;
+                    list.appendChild(card);
+                });
+            });
+        }
     </script>
 </body>
 </html>
