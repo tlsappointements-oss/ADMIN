@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebRTC Voice Test</title>
+    <style>
+        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 50px; }
+        .box { border: 1px solid #333; padding: 20px; margin: 20px auto; max-width: 500px; background: #111; }
+        textarea { width: 100%; height: 100px; background: #222; color: #0f0; border: 1px solid #444; }
+        button { background: #e30613; color: white; padding: 10px 20px; border: none; cursor: pointer; margin: 10px; font-weight: bold;}
+        .status { color: #ffcc00; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Voice Connection Test</h1>
+    <p>Step 1: Click "Initialize Mic" on both screens.</p>
+    <button onclick="initMic()">1. INITIALIZE MIC</button>
+    <div id="micStatus">Mic: ⚪ Off</div>
+
+    <div class="box">
+        <h3>User A (Caller)</h3>
+        <button onclick="createOffer()">2. CREATE OFFER</button>
+        <p>Copy this code and send to User B:</p>
+        <textarea id="offerCode" readonly></textarea>
+    </div>
+
+    <div class="box">
+        <h3>User B (Receiver)</h3>
+        <p>Paste User A's code here:</p>
+        <textarea id="incomingCode" placeholder="Paste offer here..."></textarea>
+        <button onclick="acceptOffer()">3. ACCEPT & CREATE ANSWER</button>
+        <p>Copy this answer back to User A:</p>
+        <textarea id="answerCode" readonly></textarea>
+    </div>
+
+    <div class="box">
+        <h3>User A (Finalize)</h3>
+        <p>Paste User B's answer here:</p>
+        <textarea id="finalAnswer" placeholder="Paste answer here..."></textarea>
+        <button onclick="finishCall()">4. CONNECT</button>
+    </div>
+
+    <div class="status">Connection Status: <span id="connState">OFFLINE</span></div>
+    <audio id="remoteAudio" autoplay></audio>
+
+    <script>
+        let localStream;
+        let pc;
+        const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+        async function initMic() {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            document.getElementById('micStatus').innerText = "Mic: ✅ READY";
+        }
+
+        async function createOffer() {
+            pc = new RTCPeerConnection(config);
+            setupPC();
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            // Wait for ICE candidates before showing the code
+            pc.onicecandidate = (e) => {
+                if (!e.candidate) {
+                    document.getElementById('offerCode').value = JSON.stringify(pc.localDescription);
+                }
+            };
+        }
+
+        async function acceptOffer() {
+            const offer = JSON.parse(document.getElementById('incomingCode').value);
+            pc = new RTCPeerConnection(config);
+            setupPC();
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            pc.onicecandidate = (e) => {
+                if (!e.candidate) {
+                    document.getElementById('answerCode').value = JSON.stringify(pc.localDescription);
+                }
+            };
+        }
+
+        async function finishCall() {
+            const answer = JSON.parse(document.getElementById('finalAnswer').value);
+            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        }
+
+        function setupPC() {
+            pc.onconnectionstatechange = () => {
+                document.getElementById('connState').innerText = pc.connectionState;
+            };
+            pc.ontrack = (event) => {
+                document.getElementById('remoteAudio').srcObject = event.streams[0];
+            };
+        }
+    </script>
+</body>
+</html>
