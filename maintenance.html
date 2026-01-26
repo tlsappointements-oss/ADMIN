@@ -60,7 +60,6 @@
         .dot-active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
         .dot-error { background: #ff3333; }
 
-        /* Style for the Audio Activator Button */
         #audioActivator {
             background: #ffcc00; color: #000; border: none; padding: 15px;
             font-weight: 900; width: 100%; margin-bottom: 20px; border-radius: 5px;
@@ -152,6 +151,7 @@
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // PERMANENTLY FIXED CONSTANT
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
         let allMachines = [];
@@ -166,26 +166,19 @@
         };
 
         window.activateAudioSystem = async () => {
-            console.log("Activating Audio System...");
             try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 await audioCtx.resume();
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 document.getElementById('audioActivator').style.background = "#00ff00";
                 document.getElementById('audioActivator').innerText = "✅ MIC READY";
-                console.log("Microphone Access Granted.");
             } catch (err) {
                 alert("Permission denied. You must allow microphone access.");
-                console.error(err);
             }
         };
 
         window.handleFirstInteraction = () => {
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
         };
 
         function updateWebRTCUI(state) {
@@ -195,7 +188,7 @@
             if (dot) {
                 dot.className = "status-dot";
                 if(state === 'connected') dot.classList.add('dot-active');
-                if(state === 'failed' || state === 'closed' || state === 'disconnected') dot.classList.add('dot-error');
+                if(['failed', 'closed', 'disconnected'].includes(state)) dot.classList.add('dot-error');
             }
         }
 
@@ -212,21 +205,21 @@
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `USER: ${email}`;
 
+            const isDirector = (email === DIRECTOR.toLowerCase());
             const hangBtn = document.getElementById('hangUpBtn');
             const hangWarn = document.getElementById('hangupWarning');
-            if (email !== DIRECTOR) {
+
+            if (!isDirector) {
                 if(hangBtn) hangBtn.style.display = "none";
                 if(hangWarn) hangWarn.style.display = "block";
             } else {
                 if(hangBtn) hangBtn.style.display = "flex";
                 if(hangWarn) hangWarn.style.display = "none";
-            }
-
-            if (email === DIRECTOR) {
+                
                 document.getElementById('adminPanel').style.display = "block";
                 onSnapshot(collection(db, "users"), (snap) => {
-                    techList = []; snap.forEach(d => techList.push(d.id));
-                }, (err) => console.error("User list error:", err));
+                    techList = []; snap.forEach(d => techList.push(d.id.toLowerCase()));
+                });
                 loadAdminApprovals();
             }
             
@@ -249,9 +242,9 @@
                     allMachines.push({id: machineDocId, ...m});
 
                     const isWorking = m.status === "WORKING";
-                    const isAssignedToMe = m.assignedTech === currentUserEmail;
+                    const isAssignedToMe = m.assignedTech?.toLowerCase() === currentUserEmail;
 
-                    if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR)) {
+                    if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR.toLowerCase())) {
                         pendingTask = m;
                     }
 
@@ -270,8 +263,8 @@
                             <td>
                     `;
 
-                    if (currentUserEmail === DIRECTOR) {
-                        let options = techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('');
+                    if (currentUserEmail === DIRECTOR.toLowerCase()) {
+                        let options = techList.map(t => `<option value="${t}" ${m.assignedTech?.toLowerCase() === t ? 'selected' : ''}>${t}</option>`).join('');
                         rowHTML += `
                             <select class="tech-select" onchange="assignTech('${machineDocId}', this.value)">
                                 <option value="">Assign Tech...</option>
@@ -288,7 +281,7 @@
 
                 if (pendingTask) {
                     startDangerCycle(pendingTask.name, pendingTask.section);
-                    if (currentUserEmail === DIRECTOR && isFirstAlert) {
+                    if (currentUserEmail === DIRECTOR.toLowerCase() && isFirstAlert) {
                         initiateVoiceCall(pendingTask.assignedTech, pendingTask.name);
                     }
                 } else {
@@ -299,11 +292,10 @@
 
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
-            console.log("Director initiating call to:", techEmail);
-            updateWebRTCUI('signaling...');
+            const techClean = techEmail.toLowerCase();
             
             const callDoc = doc(db, "emergency_calls", "active_session");
-            await deleteDoc(callDoc).catch(()=>{});
+            await setDoc(callDoc, { active: false }); // Force reset for Mohamed
             
             pc = new RTCPeerConnection(servers);
             pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
@@ -311,7 +303,7 @@
             pc.ontrack = (event) => {
                 const remoteAudio = document.getElementById('remoteAudio');
                 remoteAudio.srcObject = event.streams[0];
-                remoteAudio.play().catch(e => console.error("Audio playback error:", e));
+                remoteAudio.play();
             };
             
             if (localStream) {
@@ -329,13 +321,12 @@
 
             await setDoc(callDoc, {
                 offer: { type: offer.type, sdp: offer.sdp },
-                tech: techEmail.toLowerCase(),
+                tech: techClean,
                 machine: machineName,
                 active: true,
                 timestamp: Date.now()
-            });
+            }, { merge: true });
 
-            // FIXED: Director must also listen for candidates from the Technician
             onSnapshot(callDoc, (snap) => {
                 const data = snap.data();
                 if (data?.answer && !pc.currentRemoteDescription) {
@@ -345,20 +336,20 @@
 
             onSnapshot(collection(callDoc, "answerCandidates"), (snap) => {
                 snap.docChanges().forEach((change) => {
-                    if (change.type === "added") {
-                        pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                    }
+                    if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
                 });
             });
         }
 
         async function listenForIncomingCallSignals(myEmail) {
+            const myEmailClean = myEmail.toLowerCase();
             const callDoc = doc(db, "emergency_calls", "active_session");
+            
             onSnapshot(callDoc, async (snap) => {
                 if (!snap.exists()) { if (pc) cleanupCall(); return; }
                 const data = snap.data();
-                if (data?.active && data.tech === myEmail && !pc) {
-                    console.log("Incoming call signal detected for me!");
+
+                if (data?.active && data.tech === myEmailClean && !pc) {
                     document.getElementById('callPopup').style.display = 'block';
                     document.getElementById('callMachineName').innerText = data.machine;
                     document.getElementById('joinCallBtn').style.display = 'block';
@@ -375,8 +366,8 @@
                         
                         pc.ontrack = (event) => { 
                             const remoteAudio = document.getElementById('remoteAudio');
-                            remoteAudio.srcObject = event.streams[0]; 
-                            remoteAudio.play().catch(e => console.error("Audio playback error:", e));
+                            remoteAudio.srcObject = event.streams[0];
+                            remoteAudio.play();
                         };
 
                         pc.onicecandidate = (event) => {
@@ -399,11 +390,9 @@
         }
 
         window.endEmergencyCall = async () => {
-            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-            try {
-                await deleteDoc(doc(db, "emergency_calls", "active_session"));
-                cleanupCall();
-            } catch(e) { console.error("End call error:", e); }
+            if (auth.currentUser.email.toLowerCase() !== DIRECTOR.toLowerCase()) return;
+            await deleteDoc(doc(db, "emergency_calls", "active_session"));
+            cleanupCall();
         };
 
         function cleanupCall() {
@@ -415,7 +404,7 @@
 
         function startDangerCycle(name, section) {
             const currentUserEmail = auth.currentUser.email.toLowerCase();
-            if (currentUserEmail !== DIRECTOR) {
+            if (currentUserEmail !== DIRECTOR.toLowerCase()) {
                 document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
                 document.getElementById('dangerOverlay').style.display = 'flex';
             }
