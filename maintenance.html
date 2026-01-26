@@ -238,16 +238,15 @@
             });
         }
 
-        // --- UPDATED CALL LOGIC (FIXED END CALL) ---
-
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
             
-            // Step 1: Force delete any old session before starting
+            // Clean up previous stale session data
             await deleteDoc(callDoc);
 
             document.getElementById('callPopup').style.display = 'block';
+            document.getElementById('callMachineName').innerText = machineName;
             document.getElementById('callStatusText').innerText = "RINGING TECHNICIAN...";
 
             pc = new RTCPeerConnection(servers);
@@ -280,7 +279,6 @@
                 document.getElementById('remoteAudio').srcObject = event.streams[0];
             };
 
-            // Watch for answer or IF THE DOC IS DELETED (meaning call ended)
             onSnapshot(callDoc, (snap) => {
                 if (!snap.exists()) {
                     cleanupCall();
@@ -303,7 +301,6 @@
         async function listenForIncomingCallSignals(myEmail) {
             const callDoc = doc(db, "emergency_calls", "active_session");
             onSnapshot(callDoc, async (snap) => {
-                // If document is gone, end the UI for the technician
                 if (!snap.exists()) {
                     if (pc) cleanupCall();
                     return;
@@ -350,7 +347,6 @@
 
         window.endEmergencyCall = async () => {
             if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-            // HARD FIX: Delete the document. This forces 'snap.exists()' to be false for the technician.
             await deleteDoc(doc(db, "emergency_calls", "active_session"));
             cleanupCall();
         };
@@ -372,11 +368,17 @@
             }, 1000);
         }
 
-        // --- END UPDATED CALL LOGIC ---
-
         function startDangerCycle(name, section) {
-            document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
-            document.getElementById('dangerOverlay').style.display = 'flex';
+            const currentUserEmail = auth.currentUser.email.toLowerCase();
+            
+            // Only show red danger overlay for non-Director users
+            if (currentUserEmail !== DIRECTOR) {
+                document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
+                document.getElementById('dangerOverlay').style.display = 'flex';
+            } else {
+                document.getElementById('dangerOverlay').style.display = 'none';
+            }
+
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = name;
 
