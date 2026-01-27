@@ -135,6 +135,7 @@
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [], isFirstAlert = true, micReady = false, pc = null, localStream = null, audioCtx = null;
+        // UPDATED: Added a second STUN server for better cross-network traversal
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
 
         // --- AUDIO SYSTEM ---
@@ -261,52 +262,32 @@
         window.updateStep = async (id, step, val) => updateDoc(doc(db, "interventions", id), { [step]: val });
         window.finishMission = async (id) => { await updateDoc(doc(db, "interventions", id), { status: "TECH_COMPLETED" }); alert("Submitted!"); };
 
-        // --- REWRITTEN WEB RTC CALL LOGIC ---
+        // --- WEB RTC CALL LOGIC ---
         async function initiateVoiceCall(tech, machine) {
             if (!tech || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
             await deleteDoc(callDoc); 
-            
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = "CALLING: " + tech;
 
             pc = new RTCPeerConnection(servers);
-            
-            pc.onicecandidate = e => {
-                if (e.candidate) addDoc(collection(callDoc, "offerCandidates"), e.candidate.toJSON());
-            };
-
-            pc.ontrack = e => {
-                document.getElementById('remoteAudio').srcObject = e.streams[0];
-            };
-
+            pc.onicecandidate = e => e.candidate && addDoc(collection(callDoc, "offerCandidates"), e.candidate.toJSON());
+            pc.ontrack = e => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
             pc.onconnectionstatechange = () => {
-                const state = pc.connectionState;
-                document.getElementById('webrtcState').innerText = state.toUpperCase();
-                if(state === 'connected') document.getElementById('statusDot').classList.add('dot-active');
-                if(state === 'failed') console.error("WebRTC Connection Failed");
+                document.getElementById('webrtcState').innerText = pc.connectionState;
+                if(pc.connectionState === 'connected') document.getElementById('statusDot').classList.add('dot-active');
             };
             
-            if (localStream) {
-                localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-            }
-
+            if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             await setDoc(callDoc, { offer: {type: offer.type, sdp: offer.sdp}, tech: tech.toLowerCase(), machine, active: true });
 
             onSnapshot(callDoc, s => {
                 const d = s.data();
-                if (d?.answer && !pc.currentRemoteDescription) {
-                    pc.setRemoteDescription(new RTCSessionDescription(d.answer));
-                }
+                if (d?.answer && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(d.answer));
             });
-
-            onSnapshot(collection(callDoc, "answerCandidates"), s => {
-                s.docChanges().forEach(c => {
-                    if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data()));
-                });
-            });
+            onSnapshot(collection(callDoc, "answerCandidates"), s => s.docChanges().forEach(c => c.type === "added" && pc.addIceCandidate(new RTCIceCandidate(c.doc.data()))));
         }
 
         function listenForCalls(me) {
@@ -320,34 +301,24 @@
                     window.acceptCall = async () => {
                         if (!micReady) { alert("Enable Mic First!"); return; }
                         document.getElementById('joinCallBtn').style.display = 'none';
-                        
+                        const callDoc = doc(db, "emergency_calls", "active_session");
                         pc = new RTCPeerConnection(servers);
                         
-                        pc.onicecandidate = e => {
-                            if (e.candidate) addDoc(collection(doc(db, "emergency_calls", "active_session"), "answerCandidates"), e.candidate.toJSON());
-                        };
-
-                        pc.ontrack = e => {
-                            document.getElementById('remoteAudio').srcObject = e.streams[0];
-                        };
-
-                        pc.onconnectionstatechange = () => {
-                            document.getElementById('webrtcState').innerText = pc.connectionState.toUpperCase();
-                        };
-
-                        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-
-                        await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
-                        const answer = await pc.createAnswer();
-                        await pc.setLocalDescription(answer);
-                        await updateDoc(doc(db, "emergency_calls", "active_session"), { answer: {type: answer.type, sdp: answer.sdp} });
-
-                        // Listen for Director's ICE candidates
-                        onSnapshot(collection(doc(db, "emergency_calls", "active_session"), "offerCandidates"), snap => {
+                        // FIX: Ensure incoming candidates from Director are processed by Technician
+                        onSnapshot(collection(callDoc, "offerCandidates"), snap => {
                             snap.docChanges().forEach(change => {
                                 if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
                             });
                         });
+
+                        pc.ontrack = e => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
+                        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+                        pc.onicecandidate = e => e.candidate && addDoc(collection(callDoc, "answerCandidates"), e.candidate.toJSON());
+                        
+                        await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
+                        const answer = await pc.createAnswer();
+                        await pc.setLocalDescription(answer);
+                        await updateDoc(callDoc, { answer: {type: answer.type, sdp: answer.sdp} });
                     };
                 }
                 if (d?.triggerSound && me !== DIRECTOR) document.getElementById('effectAudio').play();
@@ -363,18 +334,7 @@
             } else { alert("Only the Director can end emergency lines."); }
         };
 
-        function cleanup() { 
-            if(pc) {
-                pc.getSenders().forEach(sender => pc.removeTrack(sender));
-                pc.close();
-            }
-            pc = null; 
-            document.getElementById('callPopup').style.display = 'none'; 
-            isFirstAlert = true; 
-            document.getElementById('statusDot').classList.remove('dot-active');
-            document.getElementById('webrtcState').innerText = "IDLE";
-        }
-
+        function cleanup() { if(pc) pc.close(); pc = null; document.getElementById('callPopup').style.display = 'none'; isFirstAlert = true; document.getElementById('statusDot').classList.remove('dot-active'); }
         function showDanger(t) { if (auth.currentUser.email.toLowerCase() !== DIRECTOR) { document.getElementById('dangerDescription').innerText = t; document.getElementById('dangerOverlay').style.display = 'flex'; } }
         function stopDanger() { document.getElementById('dangerOverlay').style.display = 'none'; }
         
