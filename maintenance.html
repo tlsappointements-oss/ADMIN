@@ -135,7 +135,8 @@
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [], isFirstAlert = true, micReady = false, pc = null, localStream = null, audioCtx = null;
-        // UPDATED: Added a second STUN server for better cross-network traversal
+        
+        // Fixed servers for cross-network reliability
         const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
 
         // --- AUDIO SYSTEM ---
@@ -266,7 +267,7 @@
         async function initiateVoiceCall(tech, machine) {
             if (!tech || pc) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
-            await deleteDoc(callDoc); 
+            await deleteDoc(callDoc); // Clear old session
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = "CALLING: " + tech;
 
@@ -301,24 +302,20 @@
                     window.acceptCall = async () => {
                         if (!micReady) { alert("Enable Mic First!"); return; }
                         document.getElementById('joinCallBtn').style.display = 'none';
-                        const callDoc = doc(db, "emergency_calls", "active_session");
                         pc = new RTCPeerConnection(servers);
-                        
-                        // FIX: Ensure incoming candidates from Director are processed by Technician
-                        onSnapshot(collection(callDoc, "offerCandidates"), snap => {
-                            snap.docChanges().forEach(change => {
-                                if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                            });
-                        });
-
                         pc.ontrack = e => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
                         localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-                        pc.onicecandidate = e => e.candidate && addDoc(collection(callDoc, "answerCandidates"), e.candidate.toJSON());
+                        pc.onicecandidate = e => e.candidate && addDoc(collection(doc(db, "emergency_calls", "active_session"), "answerCandidates"), e.candidate.toJSON());
                         
+                        // Fix: Added listener for offerCandidates
+                        onSnapshot(collection(doc(db, "emergency_calls", "active_session"), "offerCandidates"), s => {
+                            s.docChanges().forEach(c => c.type === "added" && pc.addIceCandidate(new RTCIceCandidate(c.doc.data())));
+                        });
+
                         await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
-                        await updateDoc(callDoc, { answer: {type: answer.type, sdp: answer.sdp} });
+                        await updateDoc(doc(db, "emergency_calls", "active_session"), { answer: {type: answer.type, sdp: answer.sdp} });
                     };
                 }
                 if (d?.triggerSound && me !== DIRECTOR) document.getElementById('effectAudio').play();
@@ -334,7 +331,7 @@
             } else { alert("Only the Director can end emergency lines."); }
         };
 
-        function cleanup() { if(pc) pc.close(); pc = null; document.getElementById('callPopup').style.display = 'none'; isFirstAlert = true; document.getElementById('statusDot').classList.remove('dot-active'); }
+        function cleanup() { if(pc) pc.close(); pc = null; document.getElementById('callPopup').style.display = 'none'; isFirstAlert = true; }
         function showDanger(t) { if (auth.currentUser.email.toLowerCase() !== DIRECTOR) { document.getElementById('dangerDescription').innerText = t; document.getElementById('dangerOverlay').style.display = 'flex'; } }
         function stopDanger() { document.getElementById('dangerOverlay').style.display = 'none'; }
         
