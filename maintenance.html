@@ -271,7 +271,11 @@
 
             pc = new RTCPeerConnection(servers);
             pc.onicecandidate = e => e.candidate && addDoc(collection(callDoc, "offerCandidates"), e.candidate.toJSON());
-            pc.ontrack = e => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
+            pc.ontrack = e => { 
+                const audio = document.getElementById('remoteAudio');
+                audio.srcObject = e.streams[0];
+                audio.play().catch(console.error);
+            };
             pc.onconnectionstatechange = () => {
                 document.getElementById('webrtcState').innerText = pc.connectionState;
                 if(pc.connectionState === 'connected') document.getElementById('statusDot').classList.add('dot-active');
@@ -299,13 +303,18 @@
 
                     window.acceptCall = async () => {
                         if (!micReady) { alert("Enable Mic First!"); return; }
+                        
+                        // MOBILE FIX: Manually trigger audio play on the interaction event
+                        const audio = document.getElementById('remoteAudio');
+                        audio.volume = 1.0; 
+                        audio.play().catch(() => {}); 
+
                         document.getElementById('joinCallBtn').style.display = 'none';
                         pc = new RTCPeerConnection(servers);
-                        pc.ontrack = e => { document.getElementById('remoteAudio').srcObject = e.streams[0]; };
+                        pc.ontrack = e => { audio.srcObject = e.streams[0]; audio.play().catch(console.error); };
                         localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
                         pc.onicecandidate = e => e.candidate && addDoc(collection(doc(db, "emergency_calls", "active_session"), "answerCandidates"), e.candidate.toJSON());
                         
-                        // FIX: Technician must also listen for Director's ICE candidates
                         onSnapshot(collection(doc(db, "emergency_calls", "active_session"), "offerCandidates"), snap => {
                             snap.docChanges().forEach(c => c.type === "added" && pc.addIceCandidate(new RTCIceCandidate(c.doc.data())));
                         });
