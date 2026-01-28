@@ -62,7 +62,8 @@
             width: 600px; max-height: 80vh; background: #111; border: 2px solid #e30613; 
             padding: 30px; z-index: 10010; overflow-y: auto; border-radius: 15px;
         }
-        .history-log { font-size: 0.8rem; background: #000; padding: 10px; border: 1px solid #333; margin-top: 10px; }
+        .history-log { font-size: 0.8rem; background: #000; padding: 10px; border: 1px solid #333; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .machine-img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
     </style>
 </head>
 <body onclick="handleFirstInteraction()">
@@ -132,7 +133,7 @@
         <div id="interventionPage">
             <h1>Step 1: Request Intervention</h1>
             <div class="card">
-                <select id="reqMachine"></select>
+                <select id="reqMachine" onchange="previewMachine(this.value)"></select>
                 <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
                 <button onclick="submitReq()">SUBMIT TO DIRECTOR</button>
             </div>
@@ -147,7 +148,7 @@
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         const JITSI_ROOM = "MercedesPlantOperations_Emergency_Relay_12345";
@@ -178,7 +179,15 @@
                     for (const m of machines) {
                         const mId = m.machineId || `M-${Math.random().toString(36).substr(2, 5)}`;
                         await setDoc(doc(db, "machines", mId), {
-                            ...m, status: m.status || "WORKING", assignedTech: "", acknowledged: true, lastUpdated: serverTimestamp()
+                            ...m, 
+                            status: m.status || "WORKING", 
+                            assignedTech: "", 
+                            acknowledged: true, 
+                            lastUpdated: serverTimestamp(),
+                            history: m.history || [],
+                            description: m.description || "High-precision manufacturing unit.",
+                            image: m.image || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500",
+                            components: m.components || ["Motor Drive", "PLC Unit", "Hydraulic Pump", "Safety Sensors", "cooling Fan", "Interface Panel"]
                         });
                     }
                     alert("Sync Complete.");
@@ -202,6 +211,7 @@
                 loadAdminApprovals();
             } else {
                 document.getElementById('hangUpBtn').style.display = "none";
+                loadMyMissions(email);
             }
 
             loadMachinesLive(email);
@@ -215,29 +225,45 @@
         }
         window.showPage = showPage;
 
+        window.previewMachine = (id) => {
+            const m = machineCache[id];
+            if(!m) return;
+            const content = `
+                <h2 style="color:#e30613">Step 1: Machine Preview</h2>
+                <img src="${m.image}" class="machine-img">
+                <p><b>Name:</b> ${m.name}</p>
+                <p><b>Description:</b> ${m.description}</p>
+                <h4>Maintenance History</h4>
+                <div class="history-log">${m.history?.length ? m.history.map(h => `<div>• ${h}</div>`).join('') : 'No previous records.'}</div>
+            `;
+            document.getElementById('machineDetailContent').innerHTML = content;
+            document.getElementById('machineDetailPopup').style.display = 'block';
+        };
+
         function loadMachinesLive(userEmail) {
             const table = document.getElementById('assetTable');
             const select = document.getElementById('reqMachine');
 
             onSnapshot(collection(db, "machines"), (snap) => {
                 table.innerHTML = "";
-                if(select) select.innerHTML = "";
-                let alertNeeded = null;
+                if(select) {
+                    const currentVal = select.value;
+                    select.innerHTML = '<option value="">Select Machine...</option>';
+                    snap.forEach(s => select.innerHTML += `<option value="${s.id}" ${currentVal===s.id?'selected':''}>${s.data().name}</option>`);
+                }
 
                 snap.forEach(snapshotDoc => {
                     const m = snapshotDoc.data();
                     const id = snapshotDoc.id;
                     machineCache[id] = m;
-                    if (select) select.innerHTML += `<option value="${id}">${m.name}</option>`;
 
                     const isWorking = m.status === "WORKING";
                     const isMyProblem = m.assignedTech === userEmail;
 
-                    // Danger ONLY shows for the concerned tech, not Mohamed
-                    if (!isWorking && !m.acknowledged && isMyProblem && userEmail !== DIRECTOR) alertNeeded = m;
+                    if (!isWorking && !m.acknowledged && isMyProblem && userEmail !== DIRECTOR) startDangerCycle(m);
 
                     let row = `<tr>
-                        <td><b style="cursor:pointer;text-decoration:underline" onclick="viewMachineDetails('${id}')">${m.machineId || id}</b></td>
+                        <td><b style="cursor:pointer;text-decoration:underline" onclick="previewMachine('${id}')">${m.machineId || id}</b></td>
                         <td>${m.name}</td>
                         <td>${m.section}</td>
                         <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span></td>
@@ -247,22 +273,108 @@
                         row += `<select class="tech-select" onchange="assignTech('${id}', this.value)">
                                     <option value="">Assign...</option>
                                     ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
-                                </select>
-                                <button onclick="toggleStatus('${id}', '${m.status}')">TOGGLE</button>`;
+                                </select>`;
                     } else {
                         row += `<span>${m.assignedTech || '---'}</span>`;
                     }
                     row += `</td></tr>`;
                     table.innerHTML += row;
                 });
-
-                if (alertNeeded) {
-                    startDangerCycle(alertNeeded);
-                } else if (userEmail !== DIRECTOR) {
-                    stopDangerCycle();
-                }
             });
         }
+
+        function loadMyMissions(email) {
+            const list = document.getElementById('missionList');
+            onSnapshot(query(collection(db, "interventions"), where("status", "==", "APPROVED")), (snap) => {
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    const m = machineCache[data.machineId];
+                    if (m?.assignedTech !== email) return;
+
+                    const card = document.createElement('div');
+                    card.className = "card";
+                    card.innerHTML = `
+                        <h3>MISSION: ${data.machineName}</h3>
+                        <p>Issue: ${data.issue}</p>
+                        <button onclick="openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">OPEN MAINTENANCE GUIDE</button>
+                    `;
+                    list.appendChild(card);
+                });
+            });
+        }
+
+        window.openMaintenanceGuide = (intId, mId) => {
+            const m = machineCache[mId];
+            const content = `
+                <h2 style="color:#e30613">Maintenance Guide: ${m.name}</h2>
+                <div class="history-log" style="margin-bottom:15px">
+                    <b>Restricted History Access:</b><br>
+                    ${m.history?.map(h => `• ${h}`).join('<br>') || 'No history.'}
+                </div>
+                <div id="checklist">
+                    ${m.components.map((comp, i) => `
+                        <label class="checklist-item">
+                            <input type="checkbox" class="m-check"> [Step ${i+1}] Verify and Clean ${comp}
+                        </label>
+                    `).join('')}
+                </div>
+                <textarea id="techComment" placeholder="Enter technical resolution notes..."></textarea>
+                <button onclick="submitTechReport('${intId}', '${mId}')" style="width:100%">SUBMIT REPORT FOR APPROVAL</button>
+            `;
+            document.getElementById('machineDetailContent').innerHTML = content;
+            document.getElementById('machineDetailPopup').style.display = 'block';
+        };
+
+        window.submitTechReport = async (intId, mId) => {
+            const checks = document.querySelectorAll('.m-check:checked').length;
+            const comment = document.getElementById('techComment').value;
+            if (checks < 6) return alert("Security Protocol: You must complete and tick at least 6 maintenance steps.");
+            if (!comment) return alert("Please provide a resolution comment.");
+
+            await updateDoc(doc(db, "interventions", intId), { 
+                status: "TECH_COMPLETED", 
+                techComment: comment,
+                completedAt: serverTimestamp() 
+            });
+            document.getElementById('machineDetailPopup').style.display = 'none';
+            alert("Report submitted to Director.");
+        };
+
+        function loadAdminApprovals() {
+            const list = document.getElementById('adminApprovalList');
+            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    const card = document.createElement('div');
+                    card.className = "card";
+                    if(data.status === "PENDING_MOHAMED") {
+                        card.innerHTML = `<b>STEP 1 REQ: ${data.machineName}</b><br><small>${data.issue}</small><br>
+                                         <button onclick="approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE (STEP 2)</button>`;
+                    } else {
+                        card.innerHTML = `<b>FINAL REPORT: ${data.machineName}</b><br><small>Tech Notes: ${data.techComment}</small><br>
+                                         <button onclick="approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#28a745">VALIDATE & RESTART MACHINE</button>`;
+                    }
+                    list.appendChild(card);
+                });
+            });
+        }
+
+        window.approveAction = async (intId, mId, status) => {
+            if(status === "PENDING_MOHAMED") {
+                await updateDoc(doc(db, "interventions", intId), { status: "APPROVED" });
+                await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN" });
+            } else {
+                const intDoc = await getDoc(doc(db, "interventions", intId));
+                const comment = intDoc.data().techComment;
+                await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED" });
+                await updateDoc(doc(db, "machines", mId), { 
+                    status: "WORKING", 
+                    history: arrayUnion(`${new Date().toLocaleDateString()}: ${comment}`) 
+                });
+            }
+        };
 
         async function startEmergencyCall(techEmail, machineName) {
             if (!techEmail) return;
@@ -286,25 +398,11 @@
             if (jitsiApi) return;
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = mName;
-            
-            const isDirector = userEmail === DIRECTOR;
-
             const options = {
-                roomName: JITSI_ROOM,
-                width: '100%',
-                height: 350,
+                roomName: JITSI_ROOM, width: '100%', height: 350,
                 parentNode: document.getElementById('videoContainer'),
-                configOverwrite: { 
-                    prejoinPageEnabled: false, 
-                    startWithAudioMuted: false, 
-                    startWithVideoMuted: true,
-                    disableDeepLinking: true
-                },
-                interfaceConfigOverwrite: { 
-                    TOOLBAR_BUTTONS: isDirector ? ['microphone', 'hangup'] : [], 
-                    SETTINGS_SECTIONS: [],
-                    VIDEO_LAYOUT_FIT: 'both'
-                }
+                configOverwrite: { prejoinPageEnabled: false, startWithAudioMuted: false, startWithVideoMuted: true, disableDeepLinking: true },
+                interfaceConfigOverwrite: { TOOLBAR_BUTTONS: userEmail === DIRECTOR ? ['microphone', 'hangup'] : [], SETTINGS_SECTIONS: [], VIDEO_LAYOUT_FIT: 'both' }
             };
             jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
         }
@@ -324,65 +422,31 @@
         function startDangerCycle(m) {
             document.getElementById('dangerOverlay').style.display = 'flex';
             document.getElementById('dangerDescription').innerText = `${m.name} | ${m.section}`;
-            
             if (isFirstAlert && micReady) {
-                const message = `Danger! Problem detected at ${m.name}. You have been assigned to resolve it. Please respond to director.`;
-                const speech = new SpeechSynthesisUtterance(message);
+                const speech = new SpeechSynthesisUtterance(`Danger! Problem detected at ${m.name}. Respond to director.`);
                 window.speechSynthesis.speak(speech);
                 isFirstAlert = false;
-                
                 startEmergencyCall(auth.currentUser.email, m.name);
             }
         }
 
-        function stopDangerCycle() {
-            document.getElementById('dangerOverlay').style.display = 'none';
-        }
-
+        function stopDangerCycle() { document.getElementById('dangerOverlay').style.display = 'none'; }
         window.toggleStatus = async (id, current) => {
             const next = current === "WORKING" ? "BREAKDOWN" : "WORKING";
             await updateDoc(doc(db, "machines", id), { status: next, acknowledged: false });
         };
-
         window.assignTech = async (id, tech) => {
             await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false });
         };
-
         window.logout = () => signOut(auth);
-
-        function loadAdminApprovals() {
-             const list = document.getElementById('adminApprovalList');
-             onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    const card = document.createElement('div');
-                    card.className = "card";
-                    card.innerHTML = `<b>${data.status === "PENDING_MOHAMED" ? "REQ" : "REP"}: ${data.machineName}</b><br>
-                                     <button onclick="approveAction('${d.id}', '${data.machineId}', '${data.status}')">VALIDATE</button>`;
-                    list.appendChild(card);
-                });
-             });
-        }
-
-        window.approveAction = async (intId, mId, status) => {
-            if(status === "PENDING_MOHAMED") {
-                await updateDoc(doc(db, "interventions", intId), { status: "APPROVED" });
-                await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN" });
-            } else {
-                await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED" });
-                await updateDoc(doc(db, "machines", mId), { status: "WORKING" });
-            }
-        };
-
         window.submitReq = async () => {
             const mId = document.getElementById('reqMachine').value;
             const issue = document.getElementById('reqIssue').value;
-            if(!issue) return;
+            if(!mId || !issue) return alert("Select machine and describe issue.");
             await addDoc(collection(db, "interventions"), {
                 machineId: mId, machineName: machineCache[mId].name, issue: issue, status: "PENDING_MOHAMED", timestamp: serverTimestamp()
             });
-            alert("Request sent.");
+            alert("Step 1 Complete: Request sent to Mohamed for Step 2 Approval.");
         };
 
     </script>
