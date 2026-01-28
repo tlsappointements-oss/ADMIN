@@ -195,14 +195,16 @@
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
                 document.getElementById('mohamedConsole').style.display = "block";
+                document.getElementById('hangUpBtn').style.display = "inline-block";
                 onSnapshot(collection(db, "users"), snap => {
                     techList = []; snap.forEach(d => techList.push(d.id));
                 });
                 loadAdminApprovals();
+            } else {
+                document.getElementById('hangUpBtn').style.display = "none";
             }
 
             loadMachinesLive(email);
-            if (email !== DIRECTOR) loadMyMissions(email);
             listenForEmergencyCalls(email);
         });
 
@@ -231,7 +233,8 @@
                     const isWorking = m.status === "WORKING";
                     const isMyProblem = m.assignedTech === userEmail;
 
-                    if (!isWorking && !m.acknowledged && isMyProblem) alertNeeded = m;
+                    // Danger ONLY shows for the concerned tech, not Mohamed
+                    if (!isWorking && !m.acknowledged && isMyProblem && userEmail !== DIRECTOR) alertNeeded = m;
 
                     let row = `<tr>
                         <td><b style="cursor:pointer;text-decoration:underline" onclick="viewMachineDetails('${id}')">${m.machineId || id}</b></td>
@@ -328,7 +331,6 @@
                 window.speechSynthesis.speak(speech);
                 isFirstAlert = false;
                 
-                // Trigger call for BOTH tech and Director to see it
                 startEmergencyCall(auth.currentUser.email, m.name);
             }
         }
