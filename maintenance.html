@@ -328,7 +328,6 @@
             });
         }
 
-        // MOVED TO GLOBAL WINDOW OBJECT FOR BUTTON ACCESS
         window.openMaintenanceGuide = async (intId, mId) => {
             const m = machineCache[mId];
             if (!m) return alert("System Syncing... please wait.");
@@ -513,7 +512,9 @@
         window.assignTech = async (id, tech) => {
             await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false });
         };
+        
         window.logout = () => signOut(auth);
+        
         window.submitReq = async () => {
             const mId = document.getElementById('reqMachine').value;
             const issue = document.getElementById('reqIssue').value;
