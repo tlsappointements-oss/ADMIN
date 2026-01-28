@@ -179,7 +179,7 @@
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         const DIRECTOR_PASS = "MB2024_ADMIN";
         
-        let techList = [], micReady = false, machineCache = {}, archivedInterventions = [];
+        let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
 
         const M_STEPS = {
             "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
@@ -232,7 +232,8 @@
 
         window.showPage = (id) => {
             ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage'].forEach(p => {
-                document.getElementById(p).style.display = (p === id ? 'block' : 'none');
+                const el = document.getElementById(p);
+                if(el) el.style.display = (p === id ? 'block' : 'none');
             });
         }
 
@@ -333,13 +334,13 @@
                 await updateDoc(doc(db, "interventions", intId), { 
                     status: "APPROVED", directorApprovalComment: comment, approvedAt: serverTimestamp()
                 });
-                await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN" });
+                await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN", acknowledged: false });
             } else {
                 const intDoc = await getDoc(doc(db, "interventions", intId));
                 const data = intDoc.data();
                 await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED", finalResetAt: serverTimestamp() });
                 await updateDoc(doc(db, "machines", mId), { 
-                    status: "WORKING", history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed - ${data.techComment}`) 
+                    status: "WORKING", acknowledged: true, history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed - ${data.techComment}`) 
                 });
             }
         };
@@ -360,15 +361,18 @@
                     editedAt: serverTimestamp()
                 });
                 alert("REPORT OVERRIDDEN SUCCESSFULLY.");
-                // Refresh detail view
                 const updatedDoc = await getDoc(doc(db, "interventions", intId));
                 showHistoryDetail({id: updatedDoc.id, ...updatedDoc.data()});
             }
         };
 
         window.filterHistory = () => {
-            const search = document.getElementById('historySearch').value.toLowerCase();
-            const sort = document.getElementById('historyDateSort').value;
+            const searchInput = document.getElementById('historySearch');
+            const sortInput = document.getElementById('historyDateSort');
+            if(!searchInput || !sortInput) return;
+
+            const search = searchInput.value.toLowerCase();
+            const sort = sortInput.value;
             const container = document.getElementById('historyList');
             let filtered = archivedInterventions.filter(i => i.machineName.toLowerCase().includes(search));
             filtered.sort((a,b) => sort === 'newest' ? (b.finalResetAt?.seconds || 0) - (a.finalResetAt?.seconds || 0) : (a.finalResetAt?.seconds || 0) - (b.finalResetAt?.seconds || 0));
@@ -376,12 +380,8 @@
             filtered.forEach(i => {
                 const card = document.createElement('div');
                 card.className = "card"; card.style.cursor = "pointer";
-                
                 const editBadge = i.isEdited ? '<span class="edited-tag">MODIFIED BY DIRECTOR</span>' : '';
-                
                 card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} ${editBadge} <span style="float:right; color:#e30613">Audit Logs ></span>`;
-                
-                // RESTRICTION: Only Director can see details
                 card.onclick = () => {
                     if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
                         showHistoryDetail(i);
@@ -396,7 +396,7 @@
         window.toggleStatus = async (id, current) => {
             if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
             const next = current === "WORKING" ? "BREAKDOWN" : "WORKING";
-            await updateDoc(doc(db, "machines", id), { status: next, acknowledged: true });
+            await updateDoc(doc(db, "machines", id), { status: next, acknowledged: (next === "WORKING") });
         };
 
         window.assignTech = async (id, tech) => {
@@ -416,7 +416,29 @@
             alert("Request sent to Director.");
         };
 
+        window.startEmergencyCall = (mName) => {
+            document.getElementById('callPopup').style.display = 'block';
+            document.getElementById('callMachineName').innerText = mName;
+            document.getElementById('statusDot').classList.add('dot-active');
+
+            if (!jitsiApi) {
+                const domain = "meet.jit.si";
+                const options = {
+                    roomName: "MercedesEmergency_" + mName.replace(/\s+/g, '_'),
+                    width: '100%',
+                    height: '100%',
+                    parentNode: document.getElementById('videoContainer'),
+                    configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: false },
+                    interfaceConfigOverwrite: { TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup'] }
+                };
+                jitsiApi = new JitsiMeetExternalAPI(domain, options);
+            }
+        };
+
         window.endEmergencyCall = async () => {
+            if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
+            document.getElementById('callPopup').style.display = 'none';
+            document.getElementById('statusDot').classList.remove('dot-active');
             await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false });
         };
 
@@ -440,7 +462,32 @@
 
             loadMachinesLive(email);
             loadHistory();
+            listenForEmergency(email);
         });
+
+        function listenForEmergency(email) {
+            onSnapshot(collection(db, "machines"), (snap) => {
+                let dangerFound = false;
+                snap.forEach(doc => {
+                    const m = doc.data();
+                    if (m.status === "BREAKDOWN" && m.assignedTech === email && !m.acknowledged) {
+                        dangerFound = true;
+                        document.getElementById('dangerDescription').innerText = `FAILURE: ${m.name} [${m.section}]`;
+                        document.getElementById('dangerOverlay').style.display = 'flex';
+                        if (micReady) window.startEmergencyCall(m.name);
+                    }
+                });
+                if (!dangerFound) document.getElementById('dangerOverlay').style.display = 'none';
+            });
+
+            onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
+                const data = snap.data();
+                if (data?.triggerSound && micReady) {
+                    const audio = document.getElementById('effectAudio');
+                    audio.play().catch(() => {});
+                }
+            });
+        }
 
         function loadMachinesLive(userEmail) {
             const table = document.getElementById('assetTable');
@@ -544,7 +591,6 @@
             const actualDur = Math.round((data.actualEnd - data.actualStart) / 60000);
             const manualDur = Math.round((new Date(data.manualEnd) - new Date(data.manualStart)) / 60000);
             const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
-            const kpiIssue = (actualDur > target || actualDur !== manualDur);
 
             const content = `
                 <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -563,33 +609,29 @@
 
                 <div class="step-row">
                     <div class="step-bubble ${data.approvedAt ? 'step-green' : 'step-orange'}">${data.approvedAt ? '✓' : '2'}</div>
-                    <div><b>DIRECTOR APPROVAL</b><br><small>Comment: ${data.directorApprovalComment || 'No comment'}</small></div>
+                    <div><b>DIRECTOR APPROVAL</b><br><small>Comment: ${data.directorApprovalComment || 'No comments'}</small></div>
                 </div>
 
                 <div class="step-row">
-                    <div class="step-bubble ${data.techCompletedTime ? 'step-green' : 'step-red'}">${data.techCompletedTime ? '✓' : '3'}</div>
-                    <div><b>TECHNICIAN REPORT</b><br>
-                        <small>Res: ${data.techComment}</small><br>
-                        <img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img">
+                    <div class="step-bubble step-green">3</div>
+                    <div><b>KPI AUDIT</b><br>
+                        <small>System Recorded: ${actualDur}m | Tech Stated: ${manualDur}m | Allowed: ${target}m</small>
                     </div>
                 </div>
-
-                <div class="step-row">
-                    <div class="step-bubble ${kpiIssue ? 'step-red' : 'step-green'}">4</div>
-                    <div><b>KPI COMPARISON</b><br>
-                        <small>Target: ${target}m | Actual: ${actualDur}m | Reported: ${manualDur}m</small><br>
-                        ${kpiIssue ? '<b style="color:#ff3333">! KPI BREACH DETECTED</b>' : '<b style="color:#00ff00">✓ WITHIN TIMING</b>'}
+                
+                <div class="card">
+                    <h4>Resolution Notes</h4>
+                    <p>${data.techComment}</p>
+                    <div style="display:flex; gap:10px;">
+                        <img src="${data.imageBefore}" class="preview-img">
+                        <img src="${data.imageAfter}" class="preview-img">
                     </div>
-                </div>
-
-                <div class="step-row">
-                    <div class="step-bubble step-green">✓</div>
-                    <div><b>FINAL RESET</b><br><small>Machine returned to WORKING at ${data.finalResetAt ? new Date(data.finalResetAt.seconds * 1000).toLocaleString() : 'N/A'}</small></div>
                 </div>
             `;
             document.getElementById('machineDetailContent').innerHTML = content;
             document.getElementById('machineDetailPopup').style.display = 'block';
         }
+
     </script>
 </body>
 </html>
