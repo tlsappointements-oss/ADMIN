@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Mercedes-Benz | Plant Operations</title>
+    <script crossorigin src="https://unpkg.com/@daily-co/daily-js"></script>
     <style>
         body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
         
@@ -40,15 +41,17 @@
         .giant-triangle { font-size: 120px; animation: pulse 0.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        /* CALL POPUP & CONSOLE */
+        /* CALL POPUP - UPDATED FOR VIDEO/AUDIO RELAY */
         #callPopup {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 380px; background: #111; border: 3px solid #e30613; border-radius: 25px;
-            padding: 30px; text-align: center; z-index: 10002; box-shadow: 0 0 100px rgba(255,0,0,0.5);
+            width: 450px; background: #111; border: 3px solid #e30613; border-radius: 25px;
+            padding: 20px; text-align: center; z-index: 10002; box-shadow: 0 0 100px rgba(255,0,0,0.5);
+            min-height: 350px;
         }
+        #videoContainer { width: 100%; height: 300px; background: #000; border-radius: 15px; margin-top: 15px; overflow: hidden; }
         .director-console { background: #000; padding: 15px; border-radius: 15px; margin-top: 20px; border: 1px dashed #444; }
         .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; background: #555; margin-right: 5px; }
-        .dot-active { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+        .dot-active { background: #00ff00; box-shadow: 0 0 15px #00ff00; }
         
         #audioActivator {
             background: #ffcc00; color: #000; border: none; padding: 15px;
@@ -59,26 +62,23 @@
 </head>
 <body onclick="handleFirstInteraction()">
 
-    <audio id="remoteAudio" autoplay playsinline></audio>
     <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
     <div id="callPopup">
-        <div style="font-size: 3rem;">🎙️</div>
-        <h2 id="callHeader">EMERGENCY LINE</h2>
-        <p id="callMachineName" style="color: #e30613; font-weight: bold;"></p>
+        <h2 id="callHeader" style="font-size: 1.2rem; margin: 0;">EMERGENCY LINE</h2>
+        <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 5px 0;"></p>
         
-        <button id="joinCallBtn" style="display:none; background:#00ff00; color:#000; padding:15px; border-radius:30px; margin-bottom:10px; width:100%;" onclick="acceptCall()">JOIN CALL NOW</button>
+        <div id="videoContainer"></div>
         
         <div id="mohamedConsole" class="director-console" style="display:none;">
             <p style="font-size: 10px; color: #666; margin-bottom: 10px;">DIRECTOR PRIVILEGES</p>
-            <button onclick="toggleRemoteMute()" id="muteBtn" style="background:#444; font-size: 12px; margin-right:5px;">🔇 MUTE USER</button>
-            <button onclick="triggerRemoteAudio()" style="background:#ffcc00; color:#000; font-size: 12px;">🔔 SEND ALERT SOUND</button>
+            <button onclick="triggerRemoteAudio()" style="background:#ffcc00; color:#000; font-size: 12px; width: 100%;">🔔 SEND ALERT SOUND</button>
         </div>
 
-        <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:60px; height:60px; border:none; color:white; font-size:1.5rem; margin-top:20px;" onclick="endEmergencyCall()">📞</button>
+        <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;" onclick="endEmergencyCall()">📞</button>
         
-        <div style="margin-top:15px; font-size:12px; border-top:1px solid #333; padding-top:10px;">
-            <span id="statusDot" class="status-dot"></span> <span id="webrtcState">IDLE</span>
+        <div style="margin-top:10px; font-size:11px; border-top:1px solid #333; padding-top:10px;">
+            <span id="statusDot" class="status-dot"></span> <span id="webrtcState">SECURE RELAY ACTIVE</span>
         </div>
     </div>
 
@@ -134,31 +134,18 @@
         import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-        let techList = [], isFirstAlert = true, micReady = false, pc = null, localStream = null, audioCtx = null;
-        const servers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        const DAILY_ROOM_URL = 'https://tlsappointements.daily.co/tlsappointements';
+        
+        let techList = [], isFirstAlert = true, micReady = false, callFrame = null;
 
-        // --- AUDIO SYSTEM ---
+        // --- AUDIO SYSTEM & INTERACTION ---
         window.activateAudioSystem = async () => {
-            try {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                await audioCtx.resume();
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                micReady = true;
-                document.getElementById('audioActivator').style.background = "#00ff00";
-                document.getElementById('audioActivator').innerText = "✅ MIC READY";
-            } catch (e) { alert("Mic Error: " + e.message); }
+            micReady = true;
+            document.getElementById('audioActivator').style.background = "#00ff00";
+            document.getElementById('audioActivator').innerText = "✅ SYSTEM READY";
         };
 
-        window.handleFirstInteraction = () => { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); };
-
-        // --- DIRECTOR REMOTE TOOLS ---
-        window.toggleRemoteMute = () => {
-            const audio = document.getElementById('remoteAudio');
-            const btn = document.getElementById('muteBtn');
-            audio.muted = !audio.muted;
-            btn.innerText = audio.muted ? "🔊 UNMUTE USER" : "🔇 MUTE USER";
-            btn.style.background = audio.muted ? "#e30613" : "#444";
-        };
+        window.handleFirstInteraction = () => {};
 
         window.triggerRemoteAudio = async () => {
             await updateDoc(doc(db, "emergency_calls", "active_session"), { triggerSound: Date.now() });
@@ -213,14 +200,77 @@
                 if (alertM) {
                     showDanger(alertM.name);
                     if (me === DIRECTOR && isFirstAlert && micReady) {
-                        initiateVoiceCall(alertM.assignedTech, alertM.name);
+                        startSecureCall(alertM.assignedTech, alertM.name);
                         isFirstAlert = false;
                     }
                 } else stopDanger();
             });
         }
 
-        // --- INTERVENTION REQUESTS ---
+        // --- SECURE CALL LOGIC ---
+        async function startSecureCall(tech, machine) {
+            if (!tech) return;
+            const callDoc = doc(db, "emergency_calls", "active_session");
+            
+            document.getElementById('callPopup').style.display = 'block';
+            document.getElementById('callMachineName').innerText = "CONNECTING TO: " + tech;
+
+            if (!callFrame) {
+                callFrame = window.DailyIframe.createFrame(document.getElementById('videoContainer'), {
+                    showLeaveButton: false,
+                    iframeStyle: { width: '100%', height: '100%', border: '0' }
+                });
+            }
+
+            await callFrame.join({ url: DAILY_ROOM_URL });
+            document.getElementById('statusDot').classList.add('dot-active');
+            
+            await setDoc(callDoc, { tech: tech.toLowerCase(), machine, active: true, startTime: Date.now() });
+        }
+
+        function listenForCalls(me) {
+            onSnapshot(doc(db, "emergency_calls", "active_session"), async s => {
+                const d = s.data();
+                const isDirector = me.toLowerCase() === DIRECTOR;
+
+                if (d?.active && d.tech === me.toLowerCase() && !isDirector) {
+                    document.getElementById('callPopup').style.display = 'block';
+                    document.getElementById('callMachineName').innerText = "DIRECTOR CALLING...";
+                    
+                    if (!callFrame) {
+                        callFrame = window.DailyIframe.createFrame(document.getElementById('videoContainer'), {
+                            showLeaveButton: false,
+                            iframeStyle: { width: '100%', height: '100%', border: '0' }
+                        });
+                    }
+                    await callFrame.join({ url: DAILY_ROOM_URL });
+                    document.getElementById('statusDot').classList.add('dot-active');
+                }
+
+                if (d?.triggerSound && me !== DIRECTOR) document.getElementById('effectAudio').play();
+                if (!d && callFrame) cleanupCall();
+            });
+        }
+
+        window.endEmergencyCall = async () => {
+            if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+                await deleteDoc(doc(db, "emergency_calls", "active_session"));
+                cleanupCall();
+            } else { alert("Only Director can terminate the line."); }
+        };
+
+        function cleanupCall() {
+            if (callFrame) {
+                callFrame.leave();
+                callFrame.destroy();
+                callFrame = null;
+            }
+            document.getElementById('callPopup').style.display = 'none';
+            document.getElementById('statusDot').classList.remove('dot-active');
+            isFirstAlert = true;
+        }
+
+        // --- ORIGINAL HELPERS ---
         window.submitReq = async () => {
             const name = document.getElementById('reqMachine').value;
             const issue = document.getElementById('reqIssue').value;
@@ -234,7 +284,6 @@
             showPage('mainPage');
         };
 
-        // --- MISSION ORDERS ---
         function loadMyMissions(email) {
             const list = document.getElementById('missionList');
             onSnapshot(query(collection(db, "interventions"), where("assignedTech", "==", email)), snap => {
@@ -260,92 +309,9 @@
 
         window.updateStep = async (id, step, val) => updateDoc(doc(db, "interventions", id), { [step]: val });
         window.finishMission = async (id) => { await updateDoc(doc(db, "interventions", id), { status: "TECH_COMPLETED" }); alert("Submitted!"); };
-
-        // --- WEB RTC CALL LOGIC ---
-        async function initiateVoiceCall(tech, machine) {
-            if (!tech || pc) return;
-            const callDoc = doc(db, "emergency_calls", "active_session");
-            await deleteDoc(callDoc); // Clear old session
-            document.getElementById('callPopup').style.display = 'block';
-            document.getElementById('callMachineName').innerText = "CALLING: " + tech;
-
-            pc = new RTCPeerConnection(servers);
-            pc.onicecandidate = e => e.candidate && addDoc(collection(callDoc, "offerCandidates"), e.candidate.toJSON());
-            pc.ontrack = e => { 
-                const audio = document.getElementById('remoteAudio');
-                audio.srcObject = e.streams[0];
-                audio.play().catch(console.error);
-            };
-            pc.onconnectionstatechange = () => {
-                document.getElementById('webrtcState').innerText = pc.connectionState;
-                if(pc.connectionState === 'connected') document.getElementById('statusDot').classList.add('dot-active');
-            };
-            
-            if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            await setDoc(callDoc, { offer: {type: offer.type, sdp: offer.sdp}, tech: tech.toLowerCase(), machine, active: true });
-
-            onSnapshot(callDoc, s => {
-                const d = s.data();
-                if (d?.answer && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(d.answer));
-            });
-            onSnapshot(collection(callDoc, "answerCandidates"), s => s.docChanges().forEach(c => c.type === "added" && pc.addIceCandidate(new RTCIceCandidate(c.doc.data()))));
-        }
-
-        function listenForCalls(me) {
-            onSnapshot(doc(db, "emergency_calls", "active_session"), async s => {
-                const d = s.data();
-                if (d?.active && d.tech === me.toLowerCase() && !pc) {
-                    document.getElementById('callPopup').style.display = 'block';
-                    document.getElementById('joinCallBtn').style.display = 'block';
-                    document.getElementById('callMachineName').innerText = "DIRECTOR CALLING...";
-
-                    window.acceptCall = async () => {
-                        if (!micReady) { alert("Enable Mic First!"); return; }
-                        
-                        // MOBILE FIX: Manually trigger audio play on the interaction event
-                        const audio = document.getElementById('remoteAudio');
-                        audio.volume = 1.0; 
-                        audio.play().catch(() => {}); 
-
-                        document.getElementById('joinCallBtn').style.display = 'none';
-                        pc = new RTCPeerConnection(servers);
-                        pc.ontrack = e => { audio.srcObject = e.streams[0]; audio.play().catch(console.error); };
-                        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-                        pc.onicecandidate = e => e.candidate && addDoc(collection(doc(db, "emergency_calls", "active_session"), "answerCandidates"), e.candidate.toJSON());
-                        
-                        onSnapshot(collection(doc(db, "emergency_calls", "active_session"), "offerCandidates"), snap => {
-                            snap.docChanges().forEach(c => c.type === "added" && pc.addIceCandidate(new RTCIceCandidate(c.doc.data())));
-                        });
-
-                        await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
-                        const answer = await pc.createAnswer();
-                        await pc.setLocalDescription(answer);
-                        await updateDoc(doc(db, "emergency_calls", "active_session"), { answer: {type: answer.type, sdp: answer.sdp} });
-                    };
-                }
-                if (d?.triggerSound && me !== DIRECTOR) document.getElementById('effectAudio').play();
-                if (!d && pc) cleanup();
-            });
-        }
-
-        // --- HELPERS ---
-        window.endEmergencyCall = async () => {
-            if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
-                await deleteDoc(doc(db, "emergency_calls", "active_session"));
-                cleanup();
-            } else { alert("Only the Director can end emergency lines."); }
-        };
-
-        function cleanup() { if(pc) pc.close(); pc = null; document.getElementById('callPopup').style.display = 'none'; isFirstAlert = true; }
         function showDanger(t) { if (auth.currentUser.email.toLowerCase() !== DIRECTOR) { document.getElementById('dangerDescription').innerText = t; document.getElementById('dangerOverlay').style.display = 'flex'; } }
         function stopDanger() { document.getElementById('dangerOverlay').style.display = 'none'; }
-        
-        window.showPage = p => {
-            ['mainPage', 'interventionPage', 'missionPage'].forEach(id => document.getElementById(id).style.display = (id === p ? 'block' : 'none'));
-        };
-
+        window.showPage = p => { ['mainPage', 'interventionPage', 'missionPage'].forEach(id => document.getElementById(id).style.display = (id === p ? 'block' : 'none')); };
         window.assign = (id, t) => updateDoc(doc(db, "machines", id), { assignedTech: t.toLowerCase(), acknowledged: false });
         window.toggle = (id, s) => updateDoc(doc(db, "machines", id), { status: s === 'WORKING' ? 'BREAKDOWN' : 'WORKING', acknowledged: false });
         window.ack = (id) => updateDoc(doc(db, "machines", id), { acknowledged: true });
