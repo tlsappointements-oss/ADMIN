@@ -35,9 +35,9 @@
 
         /* Step Indicators */
         .step-bubble { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; margin-right: 10px; font-weight: bold; font-size: 12px; }
-        .step-green { background: #00ff00; color: #000; } /* Check icon inside */
-        .step-red { background: #ff3333; color: #fff; } /* X icon inside */
-        .step-orange { background: #ffa500; color: #000; } /* ... icon inside */
+        .step-green { background: #00ff00; color: #000; }
+        .step-red { background: #ff3333; color: #fff; }
+        .step-orange { background: #ffa500; color: #000; }
 
         /* CALL POPUP */
         #callPopup {
@@ -76,7 +76,7 @@
         .preview-img { width: 100px; height: 100px; object-fit: cover; margin-right: 10px; border: 1px solid #444; }
     </style>
 </head>
-<body onclick="handleFirstInteraction()">
+<body onclick="window.handleFirstInteraction()">
 
     <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
@@ -92,10 +92,10 @@
         <div id="videoContainer"></div>
         
         <div id="mohamedConsole" class="director-console" style="display:none;">
-            <button onclick="triggerRemoteAudio()" style="background:#ffcc00; color:#000; font-size: 12px; width: 100%;">🔔 SEND ALERT SOUND</button>
+            <button onclick="window.triggerRemoteAudio()" style="background:#ffcc00; color:#000; font-size: 12px; width: 100%;">🔔 SEND ALERT SOUND</button>
         </div>
 
-        <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;" onclick="endEmergencyCall()">📞</button>
+        <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;" onclick="window.endEmergencyCall()">📞</button>
         
         <div style="margin-top:10px; font-size:11px; border-top:1px solid #333; padding-top:10px;">
             <span id="statusDot" class="status-dot"></span> <span id="webrtcState">DIRECT LINE ENCRYPTED</span>
@@ -111,14 +111,14 @@
 
     <div class="sidebar">
         <h2 style="color: #e30613;">MERCEDES</h2>
-        <button id="audioActivator" onclick="activateAudioSystem()">STEP 1: ENABLE MIC</button>
+        <button id="audioActivator" onclick="window.activateAudioSystem()">STEP 1: ENABLE MIC</button>
         <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
         <hr style="border:0; border-top:1px solid #333;">
-        <button class="btn-nav" onclick="showPage('mainPage')">🏠 Dashboard</button>
-        <button class="btn-nav" onclick="showPage('interventionPage')">📝 Interventions</button>
-        <button class="btn-nav" onclick="showPage('missionPage')">🛠️ Missions</button>
-        <button class="btn-nav" onclick="showPage('historyPage')">📚 History</button>
-        <button onclick="logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
+        <button class="btn-nav" onclick="window.showPage('mainPage')">🏠 Dashboard</button>
+        <button class="btn-nav" onclick="window.showPage('interventionPage')">📝 Interventions</button>
+        <button class="btn-nav" onclick="window.showPage('missionPage')">🛠️ Missions</button>
+        <button class="btn-nav" onclick="window.showPage('historyPage')">📚 History</button>
+        <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
     </div>
 
     <div class="main">
@@ -129,7 +129,7 @@
             <div class="card">
                 <h4>DATA SYNCHRONIZATION</h4>
                 <input type="file" id="jsonInput" accept=".json">
-                <button onclick="syncDatabase()" style="width: 100%; background: #28a745;">PUSH 105 MACHINES</button>
+                <button onclick="window.syncDatabase()" style="width: 100%; background: #28a745;">PUSH 105 MACHINES</button>
             </div>
         </div>
         
@@ -144,9 +144,9 @@
         <div id="interventionPage">
             <h1>Step 1: Request Intervention</h1>
             <div class="card">
-                <select id="reqMachine" onchange="previewMachine(this.value)"></select>
+                <select id="reqMachine" onchange="window.previewMachine(this.value)"></select>
                 <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
-                <button onclick="submitReq()">SUBMIT TO DIRECTOR</button>
+                <button onclick="window.submitReq()">SUBMIT TO DIRECTOR</button>
             </div>
         </div>
 
@@ -158,8 +158,8 @@
         <div id="historyPage">
             <h1>Maintenance Archive</h1>
             <div class="card">
-                <input type="text" id="historySearch" placeholder="Search by Machine Name..." onkeyup="filterHistory()">
-                <select id="historyDateSort" onchange="filterHistory()">
+                <input type="text" id="historySearch" placeholder="Search by Machine Name..." onkeyup="window.filterHistory()">
+                <select id="historyDateSort" onchange="window.filterHistory()">
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
                 </select>
@@ -180,7 +180,7 @@
         let machineCache = {};
         let archivedInterventions = [];
 
-        // BIND FUNCTIONS TO WINDOW (Fixes Scope Issues)
+        // EXPOSE TO WINDOW FOR HTML ONCLICK
         window.activateAudioSystem = async () => {
             micReady = true;
             document.getElementById('audioActivator').style.background = "#00ff00";
@@ -212,7 +212,7 @@
                             history: m.history || [],
                             description: m.description || "Mercedes-Benz precision unit.",
                             image: m.image || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500",
-                            targetMaintenanceTime: m.targetMaintenanceTime || 60, // minutes
+                            targetMaintenanceTime: m.targetMaintenanceTime || 60,
                             components: m.components || ["Component A", "Component B", "Component C", "Component D", "Component E", "Component F"]
                         });
                     }
@@ -226,30 +226,7 @@
             ['mainPage', 'interventionPage', 'missionPage', 'historyPage'].forEach(p => {
                 document.getElementById(p).style.display = (p === id ? 'block' : 'none');
             });
-        };
-
-        window.logout = () => signOut(auth);
-
-        window.toggleStatus = async (id, current) => {
-            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-            const next = current === "WORKING" ? "BREAKDOWN" : "WORKING";
-            await updateDoc(doc(db, "machines", id), { status: next, acknowledged: true });
-        };
-
-        window.assignTech = async (id, tech) => {
-            await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false });
-        };
-
-        window.submitReq = async () => {
-            const mId = document.getElementById('reqMachine').value;
-            const issue = document.getElementById('reqIssue').value;
-            if(!mId || !issue) return alert("Select machine and describe issue.");
-            await addDoc(collection(db, "interventions"), {
-                machineId: mId, machineName: machineCache[mId].name, issue: issue, 
-                status: "PENDING_MOHAMED", timestamp: serverTimestamp(), requester: auth.currentUser.email
-            });
-            alert("Request sent to Director.");
-        };
+        }
 
         window.previewMachine = (id) => {
             const m = machineCache[id];
@@ -286,13 +263,11 @@
                 </div>
                 <div class="card">
                     <h4>Evidence Upload</h4>
-                    <label>Before Repair (Damaged):</label>
-                    <input type="file" id="imgBefore" accept="image/*">
-                    <label>After Repair (Fixed):</label>
-                    <input type="file" id="imgAfter" accept="image/*">
+                    <label>Before Repair:</label><input type="file" id="imgBefore" accept="image/*">
+                    <label>After Repair:</label><input type="file" id="imgAfter" accept="image/*">
                 </div>
                 <textarea id="techComment" placeholder="Resolution notes..."></textarea>
-                <button onclick="submitTechReport('${intId}', '${mId}', ${startTime})" style="width:100%">SUBMIT FINAL REPORT</button>
+                <button onclick="window.submitTechReport('${intId}', '${mId}', ${startTime})" style="width:100%">SUBMIT FINAL REPORT</button>
             `;
             document.getElementById('machineDetailContent').innerHTML = content;
             document.getElementById('machineDetailPopup').style.display = 'block';
@@ -303,22 +278,20 @@
             const comment = document.getElementById('techComment').value;
             const actualEnd = Date.now();
             if (checks < 6) return alert("Security Protocol: 6 steps minimum required.");
+            
             const getBase64 = (file) => new Promise((res) => {
                 if(!file) res("");
                 const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file);
             });
+
             const imgB = await getBase64(document.getElementById('imgBefore').files[0]);
             const imgA = await getBase64(document.getElementById('imgAfter').files[0]);
+
             await updateDoc(doc(db, "interventions", intId), { 
-                status: "TECH_COMPLETED", 
-                techComment: comment,
-                actualStart, 
-                actualEnd,
+                status: "TECH_COMPLETED", techComment: comment, actualStart, actualEnd,
                 manualStart: document.getElementById('manualStartTime').value,
                 manualEnd: document.getElementById('manualEndTime').value,
-                imageBefore: imgB,
-                imageAfter: imgA,
-                techCompletedTime: serverTimestamp() 
+                imageBefore: imgB, imageAfter: imgA, techCompletedTime: serverTimestamp() 
             });
             document.getElementById('machineDetailPopup').style.display = 'none';
             alert("Report sent to Director.");
@@ -328,21 +301,15 @@
             if(status === "PENDING_MOHAMED") {
                 const comment = document.getElementById(`appComment_${intId}`).value;
                 await updateDoc(doc(db, "interventions", intId), { 
-                    status: "APPROVED", 
-                    directorApprovalComment: comment,
-                    approvedAt: serverTimestamp()
+                    status: "APPROVED", directorApprovalComment: comment, approvedAt: serverTimestamp()
                 });
                 await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN" });
             } else {
                 const intDoc = await getDoc(doc(db, "interventions", intId));
                 const data = intDoc.data();
-                await updateDoc(doc(db, "interventions", intId), { 
-                    status: "ARCHIVED",
-                    finalResetAt: serverTimestamp() 
-                });
+                await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED", finalResetAt: serverTimestamp() });
                 await updateDoc(doc(db, "machines", mId), { 
-                    status: "WORKING", 
-                    history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed by ${data.techComment}`) 
+                    status: "WORKING", history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed by ${data.techComment}`) 
                 });
             }
         };
@@ -356,19 +323,41 @@
             container.innerHTML = "";
             filtered.forEach(i => {
                 const card = document.createElement('div');
-                card.className = "card";
-                card.style.cursor = "pointer";
+                card.className = "card"; card.style.cursor = "pointer";
                 card.innerHTML = `<b>${i.machineName}</b> - ${new Date(i.finalResetAt?.seconds * 1000).toLocaleDateString()} <span style="float:right; color:#666">View Details ></span>`;
                 card.onclick = () => showHistoryDetail(i);
                 container.appendChild(card);
             });
         };
 
+        window.toggleStatus = async (id, current) => {
+            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
+            const next = current === "WORKING" ? "BREAKDOWN" : "WORKING";
+            await updateDoc(doc(db, "machines", id), { status: next, acknowledged: true });
+        };
+
+        window.assignTech = async (id, tech) => {
+            await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false });
+        };
+        
+        window.logout = () => signOut(auth);
+        
+        window.submitReq = async () => {
+            const mId = document.getElementById('reqMachine').value;
+            const issue = document.getElementById('reqIssue').value;
+            if(!mId || !issue) return alert("Select machine and describe issue.");
+            await addDoc(collection(db, "interventions"), {
+                machineId: mId, machineName: machineCache[mId].name, issue: issue, 
+                status: "PENDING_MOHAMED", timestamp: serverTimestamp(), requester: auth.currentUser.email
+            });
+            alert("Request sent to Director.");
+        };
+
         window.endEmergencyCall = async () => {
             await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false });
         };
 
-        // Internal helper functions
+        // INTERNAL LOGIC
         onAuthStateChanged(auth, user => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
@@ -395,6 +384,7 @@
         function loadMachinesLive(userEmail) {
             const table = document.getElementById('assetTable');
             const select = document.getElementById('reqMachine');
+
             onSnapshot(collection(db, "machines"), (snap) => {
                 table.innerHTML = "";
                 if(select) {
@@ -402,21 +392,25 @@
                     select.innerHTML = '<option value="">Select Machine...</option>';
                     snap.forEach(s => select.innerHTML += `<option value="${s.id}" ${currentVal===s.id?'selected':''}>${s.data().name}</option>`);
                 }
+
                 snap.forEach(snapshotDoc => {
                     const m = snapshotDoc.data();
                     const id = snapshotDoc.id;
                     machineCache[id] = m;
                     const isWorking = m.status === "WORKING";
                     const isMyProblem = m.assignedTech === userEmail;
+
                     if (!isWorking && !m.acknowledged && isMyProblem && userEmail !== DIRECTOR) startDangerCycle(m);
+
                     let row = `<tr>
-                        <td><b style="cursor:pointer;text-decoration:underline" onclick="previewMachine('${id}')">${m.machineId || id}</b></td>
+                        <td><b style="cursor:pointer;text-decoration:underline" onclick="window.previewMachine('${id}')">${m.machineId || id}</b></td>
                         <td>${m.name}</td>
                         <td>${m.section}</td>
-                        <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}" onclick="toggleStatus('${id}', '${m.status}')" style="cursor:pointer">${m.status}</span></td>
+                        <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}" onclick="window.toggleStatus('${id}', '${m.status}')" style="cursor:pointer">${m.status}</span></td>
                         <td>`;
+
                     if (userEmail === DIRECTOR) {
-                        row += `<select class="tech-select" onchange="assignTech('${id}', this.value)">
+                        row += `<select class="tech-select" onchange="window.assignTech('${id}', this.value)">
                                     <option value="">Assign...</option>
                                     ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
                                 </select>`;
@@ -438,11 +432,8 @@
                     if (machineCache[data.machineId]?.assignedTech !== email) return;
                     const card = document.createElement('div');
                     card.className = "card";
-                    card.innerHTML = `
-                        <h3>MISSION: ${data.machineName}</h3>
-                        <p>Issue: ${data.issue}</p>
-                        <button onclick="openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>
-                    `;
+                    card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
+                                      <button onclick="window.openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>`;
                     list.appendChild(card);
                 });
             });
@@ -454,22 +445,18 @@
                 list.innerHTML = "";
                 snap.forEach(d => {
                     const data = d.data();
-                    const card = document.createElement('div');
-                    card.className = "card";
+                    const card = document.createElement('div'); card.className = "card";
                     if(data.status === "PENDING_MOHAMED") {
                         card.innerHTML = `<b>STEP 1: ${data.machineName} REQ</b><br><small>${data.issue}</small><br>
                                          <textarea id="appComment_${d.id}" placeholder="Approval notes..."></textarea>
-                                         <button onclick="approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR (STEP 2)</button>`;
+                                         <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR</button>`;
                     } else {
                         const duration = Math.round((data.actualEnd - data.actualStart) / 60000);
                         const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
-                        const kpiWarning = duration > target ? `<div class="kpi-alert">⚠️ ALERT: KPI BREACH (${duration}m vs ${target}m)</div>` : '';
-                        card.innerHTML = `<b>FINAL REPORT: ${data.machineName}</b><br>
-                                         <small>Start: ${new Date(data.actualStart).toLocaleTimeString()} | End: ${new Date(data.actualEnd).toLocaleTimeString()}</small><br>
-                                         <b>Actual Time Taken: ${duration} mins</b><br>
-                                         ${kpiWarning}
+                        const kpiWarning = duration > target ? `<div class="kpi-alert">⚠️ KPI BREACH (${duration}m vs ${target}m)</div>` : '';
+                        card.innerHTML = `<b>FINAL REPORT: ${data.machineName}</b><br><small>Time Taken: ${duration} mins</small><br>${kpiWarning}
                                          <div style="margin:10px 0"><img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img"></div>
-                                         <button onclick="approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#28a745">VALIDATE & RESET</button>`;
+                                         <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#28a745">VALIDATE & RESET</button>`;
                     }
                     list.appendChild(card);
                 });
@@ -480,7 +467,7 @@
             onSnapshot(query(collection(db, "interventions"), where("status", "==", "ARCHIVED")), (snap) => {
                 archivedInterventions = [];
                 snap.forEach(d => archivedInterventions.push({id: d.id, ...d.data()}));
-                filterHistory();
+                window.filterHistory();
             });
         }
 
@@ -489,23 +476,14 @@
             const content = `
                 <h2 style="color:#e30613">Maintenance Audit: ${data.machineName}</h2>
                 <div class="card">
-                    <div class="step-line"><span class="step-bubble step-green">✓ 1</span> <b>Intervention Requested</b>: ${data.issue}</div>
-                    <div class="step-line"><span class="step-bubble step-green">✓ 2</span> <b>Director Approved</b>: "${data.directorApprovalComment || 'N/A'}"</div>
-                    <div class="step-line"><span class="step-bubble step-green">✓ 3</span> <b>Tech Completion</b>: "${data.techComment}"</div>
-                    <div class="step-line"><span class="step-bubble step-green">✓ 4</span> <b>Final Validation</b>: Machine Reset to Working</div>
-                </div>
-                <div class="card">
-                    <h4>KPI Audit</h4>
-                    <p><b>Actual Start:</b> ${new Date(data.actualStart).toLocaleString()}</p>
-                    <p><b>Actual Finish:</b> ${new Date(data.actualEnd).toLocaleString()}</p>
-                    <p><b>Declared Start:</b> ${data.manualStart || 'None'}</p>
+                    <p><b>Issue:</b> ${data.issue}</p>
+                    <p><b>Resolution:</b> ${data.techComment}</p>
                     <p><b>Time Taken:</b> ${duration} mins</p>
-                    ${data.manualStart !== "" && new Date(data.manualStart).getTime() !== data.actualStart ? '<div class="kpi-alert">KPI DISCREPANCY DETECTED</div>' : ''}
                 </div>
                 <div class="card">
                     <h4>Visual Evidence</h4>
-                    <p>Before:</p><img src="${data.imageBefore}" class="machine-img">
-                    <p>After:</p><img src="${data.imageAfter}" class="machine-img">
+                    <p>Before/After:</p>
+                    <img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img">
                 </div>
             `;
             document.getElementById('machineDetailContent').innerHTML = content;
@@ -516,6 +494,7 @@
             const callDoc = doc(db, "emergency_calls", "active_session");
             await setDoc(callDoc, { tech: techEmail, machine: machineName, active: true, triggerSound: 0 });
         }
+
         function listenForEmergencyCalls(myEmail) {
             onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
                 const data = snap.data();
@@ -525,6 +504,7 @@
                 } else if (data?.active === false) { closeJitsi(); }
             });
         }
+
         function showJitsi(mName, userEmail) {
             if (jitsiApi) return;
             document.getElementById('callPopup').style.display = 'block';
@@ -537,12 +517,14 @@
             };
             jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
         }
+
         function closeJitsi() {
             if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
             document.getElementById('callPopup').style.display = 'none';
             document.getElementById('dangerOverlay').style.display = 'none';
             isFirstAlert = true;
         }
+
         function startDangerCycle(m) {
             document.getElementById('dangerOverlay').style.display = 'flex';
             document.getElementById('dangerDescription').innerText = `${m.name} | ${m.section}`;
