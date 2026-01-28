@@ -7,11 +7,11 @@
         body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
         .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10; }
         .main { margin-left: 285px; padding: 40px; flex: 1; }
-        #adminPanel, #interventionPage, #missionPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
+        #adminPanel, #interventionPanel, #missionPanel, #encyclopediaPanel { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
         
         .card { background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
         .checklist-item { display: block; margin: 10px 0; font-size: 0.9rem; }
-        input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; box-sizing: border-box; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th { text-align: left; padding: 15px; color: #666; border-bottom: 2px solid #222; font-size: 0.8rem; }
@@ -20,12 +20,12 @@
         .status-breakdown { color: #ff3333; background: rgba(255, 51, 51, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
         .status-pending { color: #ffa500; background: rgba(255, 165, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
         
-        button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; transition: 0.2s; }
+        button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; }
         button:hover { background: #fff; color: #000; }
         .btn-toggle { background: #222; border: 1px solid #444; font-size: 0.7rem; padding: 5px 10px; margin-left: 10px; }
         .btn-nav { width: 100%; margin-top: 10px; text-align: left; background: transparent; color: #aaa; border: 1px solid #222; }
 
-        .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; margin-right: 5px; width: auto; }
+        .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; margin-right: 5px; }
         .alert-triangle { color: #ff0000; font-size: 1.5rem; cursor: pointer; animation: blink 0.8s infinite; margin-right: 8px; vertical-align: middle; }
         .intervenir-msg { color: #ff0000; font-size: 0.75rem; font-weight: bold; font-style: italic; text-transform: uppercase; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
@@ -49,15 +49,8 @@
         .caller-avatar { width: 100px; height: 100px; border-radius: 50%; background: #222; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 3px solid #e30613; animation: ringPulse 1.5s infinite; }
         @keyframes ringPulse { 0% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(227, 6, 19, 0); } 100% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0); } }
         .btn-hangup { background: #ff3333; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; margin: 20px auto 0; font-size: 1.5rem; transition: 0.3s; border: none; color: white; cursor: pointer; }
+        
         #joinCallBtn { background: #00ff00; color: #000; padding: 12px 25px; border-radius: 30px; border: none; font-weight: 900; margin-bottom: 10px; animation: pulse 1s infinite; }
-
-        #connectionStatusLine { 
-            font-size: 0.7rem; color: #777; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px;
-            border-top: 1px solid #222; padding-top: 10px; display: flex; align-items: center; justify-content: center;
-        }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #555; transition: 0.3s; }
-        .dot-active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
-        .dot-error { background: #ff3333; }
     </style>
 </head>
 <body>
@@ -69,13 +62,11 @@
         <h2 id="callHeader" style="margin: 0; color: #fff;">DIRECTOR CALL</h2>
         <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 10px 0;"></p>
         <p id="callStatusText" style="font-size: 0.9rem; color: #aaa;">INCOMING...</p>
+        
         <button id="joinCallBtn" style="display:none;" onclick="acceptCall()">JOIN VOICE</button>
+        
         <button id="hangUpBtn" class="btn-hangup" onclick="endEmergencyCall()">📞</button>
         <p id="hangupWarning" style="font-size: 0.7rem; color: #666; margin-top: 10px; display: none;">ONLY MOHAMED CAN END THIS CALL</p>
-        <div id="connectionStatusLine">
-            <span id="statusDot" class="status-dot"></span>
-            SIGNAL: <span id="webrtcState">OFFLINE</span>
-        </div>
     </div>
 
     <div id="dangerOverlay">
@@ -109,7 +100,7 @@
                         <th>NAME</th>
                         <th>SECTION</th>
                         <th>STATUS</th>
-                        <th id="actionHeader">ASSIGNMENT / ACTION</th>
+                        <th id="actionHeader"></th>
                     </tr>
                 </thead>
                 <tbody id="assetTable">
@@ -118,18 +109,16 @@
             </table>
         </div>
 
-        <div id="interventionPage">
+        <div id="interventionPage" style="display:none">
             <h1>Nouvelle Demande d'Intervention</h1>
             <div class="card">
-                <label>Machine Name</label>
                 <select id="requestMachineSelect"></select>
-                <label>Description of Issue</label>
                 <textarea id="requestIssue" placeholder="Describe the problem in detail..."></textarea>
                 <button onclick="submitIntervention()">SUBMIT REQUEST</button>
             </div>
         </div>
 
-        <div id="missionPage">
+        <div id="missionPage" style="display:none">
             <h1>Mes Ordres de Mission</h1>
             <div id="missionList"></div>
         </div>
@@ -138,7 +127,7 @@
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDocs, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
@@ -148,26 +137,15 @@
         let localStream = null;
 
         const servers = { 
-            iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }],
+            iceServers: [
+                { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
+            ],
             iceCandidatePoolSize: 10
         };
 
-        function updateWebRTCUI(state) {
-            const label = document.getElementById('webrtcState');
-            const dot = document.getElementById('statusDot');
-            if(!label || !dot) return;
-            label.innerText = state.toUpperCase();
-            dot.className = "status-dot";
-            if(state === 'connected') dot.classList.add('dot-active');
-            if(state === 'failed' || state === 'closed') dot.classList.add('dot-error');
-        }
-
         window.showPage = (id) => {
             const pages = ['mainPage', 'interventionPage', 'missionPage'];
-            pages.forEach(p => {
-                const el = document.getElementById(p);
-                if(el) el.style.display = (p === id ? 'block' : 'none');
-            });
+            pages.forEach(p => document.getElementById(p).style.display = (p === id ? 'block' : 'none'));
         };
 
         onAuthStateChanged(auth, async (user) => {
@@ -178,11 +156,14 @@
             const hangBtn = document.getElementById('hangUpBtn');
             const hangWarn = document.getElementById('hangupWarning');
             if (email !== DIRECTOR) {
-                if(hangBtn) hangBtn.style.display = "none";
-                if(hangWarn) hangWarn.style.display = "block";
+                hangBtn.style.display = "none";
+                hangWarn.style.display = "block";
             } else {
-                if(hangBtn) hangBtn.style.display = "flex";
-                if(hangWarn) hangWarn.style.display = "none";
+                hangBtn.style.display = "flex";
+                hangWarn.style.display = "none";
+            }
+
+            if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
                 onSnapshot(collection(db, "users"), (snap) => {
                     techList = []; snap.forEach(d => techList.push(d.id));
@@ -192,17 +173,14 @@
             
             loadMachinesLive();
             listenForIncomingCallSignals(email);
-            loadMyMissions(email);
         });
 
         function loadMachinesLive() {
             const tableBody = document.getElementById('assetTable');
-            const machineSelect = document.getElementById('requestMachineSelect');
             const currentUserEmail = auth.currentUser.email.toLowerCase();
 
             onSnapshot(collection(db, "machines"), (snapshot) => {
                 tableBody.innerHTML = "";
-                if(machineSelect) machineSelect.innerHTML = "";
                 allMachines = [];
                 let pendingTask = null;
 
@@ -210,12 +188,6 @@
                     const m = snapshotDoc.data();
                     const machineDocId = snapshotDoc.id;
                     allMachines.push({id: machineDocId, ...m});
-
-                    if(machineSelect) {
-                        const opt = document.createElement('option');
-                        opt.value = m.name; opt.innerText = m.name;
-                        machineSelect.appendChild(opt);
-                    }
 
                     const isWorking = m.status === "WORKING";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
@@ -266,87 +238,37 @@
             });
         }
 
-        // --- INTERVENTION LOGIC ---
-        window.submitIntervention = async () => {
-            const name = document.getElementById('requestMachineSelect').value;
-            const issue = document.getElementById('requestIssue').value;
-            if (!issue) return alert("Please describe the issue");
+        // --- UPDATED CALL LOGIC (FIXED END CALL) ---
 
-            await addDoc(collection(db, "interventions"), {
-                machineName: name,
-                issue: issue,
-                requestedBy: auth.currentUser.email,
-                status: "PENDING_MOHAMED",
-                timestamp: serverTimestamp()
-            });
-            alert("Intervention Request Sent to Mohamed!");
-            document.getElementById('requestIssue').value = "";
-            showPage('mainPage');
-        };
-
-        // --- MISSION ORDER LOGIC ---
-        function loadMyMissions(email) {
-            const list = document.getElementById('missionList');
-            onSnapshot(query(collection(db, "interventions"), where("assignedTech", "==", email)), (snap) => {
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    if (data.status === "APPROVED" || data.status === "TECH_COMPLETED") {
-                        const card = document.createElement('div');
-                        card.className = "card";
-                        card.innerHTML = `
-                            <h3>MISSION: ${data.machineName}</h3>
-                            <p><b>Issue:</b> ${data.issue}</p>
-                            <div id="checklist_${d.id}">
-                                <label class="checklist-item"><input type="checkbox" ${data.step1 ? 'checked' : ''} onchange="updateStep('${d.id}', 'step1', this.checked)"> Security Perimeter Set</label>
-                                <label class="checklist-item"><input type="checkbox" ${data.step2 ? 'checked' : ''} onchange="updateStep('${d.id}', 'step2', this.checked)"> Power Lockout (LOTO)</label>
-                                <label class="checklist-item"><input type="checkbox" ${data.step3 ? 'checked' : ''} onchange="updateStep('${d.id}', 'step3', this.checked)"> Repair Completed</label>
-                            </div>
-                            <button onclick="completeMission('${d.id}')" style="background:#00ff00; color:#000; margin-top:10px;">MARK AS FINISHED</button>
-                        `;
-                        list.appendChild(card);
-                    }
-                });
-            });
-        }
-
-        window.updateStep = async (id, step, val) => {
-            await updateDoc(doc(db, "interventions", id), { [step]: val });
-        };
-
-        window.completeMission = async (id) => {
-            await updateDoc(doc(db, "interventions", id), { status: "TECH_COMPLETED" });
-            alert("Mission marked as complete. Waiting for Director approval.");
-        };
-
-        // --- DIRECTOR CALL LOGIC ---
         async function initiateVoiceCall(techEmail, machineName) {
             if (!techEmail || pc) return;
-            updateWebRTCUI('signaling...');
             const callDoc = doc(db, "emergency_calls", "active_session");
+            
+            // Step 1: Force delete any old session before starting
             await deleteDoc(callDoc);
 
             document.getElementById('callPopup').style.display = 'block';
-            document.getElementById('callMachineName').innerText = machineName;
             document.getElementById('callStatusText').innerText = "RINGING TECHNICIAN...";
 
             pc = new RTCPeerConnection(servers);
-            pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
             
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
             } catch (e) {
-                alert("MIC ERROR: Please enable microphone.");
+                console.error("Mic access failed", e);
                 return;
             }
 
             pc.onicecandidate = (event) => {
-                if (event.candidate) addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
+                if (event.candidate) {
+                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
+                }
             };
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
+
             await setDoc(callDoc, {
                 offer: { type: offer.type, sdp: offer.sdp },
                 tech: techEmail,
@@ -354,10 +276,16 @@
                 active: true
             });
 
-            pc.ontrack = (event) => { document.getElementById('remoteAudio').srcObject = event.streams[0]; };
+            pc.ontrack = (event) => {
+                document.getElementById('remoteAudio').srcObject = event.streams[0];
+            };
 
+            // Watch for answer or IF THE DOC IS DELETED (meaning call ended)
             onSnapshot(callDoc, (snap) => {
-                if (!snap.exists()) { cleanupCall(); return; }
+                if (!snap.exists()) {
+                    cleanupCall();
+                    return;
+                }
                 const data = snap.data();
                 if (data?.answer && !pc.currentRemoteDescription) {
                     pc.setRemoteDescription(new RTCSessionDescription(data.answer));
@@ -375,7 +303,12 @@
         async function listenForIncomingCallSignals(myEmail) {
             const callDoc = doc(db, "emergency_calls", "active_session");
             onSnapshot(callDoc, async (snap) => {
-                if (!snap.exists()) { if (pc) cleanupCall(); return; }
+                // If document is gone, end the UI for the technician
+                if (!snap.exists()) {
+                    if (pc) cleanupCall();
+                    return;
+                }
+
                 const data = snap.data();
                 if (data?.active && data.tech === myEmail && !pc) {
                     document.getElementById('callPopup').style.display = 'block';
@@ -385,21 +318,25 @@
 
                     window.acceptCall = async () => {
                         document.getElementById('joinCallBtn').style.display = 'none';
-                        updateWebRTCUI('connecting...');
                         pc = new RTCPeerConnection(servers);
-                        pc.onconnectionstatechange = () => updateWebRTCUI(pc.connectionState);
-                        try {
-                            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-                        } catch(e) { alert("Mic Access Denied."); return; }
-                        pc.ontrack = (event) => { document.getElementById('remoteAudio').srcObject = event.streams[0]; };
-                        pc.onicecandidate = (event) => {
-                            if (event.candidate) addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
+                        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+                        pc.ontrack = (event) => {
+                            document.getElementById('remoteAudio').srcObject = event.streams[0];
                         };
+
+                        pc.onicecandidate = (event) => {
+                            if (event.candidate) {
+                                addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
+                            }
+                        };
+
                         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                         const answer = await pc.createAnswer();
                         await pc.setLocalDescription(answer);
                         await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
+
                         onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
                             snap.docChanges().forEach((change) => {
                                 if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
@@ -413,6 +350,7 @@
 
         window.endEmergencyCall = async () => {
             if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
+            // HARD FIX: Delete the document. This forces 'snap.exists()' to be false for the technician.
             await deleteDoc(doc(db, "emergency_calls", "active_session"));
             cleanupCall();
         };
@@ -420,23 +358,28 @@
         function cleanupCall() {
             document.getElementById('callStatusText').innerText = "CALL ENDED";
             document.getElementById('joinCallBtn').style.display = 'none';
-            updateWebRTCUI('offline');
             setTimeout(() => {
                 document.getElementById('callPopup').style.display = 'none';
-                if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-                if (pc) { pc.close(); pc = null; }
+                if (localStream) {
+                    localStream.getTracks().forEach(t => t.stop());
+                    localStream = null;
+                }
+                if (pc) {
+                    pc.close();
+                    pc = null;
+                }
                 isFirstAlert = true; 
             }, 1000);
         }
 
+        // --- END UPDATED CALL LOGIC ---
+
         function startDangerCycle(name, section) {
-            const currentUserEmail = auth.currentUser.email.toLowerCase();
-            if (currentUserEmail !== DIRECTOR) {
-                document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
-                document.getElementById('dangerOverlay').style.display = 'flex';
-            }
+            document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
+            document.getElementById('dangerOverlay').style.display = 'flex';
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = name;
+
             if (isFirstAlert) {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
@@ -447,7 +390,8 @@
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
                 osc.start(); osc.stop(audioCtx.currentTime + 4);
-                const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}.`);
+                
+                const msg = new SpeechSynthesisUtterance(`Breakdown at ${name}. Connecting.`);
                 window.speechSynthesis.speak(msg);
                 isFirstAlert = false;
             }
@@ -482,38 +426,11 @@
                     const data = d.data();
                     const card = document.createElement('div');
                     card.className = "card";
-                    let techOptions = techList.map(t => `<option value="${t}">${t}</option>`).join('');
-                    
-                    if(data.status === "PENDING_MOHAMED") {
-                        card.innerHTML = `
-                            <b>REQUEST: ${data.machineName}</b><br><small>${data.issue}</small><br>
-                            <select id="assign_${d.id}">${techOptions}</select>
-                            <button onclick="approveIntervention('${d.id}')">APPROVE & ASSIGN</button>
-                        `;
-                    } else {
-                        card.innerHTML = `
-                            <b>COMPLETED: ${data.machineName}</b><br>
-                            <button onclick="closeIntervention('${d.id}', '${data.machineName}')" style="background:green">VALIDATE & RESTART MACHINE</button>
-                        `;
-                    }
+                    card.innerHTML = `<b>${data.status}: ${data.machineName}</b>`;
                     list.appendChild(card);
                 });
             });
         }
-
-        window.approveIntervention = async (id) => {
-            const tech = document.getElementById(`assign_${id}`).value;
-            await updateDoc(doc(db, "interventions", id), { status: "APPROVED", assignedTech: tech });
-        };
-
-        window.closeIntervention = async (id, machineName) => {
-            await updateDoc(doc(db, "interventions", id), { status: "CLOSED" });
-            const q = query(collection(db, "machines"), where("name", "==", machineName));
-            const snap = await getDocs(q);
-            snap.forEach(async (m) => {
-                await updateDoc(doc(db, "machines", m.id), { status: "WORKING", acknowledged: true });
-            }); 
-        };
     </script>
 </body>
 </html>
