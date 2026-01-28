@@ -93,7 +93,7 @@
 
     <div id="dangerOverlay">
         <div class="giant-triangle">⚠️</div>
-        <div style="font-size: 2.5rem; font-weight: 900;">DANGER DANGER DANGER</div>
+        <div style="font-size: 2.5rem; font-weight: 900;">DANGER</div>
         <div id="dangerDescription" style="background:black; padding:10px 20px; margin-top:20px; font-size: 1.5rem;"></div>
         <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
     </div>
@@ -231,7 +231,6 @@
                     const isWorking = m.status === "WORKING";
                     const isMyProblem = m.assignedTech === userEmail;
 
-                    // IMPORTANT: Danger only shows for Technician, not Mohamed
                     if (!isWorking && !m.acknowledged && isMyProblem) alertNeeded = m;
 
                     let row = `<tr>
@@ -292,16 +291,14 @@
                 width: '100%',
                 height: 350,
                 parentNode: document.getElementById('videoContainer'),
-                // AUTO-JOIN CONFIGURATION
                 configOverwrite: { 
                     prejoinPageEnabled: false, 
                     startWithAudioMuted: false, 
                     startWithVideoMuted: true,
                     disableDeepLinking: true
                 },
-                // UI RESTRICTIONS
                 interfaceConfigOverwrite: { 
-                    TOOLBAR_BUTTONS: isDirector ? ['microphone', 'hangup'] : [], // Tech has no buttons
+                    TOOLBAR_BUTTONS: isDirector ? ['microphone', 'hangup'] : [], 
                     SETTINGS_SECTIONS: [],
                     VIDEO_LAYOUT_FIT: 'both'
                 }
@@ -317,7 +314,7 @@
         function closeJitsi() {
             if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
             document.getElementById('callPopup').style.display = 'none';
-            document.getElementById('dangerOverlay').style.display = 'none'; // Auto-clear danger on hangup
+            document.getElementById('dangerOverlay').style.display = 'none';
             isFirstAlert = true;
         }
 
@@ -326,12 +323,12 @@
             document.getElementById('dangerDescription').innerText = `${m.name} | ${m.section}`;
             
             if (isFirstAlert && micReady) {
-                const message = `Danger! Danger! Danger! Problem detected at ${m.name}. You have been assigned to resolve it. Please respond to director.`;
+                const message = `Danger! Problem detected at ${m.name}. You have been assigned to resolve it. Please respond to director.`;
                 const speech = new SpeechSynthesisUtterance(message);
                 window.speechSynthesis.speak(speech);
                 isFirstAlert = false;
                 
-                // Tech is now ready - Start the call logic for Director
+                // Trigger call for BOTH tech and Director to see it
                 startEmergencyCall(auth.currentUser.email, m.name);
             }
         }
