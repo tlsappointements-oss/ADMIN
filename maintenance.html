@@ -43,6 +43,9 @@
         .step-red { background: #ff3333; color: #fff; }
         .step-orange { background: #ffa500; color: #000; }
 
+        /* Edited Tag */
+        .edited-tag { color: #ffcc00; font-weight: bold; font-size: 0.7rem; border: 1px solid #ffcc00; padding: 2px 5px; border-radius: 3px; margin-left: 10px; }
+
         /* CALL POPUP */
         #callPopup {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -174,13 +177,10 @@
         import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-        const JITSI_ROOM = "MercedesPlantOperations_Emergency_Relay_12345";
+        const DIRECTOR_PASS = "MB2024_ADMIN";
         
-        let techList = [], isFirstAlert = true, micReady = false, jitsiApi = null;
-        let machineCache = {};
-        let archivedInterventions = [];
+        let techList = [], micReady = false, machineCache = {}, archivedInterventions = [];
 
-        // Specialized maintenance steps per machine category
         const M_STEPS = {
             "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
             "PRESS": ["Oil pressure check", "Die alignment inspection", "Lubrication cycle test", "Safety light curtain check", "Ram stroke measurement", "Plate cleaning"],
@@ -344,6 +344,28 @@
             }
         };
 
+        window.forceModifyReport = async (intId) => {
+            const pass = prompt("ENTER DIRECTOR ACCESS PASSWORD:");
+            if (pass !== DIRECTOR_PASS) return alert("ACCESS DENIED.");
+
+            const newIssue = prompt("RECTIFY ISSUE DESCRIPTION:");
+            const newComment = prompt("RECTIFY TECHNICIAN RESOLUTION:");
+
+            if (newIssue !== null && newComment !== null) {
+                await updateDoc(doc(db, "interventions", intId), {
+                    issue: newIssue,
+                    techComment: newComment,
+                    isEdited: true,
+                    editedBy: DIRECTOR,
+                    editedAt: serverTimestamp()
+                });
+                alert("REPORT OVERRIDDEN SUCCESSFULLY.");
+                // Refresh detail view
+                const updatedDoc = await getDoc(doc(db, "interventions", intId));
+                showHistoryDetail({id: updatedDoc.id, ...updatedDoc.data()});
+            }
+        };
+
         window.filterHistory = () => {
             const search = document.getElementById('historySearch').value.toLowerCase();
             const sort = document.getElementById('historyDateSort').value;
@@ -354,8 +376,19 @@
             filtered.forEach(i => {
                 const card = document.createElement('div');
                 card.className = "card"; card.style.cursor = "pointer";
-                card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} <span style="float:right; color:#e30613">Audit Logs ></span>`;
-                card.onclick = () => showHistoryDetail(i);
+                
+                const editBadge = i.isEdited ? '<span class="edited-tag">MODIFIED BY DIRECTOR</span>' : '';
+                
+                card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} ${editBadge} <span style="float:right; color:#e30613">Audit Logs ></span>`;
+                
+                // RESTRICTION: Only Director can see details
+                card.onclick = () => {
+                    if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+                        showHistoryDetail(i);
+                    } else {
+                        alert("RESTRICTED: Detailed audit logs are for Director access only.");
+                    }
+                };
                 container.appendChild(card);
             });
         };
@@ -406,7 +439,6 @@
             }
 
             loadMachinesLive(email);
-            listenForEmergencyCalls(email);
             loadHistory();
         });
 
@@ -427,10 +459,7 @@
                     const id = snapshotDoc.id;
                     machineCache[id] = m;
                     const isWorking = m.status === "WORKING";
-                    const isMyProblem = m.assignedTech === userEmail;
-
-                    if (!isWorking && !m.acknowledged && isMyProblem && userEmail !== DIRECTOR) startDangerCycle(m);
-
+                    
                     let row = `<tr>
                         <td><b style="cursor:pointer;text-decoration:underline" onclick="window.previewMachine('${id}')">${m.machineId || id}</b></td>
                         <td>${m.name}</td>
@@ -518,8 +547,15 @@
             const kpiIssue = (actualDur > target || actualDur !== manualDur);
 
             const content = `
-                <h2 style="color:#e30613">Maintenance Audit Trail</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 style="color:#e30613">Maintenance Audit Trail</h2>
+                    <button onclick="window.forceModifyReport('${data.id}')" style="font-size:10px; padding:5px; background:#444;">🛠️ FORCE MODIFY</button>
+                </div>
                 
+                ${data.isEdited ? `<div style="background:rgba(255,204,0,0.2); padding:10px; border:1px solid #ffcc00; margin-bottom:15px; font-size:12px;">
+                    ⚠️ THIS REPORT HAS BEEN MANUALLY RECTIFIED BY THE DIRECTOR.
+                </div>` : ''}
+
                 <div class="step-row">
                     <div class="step-bubble step-green">1</div>
                     <div><b>INTERVENTION REQUESTED</b><br><small>By: ${data.requester} | Issue: ${data.issue}</small></div>
@@ -553,50 +589,6 @@
             `;
             document.getElementById('machineDetailContent').innerHTML = content;
             document.getElementById('machineDetailPopup').style.display = 'block';
-        }
-
-        async function startEmergencyCall(techEmail, machineName) {
-            const callDoc = doc(db, "emergency_calls", "active_session");
-            await setDoc(callDoc, { tech: techEmail, machine: machineName, active: true, triggerSound: 0 });
-        }
-
-        function listenForEmergencyCalls(myEmail) {
-            onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
-                const data = snap.data();
-                if (data?.active && (data.tech === myEmail || myEmail === DIRECTOR)) {
-                    showJitsi(data.machine, myEmail);
-                    if (data.triggerSound > 0) document.getElementById('effectAudio').play();
-                } else if (data?.active === false) { closeJitsi(); }
-            });
-        }
-
-        function showJitsi(mName, userEmail) {
-            if (jitsiApi) return;
-            document.getElementById('callPopup').style.display = 'block';
-            document.getElementById('callMachineName').innerText = mName;
-            const options = {
-                roomName: JITSI_ROOM, width: '100%', height: 350,
-                parentNode: document.getElementById('videoContainer'),
-                configOverwrite: { prejoinPageEnabled: false },
-                interfaceConfigOverwrite: { SHOW_JITSI_WATERMARK: false }
-            };
-            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
-        }
-
-        function closeJitsi() {
-            if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
-            document.getElementById('callPopup').style.display = 'none';
-        }
-
-        async function startDangerCycle(m) {
-            const overlay = document.getElementById('dangerOverlay');
-            overlay.style.display = 'flex';
-            document.getElementById('dangerDescription').innerText = `CRITICAL: ${m.name} is DOWN!`;
-            if (isFirstAlert) {
-                document.getElementById('effectAudio').play();
-                await startEmergencyCall(auth.currentUser.email, m.name);
-                isFirstAlert = false;
-            }
         }
     </script>
 </body>
