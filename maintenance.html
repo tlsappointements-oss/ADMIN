@@ -247,52 +247,62 @@
             document.getElementById('machineDetailPopup').style.display = 'block';
         };
 
+        // FIXED: Now uses a Direct Firestore Fetch to prevent the "Empty Popup" glitch
         window.openMaintenanceGuide = async (intId, mId) => {
-            const m = machineCache[mId];
-            // FIX: Added better error handling and wait logic for the guide button
-            if (!m) {
-                console.log("Fetching missing machine data for guide...");
+            const popup = document.getElementById('machineDetailPopup');
+            const contentDiv = document.getElementById('machineDetailContent');
+            
+            // Show loading state immediately
+            contentDiv.innerHTML = `<h2 style="color:#e30613; text-align:center;">INITIALIZING PROTOCOL...</h2><p style="text-align:center;">Fetching Technical Data for ID: ${mId}</p>`;
+            popup.style.display = 'block';
+
+            try {
+                // Bypass local cache and fetch fresh data for this specific machine
                 const mDoc = await getDoc(doc(db, "machines", mId));
-                if (mDoc.exists()) {
-                    machineCache[mId] = mDoc.data();
-                    window.openMaintenanceGuide(intId, mId);
-                    return;
-                }
-                return alert("System Syncing... please try again in a second.");
+                if (!mDoc.exists()) throw new Error("Machine data not found in Database.");
+                
+                const m = mDoc.data();
+                const startTime = Date.now();
+                const comps = m.components || ["Security Check", "Power Unit", "Hydraulics", "Sensors Calibration", "Mechanical Alignment", "Final Testing"];
+
+                contentDiv.innerHTML = `
+                    <h2 style="color:#e30613">Technical Protocol: ${m.name}</h2>
+                    <div class="card" style="border:1px solid #e30613">
+                        <p><b>Maintenance Start:</b> ${new Date(startTime).toLocaleTimeString()}</p>
+                        <input type="datetime-local" id="manualStartTime" value="${new Date().toISOString().slice(0, 16)}">
+                        <input type="datetime-local" id="manualEndTime" placeholder="Declare End">
+                    </div>
+                    <div id="checklist">
+                        ${comps.map((comp, i) => `
+                            <label class="checklist-item">
+                                <input type="checkbox" class="m-check"> [Step ${i+1}] Specialized Check: <b>${comp}</b>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <div class="card">
+                        <h4>Evidence Upload</h4>
+                        <label>Before Repair:</label><input type="file" id="imgBefore" accept="image/*">
+                        <label>After Repair:</label><input type="file" id="imgAfter" accept="image/*">
+                    </div>
+                    <textarea id="techComment" placeholder="Resolution notes..."></textarea>
+                    <button id="finalSubmitBtn" onclick="window.submitTechReport('${intId}', '${mId}', ${startTime})" style="width:100%">SUBMIT FINAL REPORT</button>
+                `;
+            } catch (err) {
+                contentDiv.innerHTML = `<h2 style="color:red">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
             }
-            const startTime = Date.now();
-            const content = `
-                <h2 style="color:#e30613">Technical Protocol: ${m.name}</h2>
-                <div class="card" style="border:1px solid #e30613">
-                    <p><b>Maintenance Start:</b> ${new Date(startTime).toLocaleTimeString()}</p>
-                    <input type="datetime-local" id="manualStartTime" placeholder="Declare Start">
-                    <input type="datetime-local" id="manualEndTime" placeholder="Declare End">
-                </div>
-                <div id="checklist">
-                    ${m.components.map((comp, i) => `
-                        <label class="checklist-item">
-                            <input type="checkbox" class="m-check"> [Step ${i+1}] Specialized Check: <b>${comp}</b>
-                        </label>
-                    `).join('')}
-                </div>
-                <div class="card">
-                    <h4>Evidence Upload</h4>
-                    <label>Before Repair:</label><input type="file" id="imgBefore" accept="image/*">
-                    <label>After Repair:</label><input type="file" id="imgAfter" accept="image/*">
-                </div>
-                <textarea id="techComment" placeholder="Resolution notes..."></textarea>
-                <button onclick="window.submitTechReport('${intId}', '${mId}', ${startTime})" style="width:100%">SUBMIT FINAL REPORT</button>
-            `;
-            document.getElementById('machineDetailContent').innerHTML = content;
-            document.getElementById('machineDetailPopup').style.display = 'block';
         };
 
         window.submitTechReport = async (intId, mId, actualStart) => {
             const checks = document.querySelectorAll('.m-check:checked').length;
             const comment = document.getElementById('techComment').value;
             const actualEnd = Date.now();
+            const btn = document.getElementById('finalSubmitBtn');
+
             if (checks < 6) return alert("Security Protocol: 6 steps minimum required.");
             
+            btn.innerText = "UPLOADING...";
+            btn.disabled = true;
+
             const getBase64 = (file) => new Promise((res) => {
                 if(!file) res("");
                 const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file);
@@ -361,7 +371,7 @@
             const issue = document.getElementById('reqIssue').value;
             if(!mId || !issue) return alert("Select machine and describe issue.");
             await addDoc(collection(db, "interventions"), {
-                machineId: mId, machineName: machineCache[mId].name, issue: issue, 
+                machineId: mId, machineName: (machineCache[mId] ? machineCache[mId].name : "Unknown Machine"), issue: issue, 
                 status: "PENDING_MOHAMED", timestamp: serverTimestamp(), requester: auth.currentUser.email
             });
             alert("Request sent to Director.");
@@ -439,13 +449,11 @@
 
         function loadMyMissions(email) {
             const list = document.getElementById('missionList');
-            // FIX: Removed strict cache filtering. Missions now appear automatically based on global Interventions state.
             onSnapshot(query(collection(db, "interventions"), where("status", "==", "APPROVED")), (snap) => {
                 list.innerHTML = "";
                 snap.forEach(d => {
                     const data = d.data();
-                    // Show mission if tech is assigned to this machine OR was the requester
-                    if (machineCache[data.machineId]?.assignedTech === email || data.requester === email) {
+                    if (data.requester === email || machineCache[data.machineId]?.assignedTech === email) {
                         const card = document.createElement('div');
                         card.className = "card";
                         card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
