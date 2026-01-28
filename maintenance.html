@@ -87,14 +87,15 @@
         <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;" onclick="endEmergencyCall()">📞</button>
         
         <div style="margin-top:10px; font-size:11px; border-top:1px solid #333; padding-top:10px;">
-            <span id="statusDot" class="status-dot"></span> <span id="webrtcState">JITSI FREE RELAY ACTIVE</span>
+            <span id="statusDot" class="status-dot"></span> <span id="webrtcState">DIRECT LINE ENCRYPTED</span>
         </div>
     </div>
 
     <div id="dangerOverlay">
         <div class="giant-triangle">⚠️</div>
-        <div style="font-size: 2.5rem; font-weight: 900;">CRITICAL BREAKDOWN</div>
+        <div style="font-size: 2.5rem; font-weight: 900;">DANGER DANGER DANGER</div>
         <div id="dangerDescription" style="background:black; padding:10px 20px; margin-top:20px; font-size: 1.5rem;"></div>
+        <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
     </div>
 
     <div class="sidebar">
@@ -110,7 +111,7 @@
 
     <div class="main">
         <div id="adminPanel">
-            <h3>DIRECTOR CONTROL (STEP 2 & FINAL APPROVAL)</h3>
+            <h3>DIRECTOR CONTROL</h3>
             <div id="adminApprovalList"></div>
             <hr style="border-color: #333; margin: 20px 0;">
             <div class="card">
@@ -131,7 +132,7 @@
         <div id="interventionPage">
             <h1>Step 1: Request Intervention</h1>
             <div class="card">
-                <select id="reqMachine" onchange="showMachinePreview(this.value)"></select>
+                <select id="reqMachine"></select>
                 <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
                 <button onclick="submitReq()">SUBMIT TO DIRECTOR</button>
             </div>
@@ -166,35 +167,25 @@
             await updateDoc(doc(db, "emergency_calls", "active_session"), { triggerSound: Date.now() });
         };
 
-        // --- Integrated Machine Pushing Feature ---
         window.syncDatabase = async () => {
             const fileInput = document.getElementById('jsonInput');
-            if (!fileInput.files[0]) return alert("Please select the machines.json file first");
-
+            if (!fileInput.files[0]) return alert("Please select the machines.json file");
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
                     const machines = data.machines || data;
-                    
                     for (const m of machines) {
                         const mId = m.machineId || `M-${Math.random().toString(36).substr(2, 5)}`;
                         await setDoc(doc(db, "machines", mId), {
-                            ...m,
-                            status: m.status || "WORKING",
-                            assignedTech: "",
-                            acknowledged: true,
-                            lastUpdated: serverTimestamp()
+                            ...m, status: m.status || "WORKING", assignedTech: "", acknowledged: true, lastUpdated: serverTimestamp()
                         });
                     }
-                    alert("Sync Complete: 105 Assets verified and updated.");
-                } catch (err) {
-                    alert("Error parsing JSON: " + err.message);
-                }
+                    alert("Sync Complete.");
+                } catch (err) { alert("Error: " + err.message); }
             };
             reader.readAsText(fileInput.files[0]);
         };
-        // ------------------------------------------
 
         onAuthStateChanged(auth, user => {
             if (!user) { window.location.href = "login.html"; return; }
@@ -235,12 +226,12 @@
                     const m = snapshotDoc.data();
                     const id = snapshotDoc.id;
                     machineCache[id] = m;
-
                     if (select) select.innerHTML += `<option value="${id}">${m.name}</option>`;
 
                     const isWorking = m.status === "WORKING";
-                    const isMyProblem = m.assignedTech === userEmail || userEmail === DIRECTOR;
+                    const isMyProblem = m.assignedTech === userEmail;
 
+                    // IMPORTANT: Danger only shows for Technician, not Mohamed
                     if (!isWorking && !m.acknowledged && isMyProblem) alertNeeded = m;
 
                     let row = `<tr>
@@ -265,8 +256,7 @@
 
                 if (alertNeeded) {
                     startDangerCycle(alertNeeded);
-                    if (userEmail === DIRECTOR && isFirstAlert) startEmergencyCall(alertNeeded.assignedTech, alertNeeded.name);
-                } else {
+                } else if (userEmail !== DIRECTOR) {
                     stopDangerCycle();
                 }
             });
@@ -275,19 +265,14 @@
         async function startEmergencyCall(techEmail, machineName) {
             if (!techEmail) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
-            await setDoc(callDoc, {
-                tech: techEmail,
-                machine: machineName,
-                active: true,
-                triggerSound: 0
-            });
+            await setDoc(callDoc, { tech: techEmail, machine: machineName, active: true, triggerSound: 0 });
         }
 
         function listenForEmergencyCalls(myEmail) {
             onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
                 const data = snap.data();
                 if (data?.active && (data.tech === myEmail || myEmail === DIRECTOR)) {
-                    showJitsi(data.machine);
+                    showJitsi(data.machine, myEmail);
                     if (data.triggerSound > 0) document.getElementById('effectAudio').play();
                 } else if (data?.active === false) {
                     closeJitsi();
@@ -295,18 +280,31 @@
             });
         }
 
-        function showJitsi(mName) {
+        function showJitsi(mName, userEmail) {
             if (jitsiApi) return;
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = mName;
             
+            const isDirector = userEmail === DIRECTOR;
+
             const options = {
                 roomName: JITSI_ROOM,
                 width: '100%',
                 height: 350,
                 parentNode: document.getElementById('videoContainer'),
-                configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: true },
-                interfaceConfigOverwrite: { TOOLBAR_BUTTONS: ['microphone', 'hangup'] }
+                // AUTO-JOIN CONFIGURATION
+                configOverwrite: { 
+                    prejoinPageEnabled: false, 
+                    startWithAudioMuted: false, 
+                    startWithVideoMuted: true,
+                    disableDeepLinking: true
+                },
+                // UI RESTRICTIONS
+                interfaceConfigOverwrite: { 
+                    TOOLBAR_BUTTONS: isDirector ? ['microphone', 'hangup'] : [], // Tech has no buttons
+                    SETTINGS_SECTIONS: [],
+                    VIDEO_LAYOUT_FIT: 'both'
+                }
             };
             jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
         }
@@ -319,16 +317,22 @@
         function closeJitsi() {
             if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
             document.getElementById('callPopup').style.display = 'none';
+            document.getElementById('dangerOverlay').style.display = 'none'; // Auto-clear danger on hangup
             isFirstAlert = true;
         }
 
         function startDangerCycle(m) {
             document.getElementById('dangerOverlay').style.display = 'flex';
-            document.getElementById('dangerDescription').innerText = `${m.name} | SECTION: ${m.section}`;
+            document.getElementById('dangerDescription').innerText = `${m.name} | ${m.section}`;
+            
             if (isFirstAlert && micReady) {
-                const speech = new SpeechSynthesisUtterance(`Emergency. Breakdown on ${m.name}`);
+                const message = `Danger! Danger! Danger! Problem detected at ${m.name}. You have been assigned to resolve it. Please respond to director.`;
+                const speech = new SpeechSynthesisUtterance(message);
                 window.speechSynthesis.speak(speech);
                 isFirstAlert = false;
+                
+                // Tech is now ready - Start the call logic for Director
+                startEmergencyCall(auth.currentUser.email, m.name);
             }
         }
 
@@ -347,7 +351,6 @@
 
         window.logout = () => signOut(auth);
 
-        // Required Placeholders for Sidebar Logic
         function loadAdminApprovals() {
              const list = document.getElementById('adminApprovalList');
              onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
@@ -356,7 +359,7 @@
                     const data = d.data();
                     const card = document.createElement('div');
                     card.className = "card";
-                    card.innerHTML = `<b>${data.status === "PENDING_MOHAMED" ? "REQUEST" : "REPORT"}: ${data.machineName}</b><br>
+                    card.innerHTML = `<b>${data.status === "PENDING_MOHAMED" ? "REQ" : "REP"}: ${data.machineName}</b><br>
                                      <button onclick="approveAction('${d.id}', '${data.machineId}', '${data.status}')">VALIDATE</button>`;
                     list.appendChild(card);
                 });
@@ -378,13 +381,9 @@
             const issue = document.getElementById('reqIssue').value;
             if(!issue) return;
             await addDoc(collection(db, "interventions"), {
-                machineId: mId,
-                machineName: machineCache[mId].name,
-                issue: issue,
-                status: "PENDING_MOHAMED",
-                timestamp: serverTimestamp()
+                machineId: mId, machineName: machineCache[mId].name, issue: issue, status: "PENDING_MOHAMED", timestamp: serverTimestamp()
             });
-            alert("Sent to Director.");
+            alert("Request sent.");
         };
 
     </script>
