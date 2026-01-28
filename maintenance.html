@@ -35,9 +35,9 @@
 
         /* Step Indicators */
         .step-bubble { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; margin-right: 10px; font-weight: bold; font-size: 12px; }
-        .step-green { background: #00ff00; color: #000; } 
-        .step-red { background: #ff3333; color: #fff; } 
-        .step-orange { background: #ffa500; color: #000; } 
+        .step-green { background: #00ff00; color: #000; } /* Check icon inside */
+        .step-red { background: #ff3333; color: #fff; } /* X icon inside */
+        .step-orange { background: #ffa500; color: #000; } /* ... icon inside */
 
         /* CALL POPUP */
         #callPopup {
@@ -48,6 +48,7 @@
         #videoContainer { width: 100%; height: 350px; background: #000; border-radius: 15px; margin-top: 15px; overflow: hidden; }
         .director-console { background: #000; padding: 15px; border-radius: 15px; margin-top: 20px; border: 1px dashed #444; }
         .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; background: #555; margin-right: 5px; }
+        .dot-active { background: #00ff00; box-shadow: 0 0 15px #00ff00; }
         
         #audioActivator {
             background: #ffcc00; color: #000; border: none; padding: 15px;
@@ -81,7 +82,7 @@
 
     <div id="machineDetailPopup">
         <div id="machineDetailContent"></div>
-        <button type="button" onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
+        <button onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
     </div>
 
     <div id="callPopup">
@@ -91,10 +92,10 @@
         <div id="videoContainer"></div>
         
         <div id="mohamedConsole" class="director-console" style="display:none;">
-            <button type="button" onclick="triggerRemoteAudio()" style="background:#ffcc00; color:#000; font-size: 12px; width: 100%;">🔔 SEND ALERT SOUND</button>
+            <button onclick="triggerRemoteAudio()" style="background:#ffcc00; color:#000; font-size: 12px; width: 100%;">🔔 SEND ALERT SOUND</button>
         </div>
 
-        <button id="hangUpBtn" type="button" style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;" onclick="endEmergencyCall()">📞</button>
+        <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;" onclick="endEmergencyCall()">📞</button>
         
         <div style="margin-top:10px; font-size:11px; border-top:1px solid #333; padding-top:10px;">
             <span id="statusDot" class="status-dot"></span> <span id="webrtcState">DIRECT LINE ENCRYPTED</span>
@@ -110,14 +111,14 @@
 
     <div class="sidebar">
         <h2 style="color: #e30613;">MERCEDES</h2>
-        <button id="audioActivator" type="button" onclick="activateAudioSystem()">STEP 1: ENABLE MIC</button>
+        <button id="audioActivator" onclick="activateAudioSystem()">STEP 1: ENABLE MIC</button>
         <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
         <hr style="border:0; border-top:1px solid #333;">
-        <button class="btn-nav" type="button" onclick="showPage('mainPage')">🏠 Dashboard</button>
-        <button class="btn-nav" type="button" onclick="showPage('interventionPage')">📝 Interventions</button>
-        <button class="btn-nav" type="button" onclick="showPage('missionPage')">🛠️ Missions</button>
-        <button class="btn-nav" type="button" onclick="showPage('historyPage')">📚 History</button>
-        <button type="button" onclick="logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
+        <button class="btn-nav" onclick="showPage('mainPage')">🏠 Dashboard</button>
+        <button class="btn-nav" onclick="showPage('interventionPage')">📝 Interventions</button>
+        <button class="btn-nav" onclick="showPage('missionPage')">🛠️ Missions</button>
+        <button class="btn-nav" onclick="showPage('historyPage')">📚 History</button>
+        <button onclick="logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
     </div>
 
     <div class="main">
@@ -127,9 +128,8 @@
             <hr style="border-color: #333; margin: 20px 0;">
             <div class="card">
                 <h4>DATA SYNCHRONIZATION</h4>
-                <label for="jsonInput" style="font-size: 0.8rem; color: #888;">Upload Machine Database (.json):</label>
-                <input type="file" id="jsonInput" name="jsonInput" accept=".json">
-                <button type="button" onclick="syncDatabase()" style="width: 100%; background: #28a745;">PUSH 105 MACHINES</button>
+                <input type="file" id="jsonInput" accept=".json">
+                <button onclick="syncDatabase()" style="width: 100%; background: #28a745;">PUSH 105 MACHINES</button>
             </div>
         </div>
         
@@ -144,13 +144,9 @@
         <div id="interventionPage">
             <h1>Step 1: Request Intervention</h1>
             <div class="card">
-                <label for="reqMachine" style="font-size: 0.8rem; color: #888;">Select Target Machine:</label>
-                <select id="reqMachine" name="reqMachine" onchange="previewMachine(this.value)"></select>
-                
-                <label for="reqIssue" style="font-size: 0.8rem; color: #888;">Describe Failure Details:</label>
-                <textarea id="reqIssue" name="reqIssue" placeholder="Describe the failure..."></textarea>
-                
-                <button type="button" onclick="submitReq()">SUBMIT TO DIRECTOR</button>
+                <select id="reqMachine" onchange="previewMachine(this.value)"></select>
+                <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
+                <button onclick="submitReq()">SUBMIT TO DIRECTOR</button>
             </div>
         </div>
 
@@ -162,8 +158,8 @@
         <div id="historyPage">
             <h1>Maintenance Archive</h1>
             <div class="card">
-                <input type="text" id="historySearch" name="historySearch" placeholder="Search by Machine Name..." onkeyup="filterHistory()">
-                <select id="historyDateSort" name="historyDateSort" onchange="filterHistory()">
+                <input type="text" id="historySearch" placeholder="Search by Machine Name..." onkeyup="filterHistory()">
+                <select id="historyDateSort" onchange="filterHistory()">
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
                 </select>
@@ -184,7 +180,7 @@
         let machineCache = {};
         let archivedInterventions = [];
 
-        // BIND FUNCTIONS TO WINDOW
+        // BIND FUNCTIONS TO WINDOW (Fixes Scope Issues)
         window.activateAudioSystem = async () => {
             micReady = true;
             document.getElementById('audioActivator').style.background = "#00ff00";
@@ -216,7 +212,7 @@
                             history: m.history || [],
                             description: m.description || "Mercedes-Benz precision unit.",
                             image: m.image || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500",
-                            targetMaintenanceTime: m.targetMaintenanceTime || 60, 
+                            targetMaintenanceTime: m.targetMaintenanceTime || 60, // minutes
                             components: m.components || ["Component A", "Component B", "Component C", "Component D", "Component E", "Component F"]
                         });
                     }
@@ -278,8 +274,8 @@
                 <h2 style="color:#e30613">Technical Protocol: ${m.name}</h2>
                 <div class="card" style="border:1px solid #e30613">
                     <p><b>Maintenance Start:</b> ${new Date(startTime).toLocaleTimeString()}</p>
-                    <input type="datetime-local" id="manualStartTime" name="manualStartTime" placeholder="Declare Start">
-                    <input type="datetime-local" id="manualEndTime" name="manualEndTime" placeholder="Declare End">
+                    <input type="datetime-local" id="manualStartTime" placeholder="Declare Start">
+                    <input type="datetime-local" id="manualEndTime" placeholder="Declare End">
                 </div>
                 <div id="checklist">
                     ${m.components.map((comp, i) => `
@@ -290,13 +286,13 @@
                 </div>
                 <div class="card">
                     <h4>Evidence Upload</h4>
-                    <label for="imgBefore">Before Repair (Damaged):</label>
-                    <input type="file" id="imgBefore" name="imgBefore" accept="image/*">
-                    <label for="imgAfter">After Repair (Fixed):</label>
-                    <input type="file" id="imgAfter" name="imgAfter" accept="image/*">
+                    <label>Before Repair (Damaged):</label>
+                    <input type="file" id="imgBefore" accept="image/*">
+                    <label>After Repair (Fixed):</label>
+                    <input type="file" id="imgAfter" accept="image/*">
                 </div>
-                <textarea id="techComment" name="techComment" placeholder="Resolution notes..."></textarea>
-                <button type="button" onclick="submitTechReport('${intId}', '${mId}', ${startTime})" style="width:100%">SUBMIT FINAL REPORT</button>
+                <textarea id="techComment" placeholder="Resolution notes..."></textarea>
+                <button onclick="submitTechReport('${intId}', '${mId}', ${startTime})" style="width:100%">SUBMIT FINAL REPORT</button>
             `;
             document.getElementById('machineDetailContent').innerHTML = content;
             document.getElementById('machineDetailPopup').style.display = 'block';
@@ -372,6 +368,7 @@
             await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false });
         };
 
+        // Internal helper functions
         onAuthStateChanged(auth, user => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
@@ -419,7 +416,7 @@
                         <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}" onclick="toggleStatus('${id}', '${m.status}')" style="cursor:pointer">${m.status}</span></td>
                         <td>`;
                     if (userEmail === DIRECTOR) {
-                        row += `<select class="tech-select" name="assign_${id}" onchange="assignTech('${id}', this.value)">
+                        row += `<select class="tech-select" onchange="assignTech('${id}', this.value)">
                                     <option value="">Assign...</option>
                                     ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
                                 </select>`;
@@ -444,7 +441,7 @@
                     card.innerHTML = `
                         <h3>MISSION: ${data.machineName}</h3>
                         <p>Issue: ${data.issue}</p>
-                        <button type="button" onclick="openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>
+                        <button onclick="openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>
                     `;
                     list.appendChild(card);
                 });
@@ -461,8 +458,8 @@
                     card.className = "card";
                     if(data.status === "PENDING_MOHAMED") {
                         card.innerHTML = `<b>STEP 1: ${data.machineName} REQ</b><br><small>${data.issue}</small><br>
-                                         <textarea id="appComment_${d.id}" name="appComment_${d.id}" placeholder="Approval notes..."></textarea>
-                                         <button type="button" onclick="approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR (STEP 2)</button>`;
+                                         <textarea id="appComment_${d.id}" placeholder="Approval notes..."></textarea>
+                                         <button onclick="approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR (STEP 2)</button>`;
                     } else {
                         const duration = Math.round((data.actualEnd - data.actualStart) / 60000);
                         const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
@@ -472,7 +469,7 @@
                                          <b>Actual Time Taken: ${duration} mins</b><br>
                                          ${kpiWarning}
                                          <div style="margin:10px 0"><img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img"></div>
-                                         <button type="button" onclick="approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#28a745">VALIDATE & RESET</button>`;
+                                         <button onclick="approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#28a745">VALIDATE & RESET</button>`;
                     }
                     list.appendChild(card);
                 });
@@ -515,6 +512,10 @@
             document.getElementById('machineDetailPopup').style.display = 'block';
         }
 
+        async function startEmergencyCall(techEmail, machineName) {
+            const callDoc = doc(db, "emergency_calls", "active_session");
+            await setDoc(callDoc, { tech: techEmail, machine: machineName, active: true, triggerSound: 0 });
+        }
         function listenForEmergencyCalls(myEmail) {
             onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
                 const data = snap.data();
@@ -524,7 +525,6 @@
                 } else if (data?.active === false) { closeJitsi(); }
             });
         }
-        
         function showJitsi(mName, userEmail) {
             if (jitsiApi) return;
             document.getElementById('callPopup').style.display = 'block';
@@ -537,14 +537,12 @@
             };
             jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
         }
-        
         function closeJitsi() {
             if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
             document.getElementById('callPopup').style.display = 'none';
             document.getElementById('dangerOverlay').style.display = 'none';
             isFirstAlert = true;
         }
-        
         function startDangerCycle(m) {
             document.getElementById('dangerOverlay').style.display = 'flex';
             document.getElementById('dangerDescription').innerText = `${m.name} | ${m.section}`;
@@ -554,11 +552,6 @@
                 isFirstAlert = false;
                 startEmergencyCall(auth.currentUser.email, m.name);
             }
-        }
-        
-        async function startEmergencyCall(techEmail, machineName) {
-            const callDoc = doc(db, "emergency_calls", "active_session");
-            await setDoc(callDoc, { tech: techEmail, machine: machineName, active: true, triggerSound: 0 });
         }
     </script>
 </body>
