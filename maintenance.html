@@ -205,7 +205,11 @@
             document.getElementById('audioActivator').innerText = "✅ SYSTEM READY";
         };
 
-        window.handleFirstInteraction = () => {};
+        window.handleFirstInteraction = () => {
+            // Unlocks audio context on first click for speech synthesis
+            const silence = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(silence);
+        };
 
         window.triggerRemoteAudio = async () => {
             await updateDoc(doc(db, "emergency_calls", "active_session"), { triggerSound: Date.now() });
@@ -559,21 +563,26 @@
             isFirstAlert = true;
         }
         
-        function startDangerCycle(m) {
+        async function startDangerCycle(m) {
             document.getElementById('dangerOverlay').style.display = 'flex';
             document.getElementById('dangerDescription').innerText = `${m.name} | ${m.section}`;
+            
             if (isFirstAlert && micReady) {
-                const speech = new SpeechSynthesisUtterance(`Danger! Problem detected at ${m.name}.`);
-                window.speechSynthesis.speak(speech);
                 isFirstAlert = false;
-                startEmergencyCall(auth.currentUser.email, m.name);
+                const speech = new SpeechSynthesisUtterance(`Emergency Alert! New breakdown detected on ${m.name}. Assigned to you. Connecting to Director.`);
+                speech.rate = 0.9;
+                window.speechSynthesis.speak(speech);
+                
+                // Trigger global emergency session in Firestore
+                await setDoc(doc(db, "emergency_calls", "active_session"), {
+                    active: true,
+                    machine: m.name,
+                    tech: m.assignedTech,
+                    triggerSound: 0,
+                    startTime: serverTimestamp()
+                });
             }
         }
-        
-        async function startEmergencyCall(techEmail, machineName) {
-            const callDoc = doc(db, "emergency_calls", "active_session");
-            await setDoc(callDoc, { tech: techEmail, machine: machineName, active: true, triggerSound: 0 });
-        }
     </script>
-    </body>
+</body>
 </html>
