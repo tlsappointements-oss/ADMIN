@@ -49,22 +49,17 @@
         .caller-avatar { width: 100px; height: 100px; border-radius: 50%; background: #222; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 3px solid #e30613; animation: ringPulse 1.5s infinite; }
         @keyframes ringPulse { 0% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(227, 6, 19, 0); } 100% { box-shadow: 0 0 0 0 rgba(227, 6, 19, 0); } }
         .btn-hangup { background: #ff3333; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; margin: 20px auto 0; font-size: 1.5rem; transition: 0.3s; border: none; color: white; cursor: pointer; }
-        
-        #joinCallBtn { background: #00ff00; color: #000; padding: 12px 25px; border-radius: 30px; border: none; font-weight: 900; margin-bottom: 10px; animation: pulse 1s infinite; }
     </style>
 </head>
 <body>
 
-    <audio id="remoteAudio" autoplay playsinline></audio>
+    <audio id="remoteAudio" autoplay></audio>
 
     <div id="callPopup">
         <div class="caller-avatar">👤</div>
         <h2 id="callHeader" style="margin: 0; color: #fff;">DIRECTOR CALL</h2>
         <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 10px 0;"></p>
-        <p id="callStatusText" style="font-size: 0.9rem; color: #aaa;">INCOMING...</p>
-        
-        <button id="joinCallBtn" style="display:none;" onclick="acceptCall()">JOIN VOICE</button>
-        
+        <p id="callStatusText" style="font-size: 0.9rem; color: #aaa;">CONNECTING VOICE...</p>
         <button id="hangUpBtn" class="btn-hangup" onclick="endEmergencyCall()">📞</button>
         <p id="hangupWarning" style="font-size: 0.7rem; color: #666; margin-top: 10px; display: none;">ONLY MOHAMED CAN END THIS CALL</p>
     </div>
@@ -89,6 +84,9 @@
         <div id="adminPanel">
             <h3 style="margin-top:0">DIRECTOR SYNC & APPROVALS</h3>
             <div id="adminApprovalList"></div>
+            <hr style="border-color: #333;">
+            <input type="file" id="jsonInput" accept=".json">
+            <button onclick="syncDatabase()">PUSH 105 MACHINES</button>
         </div>
 
         <div id="mainPage">
@@ -122,12 +120,31 @@
             <h1>Mes Ordres de Mission</h1>
             <div id="missionList"></div>
         </div>
+
+        <div id="encyclopediaPanel">
+            <button onclick="document.getElementById('encyclopediaPanel').style.display='none'" style="float:right">CLOSE</button>
+            <h2 id="encName"></h2>
+            <div style="display:flex; gap:20px;">
+                <div style="flex:1">
+                    <h3>Components</h3>
+                    <ul id="encComponents"></ul>
+                </div>
+                <div style="flex:1">
+                    <h3>Fixing Guide</h3>
+                    <p id="encGuide"></p>
+                </div>
+                <div style="flex:1">
+                    <h3>Maintenance History</h3>
+                    <ul id="encHistory"></ul>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, addDoc, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let techList = [];
@@ -136,12 +153,7 @@
         let pc = null;
         let localStream = null;
 
-        const servers = { 
-            iceServers: [
-                { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
-            ],
-            iceCandidatePoolSize: 10
-        };
+        const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
 
         window.showPage = (id) => {
             const pages = ['mainPage', 'interventionPage', 'missionPage'];
@@ -172,15 +184,18 @@
             }
             
             loadMachinesLive();
+            if (email !== DIRECTOR) loadMyMissions(email);
             listenForIncomingCallSignals(email);
         });
 
         function loadMachinesLive() {
             const tableBody = document.getElementById('assetTable');
+            const requestSelect = document.getElementById('requestMachineSelect');
             const currentUserEmail = auth.currentUser.email.toLowerCase();
 
             onSnapshot(collection(db, "machines"), (snapshot) => {
                 tableBody.innerHTML = "";
+                if(requestSelect) requestSelect.innerHTML = "";
                 allMachines = [];
                 let pendingTask = null;
 
@@ -188,23 +203,25 @@
                     const m = snapshotDoc.data();
                     const machineDocId = snapshotDoc.id;
                     allMachines.push({id: machineDocId, ...m});
+                    if(requestSelect) requestSelect.innerHTML += `<option value="${machineDocId}">${m.name}</option>`;
 
                     const isWorking = m.status === "WORKING";
                     const isAssignedToMe = m.assignedTech === currentUserEmail;
 
+                    // UPDATED: If Director OR assigned tech, trigger the danger cycle
                     if (!isWorking && !m.acknowledged && (isAssignedToMe || currentUserEmail === DIRECTOR)) {
                         pendingTask = m;
                     }
 
                     let rowHTML = `
                         <tr>
-                            <td><b>${m.machineId || machineDocId}</b></td>
+                            <td><b style="cursor:pointer; text-decoration:underline" onclick="viewMachineDetails('${machineDocId}')">${m.machineId || machineDocId}</b></td>
                             <td>${m.name}</td>
                             <td>${m.section}</td>
                             <td>
                                 <span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span>
                                 ${(!isWorking && isAssignedToMe) ? `
-                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}')">⚠️</span>
+                                    <span class="alert-triangle" onclick="acknowledgeTask('${machineDocId}', '${m.name}')">⚠️</span>
                                     <span class="intervenir-msg">please intervenir</span>
                                 ` : ''}
                             </td>
@@ -238,31 +255,18 @@
             });
         }
 
-        // --- UPDATED CALL LOGIC (FIXED END CALL) ---
-
         async function initiateVoiceCall(techEmail, machineName) {
-            if (!techEmail || pc) return;
+            if (!techEmail) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
             
-            // Step 1: Force delete any old session before starting
-            await deleteDoc(callDoc);
-
-            document.getElementById('callPopup').style.display = 'block';
-            document.getElementById('callStatusText').innerText = "RINGING TECHNICIAN...";
-
             pc = new RTCPeerConnection(servers);
-            
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            } catch (e) {
-                console.error("Mic access failed", e);
-                return;
-            }
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
+            // Candidate collection
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    addDoc(collection(callDoc, "offerCandidates"), event.candidate.toJSON());
+                    updateDoc(callDoc, { offerCandidates: event.candidate.toJSON() });
                 }
             };
 
@@ -273,91 +277,59 @@
                 offer: { type: offer.type, sdp: offer.sdp },
                 tech: techEmail,
                 machine: machineName,
-                active: true
+                active: true,
+                answer: null
             });
 
-            pc.ontrack = (event) => {
-                document.getElementById('remoteAudio').srcObject = event.streams[0];
-            };
-
-            // Watch for answer or IF THE DOC IS DELETED (meaning call ended)
             onSnapshot(callDoc, (snap) => {
-                if (!snap.exists()) {
-                    cleanupCall();
-                    return;
-                }
                 const data = snap.data();
                 if (data?.answer && !pc.currentRemoteDescription) {
                     pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    stopDangerCycle();
                     document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
                 }
-            });
-
-            onSnapshot(collection(callDoc, "answerCandidates"), (snap) => {
-                snap.docChanges().forEach((change) => {
-                    if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                });
+                if (data?.active === false) cleanupCall();
             });
         }
 
         async function listenForIncomingCallSignals(myEmail) {
-            const callDoc = doc(db, "emergency_calls", "active_session");
-            onSnapshot(callDoc, async (snap) => {
-                // If document is gone, end the UI for the technician
-                if (!snap.exists()) {
-                    if (pc) cleanupCall();
-                    return;
-                }
-
+            onSnapshot(doc(db, "emergency_calls", "active_session"), async (snap) => {
                 const data = snap.data();
                 if (data?.active && data.tech === myEmail && !pc) {
                     document.getElementById('callPopup').style.display = 'block';
                     document.getElementById('callMachineName').innerText = data.machine;
-                    document.getElementById('callStatusText').innerText = "DIRECTOR CALLING...";
-                    document.getElementById('joinCallBtn').style.display = 'block';
 
-                    window.acceptCall = async () => {
-                        document.getElementById('joinCallBtn').style.display = 'none';
-                        pc = new RTCPeerConnection(servers);
-                        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+                    pc = new RTCPeerConnection(servers);
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-                        pc.ontrack = (event) => {
-                            document.getElementById('remoteAudio').srcObject = event.streams[0];
-                        };
-
-                        pc.onicecandidate = (event) => {
-                            if (event.candidate) {
-                                addDoc(collection(callDoc, "answerCandidates"), event.candidate.toJSON());
-                            }
-                        };
-
-                        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-                        const answer = await pc.createAnswer();
-                        await pc.setLocalDescription(answer);
-                        await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
-
-                        onSnapshot(collection(callDoc, "offerCandidates"), (snap) => {
-                            snap.docChanges().forEach((change) => {
-                                if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                            });
-                        });
-                        document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
+                    pc.ontrack = (event) => {
+                        document.getElementById('remoteAudio').srcObject = event.streams[0];
                     };
+
+                    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    
+                    await updateDoc(doc(db, "emergency_calls", "active_session"), { 
+                        answer: { type: answer.type, sdp: answer.sdp } 
+                    });
+                    
+                    stopDangerCycle();
+                    document.getElementById('callStatusText').innerText = "VOICE CONNECTED";
+                } else if (data?.active === false) {
+                    cleanupCall();
                 }
             });
         }
 
         window.endEmergencyCall = async () => {
             if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-            // HARD FIX: Delete the document. This forces 'snap.exists()' to be false for the technician.
-            await deleteDoc(doc(db, "emergency_calls", "active_session"));
-            cleanupCall();
+            await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false });
         };
 
         function cleanupCall() {
             document.getElementById('callStatusText').innerText = "CALL ENDED";
-            document.getElementById('joinCallBtn').style.display = 'none';
             setTimeout(() => {
                 document.getElementById('callPopup').style.display = 'none';
                 if (localStream) {
@@ -369,10 +341,8 @@
                     pc = null;
                 }
                 isFirstAlert = true; 
-            }, 1000);
+            }, 2000);
         }
-
-        // --- END UPDATED CALL LOGIC ---
 
         function startDangerCycle(name, section) {
             document.getElementById('dangerDescription').innerText = `${name} | ${section}`;
@@ -402,7 +372,65 @@
             document.getElementById('dangerOverlay').style.display = 'none';
         }
 
-        window.acknowledgeTask = async (docId) => {
+        window.submitIntervention = async () => {
+            const mId = document.getElementById('requestMachineSelect').value;
+            const issue = document.getElementById('requestIssue').value;
+            if(!issue) return alert("Please describe the issue");
+            await addDoc(collection(db, "interventions"), {
+                machineId: mId,
+                machineName: allMachines.find(x => x.id === mId).name,
+                issue: issue,
+                requester: auth.currentUser.email,
+                status: "PENDING_MOHAMED",
+                timestamp: serverTimestamp()
+            });
+            alert("Request sent to Mohamed!");
+            showPage('mainPage');
+        };
+
+        function loadAdminApprovals() {
+            const list = document.getElementById('adminApprovalList');
+            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    const card = document.createElement('div');
+                    card.className = "card";
+                    if(data.status === "PENDING_MOHAMED") {
+                        card.innerHTML = `<b>NEW REQUEST: ${data.machineName}</b><br><button onclick="approveIntervention('${d.id}', '${data.machineId}')">APPROVE MISSION</button>`;
+                    } else {
+                        card.innerHTML = `<b>REPORT READY: ${data.machineName}</b><br><button onclick="finalizeMission('${d.id}', '${data.machineId}')">APPROVE & RESTART</button>`;
+                    }
+                    list.appendChild(card);
+                });
+            });
+        }
+
+        window.approveIntervention = async (intId, mId) => {
+            await updateDoc(doc(db, "interventions", intId), { status: "APPROVED" });
+            await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN" });
+        };
+
+        window.finalizeMission = async (intId, mId) => {
+            await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED" });
+            await updateDoc(doc(db, "machines", mId), { status: "WORKING" });
+        };
+
+        function loadMyMissions(email) {
+            const list = document.getElementById('missionList');
+            onSnapshot(query(collection(db, "interventions"), where("status", "==", "APPROVED")), (snap) => {
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    const card = document.createElement('div');
+                    card.className = "card";
+                    card.innerHTML = `<h3>Mission: ${data.machineName}</h3><textarea id="report_${d.id}"></textarea><button onclick="submitMissionReport('${d.id}')">SUBMIT</button>`;
+                    list.appendChild(card);
+                });
+            });
+        }
+
+        window.acknowledgeTask = async (docId, name) => {
             stopDangerCycle();
             await updateDoc(doc(db, "machines", docId), { acknowledged: true });
         };
@@ -417,20 +445,6 @@
         };
 
         window.logout = () => signOut(auth);
-
-        function loadAdminApprovals() {
-            const list = document.getElementById('adminApprovalList');
-            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    const card = document.createElement('div');
-                    card.className = "card";
-                    card.innerHTML = `<b>${data.status}: ${data.machineName}</b>`;
-                    list.appendChild(card);
-                });
-            });
-        }
     </script>
 </body>
 </html>
