@@ -249,7 +249,17 @@
 
         window.openMaintenanceGuide = async (intId, mId) => {
             const m = machineCache[mId];
-            if (!m) return alert("System Syncing... please wait.");
+            // FIX: Added better error handling and wait logic for the guide button
+            if (!m) {
+                console.log("Fetching missing machine data for guide...");
+                const mDoc = await getDoc(doc(db, "machines", mId));
+                if (mDoc.exists()) {
+                    machineCache[mId] = mDoc.data();
+                    window.openMaintenanceGuide(intId, mId);
+                    return;
+                }
+                return alert("System Syncing... please try again in a second.");
+            }
             const startTime = Date.now();
             const content = `
                 <h2 style="color:#e30613">Technical Protocol: ${m.name}</h2>
@@ -429,16 +439,19 @@
 
         function loadMyMissions(email) {
             const list = document.getElementById('missionList');
+            // FIX: Removed strict cache filtering. Missions now appear automatically based on global Interventions state.
             onSnapshot(query(collection(db, "interventions"), where("status", "==", "APPROVED")), (snap) => {
                 list.innerHTML = "";
                 snap.forEach(d => {
                     const data = d.data();
-                    if (machineCache[data.machineId]?.assignedTech !== email) return;
-                    const card = document.createElement('div');
-                    card.className = "card";
-                    card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
-                                      <button onclick="window.openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>`;
-                    list.appendChild(card);
+                    // Show mission if tech is assigned to this machine OR was the requester
+                    if (machineCache[data.machineId]?.assignedTech === email || data.requester === email) {
+                        const card = document.createElement('div');
+                        card.className = "card";
+                        card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
+                                          <button onclick="window.openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>`;
+                        list.appendChild(card);
+                    }
                 });
             });
         }
