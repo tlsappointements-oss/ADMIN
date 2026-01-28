@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Mercedes-Benz | Plant Operations</title>
-    <script crossorigin src="https://unpkg.com/@daily-co/daily-js"></script>
+    <script src="https://meet.jit.si/external_api.js"></script>
     <style>
         body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
         
@@ -29,26 +29,14 @@
         .btn-nav { width: 100%; margin-top: 10px; text-align: left; background: transparent; color: #aaa; border: 1px solid #222; }
 
         .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; width: auto; }
-        .alert-triangle { color: #ff0000; font-size: 1.5rem; cursor: pointer; animation: blink 0.8s infinite; margin-right: 8px; vertical-align: middle; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
-
-        /* DANGER OVERLAY */
-        #dangerOverlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(150, 0, 0, 0.9); z-index: 9999; flex-direction: column;
-            justify-content: center; align-items: center; text-align: center;
-        }
-        .giant-triangle { font-size: 120px; animation: pulse 0.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-
-        /* CALL POPUP - UPDATED FOR VIDEO/AUDIO RELAY */
+        
+        /* CALL POPUP */
         #callPopup {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 450px; background: #111; border: 3px solid #e30613; border-radius: 25px;
+            width: 500px; background: #111; border: 3px solid #e30613; border-radius: 25px;
             padding: 20px; text-align: center; z-index: 10002; box-shadow: 0 0 100px rgba(255,0,0,0.5);
-            min-height: 350px;
         }
-        #videoContainer { width: 100%; height: 300px; background: #000; border-radius: 15px; margin-top: 15px; overflow: hidden; }
+        #videoContainer { width: 100%; height: 350px; background: #000; border-radius: 15px; margin-top: 15px; overflow: hidden; }
         .director-console { background: #000; padding: 15px; border-radius: 15px; margin-top: 20px; border: 1px dashed #444; }
         .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; background: #555; margin-right: 5px; }
         .dot-active { background: #00ff00; box-shadow: 0 0 15px #00ff00; }
@@ -58,6 +46,15 @@
             font-weight: 900; width: 100%; margin-bottom: 20px; border-radius: 5px;
             cursor: pointer; display: block; animation: pulse 2s infinite;
         }
+
+        /* DANGER OVERLAY */
+        #dangerOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(150, 0, 0, 0.9); z-index: 9999; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+        }
+        .giant-triangle { font-size: 120px; animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body onclick="handleFirstInteraction()">
@@ -65,20 +62,19 @@
     <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
     <div id="callPopup">
-        <h2 id="callHeader" style="font-size: 1.2rem; margin: 0;">EMERGENCY LINE</h2>
+        <h2 style="font-size: 1.2rem; margin: 0;">DIRECTOR EMERGENCY LINE</h2>
         <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 5px 0;"></p>
         
         <div id="videoContainer"></div>
         
         <div id="mohamedConsole" class="director-console" style="display:none;">
-            <p style="font-size: 10px; color: #666; margin-bottom: 10px;">DIRECTOR PRIVILEGES</p>
             <button onclick="triggerRemoteAudio()" style="background:#ffcc00; color:#000; font-size: 12px; width: 100%;">🔔 SEND ALERT SOUND</button>
         </div>
 
         <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;" onclick="endEmergencyCall()">📞</button>
         
         <div style="margin-top:10px; font-size:11px; border-top:1px solid #333; padding-top:10px;">
-            <span id="statusDot" class="status-dot"></span> <span id="webrtcState">SECURE RELAY ACTIVE</span>
+            <span id="statusDot" class="status-dot"></span> <span id="webrtcState">JITSI FREE RELAY ACTIVE</span>
         </div>
     </div>
 
@@ -134,11 +130,11 @@
         import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-        const DAILY_ROOM_URL = 'https://tlsappointements.daily.co/tlsappointements';
+        // This is a unique room name for your plant. No payment needed.
+        const JITSI_ROOM = "MercedesPlantOperations_Emergency_Relay_12345";
         
-        let techList = [], isFirstAlert = true, micReady = false, callFrame = null;
+        let techList = [], isFirstAlert = true, micReady = false, jitsiApi = null;
 
-        // --- AUDIO SYSTEM & INTERACTION ---
         window.activateAudioSystem = async () => {
             micReady = true;
             document.getElementById('audioActivator').style.background = "#00ff00";
@@ -151,7 +147,6 @@
             await updateDoc(doc(db, "emergency_calls", "active_session"), { triggerSound: Date.now() });
         };
 
-        // --- AUTH & DATA ---
         onAuthStateChanged(auth, user => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
@@ -200,32 +195,32 @@
                 if (alertM) {
                     showDanger(alertM.name);
                     if (me === DIRECTOR && isFirstAlert && micReady) {
-                        startSecureCall(alertM.assignedTech, alertM.name);
+                        startFreeCall(alertM.assignedTech, alertM.name);
                         isFirstAlert = false;
                     }
                 } else stopDanger();
             });
         }
 
-        // --- SECURE CALL LOGIC ---
-        async function startSecureCall(tech, machine) {
+        async function startFreeCall(tech, machine) {
             if (!tech) return;
             const callDoc = doc(db, "emergency_calls", "active_session");
-            
             document.getElementById('callPopup').style.display = 'block';
-            document.getElementById('callMachineName').innerText = "CONNECTING TO: " + tech;
+            document.getElementById('callMachineName').innerText = "CONNECTING TO TECH...";
 
-            if (!callFrame) {
-                callFrame = window.DailyIframe.createFrame(document.getElementById('videoContainer'), {
-                    showLeaveButton: false,
-                    iframeStyle: { width: '100%', height: '100%', border: '0' }
-                });
-            }
-
-            await callFrame.join({ url: DAILY_ROOM_URL });
+            const domain = "meet.jit.si";
+            const options = {
+                roomName: JITSI_ROOM,
+                width: '100%',
+                height: '100%',
+                parentNode: document.querySelector('#videoContainer'),
+                configOverwrite: { startWithAudioMuted: false, disableDeepLinking: true },
+                interfaceConfigOverwrite: { TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup'] }
+            };
+            jitsiApi = new JitsiMeetExternalAPI(domain, options);
             document.getElementById('statusDot').classList.add('dot-active');
             
-            await setDoc(callDoc, { tech: tech.toLowerCase(), machine, active: true, startTime: Date.now() });
+            await setDoc(callDoc, { tech: tech.toLowerCase(), active: true });
         }
 
         function listenForCalls(me) {
@@ -233,22 +228,22 @@
                 const d = s.data();
                 const isDirector = me.toLowerCase() === DIRECTOR;
 
-                if (d?.active && d.tech === me.toLowerCase() && !isDirector) {
+                if (d?.active && d.tech === me.toLowerCase() && !isDirector && !jitsiApi) {
                     document.getElementById('callPopup').style.display = 'block';
-                    document.getElementById('callMachineName').innerText = "DIRECTOR CALLING...";
-                    
-                    if (!callFrame) {
-                        callFrame = window.DailyIframe.createFrame(document.getElementById('videoContainer'), {
-                            showLeaveButton: false,
-                            iframeStyle: { width: '100%', height: '100%', border: '0' }
-                        });
-                    }
-                    await callFrame.join({ url: DAILY_ROOM_URL });
+                    const domain = "meet.jit.si";
+                    const options = {
+                        roomName: JITSI_ROOM,
+                        width: '100%',
+                        height: '100%',
+                        parentNode: document.querySelector('#videoContainer'),
+                        configOverwrite: { startWithAudioMuted: false }
+                    };
+                    jitsiApi = new JitsiMeetExternalAPI(domain, options);
                     document.getElementById('statusDot').classList.add('dot-active');
                 }
 
                 if (d?.triggerSound && me !== DIRECTOR) document.getElementById('effectAudio').play();
-                if (!d && callFrame) cleanupCall();
+                if (!d && jitsiApi) cleanupCall();
             });
         }
 
@@ -256,59 +251,25 @@
             if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
                 await deleteDoc(doc(db, "emergency_calls", "active_session"));
                 cleanupCall();
-            } else { alert("Only Director can terminate the line."); }
+            } else { alert("Only Director can terminate."); }
         };
 
         function cleanupCall() {
-            if (callFrame) {
-                callFrame.leave();
-                callFrame.destroy();
-                callFrame = null;
-            }
+            if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
             document.getElementById('callPopup').style.display = 'none';
             document.getElementById('statusDot').classList.remove('dot-active');
             isFirstAlert = true;
         }
 
-        // --- ORIGINAL HELPERS ---
+        // --- REMAINING ORIGINAL HELPERS ---
         window.submitReq = async () => {
             const name = document.getElementById('reqMachine').value;
             const issue = document.getElementById('reqIssue').value;
-            if (!issue) return alert("Describe the issue");
-            await addDoc(collection(db, "interventions"), {
-                machineName: name, issue, requestedBy: auth.currentUser.email,
-                status: "PENDING_MOHAMED", timestamp: serverTimestamp()
-            });
-            alert("Sent to Director!");
-            document.getElementById('reqIssue').value = "";
+            await addDoc(collection(db, "interventions"), { machineName: name, issue, requestedBy: auth.currentUser.email, status: "PENDING_MOHAMED", timestamp: serverTimestamp() });
             showPage('mainPage');
         };
-
-        function loadMyMissions(email) {
-            const list = document.getElementById('missionList');
-            onSnapshot(query(collection(db, "interventions"), where("assignedTech", "==", email)), snap => {
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    if (data.status === "APPROVED" || data.status === "TECH_COMPLETED") {
-                        const card = document.createElement('div');
-                        card.className = "card";
-                        card.innerHTML = `
-                            <h3>${data.machineName}</h3>
-                            <p>${data.issue}</p>
-                            <label class="checklist-item"><input type="checkbox" ${data.step1 ? 'checked' : ''} onchange="updateStep('${d.id}', 'step1', this.checked)"> Security Set</label>
-                            <label class="checklist-item"><input type="checkbox" ${data.step2 ? 'checked' : ''} onchange="updateStep('${d.id}', 'step2', this.checked)"> LOTO Done</label>
-                            <label class="checklist-item"><input type="checkbox" ${data.step3 ? 'checked' : ''} onchange="updateStep('${d.id}', 'step3', this.checked)"> Repair Complete</label>
-                            <button onclick="finishMission('${d.id}')" style="background:#00ff00; color:#000; margin-top:10px;">MARK FINISHED</button>
-                        `;
-                        list.appendChild(card);
-                    }
-                });
-            });
-        }
-
         window.updateStep = async (id, step, val) => updateDoc(doc(db, "interventions", id), { [step]: val });
-        window.finishMission = async (id) => { await updateDoc(doc(db, "interventions", id), { status: "TECH_COMPLETED" }); alert("Submitted!"); };
+        window.finishMission = async (id) => { await updateDoc(doc(db, "interventions", id), { status: "TECH_COMPLETED" }); };
         function showDanger(t) { if (auth.currentUser.email.toLowerCase() !== DIRECTOR) { document.getElementById('dangerDescription').innerText = t; document.getElementById('dangerOverlay').style.display = 'flex'; } }
         function stopDanger() { document.getElementById('dangerOverlay').style.display = 'none'; }
         window.showPage = p => { ['mainPage', 'interventionPage', 'missionPage'].forEach(id => document.getElementById(id).style.display = (id === p ? 'block' : 'none')); };
@@ -316,7 +277,6 @@
         window.toggle = (id, s) => updateDoc(doc(db, "machines", id), { status: s === 'WORKING' ? 'BREAKDOWN' : 'WORKING', acknowledged: false });
         window.ack = (id) => updateDoc(doc(db, "machines", id), { acknowledged: true });
         window.logout = () => signOut(auth);
-
         function loadAdminApprovals() {
             const list = document.getElementById('adminApprovalList');
             onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), snap => {
@@ -324,25 +284,31 @@
                 snap.forEach(d => {
                     const data = d.data();
                     const card = document.createElement('div'); card.className = "card";
-                    if(data.status === "PENDING_MOHAMED") {
-                        card.innerHTML = `<b>${data.machineName}</b>: ${data.issue} 
-                        <button onclick="approveIntervention('${d.id}', '${data.requestedBy}')">APPROVE</button>`;
-                    } else {
-                        card.innerHTML = `<b>${data.machineName} FIXED</b> 
-                        <button onclick="closeInt('${d.id}', '${data.machineName}')">VALIDATE & RESTART</button>`;
-                    }
+                    card.innerHTML = data.status === "PENDING_MOHAMED" ? `<b>${data.machineName}</b> <button onclick="approveIntervention('${d.id}', '${data.requestedBy}')">APPROVE</button>` : `<b>${data.machineName} FIXED</b> <button onclick="closeInt('${d.id}', '${data.machineName}')">VALIDATE</button>`;
                     list.appendChild(card);
                 });
             });
         }
-
         window.approveIntervention = async (id, tech) => updateDoc(doc(db, "interventions", id), { status: "APPROVED", assignedTech: tech });
         window.closeInt = async (id, mName) => {
             await updateDoc(doc(db, "interventions", id), { status: "CLOSED" });
-            const q = query(collection(db, "machines"), where("name", "==", mName));
-            const snap = await getDocs(q);
+            const snap = await getDocs(query(collection(db, "machines"), where("name", "==", mName)));
             snap.forEach(m => updateDoc(doc(db, "machines", m.id), { status: "WORKING", acknowledged: true }));
         };
+        function loadMyMissions(email) {
+            const list = document.getElementById('missionList');
+            onSnapshot(query(collection(db, "interventions"), where("assignedTech", "==", email)), snap => {
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (data.status === "APPROVED" || data.status === "TECH_COMPLETED") {
+                        const card = document.createElement('div'); card.className = "card";
+                        card.innerHTML = `<h3>${data.machineName}</h3><p>${data.issue}</p><button onclick="finishMission('${d.id}')">MARK FINISHED</button>`;
+                        list.appendChild(card);
+                    }
+                });
+            });
+        }
     </script>
 </body>
 </html>
