@@ -1,284 +1,287 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Mercedes-Benz | Plant Operations</title>
-    <script src="https://meet.jit.si/external_api.js"></script>
-    <style>
-        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
-        
-        /* SIDEBAR ALWAYS ON TOP */
-        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10005; }
-        .main { margin-left: 285px; padding: 40px; flex: 1; }
-        
-        #adminPanel, #interventionPage, #missionPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
-        
-        .card { background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
-        .checklist-item { display: block; margin: 10px 0; font-size: 0.9rem; }
-        input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; box-sizing: border-box; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { text-align: left; padding: 15px; color: #666; border-bottom: 2px solid #222; font-size: 0.8rem; }
-        td { padding: 15px; border-bottom: 1px solid #1a1a1a; }
-        
-        .status-working { color: #00ff00; background: rgba(0, 255, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-        .status-breakdown { color: #ff3333; background: rgba(255, 51, 51, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-        
-        button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; transition: 0.3s; }
-        button:hover { background: #fff; color: #000; }
-        .btn-nav { width: 100%; margin-top: 10px; text-align: left; background: transparent; color: #aaa; border: 1px solid #222; }
+    <meta charset="UTF-8">
+    <title>Mercedes-Benz | Plant Operations</title>
+    <script src="https://meet.jit.si/external_api.js"></script>
+    <style>
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
+        
+        /* SIDEBAR ALWAYS ON TOP */
+        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10005; }
+        .main { margin-left: 285px; padding: 40px; flex: 1; }
+        
+        #adminPanel, #interventionPage, #missionPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
+        
+        .card { background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
+        .checklist-item { display: block; margin: 10px 0; font-size: 0.9rem; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; box-sizing: border-box; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; padding: 15px; color: #666; border-bottom: 2px solid #222; font-size: 0.8rem; }
+        td { padding: 15px; border-bottom: 1px solid #1a1a1a; }
+        
+        .status-working { color: #00ff00; background: rgba(0, 255, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+        .status-breakdown { color: #ff3333; background: rgba(255, 51, 51, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+        
+        button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #fff; color: #000; }
+        .btn-nav { width: 100%; margin-top: 10px; text-align: left; background: transparent; color: #aaa; border: 1px solid #222; }
 
-        .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; width: auto; }
-        
-        /* CALL POPUP */
-        #callPopup {
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 500px; background: #111; border: 3px solid #e30613; border-radius: 25px;
-            padding: 20px; text-align: center; z-index: 10002; box-shadow: 0 0 100px rgba(255,0,0,0.5);
-        }
-        #videoContainer { width: 100%; height: 350px; background: #000; border-radius: 15px; margin-top: 15px; overflow: hidden; }
-        .director-console { background: #000; padding: 15px; border-radius: 15px; margin-top: 20px; border: 1px dashed #444; }
-        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; background: #555; margin-right: 5px; }
-        .dot-active { background: #00ff00; box-shadow: 0 0 15px #00ff00; }
-        
-        #audioActivator {
-            background: #ffcc00; color: #000; border: none; padding: 15px;
-            font-weight: 900; width: 100%; margin-bottom: 20px; border-radius: 5px;
-            cursor: pointer; display: block; animation: pulse 2s infinite;
-        }
+        .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; width: auto; }
+        
+        /* CALL POPUP */
+        #callPopup {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 500px; background: #111; border: 3px solid #e30613; border-radius: 25px;
+            padding: 20px; text-align: center; z-index: 10002; box-shadow: 0 0 100px rgba(255,0,0,0.5);
+        }
+        #videoContainer { width: 100%; height: 350px; background: #000; border-radius: 15px; margin-top: 15px; overflow: hidden; }
+        .director-console { background: #000; padding: 15px; border-radius: 15px; margin-top: 20px; border: 1px dashed #444; }
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; background: #555; margin-right: 5px; }
+        .dot-active { background: #00ff00; box-shadow: 0 0 15px #00ff00; }
+        
+        #audioActivator {
+            background: #ffcc00; color: #000; border: none; padding: 15px;
+            font-weight: 900; width: 100%; margin-bottom: 20px; border-radius: 5px;
+            cursor: pointer; display: block; animation: pulse 2s infinite;
+        }
 
-        /* DANGER OVERLAY */
-        #dangerOverlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(150, 0, 0, 0.9); z-index: 9999; flex-direction: column;
-            justify-content: center; align-items: center; text-align: center;
-        }
-        .giant-triangle { font-size: 120px; animation: pulse 0.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        /* DANGER OVERLAY */
+        #dangerOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(150, 0, 0, 0.9); z-index: 9999; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+        }
+        .giant-triangle { font-size: 120px; animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        /* MACHINE INFO POPUP */
-        #machineDetailPopup {
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 600px; max-height: 80vh; background: #111; border: 2px solid #e30613; 
-            padding: 30px; z-index: 10010; overflow-y: auto; border-radius: 15px;
-        }
-        .history-log { font-size: 0.8rem; background: #000; padding: 10px; border: 1px solid #333; margin-top: 10px; }
-        .machine-img-preview { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; border: 1px solid #333; }
-    </style>
+        /* MACHINE INFO POPUP */
+        #machineDetailPopup {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 600px; max-height: 80vh; background: #111; border: 2px solid #e30613; 
+            padding: 30px; z-index: 10010; overflow-y: auto; border-radius: 15px;
+        }
+        .history-log { font-size: 0.8rem; background: #000; padding: 10px; border: 1px solid #333; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .machine-img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
+    </style>
 </head>
 <body onclick="handleFirstInteraction()">
 
-    <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+    <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
-    <div id="machineDetailPopup">
-        <div id="machineDetailContent"></div>
-        <button onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
-    </div>
+    <div id="machineDetailPopup">
+        <div id="machineDetailContent"></div>
+        <button onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
+    </div>
 
-    <div id="callPopup">
-        <h2 style="font-size: 1.2rem; margin: 0;">DIRECTOR EMERGENCY LINE</h2>
-        <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 5px 0;"></p>
-        
-        <div id="videoContainer"></div>
-        
-        <div id="mohamedConsole" class="director-console" style="display:none;">
-            <button onclick="triggerRemoteAudio()" style="background:#ffcc00; color:#000; font-size: 12px; width: 100%;">🔔 SEND ALERT SOUND</button>
-        </div>
+    <div id="callPopup">
+        <h2 style="font-size: 1.2rem; margin: 0;">DIRECTOR EMERGENCY LINE</h2>
+        <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 5px 0;"></p>
+        
+        <div id="videoContainer"></div>
+        
+        <div id="mohamedConsole" class="director-console" style="display:none;">
+            <button onclick="triggerRemoteAudio()" style="background:#ffcc00; color:#000; font-size: 12px; width: 100%;">🔔 SEND ALERT SOUND</button>
+        </div>
 
-        <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;" onclick="endEmergencyCall()">📞</button>
-        
-        <div style="margin-top:10px; font-size:11px; border-top:1px solid #333; padding-top:10px;">
-            <span id="statusDot" class="status-dot"></span> <span id="webrtcState">DIRECT LINE ENCRYPTED</span>
-        </div>
-    </div>
+        <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;" onclick="endEmergencyCall()">📞</button>
+        
+        <div style="margin-top:10px; font-size:11px; border-top:1px solid #333; padding-top:10px;">
+            <span id="statusDot" class="status-dot"></span> <span id="webrtcState">DIRECT LINE ENCRYPTED</span>
+        </div>
+    </div>
 
-    <div id="dangerOverlay">
-        <div class="giant-triangle">⚠️</div>
-        <div style="font-size: 2.5rem; font-weight: 900;">DANGER</div>
-        <div id="dangerDescription" style="background:black; padding:10px 20px; margin-top:20px; font-size: 1.5rem;"></div>
-        <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
-    </div>
+    <div id="dangerOverlay">
+        <div class="giant-triangle">⚠️</div>
+        <div style="font-size: 2.5rem; font-weight: 900;">DANGER</div>
+        <div id="dangerDescription" style="background:black; padding:10px 20px; margin-top:20px; font-size: 1.5rem;"></div>
+        <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
+    </div>
 
-    <div class="sidebar">
-        <h2 style="color: #e30613;">MERCEDES</h2>
-        <button id="audioActivator" onclick="activateAudioSystem()">STEP 1: ENABLE MIC</button>
-        <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
-        <hr style="border:0; border-top:1px solid #333;">
-        <button class="btn-nav" onclick="showPage('mainPage')">🏠 Dashboard</button>
-        <button class="btn-nav" onclick="showPage('interventionPage')">📝 Interventions</button>
-        <button class="btn-nav" onclick="showPage('missionPage')">🛠️ Missions</button>
-        <button onclick="logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
-    </div>
+    <div class="sidebar">
+        <h2 style="color: #e30613;">MERCEDES</h2>
+        <button id="audioActivator" onclick="activateAudioSystem()">STEP 1: ENABLE MIC</button>
+        <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
+        <hr style="border:0; border-top:1px solid #333;">
+        <button class="btn-nav" onclick="showPage('mainPage')">🏠 Dashboard</button>
+        <button class="btn-nav" onclick="showPage('interventionPage')">📝 Interventions</button>
+        <button class="btn-nav" onclick="showPage('missionPage')">🛠️ Missions</button>
+        <button onclick="logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
+    </div>
 
-    <div class="main">
-        <div id="adminPanel">
-            <h3>DIRECTOR CONTROL</h3>
-            <div id="adminApprovalList"></div>
-            <hr style="border-color: #333; margin: 20px 0;">
-            <div class="card">
-                <h4>DATA SYNCHRONIZATION</h4>
-                <input type="file" id="jsonInput" accept=".json">
-                <button onclick="syncDatabase()" style="width: 100%; background: #28a745;">PUSH 105 MACHINES</button>
-            </div>
-        </div>
-        
-        <div id="mainPage">
-            <h1>Plant Asset Library</h1>
-            <table>
-                <thead><tr><th>ID</th><th>NAME</th><th>SECTION</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
-                <tbody id="assetTable"></tbody>
-            </table>
-        </div>
+    <div class="main">
+        <div id="adminPanel">
+            <h3>DIRECTOR CONTROL</h3>
+            <div id="adminApprovalList"></div>
+            <hr style="border-color: #333; margin: 20px 0;">
+            <div class="card">
+                <h4>DATA SYNCHRONIZATION</h4>
+                <input type="file" id="jsonInput" accept=".json">
+                <button onclick="syncDatabase()" style="width: 100%; background: #28a745;">PUSH 105 MACHINES</button>
+            </div>
+        </div>
+        
+        <div id="mainPage">
+            <h1>Plant Asset Library</h1>
+            <table>
+                <thead><tr><th>ID</th><th>NAME</th><th>SECTION</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+                <tbody id="assetTable"></tbody>
+            </table>
+        </div>
 
-        <div id="interventionPage">
-            <h1>Step 1: Request Intervention</h1>
-            <div class="card">
-                <select id="reqMachine" onchange="previewMachineDetails(this.value)"></select>
-                <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
-                <button onclick="submitReq()">SUBMIT TO DIRECTOR</button>
-            </div>
-        </div>
+        <div id="interventionPage">
+            <h1>Step 1: Request Intervention</h1>
+            <div class="card">
+                <select id="reqMachine" onchange="previewMachine(this.value)"></select>
+                <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
+                <button onclick="submitReq()">SUBMIT TO DIRECTOR</button>
+            </div>
+        </div>
 
-        <div id="missionPage">
-            <h1>Step 3: Technical Missions</h1>
-            <div id="missionList"></div>
-        </div>
-    </div>
+        <div id="missionPage">
+            <h1>Step 3: Technical Missions</h1>
+            <div id="missionList"></div>
+        </div>
+    </div>
 
-    <script type="module">
-        import { auth, db } from './firebase.js';
-        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, getDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <script type="module">
+        import { auth, db } from './firebase.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-        const JITSI_ROOM = "MercedesPlantOperations_Emergency_Relay_12345";
-        
-        let techList = [], isFirstAlert = true, micReady = false, jitsiApi = null;
-        let machineCache = {};
+        const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
+        const JITSI_ROOM = "MercedesPlantOperations_Emergency_Relay_12345";
+        
+        let techList = [], isFirstAlert = true, micReady = false, jitsiApi = null;
+        let machineCache = {};
 
-        window.activateAudioSystem = async () => {
-            micReady = true;
-            document.getElementById('audioActivator').style.background = "#00ff00";
-            document.getElementById('audioActivator').innerText = "✅ SYSTEM READY";
-        };
+        window.activateAudioSystem = async () => {
+            micReady = true;
+            document.getElementById('audioActivator').style.background = "#00ff00";
+            document.getElementById('audioActivator').innerText = "✅ SYSTEM READY";
+        };
 
-        window.handleFirstInteraction = () => {};
+        window.handleFirstInteraction = () => {};
 
-        window.triggerRemoteAudio = async () => {
-            await updateDoc(doc(db, "emergency_calls", "active_session"), { triggerSound: Date.now() });
-        };
+        window.triggerRemoteAudio = async () => {
+            await updateDoc(doc(db, "emergency_calls", "active_session"), { triggerSound: Date.now() });
+        };
 
-        window.syncDatabase = async () => {
-            const fileInput = document.getElementById('jsonInput');
-            if (!fileInput.files[0]) return alert("Please select the machines.json file");
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    const machines = data.machines || data;
-                    for (const m of machines) {
-                        const mId = m.machineId || `M-${Math.random().toString(36).substr(2, 5)}`;
-                        await setDoc(doc(db, "machines", mId), {
-                            ...m, status: m.status || "WORKING", assignedTech: "", acknowledged: true, lastUpdated: serverTimestamp(),
-                            image: m.image || "https://via.placeholder.com/300x150", history: m.history || [], 
-                            description: m.description || "General Industrial Machine", components: m.components || ["Component A", "Component B", "Component C", "Component D", "Component E", "Component F"]
-                        });
-                    }
-                    alert("Sync Complete.");
-                } catch (err) { alert("Error: " + err.message); }
-            };
-            reader.readAsText(fileInput.files[0]);
-        };
+        window.syncDatabase = async () => {
+            const fileInput = document.getElementById('jsonInput');
+            if (!fileInput.files[0]) return alert("Please select the machines.json file");
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const machines = data.machines || data;
+                    for (const m of machines) {
+                        const mId = m.machineId || `M-${Math.random().toString(36).substr(2, 5)}`;
+                        await setDoc(doc(db, "machines", mId), {
+                            ...m, 
+                            status: m.status || "WORKING", 
+                            assignedTech: "", 
+                            acknowledged: true, 
+                            lastUpdated: serverTimestamp(),
+                            history: m.history || [],
+                            description: m.description || "High-precision manufacturing unit.",
+                            image: m.image || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500",
+                            components: m.components || ["Motor Drive", "PLC Unit", "Hydraulic Pump", "Safety Sensors", "cooling Fan", "Interface Panel"]
+                        });
+                    }
+                    alert("Sync Complete.");
+                } catch (err) { alert("Error: " + err.message); }
+            };
+            reader.readAsText(fileInput.files[0]);
+        };
 
-        onAuthStateChanged(auth, user => {
-            if (!user) { window.location.href = "login.html"; return; }
-            const email = user.email.toLowerCase();
-            document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+        onAuthStateChanged(auth, user => {
+            if (!user) { window.location.href = "login.html"; return; }
+            const email = user.email.toLowerCase();
+            document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
 
-            if (email === DIRECTOR) {
-                document.getElementById('adminPanel').style.display = "block";
-                document.getElementById('mohamedConsole').style.display = "block";
-                document.getElementById('hangUpBtn').style.display = "inline-block";
-                onSnapshot(collection(db, "users"), snap => {
-                    techList = []; snap.forEach(d => techList.push(d.id));
-                });
-                loadAdminApprovals();
-            } else {
-                document.getElementById('hangUpBtn').style.display = "none";
+            if (email === DIRECTOR) {
+                document.getElementById('adminPanel').style.display = "block";
+                document.getElementById('mohamedConsole').style.display = "block";
+                document.getElementById('hangUpBtn').style.display = "inline-block";
+                onSnapshot(collection(db, "users"), snap => {
+                    techList = []; snap.forEach(d => techList.push(d.id));
+                });
+                loadAdminApprovals();
+            } else {
+                document.getElementById('hangUpBtn').style.display = "none";
                 loadMyMissions(email);
-            }
+            }
 
-            loadMachinesLive(email);
-            listenForEmergencyCalls(email);
-        });
+            loadMachinesLive(email);
+            listenForEmergencyCalls(email);
+        });
 
-        function showPage(id) {
-            ['mainPage', 'interventionPage', 'missionPage'].forEach(p => {
-                document.getElementById(p).style.display = (p === id ? 'block' : 'none');
-            });
-        }
-        window.showPage = showPage;
+        function showPage(id) {
+            ['mainPage', 'interventionPage', 'missionPage'].forEach(p => {
+                document.getElementById(p).style.display = (p === id ? 'block' : 'none');
+            });
+        }
+        window.showPage = showPage;
 
-        window.previewMachineDetails = (id) => {
+        window.previewMachine = (id) => {
             const m = machineCache[id];
             if(!m) return;
-            document.getElementById('machineDetailContent').innerHTML = `
-                <h3 style="color:#e30613">STEP 1: PREVIEW</h3>
-                <img src="${m.image}" class="machine-img-preview">
+            const content = `
+                <h2 style="color:#e30613">Step 1: Machine Preview</h2>
+                <img src="${m.image}" class="machine-img">
+                <p><b>Name:</b> ${m.name}</p>
                 <p><b>Description:</b> ${m.description}</p>
-                <b>Maintenance History:</b>
-                <div class="history-log">${m.history.length ? m.history.join('<br>') : 'No history found.'}</div>
+                <h4>Maintenance History</h4>
+                <div class="history-log">${m.history?.length ? m.history.map(h => `<div>• ${h}</div>`).join('') : 'No previous records.'}</div>
             `;
+            document.getElementById('machineDetailContent').innerHTML = content;
             document.getElementById('machineDetailPopup').style.display = 'block';
         };
 
-        function loadMachinesLive(userEmail) {
-            const table = document.getElementById('assetTable');
-            const select = document.getElementById('reqMachine');
+        function loadMachinesLive(userEmail) {
+            const table = document.getElementById('assetTable');
+            const select = document.getElementById('reqMachine');
 
-            onSnapshot(collection(db, "machines"), (snap) => {
-                table.innerHTML = "";
-                if(select) select.innerHTML = "<option value=''>Choose machine...</option>";
-                let alertNeeded = null;
+            onSnapshot(collection(db, "machines"), (snap) => {
+                table.innerHTML = "";
+                if(select) {
+                    const currentVal = select.value;
+                    select.innerHTML = '<option value="">Select Machine...</option>';
+                    snap.forEach(s => select.innerHTML += `<option value="${s.id}" ${currentVal===s.id?'selected':''}>${s.data().name}</option>`);
+                }
 
-                snap.forEach(snapshotDoc => {
-                    const m = snapshotDoc.data();
-                    const id = snapshotDoc.id;
-                    machineCache[id] = m;
-                    if (select) select.innerHTML += `<option value="${id}">${m.name}</option>`;
+                snap.forEach(snapshotDoc => {
+                    const m = snapshotDoc.data();
+                    const id = snapshotDoc.id;
+                    machineCache[id] = m;
 
-                    const isWorking = m.status === "WORKING";
-                    const isMyProblem = m.assignedTech === userEmail;
+                    const isWorking = m.status === "WORKING";
+                    const isMyProblem = m.assignedTech === userEmail;
 
-                    if (!isWorking && !m.acknowledged && isMyProblem && userEmail !== DIRECTOR) alertNeeded = m;
+                    if (!isWorking && !m.acknowledged && isMyProblem && userEmail !== DIRECTOR) startDangerCycle(m);
 
-                    let row = `<tr>
-                        <td><b style="cursor:pointer;text-decoration:underline" onclick="previewMachineDetails('${id}')">${m.machineId || id}</b></td>
-                        <td>${m.name}</td>
-                        <td>${m.section}</td>
-                        <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span></td>
-                        <td>`;
+                    let row = `<tr>
+                        <td><b style="cursor:pointer;text-decoration:underline" onclick="previewMachine('${id}')">${m.machineId || id}</b></td>
+                        <td>${m.name}</td>
+                        <td>${m.section}</td>
+                        <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span></td>
+                        <td>`;
 
-                    if (userEmail === DIRECTOR) {
-                        row += `<select class="tech-select" onchange="assignTech('${id}', this.value)">
-                                    <option value="">Assign...</option>
-                                    ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
-                                </select>
-                                <button onclick="toggleStatus('${id}', '${m.status}')">TOGGLE</button>`;
-                    } else {
-                        row += `<span>${m.assignedTech || '---'}</span>`;
-                    }
-                    row += `</td></tr>`;
-                    table.innerHTML += row;
-                });
-
-                if (alertNeeded) {
-                    startDangerCycle(alertNeeded);
-                } else if (userEmail !== DIRECTOR) {
-                    stopDangerCycle();
-                }
-            });
-        }
+                    if (userEmail === DIRECTOR) {
+                        row += `<select class="tech-select" onchange="assignTech('${id}', this.value)">
+                                    <option value="">Assign...</option>
+                                    ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
+                                </select>`;
+                    } else {
+                        row += `<span>${m.assignedTech || '---'}</span>`;
+                    }
+                    row += `</td></tr>`;
+                    table.innerHTML += row;
+                });
+            });
+        }
 
         function loadMyMissions(email) {
             const list = document.getElementById('missionList');
@@ -290,8 +293,11 @@
                     if (m && m.assignedTech === email) {
                         const card = document.createElement('div');
                         card.className = "card";
-                        card.innerHTML = `<b>MISSION: ${data.machineName}</b><br>
-                                         <button onclick="openMaintenanceGuide('${d.id}', '${data.machineId}')">OPEN MAINTENANCE GUIDE</button>`;
+                        card.innerHTML = `
+                            <h3>MISSION: ${data.machineName}</h3>
+                            <p>Issue: ${data.issue}</p>
+                            <button onclick="openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">OPEN MAINTENANCE GUIDE</button>
+                        `;
                         list.appendChild(card);
                     }
                 });
@@ -300,152 +306,150 @@
 
         window.openMaintenanceGuide = (intId, mId) => {
             const m = machineCache[mId];
+            if(!m) return alert("Machine data synchronization error. Please refresh.");
             const content = `
-                <h3 style="color:#e30613">Step 3: Maintenance Guide</h3>
-                <p><b>Machine:</b> ${m.name}</p>
-                <div class="history-log"><b>Maintenance History:</b><br>${m.history.join('<br>')}</div>
-                <div id="checklist" style="margin-top:15px;">
-                    ${m.components.map((c, i) => `<label class="checklist-item"><input type="checkbox" class="step-check"> Verify ${c}</label>`).join('')}
+                <h2 style="color:#e30613">Maintenance Guide: ${m.name}</h2>
+                <div class="history-log" style="margin-bottom:15px">
+                    <b>Restricted History Access:</b><br>
+                    ${m.history?.map(h => `• ${h}`).join('<br>') || 'No history.'}
                 </div>
-                <textarea id="techRep" placeholder="Add technical comments..."></textarea>
-                <button onclick="submitTechMission('${intId}', '${mId}')">SUBMIT REPORT</button>
+                <div id="checklist">
+                    ${(m.components || ["System Check 1", "System Check 2", "System Check 3", "System Check 4", "System Check 5", "System Check 6"]).map((comp, i) => `
+                        <label class="checklist-item">
+                            <input type="checkbox" class="m-check"> [Step ${i+1}] Verify and Clean ${comp}
+                        </label>
+                    `).join('')}
+                </div>
+                <textarea id="techComment" placeholder="Enter technical resolution notes..."></textarea>
+                <button onclick="submitTechReport('${intId}', '${mId}')" style="width:100%">SUBMIT REPORT FOR APPROVAL</button>
             `;
             document.getElementById('machineDetailContent').innerHTML = content;
             document.getElementById('machineDetailPopup').style.display = 'block';
         };
 
-        window.submitTechMission = async (intId, mId) => {
-            const checks = document.querySelectorAll('.step-check:checked').length;
-            const comment = document.getElementById('techRep').value;
-            if (checks < 6) return alert("You must tick at least 6 steps.");
-            if (!comment) return alert("Please add a comment.");
-            await updateDoc(doc(db, "interventions", intId), { status: "TECH_COMPLETED", techComment: comment });
+        window.submitTechReport = async (intId, mId) => {
+            const checks = document.querySelectorAll('.m-check:checked').length;
+            const comment = document.getElementById('techComment').value;
+            if (checks < 6) return alert("Security Protocol: You must complete and tick at least 6 maintenance steps.");
+            if (!comment) return alert("Please provide a resolution comment.");
+
+            await updateDoc(doc(db, "interventions", intId), { 
+                status: "TECH_COMPLETED", 
+                techComment: comment,
+                completedAt: serverTimestamp() 
+            });
             document.getElementById('machineDetailPopup').style.display = 'none';
-            alert("Report submitted to director.");
+            alert("Report submitted to Director.");
         };
 
-        async function startEmergencyCall(techEmail, machineName) {
-            if (!techEmail) return;
-            const callDoc = doc(db, "emergency_calls", "active_session");
-            await setDoc(callDoc, { tech: techEmail, machine: machineName, active: true, triggerSound: 0 });
-        }
+        function loadAdminApprovals() {
+            const list = document.getElementById('adminApprovalList');
+            onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    const card = document.createElement('div');
+                    card.className = "card";
+                    if(data.status === "PENDING_MOHAMED") {
+                        card.innerHTML = `<b>STEP 1 REQ: ${data.machineName}</b><br><small>${data.issue}</small><br>
+                                         <button onclick="approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE (STEP 2)</button>`;
+                    } else {
+                        card.innerHTML = `<b>FINAL REPORT: ${data.machineName}</b><br><small>Tech Notes: ${data.techComment}</small><br>
+                                         <button onclick="approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#28a745">VALIDATE & RESTART MACHINE</button>`;
+                    }
+                    list.appendChild(card);
+                });
+            });
+        }
 
-        function listenForEmergencyCalls(myEmail) {
-            onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
-                const data = snap.data();
-                if (data?.active && (data.tech === myEmail || myEmail === DIRECTOR)) {
-                    showJitsi(data.machine, myEmail);
-                    if (data.triggerSound > 0) document.getElementById('effectAudio').play();
-                } else if (data?.active === false) {
-                    closeJitsi();
-                }
-            });
-        }
+        window.approveAction = async (intId, mId, status) => {
+            if(status === "PENDING_MOHAMED") {
+                await updateDoc(doc(db, "interventions", intId), { status: "APPROVED" });
+                await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN" });
+            } else {
+                const intDoc = await getDoc(doc(db, "interventions", intId));
+                const comment = intDoc.data().techComment;
+                await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED" });
+                await updateDoc(doc(db, "machines", mId), { 
+                    status: "WORKING", 
+                    history: arrayUnion(`${new Date().toLocaleDateString()}: ${comment}`) 
+                });
+            }
+        };
 
-        function showJitsi(mName, userEmail) {
-            if (jitsiApi) return;
-            document.getElementById('callPopup').style.display = 'block';
-            document.getElementById('callMachineName').innerText = mName;
-            
-            const isDirector = userEmail === DIRECTOR;
+        async function startEmergencyCall(techEmail, machineName) {
+            if (!techEmail) return;
+            const callDoc = doc(db, "emergency_calls", "active_session");
+            await setDoc(callDoc, { tech: techEmail, machine: machineName, active: true, triggerSound: 0 });
+        }
 
-            const options = {
-                roomName: JITSI_ROOM,
-                width: '100%',
-                height: 350,
-                parentNode: document.getElementById('videoContainer'),
-                configOverwrite: { 
-                    prejoinPageEnabled: false, 
-                    startWithAudioMuted: false, 
-                    startWithVideoMuted: true,
-                    disableDeepLinking: true
-                },
-                interfaceConfigOverwrite: { 
-                    TOOLBAR_BUTTONS: isDirector ? ['microphone', 'hangup'] : [], 
-                    SETTINGS_SECTIONS: [],
-                    VIDEO_LAYOUT_FIT: 'both'
-                }
-            };
-            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
-        }
+        function listenForEmergencyCalls(myEmail) {
+            onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
+                const data = snap.data();
+                if (data?.active && (data.tech === myEmail || myEmail === DIRECTOR)) {
+                    showJitsi(data.machine, myEmail);
+                    if (data.triggerSound > 0) document.getElementById('effectAudio').play();
+                } else if (data?.active === false) {
+                    closeJitsi();
+                }
+            });
+        }
 
-        window.endEmergencyCall = async () => {
-            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-            await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false });
-        };
+        function showJitsi(mName, userEmail) {
+            if (jitsiApi) return;
+            document.getElementById('callPopup').style.display = 'block';
+            document.getElementById('callMachineName').innerText = mName;
+            const options = {
+                roomName: JITSI_ROOM, width: '100%', height: 350,
+                parentNode: document.getElementById('videoContainer'),
+                configOverwrite: { prejoinPageEnabled: false, startWithAudioMuted: false, startWithVideoMuted: true, disableDeepLinking: true },
+                interfaceConfigOverwrite: { TOOLBAR_BUTTONS: userEmail === DIRECTOR ? ['microphone', 'hangup'] : [], SETTINGS_SECTIONS: [], VIDEO_LAYOUT_FIT: 'both' }
+            };
+            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
+        }
 
-        function closeJitsi() {
-            if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
-            document.getElementById('callPopup').style.display = 'none';
-            document.getElementById('dangerOverlay').style.display = 'none';
-            isFirstAlert = true;
-        }
+        window.endEmergencyCall = async () => {
+            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
+            await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false });
+        };
 
-        function startDangerCycle(m) {
-            document.getElementById('dangerOverlay').style.display = 'flex';
-            document.getElementById('dangerDescription').innerText = `${m.name} | ${m.section}`;
-            
-            if (isFirstAlert && micReady) {
-                const message = `Danger! Problem detected at ${m.name}. You have been assigned to resolve it. Please respond to director.`;
-                const speech = new SpeechSynthesisUtterance(message);
-                window.speechSynthesis.speak(speech);
-                isFirstAlert = false;
-                
-                startEmergencyCall(auth.currentUser.email, m.name);
-            }
-        }
+        function closeJitsi() {
+            if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
+            document.getElementById('callPopup').style.display = 'none';
+            document.getElementById('dangerOverlay').style.display = 'none';
+            isFirstAlert = true;
+        }
 
-        function stopDangerCycle() {
-            document.getElementById('dangerOverlay').style.display = 'none';
-        }
+        function startDangerCycle(m) {
+            document.getElementById('dangerOverlay').style.display = 'flex';
+            document.getElementById('dangerDescription').innerText = `${m.name} | ${m.section}`;
+            if (isFirstAlert && micReady) {
+                const speech = new SpeechSynthesisUtterance(`Danger! Problem detected at ${m.name}. Respond to director.`);
+                window.speechSynthesis.speak(speech);
+                isFirstAlert = false;
+                startEmergencyCall(auth.currentUser.email, m.name);
+            }
+        }
 
-        window.toggleStatus = async (id, current) => {
-            const next = current === "WORKING" ? "BREAKDOWN" : "WORKING";
-            await updateDoc(doc(db, "machines", id), { status: next, acknowledged: false });
-        };
+        function stopDangerCycle() { document.getElementById('dangerOverlay').style.display = 'none'; }
+        window.toggleStatus = async (id, current) => {
+            const next = current === "WORKING" ? "BREAKDOWN" : "WORKING";
+            await updateDoc(doc(db, "machines", id), { status: next, acknowledged: false });
+        };
+        window.assignTech = async (id, tech) => {
+            await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false });
+        };
+        window.logout = () => signOut(auth);
+        window.submitReq = async () => {
+            const mId = document.getElementById('reqMachine').value;
+            const issue = document.getElementById('reqIssue').value;
+            if(!mId || !issue) return alert("Select machine and describe issue.");
+            await addDoc(collection(db, "interventions"), {
+                machineId: mId, machineName: machineCache[mId].name, issue: issue, status: "PENDING_MOHAMED", timestamp: serverTimestamp()
+            });
+            alert("Step 1 Complete: Request sent to Mohamed for Step 2 Approval.");
+        };
 
-        window.assignTech = async (id, tech) => {
-            await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false });
-        };
-
-        window.logout = () => signOut(auth);
-
-        function loadAdminApprovals() {
-             const list = document.getElementById('adminApprovalList');
-             onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    const card = document.createElement('div');
-                    card.className = "card";
-                    card.innerHTML = `<b>${data.status === "PENDING_MOHAMED" ? "STEP 2 APPROVAL" : "FINAL VALIDATION"}: ${data.machineName}</b><br>
-                                     <button onclick="approveAction('${d.id}', '${data.machineId}', '${data.status}')">APPROVE</button>`;
-                    list.appendChild(card);
-                });
-             });
-        }
-
-        window.approveAction = async (intId, mId, status) => {
-            if(status === "PENDING_MOHAMED") {
-                await updateDoc(doc(db, "interventions", intId), { status: "APPROVED" });
-                await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN" });
-            } else {
-                const iDoc = await getDoc(doc(db, "interventions", intId));
-                await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED" });
-                await updateDoc(doc(db, "machines", mId), { status: "WORKING", history: arrayUnion(`Fixed: ${iDoc.data().techComment}`) });
-            }
-        };
-
-        window.submitReq = async () => {
-            const mId = document.getElementById('reqMachine').value;
-            const issue = document.getElementById('reqIssue').value;
-            if(!issue || !mId) return alert("Select machine and describe issue.");
-            await addDoc(collection(db, "interventions"), {
-                machineId: mId, machineName: machineCache[mId].name, issue: issue, status: "PENDING_MOHAMED", timestamp: serverTimestamp()
-            });
-            alert("Request sent to Director.");
-        };
-
-    </script>
+    </script>
 </body>
 </html>
