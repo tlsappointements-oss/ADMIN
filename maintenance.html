@@ -11,8 +11,12 @@
         .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10005; }
         .main { margin-left: 285px; padding: 40px; flex: 1; }
         
-        #adminPanel, #interventionPage, #missionPage, #historyPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
+        /* FIX: Added mainPage to the hidden list, and ensured visibility logic works */
+        #mainPage, #adminPanel, #interventionPage, #missionPage, #historyPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
         
+        /* Show Dashboard by default */
+        #mainPage { display: block; }
+
         .card { background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
         .checklist-item { display: block; margin: 10px 0; font-size: 0.9rem; }
         input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; box-sizing: border-box; }
@@ -223,7 +227,7 @@
         };
 
         window.showPage = (id) => {
-            ['mainPage', 'interventionPage', 'missionPage', 'historyPage'].forEach(p => {
+            ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage'].forEach(p => {
                 document.getElementById(p).style.display = (p === id ? 'block' : 'none');
             });
         }
