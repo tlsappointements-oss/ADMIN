@@ -72,16 +72,21 @@
         .giant-triangle { font-size: 120px; animation: pulse 0.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        /* ACCESS DENIED MODAL */
+        /* ACCESS DENIED MODAL - REDESIGNED FUTURISTIC */
         #accessDeniedModal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 20000; align-items: center; justify-content: center;
+            background: radial-gradient(circle, #200 0%, #000 100%); z-index: 20000; align-items: center; justify-content: center;
         }
         .security-shield {
-            border: 4px solid #e30613; padding: 50px; border-radius: 20px; text-align: center;
-            box-shadow: 0 0 50px #e30613; animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+            border: 1px solid #e30613; padding: 60px; border-radius: 5px; text-align: center;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            box-shadow: 0 0 50px rgba(227, 6, 19, 0.2); position: relative; overflow: hidden;
         }
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } }
+        .security-scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #e30613;
+            box-shadow: 0 0 15px #e30613; animation: scanMove 2s infinite linear;
+        }
+        @keyframes scanMove { 0% { top: 0; } 100% { top: 100%; } }
 
         /* MACHINE INFO POPUP */
         #machineDetailPopup {
@@ -94,16 +99,26 @@
         .preview-img { width: 120px; height: 120px; object-fit: cover; margin-right: 10px; border: 2px solid #444; border-radius: 5px; }
         .img-edit-btn { background: #444; color: white; padding: 3px 8px; font-size: 10px; display: block; margin-top: 5px; width: 120px; text-align: center; cursor: pointer; }
 
-        /* FUTURISTIC KPI STYLES */
-        .trading-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .kpi-circle-container { position: relative; width: 100px; height: 100px; display: inline-block; margin: 10px; }
-        .kpi-circle-svg { transform: rotate(-90deg); width: 100px; height: 100px; }
-        .kpi-circle-bg { fill: none; stroke: #222; stroke-width: 8; }
-        .kpi-circle-progress { fill: none; stroke: #00ff00; stroke-width: 8; stroke-dasharray: 251.2; stroke-dashoffset: 251.2; transition: 1s ease-out; stroke-linecap: round; filter: drop-shadow(0 0 5px #00ff00); }
-        .kpi-percent-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.2rem; color: #fff; }
-        .performance-bar-wrap { background: #222; height: 10px; border-radius: 5px; margin: 10px 0; overflow: hidden; }
-        .performance-bar-fill { height: 100%; background: linear-gradient(90deg, #e30613, #ffcc00, #00ff00); transition: 1s; width: 0%; }
-        .trading-value { font-family: 'Courier New', monospace; font-size: 1.5rem; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5); }
+        /* ADVANCED KPI DASHBOARD STYLES */
+        .kpi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+        .kpi-hero-card { background: linear-gradient(145deg, #151515, #0a0a0a); border: 1px solid #222; border-radius: 15px; padding: 25px; position: relative; overflow: hidden; }
+        .kpi-hero-card::after { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #e30613; }
+        
+        .kpi-main-val { font-size: 3.5rem; font-weight: 900; font-family: 'Courier New', monospace; color: #fff; margin: 10px 0; display: block; }
+        .kpi-sub-label { color: #666; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px; }
+        
+        .pulse-ring { width: 12px; height: 12px; border-radius: 50%; background: #00ff00; display: inline-block; margin-right: 8px; animation: pulseGreen 1.5s infinite; }
+        @keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } }
+
+        .line-health-row { background: #111; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 2px solid #333; }
+        .health-bar-bg { background: #222; height: 4px; width: 100%; margin-top: 10px; }
+        .health-bar-fill { height: 100%; background: #e30613; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); box-shadow: 0 0 10px #e30613; }
+
+        /* ACCESS MANAGEMENT STYLES */
+        .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 5px; margin-top: 10px; }
+        .perm-chip { font-size: 9px; padding: 4px; border: 1px solid #333; text-align: center; cursor: pointer; border-radius: 3px; }
+        .perm-active { background: #e30613; border-color: #e30613; color: #fff; }
+
     </style>
 </head>
 <body onclick="window.handleFirstInteraction()">
@@ -112,10 +127,11 @@
 
     <div id="accessDeniedModal">
         <div class="security-shield">
-            <h1 style="font-size: 5rem; color: #e30613; margin: 0;">🛑</h1>
-            <h2 style="letter-spacing: 5px; color: #e30613;">ACCESS DENIED</h2>
-            <p style="color: #666;">Security Protocol 102: Restricted to Plant Director Only.</p>
-            <button onclick="document.getElementById('accessDeniedModal').style.display='none'" style="margin-top:20px;">ACKNOWLEDGE</button>
+            <div class="security-scan-line"></div>
+            <h1 style="font-size: 4rem; color: #e30613; margin: 0; font-family: monospace;">[!]</h1>
+            <h2 style="letter-spacing: 8px; color: #fff;">SECURITY VIOLATION</h2>
+            <p style="color: #666; font-size: 0.8rem;">BIOMETRIC SIGNATURE NOT RECOGNIZED.<br>ENCRYPTION LEVEL 102 ACTIVE.</p>
+            <button onclick="document.getElementById('accessDeniedModal').style.display='none'" style="margin-top:30px; background:transparent; border: 1px solid #e30613; color: #e30613; padding: 10px 40px;">DISMISS</button>
         </div>
     </div>
 
@@ -149,17 +165,23 @@
         <button id="audioActivator" onclick="window.activateAudioSystem()">STEP 1: ENABLE MIC</button>
         <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
         <hr style="border:0; border-top:1px solid #333;">
-        <button class="btn-nav" onclick="window.showPage('mainPage')">🏠 Dashboard</button>
-        <button class="btn-nav" onclick="window.showPage('interventionPage')">📝 Interventions</button>
-        <button class="btn-nav" onclick="window.showPage('missionPage')">🛠️ Missions</button>
-        <button class="btn-nav" onclick="window.showPage('historyPage')">📚 History</button>
-        <button class="btn-nav" onclick="window.showPage('kpiTrackerPage')">📊 KPI Command</button>
+        <button class="btn-nav" id="nav_mainPage" onclick="window.showPage('mainPage')">🏠 Dashboard</button>
+        <button class="btn-nav" id="nav_interventionPage" onclick="window.showPage('interventionPage')">📝 Interventions</button>
+        <button class="btn-nav" id="nav_missionPage" onclick="window.showPage('missionPage')">🛠️ Missions</button>
+        <button class="btn-nav" id="nav_historyPage" onclick="window.showPage('historyPage')">📚 History</button>
+        <button class="btn-nav" id="nav_kpiTrackerPage" onclick="window.showPage('kpiTrackerPage')">📊 KPI Command</button>
         <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
     </div>
 
     <div class="main">
         <div id="adminPanel">
             <h3>DIRECTOR CONTROL</h3>
+            
+            <div class="card" style="border: 1px solid #ffcc00;">
+                <h4 style="color:#ffcc00">SECURITY & ACCESS MATRIX</h4>
+                <div id="userAccessList"></div>
+            </div>
+
             <div id="directorActiveCalls" class="card" style="border: 2px solid #ffcc00;">
                 <h4>ACTIVE BREAKDOWNS (CALLS)</h4>
                 <div id="breakdownCallList"></div>
@@ -208,40 +230,44 @@
         </div>
 
         <div id="kpiTrackerPage">
-            <h1 style="letter-spacing: 2px;">STRATEGIC KPI COMMAND CENTER</h1>
+            <h1 style="letter-spacing: 5px; text-shadow: 0 0 20px rgba(227,6,19,0.5);">STRATEGIC MISSION CONTROL</h1>
             
-            <div class="trading-grid">
-                <div class="card" style="border-top: 4px solid #00ff00;">
-                    <h3 style="margin-top:0">PRODUCTION LINE HEALTH</h3>
-                    <div id="lineHealthContent"></div>
+            <div class="kpi-container">
+                <div class="kpi-hero-card">
+                    <span class="kpi-sub-label">Global Plant Efficiency</span>
+                    <span id="globalKpiVal" class="kpi-main-val">0%</span>
+                    <div class="health-bar-bg"><div id="globalKpiFill" class="health-bar-fill" style="width:0%"></div></div>
                 </div>
-
-                <div class="card" style="text-align:center;">
-                    <h3>PLANT EFFICIENCY</h3>
-                    <div class="kpi-circle-container">
-                        <svg class="kpi-circle-svg">
-                            <circle class="kpi-circle-bg" cx="50" cy="50" r="40"></circle>
-                            <circle id="globalKpiCircle" class="kpi-circle-progress" cx="50" cy="50" r="40"></circle>
-                        </svg>
-                        <div class="kpi-percent-text" id="globalKpiVal">0%</div>
-                    </div>
-                    <p style="color:#666; font-size:11px;">Target vs Actual Resolution Time</p>
+                <div class="kpi-hero-card">
+                    <span class="kpi-sub-label">Active Deployments</span>
+                    <span id="activeMissionsVal" class="kpi-main-val" style="color:#ffcc00;">0</span>
+                    <p style="font-size:10px; color:#555;">Live technical interventions</p>
+                </div>
+                <div class="kpi-hero-card">
+                    <span class="kpi-sub-label">System Integrity</span>
+                    <span class="kpi-main-val" style="color:#00ff00;">STABLE</span>
+                    <div style="font-size:11px;"><span class="pulse-ring"></span> Real-time Telemetry</div>
                 </div>
             </div>
 
-            <div class="card">
-                <h3>TECHNICIAN PERFORMANCE AUDIT</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>IDENTIFIER</th>
-                            <th>COMPLETIONS</th>
-                            <th>AVG ACCURACY</th>
-                            <th>EFFICIENCY RATING</th>
-                        </tr>
-                    </thead>
-                    <tbody id="techKpiTable"></tbody>
-                </table>
+            <div style="display:grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-top:20px;">
+                <div class="card">
+                    <h3>LINE TELEMETRY</h3>
+                    <div id="lineHealthContent"></div>
+                </div>
+                <div class="card">
+                    <h3>ELITE TECHNICIAN PERFORMANCE</h3>
+                    <table style="margin-top:0">
+                        <thead>
+                            <tr>
+                                <th>IDENTIFIER</th>
+                                <th>MTTR ACCURACY</th>
+                                <th>RATING</th>
+                            </tr>
+                        </thead>
+                        <tbody id="techKpiTable"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -255,6 +281,7 @@
         const DIRECTOR_PASS = "MB2024_ADMIN";
         
         let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
+        let userPermissions = {};
 
         const M_STEPS = {
             "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
@@ -305,10 +332,33 @@
             reader.readAsText(fileInput.files[0]);
         };
 
+        // ACCESS CONTROL SYSTEM
+        window.checkPermission = (pageId) => {
+            const email = auth.currentUser.email.toLowerCase();
+            if (email === DIRECTOR) return true;
+            const perms = userPermissions[email] || {};
+            
+            const mapping = {
+                'mainPage': 'view_dashboard',
+                'interventionPage': 'request_intervention',
+                'missionPage': 'do_missions',
+                'historyPage': 'view_history',
+                'kpiTrackerPage': 'view_kpi'
+            };
+            
+            return perms[mapping[pageId]] === true;
+        };
+
+        window.togglePermission = async (email, key) => {
+            const current = userPermissions[email] || {};
+            current[key] = !current[key];
+            await setDoc(doc(db, "permissions", email), current);
+        };
+
         window.showPage = (id) => {
-            if (id === 'kpiTrackerPage' && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
+            if (!window.checkPermission(id)) {
                 document.getElementById('accessDeniedModal').style.display = 'flex';
-                const voice = new SpeechSynthesisUtterance("Access Denied. Security protocol 1 0 2 active. Restricted to Plant Director only.");
+                const voice = new SpeechSynthesisUtterance("Access Denied. Security protocol 1 0 2 active.");
                 voice.rate = 0.9; voice.pitch = 0.8;
                 window.speechSynthesis.speak(voice);
                 return;
@@ -428,7 +478,6 @@
             }
         };
 
-        /* AUDIT CONTROLS PART - FOR DIRECTOR ONLY */
         window.forceModifyReport = async (intId) => {
             const pass = prompt("ENTER DIRECTOR ACCESS PASSWORD:");
             if (pass !== DIRECTOR_PASS) return alert("ACCESS DENIED.");
@@ -501,14 +550,11 @@
                 const editBadge = i.isEdited ? '<span class="edited-tag">MODIFIED BY DIRECTOR</span>' : '';
                 card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} ${editBadge} <span style="float:right; color:#e30613">Audit Logs ></span>`;
                 card.onclick = () => {
-                    if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+                    const email = auth.currentUser.email.toLowerCase();
+                    if (email === DIRECTOR || (userPermissions[email] && userPermissions[email].view_history)) {
                         showHistoryDetail(i);
                     } else {
-                        // High-end Denied Feedback
                         document.getElementById('accessDeniedModal').style.display = 'flex';
-                        const voice = new SpeechSynthesisUtterance("Access Denied. Security protocol 1 0 2 active. Restricted to Plant Director only.");
-                        voice.rate = 0.9; voice.pitch = 0.8;
-                        window.speechSynthesis.speak(voice);
                     }
                 };
                 container.appendChild(card);
@@ -538,7 +584,6 @@
             alert("Request sent to Director.");
         };
 
-        /* CALL PART START - UPDATED FOR DIRECTOR MANAGEMENT */
         window.startEmergencyCall = (mName, isDirector = false) => {
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = mName;
@@ -584,16 +629,17 @@
             window.startEmergencyCall(mName, true);
         };
 
-        /* NEW KPI LOGIC */
+        /* RE-DESIGNED KPI LOGIC - ULTRA FUTURISTIC */
         window.calculateKPIs = () => {
             const sections = { "ROBOTIC": { total: 0, working: 0 }, "PRESS": { total: 0, working: 0 }, "ASSEMBLY": { total: 0, working: 0 } };
             const techStats = {};
-            let totalTarget = 0, totalActual = 0;
+            let totalTarget = 0, totalActual = 0, activeMissions = 0;
 
             Object.values(machineCache).forEach(m => {
                 if (sections[m.section]) {
                     sections[m.section].total++;
                     if (m.status === "WORKING") sections[m.section].working++;
+                    else activeMissions++;
                 }
             });
 
@@ -612,43 +658,42 @@
                 totalActual += actual;
             });
 
-            // Update Circle
+            // Update Futuristic Hero Stats
             const globalEfficiency = totalActual > 0 ? Math.min(100, Math.round((totalTarget / totalActual) * 100)) : 0;
-            const offset = 251.2 - (251.2 * globalEfficiency) / 100;
-            document.getElementById('globalKpiCircle').style.strokeDashoffset = offset;
             document.getElementById('globalKpiVal').innerText = globalEfficiency + "%";
+            document.getElementById('globalKpiFill').style.width = globalEfficiency + "%";
+            document.getElementById('activeMissionsVal').innerText = activeMissions;
 
-            // Update Lines
+            // Update Section Telemetry
             let healthHtml = "";
             for (const [name, data] of Object.entries(sections)) {
                 const percent = data.total > 0 ? Math.round((data.working / data.total) * 100) : 0;
                 healthHtml += `
-                    <div style="margin-bottom:15px">
-                        <div style="display:flex; justify-content:space-between; font-size:12px;">
-                            <span>${name} LINE</span><span>${percent}%</span>
+                    <div class="line-health-row">
+                        <div style="display:flex; justify-content:space-between; font-size:11px;">
+                            <span style="letter-spacing:1px;">${name} UNIT</span>
+                            <span style="color:#e30613; font-weight:bold;">${percent}%</span>
                         </div>
-                        <div class="performance-bar-wrap">
-                            <div class="performance-bar-fill" style="width:${percent}%"></div>
+                        <div class="health-bar-bg">
+                            <div class="health-bar-fill" style="width:${percent}%"></div>
                         </div>
                     </div>`;
             }
             document.getElementById('lineHealthContent').innerHTML = healthHtml;
 
-            // Update Tech Table
+            // Update Tech Performance Table
             const table = document.getElementById('techKpiTable');
             table.innerHTML = "";
-            Object.entries(techStats).forEach(([name, stats]) => {
+            Object.entries(techStats).sort((a,b) => b[1].count - a[1].count).forEach(([name, stats]) => {
                 const efficiency = Math.min(100, Math.round((stats.totalTarget / stats.totalActual) * 100));
                 table.innerHTML += `
                     <tr>
-                        <td><b>${name.split('@')[0].toUpperCase()}</b></td>
-                        <td class="trading-value">${stats.count}</td>
-                        <td>${efficiency}% Accuracy</td>
+                        <td><span style="color:#666; font-size:10px;">ID:</span> <b>${name.split('@')[0].toUpperCase()}</b></td>
+                        <td style="font-family:monospace; color:#00ff00;">${efficiency}%</td>
                         <td>
-                             <div class="performance-bar-wrap" style="width:100px; display:inline-block; margin-right:10px;">
-                                <div class="performance-bar-fill" style="width:${efficiency}%"></div>
-                             </div>
-                             <span style="color:${efficiency > 80 ? '#00ff00' : '#ffcc00'}">${efficiency > 80 ? 'ELITE' : 'AVERAGE'}</span>
+                             <span style="padding:2px 8px; font-size:9px; border:1px solid ${efficiency > 80 ? '#00ff00' : '#ffcc00'}; color:${efficiency > 80 ? '#00ff00' : '#ffcc00'}">
+                                ${efficiency > 80 ? 'ELITE' : 'OPERATIONAL'}
+                             </span>
                         </td>
                     </tr>`;
             });
@@ -658,6 +703,21 @@
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+
+            // Listen for global permissions
+            onSnapshot(collection(db, "permissions"), snap => {
+                snap.forEach(d => userPermissions[d.id] = d.data());
+                
+                // Hide sidebar buttons based on real-time permissions
+                ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage'].forEach(id => {
+                    const btn = document.getElementById('nav_' + id);
+                    if (btn) btn.style.display = window.checkPermission(id) ? 'block' : 'none';
+                });
+
+                if (email === DIRECTOR) {
+                    renderAccessManager(snap);
+                }
+            });
 
             if (email === DIRECTOR) {
                 document.getElementById('adminPanel').style.display = "block";
@@ -676,6 +736,32 @@
             loadHistory();
             listenForEmergency(email);
         });
+
+        function renderAccessManager(snap) {
+            const container = document.getElementById('userAccessList');
+            container.innerHTML = "";
+            const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
+            
+            snap.forEach(d => {
+                const userEmail = d.id;
+                if (userEmail === DIRECTOR) return;
+                const perms = d.data();
+                
+                const div = document.createElement('div');
+                div.className = "card";
+                div.innerHTML = `
+                    <div style="font-size:12px; margin-bottom:10px; color:#e30613;">USER: ${userEmail}</div>
+                    <div class="perm-grid">
+                        ${keys.map(k => `
+                            <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick="window.togglePermission('${userEmail}', '${k}')">
+                                ${k.replace('_', ' ').toUpperCase()}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
 
         function listenForEmergency(email) {
             onSnapshot(collection(db, "machines"), (snap) => {
@@ -715,7 +801,7 @@
                 if (data.triggerSound && micReady) {
                     const audio = document.getElementById('effectAudio');
                     audio.play().catch(() => {});
-                    const msg = new SpeechSynthesisUtterance("Please respond to director. You have been assigned to repair this problem.");
+                    const msg = new SpeechSynthesisUtterance("Please respond to director.");
                     msg.lang = 'en-US'; window.speechSynthesis.speak(msg);
                 }
 
