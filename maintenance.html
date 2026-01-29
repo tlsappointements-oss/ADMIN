@@ -120,7 +120,6 @@
         <button class="btn-nav" onclick="window.showPage('mainPage')">🏠 Dashboard</button>
         <button class="btn-nav" onclick="window.showPage('interventionPage')">📝 Interventions</button>
         <button class="btn-nav" onclick="window.showPage('missionPage')">🛠️ Missions</button>
-        <button class="btn-nav" onclick="window.showPage('historyPage')">📚 History</button>
         <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
     </div>
 
@@ -157,37 +156,20 @@
             <h1>Step 3: Technical Missions</h1>
             <div id="missionList"></div>
         </div>
-
-        <div id="historyPage">
-            <h1>Maintenance Archive</h1>
-            <div class="card">
-                <input type="text" id="historySearch" placeholder="Search by Machine Name..." onkeyup="window.filterHistory()">
-                <select id="historyDateSort" onchange="window.filterHistory()">
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                </select>
-            </div>
-            <div id="historyList"></div>
-        </div>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-        const DIRECTOR_PASS = "MB2024_ADMIN";
+        const JITSI_ROOM = "MercedesPlantOperations_Emergency_Relay_12345";
         
-        let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
+        let techList = [], isFirstAlert = true, micReady = false, jitsiApi = null;
+        let machineCache = {};
 
-        const M_STEPS = {
-            "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
-            "PRESS": ["Oil pressure check", "Die alignment inspection", "Lubrication cycle test", "Safety light curtain check", "Ram stroke measurement", "Plate cleaning"],
-            "ASSEMBLY": ["Conveyor belt tension", "Sensor debris cleaning", "Pneumatic valve check", "Fastener torque audit", "Control panel inspection", "Emergency stop test"],
-            "DEFAULT": ["General visual inspection", "Power supply check", "Input/Output verification", "Component cleaning", "Operational test", "Safety check"]
-        };
-
+        // INITIALIZERS
         window.activateAudioSystem = async () => {
             micReady = true;
             document.getElementById('audioActivator').style.background = "#00ff00";
@@ -196,252 +178,77 @@
 
         window.handleFirstInteraction = () => {};
 
+        window.showPage = (id) => {
+            ['mainPage', 'interventionPage', 'missionPage', 'adminPanel'].forEach(p => {
+                const el = document.getElementById(p);
+                if (el) el.style.display = (p === id ? 'block' : 'none');
+            });
+            // Keep admin panel visible if director
+            if (auth.currentUser?.email.toLowerCase() === DIRECTOR) {
+                 document.getElementById('adminPanel').style.display = 'block';
+            }
+        };
+
+        // EMERGENCY CALL LOGIC (REINTEGRATED)
         window.triggerRemoteAudio = async () => {
             await updateDoc(doc(db, "emergency_calls", "active_session"), { triggerSound: Date.now() });
         };
 
-        window.syncDatabase = async () => {
-            const fileInput = document.getElementById('jsonInput');
-            if (!fileInput.files[0]) return alert("Please select the machines.json file");
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    const machines = data.machines || data;
-                    for (const m of machines) {
-                        const mId = m.machineId || `M-${Math.random().toString(36).substr(2, 5)}`;
-                        const type = m.name.toUpperCase().includes('ROBOT') ? "ROBOTIC" : m.name.toUpperCase().includes('PRESS') ? "PRESS" : "ASSEMBLY";
-                        await setDoc(doc(db, "machines", mId), {
-                            ...m, 
-                            status: m.status || "WORKING", 
-                            assignedTech: "", 
-                            acknowledged: true, 
-                            lastUpdated: serverTimestamp(),
-                            history: m.history || [],
-                            description: m.description || "Mercedes-Benz precision unit.",
-                            image: m.image || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500",
-                            targetMaintenanceTime: m.targetMaintenanceTime || 60,
-                            steps: M_STEPS[type] || M_STEPS["DEFAULT"]
-                        });
-                    }
-                    alert("Sync Complete.");
-                } catch (err) { alert("Error: " + err.message); }
-            };
-            reader.readAsText(fileInput.files[0]);
-        };
+        async function startEmergencyCall(techEmail, machineName) {
+            if (!techEmail) return;
+            const callDoc = doc(db, "emergency_calls", "active_session");
+            await setDoc(callDoc, { tech: techEmail, machine: machineName, active: true, triggerSound: 0 });
+        }
 
-        window.showPage = (id) => {
-            ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage'].forEach(p => {
-                const el = document.getElementById(p);
-                if(el) el.style.display = (p === id ? 'block' : 'none');
+        function listenForEmergencyCalls(myEmail) {
+            onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
+                const data = snap.data();
+                if (data?.active && (data.tech === myEmail || myEmail === DIRECTOR)) {
+                    showJitsi(data.machine, myEmail);
+                    if (data.triggerSound > 0) document.getElementById('effectAudio').play();
+                } else if (data?.active === false) {
+                    closeJitsi();
+                }
             });
         }
 
-        window.previewMachine = (id) => {
-            const m = machineCache[id];
-            if(!m) return;
-            const content = `
-                <h2 style="color:#e30613">Machine Profile: ${m.name}</h2>
-                <img src="${m.image}" class="machine-img">
-                <p><b>Target Maint. Time:</b> ${m.targetMaintenanceTime} mins</p>
-                <p><b>Description:</b> ${m.description}</p>
-                <h4>Recent History</h4>
-                <div class="history-log">${m.history?.length ? m.history.map(h => `<div>• ${h}</div>`).join('') : 'No previous records.'}</div>
-            `;
-            document.getElementById('machineDetailContent').innerHTML = content;
-            document.getElementById('machineDetailPopup').style.display = 'block';
-        };
-
-        window.openMaintenanceGuide = async (intId, mId) => {
-            const popup = document.getElementById('machineDetailPopup');
-            const contentDiv = document.getElementById('machineDetailContent');
-            contentDiv.innerHTML = `<h2 style="color:#e30613; text-align:center;">INITIALIZING PROTOCOL...</h2>`;
-            popup.style.display = 'block';
-
-            try {
-                const mDoc = await getDoc(doc(db, "machines", mId));
-                const m = mDoc.data();
-                const actualStart = Date.now();
-                const steps = m.steps || M_STEPS["DEFAULT"];
-
-                contentDiv.innerHTML = `
-                    <h2 style="color:#e30613">Technical Protocol: ${m.name}</h2>
-                    <div class="card" style="border:1px solid #e30613">
-                        <p><b>Actual System Start:</b> ${new Date(actualStart).toLocaleString()}</p>
-                        <label>Setup your Start Time (For Record):</label>
-                        <input type="datetime-local" id="manualStartTime" value="${new Date().toISOString().slice(0, 16)}">
-                        <label>Setup your Finish Time:</label>
-                        <input type="datetime-local" id="manualEndTime" value="${new Date().toISOString().slice(0, 16)}">
-                    </div>
-                    <div id="checklist">
-                        ${steps.map((step, i) => `
-                            <label class="checklist-item">
-                                <input type="checkbox" class="m-check"> [Step ${i+1}] <b>${step}</b>
-                            </label>
-                        `).join('')}
-                    </div>
-                    <div class="card">
-                        <h4>Evidence Upload</h4>
-                        <label>Before Repair:</label><input type="file" id="imgBefore" accept="image/*">
-                        <label>After Repair:</label><input type="file" id="imgAfter" accept="image/*">
-                    </div>
-                    <textarea id="techComment" placeholder="Detailed resolution notes..."></textarea>
-                    <button id="finalSubmitBtn" onclick="window.submitTechReport('${intId}', '${mId}', ${actualStart})" style="width:100%">SUBMIT FINAL REPORT</button>
-                `;
-            } catch (err) {
-                contentDiv.innerHTML = `<h2 style="color:red">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
-            }
-        };
-
-        window.submitTechReport = async (intId, mId, actualStart) => {
-            const checks = document.querySelectorAll('.m-check:checked').length;
-            const comment = document.getElementById('techComment').value;
-            const actualEnd = Date.now();
-            const btn = document.getElementById('finalSubmitBtn');
-
-            if (checks < 6) return alert("Security Protocol: All 6 steps must be checked.");
-            if (!comment) return alert("Please add a comment.");
-            
-            btn.innerText = "UPLOADING...";
-            btn.disabled = true;
-
-            const getBase64 = (file) => new Promise((res) => {
-                if(!file) res("");
-                const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file);
-            });
-
-            const imgB = await getBase64(document.getElementById('imgBefore').files[0]);
-            const imgA = await getBase64(document.getElementById('imgAfter').files[0]);
-
-            await updateDoc(doc(db, "interventions", intId), { 
-                status: "TECH_COMPLETED", 
-                techComment: comment, 
-                actualStart, 
-                actualEnd,
-                manualStart: document.getElementById('manualStartTime').value,
-                manualEnd: document.getElementById('manualEndTime').value,
-                imageBefore: imgB, 
-                imageAfter: imgA, 
-                techCompletedTime: serverTimestamp() 
-            });
-            document.getElementById('machineDetailPopup').style.display = 'none';
-            alert("Report sent to Director.");
-        };
-
-        window.approveAction = async (intId, mId, status) => {
-            if(status === "PENDING_MOHAMED") {
-                const comment = document.getElementById(`appComment_${intId}`).value;
-                await updateDoc(doc(db, "interventions", intId), { 
-                    status: "APPROVED", directorApprovalComment: comment, approvedAt: serverTimestamp()
-                });
-                await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN", acknowledged: false });
-            } else {
-                const intDoc = await getDoc(doc(db, "interventions", intId));
-                const data = intDoc.data();
-                await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED", finalResetAt: serverTimestamp() });
-                await updateDoc(doc(db, "machines", mId), { 
-                    status: "WORKING", acknowledged: true, history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed - ${data.techComment}`) 
-                });
-            }
-        };
-
-        window.forceModifyReport = async (intId) => {
-            const pass = prompt("ENTER DIRECTOR ACCESS PASSWORD:");
-            if (pass !== DIRECTOR_PASS) return alert("ACCESS DENIED.");
-
-            const newIssue = prompt("RECTIFY ISSUE DESCRIPTION:");
-            const newComment = prompt("RECTIFY TECHNICIAN RESOLUTION:");
-
-            if (newIssue !== null && newComment !== null) {
-                await updateDoc(doc(db, "interventions", intId), {
-                    issue: newIssue,
-                    techComment: newComment,
-                    isEdited: true,
-                    editedBy: DIRECTOR,
-                    editedAt: serverTimestamp()
-                });
-                alert("REPORT OVERRIDDEN SUCCESSFULLY.");
-                const updatedDoc = await getDoc(doc(db, "interventions", intId));
-                showHistoryDetail({id: updatedDoc.id, ...updatedDoc.data()});
-            }
-        };
-
-        window.filterHistory = () => {
-            const searchInput = document.getElementById('historySearch');
-            const sortInput = document.getElementById('historyDateSort');
-            if(!searchInput || !sortInput) return;
-
-            const search = searchInput.value.toLowerCase();
-            const sort = sortInput.value;
-            const container = document.getElementById('historyList');
-            let filtered = archivedInterventions.filter(i => i.machineName.toLowerCase().includes(search));
-            filtered.sort((a,b) => sort === 'newest' ? (b.finalResetAt?.seconds || 0) - (a.finalResetAt?.seconds || 0) : (a.finalResetAt?.seconds || 0) - (b.finalResetAt?.seconds || 0));
-            container.innerHTML = "";
-            filtered.forEach(i => {
-                const card = document.createElement('div');
-                card.className = "card"; card.style.cursor = "pointer";
-                const editBadge = i.isEdited ? '<span class="edited-tag">MODIFIED BY DIRECTOR</span>' : '';
-                card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} ${editBadge} <span style="float:right; color:#e30613">Audit Logs ></span>`;
-                card.onclick = () => {
-                    if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
-                        showHistoryDetail(i);
-                    } else {
-                        alert("RESTRICTED: Detailed audit logs are for Director access only.");
-                    }
-                };
-                container.appendChild(card);
-            });
-        };
-
-        window.toggleStatus = async (id, current) => {
-            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-            const next = current === "WORKING" ? "BREAKDOWN" : "WORKING";
-            await updateDoc(doc(db, "machines", id), { status: next, acknowledged: (next === "WORKING") });
-        };
-
-        window.assignTech = async (id, tech) => {
-            await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false });
-        };
-        
-        window.logout = () => signOut(auth);
-        
-        window.submitReq = async () => {
-            const mId = document.getElementById('reqMachine').value;
-            const issue = document.getElementById('reqIssue').value;
-            if(!mId || !issue) return alert("Select machine and describe issue.");
-            await addDoc(collection(db, "interventions"), {
-                machineId: mId, machineName: (machineCache[mId] ? machineCache[mId].name : "Unknown Machine"), issue: issue, 
-                status: "PENDING_MOHAMED", timestamp: serverTimestamp(), requester: auth.currentUser.email
-            });
-            alert("Request sent to Director.");
-        };
-
-        window.startEmergencyCall = (mName) => {
+        function showJitsi(mName, userEmail) {
+            if (jitsiApi) return;
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = mName;
-            document.getElementById('statusDot').classList.add('dot-active');
-
-            if (!jitsiApi) {
-                const domain = "meet.jit.si";
-                const options = {
-                    roomName: "MercedesEmergency_" + mName.replace(/\s+/g, '_'),
-                    width: '100%',
-                    height: '100%',
-                    parentNode: document.getElementById('videoContainer'),
-                    configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: false },
-                    interfaceConfigOverwrite: { TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup'] }
-                };
-                jitsiApi = new JitsiMeetExternalAPI(domain, options);
-            }
-        };
+            const options = {
+                roomName: JITSI_ROOM, width: '100%', height: 350,
+                parentNode: document.getElementById('videoContainer'),
+                configOverwrite: { prejoinPageEnabled: false, startWithAudioMuted: false, startWithVideoMuted: true, disableDeepLinking: true },
+                interfaceConfigOverwrite: { TOOLBAR_BUTTONS: userEmail === DIRECTOR ? ['microphone', 'hangup'] : [], SETTINGS_SECTIONS: [], VIDEO_LAYOUT_FIT: 'both' }
+            };
+            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
+        }
 
         window.endEmergencyCall = async () => {
-            if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
-            document.getElementById('callPopup').style.display = 'none';
-            document.getElementById('statusDot').classList.remove('dot-active');
+            if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
             await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false });
         };
 
+        function closeJitsi() {
+            if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
+            document.getElementById('callPopup').style.display = 'none';
+            document.getElementById('dangerOverlay').style.display = 'none';
+            isFirstAlert = true;
+        }
+
+        function startDangerCycle(m) {
+            document.getElementById('dangerOverlay').style.display = 'flex';
+            document.getElementById('dangerDescription').innerText = `${m.name} | ${m.section}`;
+            if (isFirstAlert && micReady) {
+                const speech = new SpeechSynthesisUtterance(`Danger! Problem detected at ${m.name}. Respond to director.`);
+                window.speechSynthesis.speak(speech);
+                isFirstAlert = false;
+                startEmergencyCall(auth.currentUser.email, m.name);
+            }
+        }
+
+        // DATA & AUTH
         onAuthStateChanged(auth, user => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
@@ -461,33 +268,51 @@
             }
 
             loadMachinesLive(email);
-            loadHistory();
-            listenForEmergency(email);
+            listenForEmergencyCalls(email);
         });
 
-        function listenForEmergency(email) {
-            onSnapshot(collection(db, "machines"), (snap) => {
-                let dangerFound = false;
-                snap.forEach(doc => {
-                    const m = doc.data();
-                    if (m.status === "BREAKDOWN" && m.assignedTech === email && !m.acknowledged) {
-                        dangerFound = true;
-                        document.getElementById('dangerDescription').innerText = `FAILURE: ${m.name} [${m.section}]`;
-                        document.getElementById('dangerOverlay').style.display = 'flex';
-                        if (micReady) window.startEmergencyCall(m.name);
+        window.syncDatabase = async () => {
+            const fileInput = document.getElementById('jsonInput');
+            if (!fileInput.files[0]) return alert("Please select the machines.json file");
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const machines = data.machines || data;
+                    for (const m of machines) {
+                        const mId = m.machineId || `M-${Math.random().toString(36).substr(2, 5)}`;
+                        await setDoc(doc(db, "machines", mId), {
+                            ...m, 
+                            status: m.status || "WORKING", 
+                            assignedTech: "", 
+                            acknowledged: true, 
+                            lastUpdated: serverTimestamp(),
+                            history: m.history || [],
+                            description: m.description || "High-precision manufacturing unit.",
+                            image: m.image || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500",
+                            components: m.components || ["Motor Drive", "PLC Unit", "Hydraulic Pump", "Safety Sensors", "cooling Fan", "Interface Panel"]
+                        });
                     }
-                });
-                if (!dangerFound) document.getElementById('dangerOverlay').style.display = 'none';
-            });
+                    alert("Sync Complete.");
+                } catch (err) { alert("Error: " + err.message); }
+            };
+            reader.readAsText(fileInput.files[0]);
+        };
 
-            onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
-                const data = snap.data();
-                if (data?.triggerSound && micReady) {
-                    const audio = document.getElementById('effectAudio');
-                    audio.play().catch(() => {});
-                }
-            });
-        }
+        window.previewMachine = (id) => {
+            const m = machineCache[id];
+            if(!m) return;
+            const content = `
+                <h2 style="color:#e30613">Machine Preview</h2>
+                <img src="${m.image}" class="machine-img">
+                <p><b>Name:</b> ${m.name}</p>
+                <p><b>Description:</b> ${m.description}</p>
+                <h4>Maintenance History</h4>
+                <div class="history-log">${m.history?.length ? m.history.map(h => `<div>• ${h}</div>`).join('') : 'No previous records.'}</div>
+            `;
+            document.getElementById('machineDetailContent').innerHTML = content;
+            document.getElementById('machineDetailPopup').style.display = 'block';
+        };
 
         function loadMachinesLive(userEmail) {
             const table = document.getElementById('assetTable');
@@ -505,13 +330,17 @@
                     const m = snapshotDoc.data();
                     const id = snapshotDoc.id;
                     machineCache[id] = m;
+
                     const isWorking = m.status === "WORKING";
-                    
+                    const isMyProblem = m.assignedTech === userEmail;
+
+                    if (!isWorking && !m.acknowledged && isMyProblem && userEmail !== DIRECTOR) startDangerCycle(m);
+
                     let row = `<tr>
                         <td><b style="cursor:pointer;text-decoration:underline" onclick="window.previewMachine('${id}')">${m.machineId || id}</b></td>
                         <td>${m.name}</td>
                         <td>${m.section}</td>
-                        <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}" onclick="window.toggleStatus('${id}', '${m.status}')" style="cursor:pointer">${m.status}</span></td>
+                        <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}">${m.status}</span></td>
                         <td>`;
 
                     if (userEmail === DIRECTOR) {
@@ -528,22 +357,67 @@
             });
         }
 
+        window.assignTech = async (id, tech) => {
+            await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false });
+        };
+
         function loadMyMissions(email) {
             const list = document.getElementById('missionList');
             onSnapshot(query(collection(db, "interventions"), where("status", "==", "APPROVED")), (snap) => {
                 list.innerHTML = "";
                 snap.forEach(d => {
                     const data = d.data();
-                    if (data.requester === email || machineCache[data.machineId]?.assignedTech === email) {
-                        const card = document.createElement('div');
-                        card.className = "card";
-                        card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
-                                          <button onclick="window.openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>`;
-                        list.appendChild(card);
-                    }
+                    const m = machineCache[data.machineId];
+                    if (m?.assignedTech !== email) return;
+
+                    const card = document.createElement('div');
+                    card.className = "card";
+                    card.innerHTML = `
+                        <h3>MISSION: ${data.machineName}</h3>
+                        <p>Issue: ${data.issue}</p>
+                        <button onclick="window.openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">OPEN MAINTENANCE GUIDE</button>
+                    `;
+                    list.appendChild(card);
                 });
             });
         }
+
+        window.openMaintenanceGuide = (intId, mId) => {
+            const m = machineCache[mId];
+            const content = `
+                <h2 style="color:#e30613">Maintenance Guide: ${m.name}</h2>
+                <div class="history-log" style="margin-bottom:15px">
+                    <b>Restricted History Access:</b><br>
+                    ${m.history?.map(h => `• ${h}`).join('<br>') || 'No history.'}
+                </div>
+                <div id="checklist">
+                    ${m.components.map((comp, i) => `
+                        <label class="checklist-item">
+                            <input type="checkbox" class="m-check"> [Step ${i+1}] Verify and Clean ${comp}
+                        </label>
+                    `).join('')}
+                </div>
+                <textarea id="techComment" placeholder="Enter technical resolution notes..."></textarea>
+                <button onclick="window.submitTechReport('${intId}', '${mId}')" style="width:100%">SUBMIT REPORT FOR APPROVAL</button>
+            `;
+            document.getElementById('machineDetailContent').innerHTML = content;
+            document.getElementById('machineDetailPopup').style.display = 'block';
+        };
+
+        window.submitTechReport = async (intId, mId) => {
+            const checks = document.querySelectorAll('.m-check:checked').length;
+            const comment = document.getElementById('techComment').value;
+            if (checks < 6) return alert("Security Protocol: You must complete and tick at least 6 maintenance steps.");
+            if (!comment) return alert("Please provide a resolution comment.");
+
+            await updateDoc(doc(db, "interventions", intId), { 
+                status: "TECH_COMPLETED", 
+                techComment: comment,
+                completedAt: serverTimestamp() 
+            });
+            document.getElementById('machineDetailPopup').style.display = 'none';
+            alert("Report submitted to Director.");
+        };
 
         function loadAdminApprovals() {
             const list = document.getElementById('adminApprovalList');
@@ -551,86 +425,46 @@
                 list.innerHTML = "";
                 snap.forEach(d => {
                     const data = d.data();
-                    const card = document.createElement('div'); card.className = "card";
+                    const card = document.createElement('div');
+                    card.className = "card";
                     if(data.status === "PENDING_MOHAMED") {
-                        card.innerHTML = `<b>STEP 1: ${data.machineName} REQ</b><br><small>Issue: ${data.issue}</small><br>
-                                         <textarea id="appComment_${d.id}" placeholder="Approval notes..."></textarea>
-                                         <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR</button>`;
+                        card.innerHTML = `<b>STEP 1 REQ: ${data.machineName}</b><br><small>${data.issue}</small><br>
+                                         <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE (STEP 2)</button>`;
                     } else {
-                        const actualDuration = Math.round((data.actualEnd - data.actualStart) / 60000);
-                        const manualDuration = Math.round((new Date(data.manualEnd) - new Date(data.manualStart)) / 60000);
-                        const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
-                        
-                        let kpiHtml = `<div style="font-size:12px; margin-top:5px;">
-                                        • Actual System Time: ${actualDuration}m<br>
-                                        • Technician Manual Time: ${manualDuration}m<br>
-                                        • Target: ${target}m</div>`;
-                        
-                        if (actualDuration > target || actualDuration !== manualDuration) {
-                            kpiHtml += `<div class="kpi-alert">⚠️ ALERT: PROBLEM IN TECHNICIAN KPI</div>`;
-                        }
-
-                        card.innerHTML = `<b>FINAL REPORT: ${data.machineName}</b><br>${kpiHtml}
-                                         <div style="margin:10px 0"><img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img"></div>
-                                         <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#28a745">VALIDATE & RESET MACHINE</button>`;
+                        card.innerHTML = `<b>FINAL REPORT: ${data.machineName}</b><br><small>Tech Notes: ${data.techComment}</small><br>
+                                         <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#28a745">VALIDATE & RESTART MACHINE</button>`;
                     }
                     list.appendChild(card);
                 });
             });
         }
 
-        function loadHistory() {
-            onSnapshot(query(collection(db, "interventions"), where("status", "==", "ARCHIVED")), (snap) => {
-                archivedInterventions = [];
-                snap.forEach(d => archivedInterventions.push({id: d.id, ...d.data()}));
-                window.filterHistory();
+        window.approveAction = async (intId, mId, status) => {
+            if(status === "PENDING_MOHAMED") {
+                await updateDoc(doc(db, "interventions", intId), { status: "APPROVED" });
+                await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN" });
+            } else {
+                const intDoc = await getDoc(doc(db, "interventions", intId));
+                const comment = intDoc.data().techComment;
+                await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED" });
+                await updateDoc(doc(db, "machines", mId), { 
+                    status: "WORKING", 
+                    history: arrayUnion(`${new Date().toLocaleDateString()}: ${comment}`) 
+                });
+            }
+        };
+
+        window.submitReq = async () => {
+            const mId = document.getElementById('reqMachine').value;
+            const issue = document.getElementById('reqIssue').value;
+            if(!mId || !issue) return alert("Select machine and describe issue.");
+            await addDoc(collection(db, "interventions"), {
+                machineId: mId, machineName: machineCache[mId].name, issue: issue, status: "PENDING_MOHAMED", timestamp: serverTimestamp()
             });
-        }
+            alert("Step 1 Complete: Request sent to Mohamed for Step 2 Approval.");
+        };
 
-        function showHistoryDetail(data) {
-            const actualDur = Math.round((data.actualEnd - data.actualStart) / 60000);
-            const manualDur = Math.round((new Date(data.manualEnd) - new Date(data.manualStart)) / 60000);
-            const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
-
-            const content = `
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h2 style="color:#e30613">Maintenance Audit Trail</h2>
-                    <button onclick="window.forceModifyReport('${data.id}')" style="font-size:10px; padding:5px; background:#444;">🛠️ FORCE MODIFY</button>
-                </div>
-                
-                ${data.isEdited ? `<div style="background:rgba(255,204,0,0.2); padding:10px; border:1px solid #ffcc00; margin-bottom:15px; font-size:12px;">
-                    ⚠️ THIS REPORT HAS BEEN MANUALLY RECTIFIED BY THE DIRECTOR.
-                </div>` : ''}
-
-                <div class="step-row">
-                    <div class="step-bubble step-green">1</div>
-                    <div><b>INTERVENTION REQUESTED</b><br><small>By: ${data.requester} | Issue: ${data.issue}</small></div>
-                </div>
-
-                <div class="step-row">
-                    <div class="step-bubble ${data.approvedAt ? 'step-green' : 'step-orange'}">${data.approvedAt ? '✓' : '2'}</div>
-                    <div><b>DIRECTOR APPROVAL</b><br><small>Comment: ${data.directorApprovalComment || 'No comments'}</small></div>
-                </div>
-
-                <div class="step-row">
-                    <div class="step-bubble step-green">3</div>
-                    <div><b>KPI AUDIT</b><br>
-                        <small>System Recorded: ${actualDur}m | Tech Stated: ${manualDur}m | Allowed: ${target}m</small>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <h4>Resolution Notes</h4>
-                    <p>${data.techComment}</p>
-                    <div style="display:flex; gap:10px;">
-                        <img src="${data.imageBefore}" class="preview-img">
-                        <img src="${data.imageAfter}" class="preview-img">
-                    </div>
-                </div>
-            `;
-            document.getElementById('machineDetailContent').innerHTML = content;
-            document.getElementById('machineDetailPopup').style.display = 'block';
-        }
+        window.logout = () => signOut(auth);
 
     </script>
 </body>
