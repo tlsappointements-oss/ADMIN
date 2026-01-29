@@ -72,6 +72,17 @@
         .giant-triangle { font-size: 120px; animation: pulse 0.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
+        /* ACCESS DENIED MODAL */
+        #accessDeniedModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 20000; align-items: center; justify-content: center;
+        }
+        .security-shield {
+            border: 4px solid #e30613; padding: 50px; border-radius: 20px; text-align: center;
+            box-shadow: 0 0 50px #e30613; animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } }
+
         /* MACHINE INFO POPUP */
         #machineDetailPopup {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -81,11 +92,21 @@
         .history-log { font-size: 0.8rem; background: #000; padding: 10px; border: 1px solid #333; margin-top: 10px; max-height: 150px; overflow-y: auto; }
         .machine-img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
         .preview-img { width: 120px; height: 120px; object-fit: cover; margin-right: 10px; border: 2px solid #444; border-radius: 5px; }
+        .img-edit-btn { background: #444; color: white; padding: 3px 8px; font-size: 10px; display: block; margin-top: 5px; width: 120px; text-align: center; cursor: pointer; }
     </style>
 </head>
 <body onclick="window.handleFirstInteraction()">
 
     <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <div id="accessDeniedModal">
+        <div class="security-shield">
+            <h1 style="font-size: 5rem; color: #e30613; margin: 0;">🛑</h1>
+            <h2 style="letter-spacing: 5px; color: #e30613;">ACCESS DENIED</h2>
+            <p style="color: #666;">Security Protocol 102: Restricted to Plant Director Only.</p>
+            <button onclick="document.getElementById('accessDeniedModal').style.display='none'" style="margin-top:20px;">ACKNOWLEDGE</button>
+        </div>
+    </div>
 
     <div id="machineDetailPopup">
         <div id="machineDetailContent"></div>
@@ -349,6 +370,7 @@
             }
         };
 
+        /* AUDIT CONTROLS PART - FOR DIRECTOR ONLY */
         window.forceModifyReport = async (intId) => {
             const pass = prompt("ENTER DIRECTOR ACCESS PASSWORD:");
             if (pass !== DIRECTOR_PASS) return alert("ACCESS DENIED.");
@@ -367,6 +389,40 @@
                 alert("REPORT OVERRIDDEN SUCCESSFULLY.");
                 const updatedDoc = await getDoc(doc(db, "interventions", intId));
                 showHistoryDetail({id: updatedDoc.id, ...updatedDoc.data()});
+            }
+        };
+
+        window.deleteIntervention = async (intId) => {
+            if (!confirm("CRITICAL: Delete this entire maintenance record?")) return;
+            const pass = prompt("CONFIRM PASSWORD:");
+            if (pass !== DIRECTOR_PASS) return;
+            await deleteDoc(doc(db, "interventions", intId));
+            document.getElementById('machineDetailPopup').style.display = 'none';
+            alert("Record permanently erased.");
+        };
+
+        window.updateHistoryImage = async (intId, field) => {
+            const input = document.createElement('input');
+            input.type = 'file'; input.accept = 'image/*';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                const r = new FileReader();
+                r.onload = async () => {
+                    await updateDoc(doc(db, "interventions", intId), { [field]: r.result });
+                    alert("Image replaced.");
+                    const updated = await getDoc(doc(db, "interventions", intId));
+                    showHistoryDetail({id: updated.id, ...updated.data()});
+                };
+                r.readAsDataURL(file);
+            };
+            input.click();
+        };
+
+        window.deleteImage = async (intId, field) => {
+            if (confirm("Delete this evidence image?")) {
+                await updateDoc(doc(db, "interventions", intId), { [field]: "" });
+                const updated = await getDoc(doc(db, "interventions", intId));
+                showHistoryDetail({id: updated.id, ...updated.data()});
             }
         };
 
@@ -390,7 +446,11 @@
                     if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
                         showHistoryDetail(i);
                     } else {
-                        alert("RESTRICTED: Detailed audit logs are for Director access only.");
+                        // High-end Denied Feedback
+                        document.getElementById('accessDeniedModal').style.display = 'flex';
+                        const voice = new SpeechSynthesisUtterance("Access Denied. Security protocol 1 0 2 active. Restricted to Plant Director only.");
+                        voice.rate = 0.9; voice.pitch = 0.8;
+                        window.speechSynthesis.speak(voice);
                     }
                 };
                 container.appendChild(card);
@@ -433,7 +493,6 @@
                     width: '100%',
                     height: '100%',
                     parentNode: document.getElementById('videoContainer'),
-                    // Director has full toolbar; technician is restricted
                     configOverwrite: { 
                         startWithAudioMuted: false, 
                         startWithVideoMuted: false,
@@ -452,7 +511,6 @@
             if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
             document.getElementById('callPopup').style.display = 'none';
             document.getElementById('statusDot').classList.remove('dot-active');
-            // If director ends call, inform system
             if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
                 await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false, callMachine: "" });
             }
@@ -467,7 +525,6 @@
             });
             window.startEmergencyCall(mName, true);
         };
-        /* CALL PART END */
 
         onAuthStateChanged(auth, user => {
             if (!user) { window.location.href = "login.html"; return; }
@@ -500,13 +557,11 @@
                 snap.forEach(doc => {
                     const m = doc.data();
                     if (m.status === "BREAKDOWN" && !m.acknowledged) {
-                        // For Technician
                         if (m.assignedTech === email) {
                             dangerFound = true;
                             document.getElementById('dangerDescription').innerText = `FAILURE: ${m.name} [${m.section}]`;
                             document.getElementById('dangerOverlay').style.display = 'flex';
                         }
-                        // For Director: Build a list of call-ready machines
                         if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
                             breakdownListHtml += `
                                 <div style="display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px;">
@@ -524,27 +579,19 @@
                 if (!dangerFound) document.getElementById('dangerOverlay').style.display = 'none';
             });
 
-            // Universal listener for the Call Command from Director
             onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
                 const data = snap.data();
                 if (!data) return;
-
                 const email = auth.currentUser.email.toLowerCase();
                 
-                // If there's an active sound trigger and user has clicked Step 1
                 if (data.triggerSound && micReady) {
                     const audio = document.getElementById('effectAudio');
                     audio.play().catch(() => {});
-                    
-                    // Voice Alert
                     const msg = new SpeechSynthesisUtterance("Please respond to director. You have been assigned to repair this problem.");
-                    msg.lang = 'en-US';
-                    window.speechSynthesis.speak(msg);
+                    msg.lang = 'en-US'; window.speechSynthesis.speak(msg);
                 }
 
-                // If Director has opened a call room for a machine assigned to this tech
                 if (data.active && data.callMachine && email !== DIRECTOR) {
-                    // Check if the machine being called is assigned to this tech
                     const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === email);
                     if (assignedMachine && micReady) {
                         window.startEmergencyCall(data.callMachine, false);
@@ -626,23 +673,10 @@
                         const actualDuration = Math.round((data.actualEnd - data.actualStart) / 60000);
                         const manualDuration = Math.round((new Date(data.manualEnd) - new Date(data.manualStart)) / 60000);
                         const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
-                        
-                        let kpiHtml = `<div style="font-size:12px; margin-top:5px;">
-                                        • Actual System Time: ${actualDuration}m<br>
-                                        • Technician Manual Time: ${manualDuration}m<br>
-                                        • Target: ${target}m</div>`;
-                        
-                        if (actualDuration > target || actualDuration !== manualDuration) {
-                            kpiHtml += `<div class="kpi-alert">⚠️ ALERT: PROBLEM IN TECHNICIAN KPI</div>`;
-                        }
-                        
-                        card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br>
-                                         <small>Report: ${data.techComment}</small>
-                                         ${kpiHtml}
-                                         <div style="margin-top:10px;">
-                                            <img src="${data.imageBefore}" class="preview-img">
-                                            <img src="${data.imageAfter}" class="preview-img">
-                                         </div>
+                        let kpiHtml = `<div style="font-size:12px; margin-top:5px;">• System: ${actualDuration}m | Manual: ${manualDuration}m | Target: ${target}m</div>`;
+                        if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class="kpi-alert">⚠️ KPI VARIANCE DETECTED</div>`;
+                        card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br><small>Report: ${data.techComment}</small>${kpiHtml}
+                                         <div style="margin-top:10px;"><img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img"></div>
                                          <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
                     }
                     list.appendChild(card);
@@ -660,19 +694,29 @@
 
         function showHistoryDetail(i) {
             const content = `
-                <h2 style="color:#e30613">AUDIT LOG: ${i.machineName}</h2>
+                <div style="display:flex; justify-content:space-between;">
+                    <h2 style="color:#e30613">AUDIT LOG: ${i.machineName}</h2>
+                    <button onclick="window.deleteIntervention('${i.id}')" style="background:red; font-size:10px;">DELETE RECORD</button>
+                </div>
                 <div class="card">
-                    <p><b>Technician:</b> ${machineCache[i.machineId]?.assignedTech || 'N/A'}</p>
                     <p><b>Original Issue:</b> ${i.issue}</p>
                     <p><b>Final Resolution:</b> ${i.techComment}</p>
                     <hr>
-                    <p><b>System Recorded Time:</b> ${Math.round((i.actualEnd - i.actualStart) / 60000)} mins</p>
-                    <p><b>Technician Claimed Time:</b> ${Math.round((new Date(i.manualEnd) - new Date(i.manualStart)) / 60000)} mins</p>
                     <div style="display:flex; gap:10px;">
-                        <div><small>BEFORE</small><br><img src="${i.imageBefore}" class="preview-img"></div>
-                        <div><small>AFTER</small><br><img src="${i.imageAfter}" class="preview-img"></div>
+                        <div>
+                            <small>BEFORE</small><br>
+                            ${i.imageBefore ? `<img src="${i.imageBefore}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+                            <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageBefore')">REPLACE</span>
+                            <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageBefore')">DELETE</span>
+                        </div>
+                        <div>
+                            <small>AFTER</small><br>
+                            ${i.imageAfter ? `<img src="${i.imageAfter}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+                            <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageAfter')">REPLACE</span>
+                            <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageAfter')">DELETE</span>
+                        </div>
                     </div>
-                    <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; margin-top:15px; width:100%">FORCE EDIT LOG (ADMIN ONLY)</button>
+                    <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; margin-top:15px; width:100%">FORCE EDIT TEXT LOGS</button>
                 </div>
             `;
             document.getElementById('machineDetailContent').innerHTML = content;
