@@ -9,7 +9,7 @@
         
         /* SIDEBAR ALWAYS ON TOP */
         .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10005; overflow-y: auto; }
-        .main { margin-left: 285px; padding: 40px; flex: 1; }
+        .main { margin-left: 285px; padding: 40px; flex: 1; transition: filter 0.5s ease; }
         
         #mainPage, #adminPanel, #interventionPage, #missionPage, #historyPage, #kpiTrackerPage, #personnelPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
         
@@ -128,14 +128,21 @@
 
         /* NEW: DEMO STYLES */
         #demoMentor {
-            position: fixed; bottom: 30px; right: 30px; width: 350px; background: #000; border: 2px solid #e30613;
-            border-radius: 15px; padding: 20px; z-index: 30000; display: none; box-shadow: 0 0 30px rgba(227, 6, 19, 0.4);
+            position: fixed; top: 20%; right: 5%; width: 400px; background: rgba(10, 10, 10, 0.95); 
+            border: 2px solid #e30613; border-radius: 15px; padding: 25px; z-index: 30005; display: none; 
+            box-shadow: 0 0 50px rgba(0,0,0,0.9); backdrop-filter: blur(5px);
         }
-        .mentor-header { display: flex; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .mentor-header { display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         .mentor-robot { width: 50px; height: 50px; background: #e30613; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; }
-        .mentor-text { font-size: 0.9rem; line-height: 1.4; color: #ccc; }
-        .mentor-btn { margin-top: 15px; background: #e30613; color: #fff; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; width: 100%; }
-        .highlight-focus { outline: 4px solid #e30613; z-index: 30001; position: relative; }
+        .mentor-text { font-size: 1rem; line-height: 1.5; color: #fff; }
+        .mentor-btn { margin-top: 20px; background: #e30613; color: #fff; border: none; padding: 12px 20px; font-weight: bold; cursor: pointer; width: 100%; border-radius: 5px; }
+        
+        /* BLUR EFFECT */
+        .blur-bg { filter: blur(8px) grayscale(80%); pointer-events: none; transition: 0.5s; }
+        .highlight-focus { outline: 5px solid #e30613; outline-offset: 5px; z-index: 30001 !important; position: relative !important; filter: none !important; pointer-events: all !important; background: #111 !important; }
+        
+        .request-glow { animation: goldPulsar 1.5s infinite alternate; }
+        @keyframes goldPulsar { from { box-shadow: 0 0 5px #ffcc00; border-color: #ffcc00; } to { box-shadow: 0 0 25px #ffcc00; border-color: #fff; } }
 
     </style>
 </head>
@@ -147,12 +154,12 @@
         <div class="mentor-header">
             <div class="mentor-robot">🤖</div>
             <div>
-                <b style="color:#e30613; display:block;">SYSTEM MENTOR</b>
-                <small style="color:#666;">Instructional Unit 01</small>
+                <b style="color:#e30613; display:block; font-size: 1.2rem;">SYSTEM OVERSEER</b>
+                <small style="color:#666;">Onboarding Unit v4.0</small>
             </div>
         </div>
         <div id="mentorContent" class="mentor-text"></div>
-        <button id="mentorNext" class="mentor-btn">ACKNOWLEDGE & PROCEED</button>
+        <button id="mentorNext" class="mentor-btn">INITIATE NEXT PHASE</button>
     </div>
 
     <div id="accessDeniedModal">
@@ -160,7 +167,7 @@
             <div class="security-scan-line"></div>
             <h1 style="font-size: 4rem; color: #e30613; margin: 0; font-family: monospace;">[!]</h1>
             <h2 style="letter-spacing: 8px; color: #fff;">SECURITY VIOLATION</h2>
-            <p style="color: #666; font-size: 0.8rem;">BIOMETRIC SIGNATURE NOT RECOGNIZED.<br>ENCRYPTION LEVEL 102 ACTIVE.</p>
+            <p id="deniedText" style="color: #666; font-size: 0.8rem;">BIOMETRIC SIGNATURE NOT RECOGNIZED.<br>ENCRYPTION LEVEL 102 ACTIVE.</p>
             <button onclick="document.getElementById('accessDeniedModal').style.display='none'" style="margin-top:30px; background:transparent; border: 1px solid #e30613; color: #e30613; padding: 10px 40px;">DISMISS</button>
         </div>
     </div>
@@ -190,10 +197,13 @@
         <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
     </div>
 
-    <div class="sidebar">
+    <div class="sidebar" id="mainSidebar">
         <h2 style="color: #e30613;">MERCEDES</h2>
         <button id="audioActivator" onclick="window.activateAudioSystem()">STEP 1: ENABLE MIC</button>
         <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
+        <div id="reqPermissionBox" style="display:none; margin-bottom: 10px;">
+            <button onclick="window.requestAccess()" style="background:#444; font-size: 10px; width: 100%; padding: 5px;">PROMPT MOHAMED FOR ACCESS</button>
+        </div>
         <hr style="border:0; border-top:1px solid #333;">
         <button class="btn-nav" id="nav_mainPage" onclick="window.showPage('mainPage')">🏠 Dashboard</button>
         <button class="btn-nav" id="nav_interventionPage" onclick="window.showPage('interventionPage')">📝 Interventions</button>
@@ -204,7 +214,7 @@
         <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
     </div>
 
-    <div class="main">
+    <div class="main" id="contentMain">
         <div id="personnelPage">
             <h1 style="letter-spacing: 5px;">PERSONNEL & ACCESS CONTROL</h1>
             
@@ -250,7 +260,7 @@
             <div class="card" id="interventionCard">
                 <select id="reqMachine" onchange="window.previewMachine(this.value)"></select>
                 <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
-                <button onclick="window.submitReq()">SUBMIT TO DIRECTOR</button>
+                <button id="submitReqBtn" onclick="window.submitReq()">SUBMIT TO DIRECTOR</button>
             </div>
         </div>
 
@@ -386,7 +396,7 @@
                 'missionPage': 'do_missions',
                 'historyPage': 'view_history',
                 'kpiTrackerPage': 'view_kpi',
-                'personnelPage': 'view_kpi' // Only managers see personnel
+                'personnelPage': 'view_kpi' 
             };
             
             return perms[mapping[pageId]] === true;
@@ -395,15 +405,23 @@
         window.togglePermission = async (email, key) => {
             const current = userPermissions[email] || {};
             current[key] = !current[key];
+            // Clear request flag if approved
+            current.requestingAccess = false;
             await setDoc(doc(db, "permissions", email), current);
         };
 
+        window.requestAccess = async () => {
+            const email = auth.currentUser.email.toLowerCase();
+            const current = userPermissions[email] || {};
+            current.requestingAccess = true;
+            await setDoc(doc(db, "permissions", email), current);
+            alert("Your request has been broadcasted to Mohamed's command center.");
+        };
+
         window.showPage = (id) => {
-            if (!window.checkPermission(id)) {
+            if (!window.checkPermission(id) && !window.demoInProgress) {
                 document.getElementById('accessDeniedModal').style.display = 'flex';
-                const voice = new SpeechSynthesisUtterance("Access Denied. Security protocol 1 0 2 active.");
-                voice.rate = 0.9; voice.pitch = 0.8;
-                window.speechSynthesis.speak(voice);
+                speakNative("Warning. Access Denied. Biometric signature mismatch. Security protocol 1 0 2 is now active.");
                 return;
             }
             ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(p => {
@@ -411,6 +429,17 @@
                 if(el) el.style.display = (p === id ? 'block' : 'none');
             });
             if (id === 'kpiTrackerPage') window.calculateKPIs();
+        }
+
+        function speakNative(text, callback) {
+            const msg = new SpeechSynthesisUtterance(text);
+            const voices = window.speechSynthesis.getVoices();
+            // Try to find a high quality English voice
+            msg.voice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Premium')) || voices[0];
+            msg.rate = 0.95;
+            msg.pitch = 1.0;
+            if (callback) msg.onend = callback;
+            window.speechSynthesis.speak(msg);
         }
 
         window.previewMachine = (id) => {
@@ -506,7 +535,8 @@
 
         window.approveAction = async (intId, mId, status) => {
             if(status === "PENDING_MOHAMED") {
-                const comment = document.getElementById(`appComment_${intId}`).value;
+                const commentEl = document.getElementById(`appComment_${intId}`);
+                const comment = commentEl ? commentEl.value : "Auto-Approved";
                 await updateDoc(doc(db, "interventions", intId), { 
                     status: "APPROVED", directorApprovalComment: comment, approvedAt: serverTimestamp()
                 });
@@ -762,13 +792,20 @@
                     request_intervention: false,
                     do_missions: false,
                     view_history: false,
-                    view_kpi: false
+                    view_kpi: false,
+                    requestingAccess: false
                 });
             }
 
             // Listen for global permissions
             onSnapshot(collection(db, "permissions"), snap => {
-                snap.forEach(d => userPermissions[d.id] = d.data());
+                snap.forEach(d => {
+                    userPermissions[d.id] = d.data();
+                    if (d.id === email) {
+                        const hasAll = d.data().do_missions && d.data().view_history;
+                        document.getElementById('reqPermissionBox').style.display = hasAll ? 'none' : 'block';
+                    }
+                });
                 
                 ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(id => {
                     const btn = document.getElementById('nav_' + id);
@@ -804,10 +841,24 @@
         });
 
         // ==========================================
-        // NEW FEATURE: SYSTEM DEMO & ONBOARDING
+        // ENHANCED: SYSTEM DEMO & ONBOARDING
         // ==========================================
         let demoStep = 0;
         window.demoInProgress = false;
+
+        const clearFocus = () => {
+            document.querySelectorAll('.highlight-focus').forEach(el => el.classList.remove('highlight-focus'));
+            document.getElementById('contentMain').classList.remove('blur-bg');
+            document.getElementById('mainSidebar').classList.remove('blur-bg');
+        };
+
+        const setFocus = (elId) => {
+            clearFocus();
+            document.getElementById('contentMain').classList.add('blur-bg');
+            document.getElementById('mainSidebar').classList.add('blur-bg');
+            const el = document.getElementById(elId);
+            if(el) el.classList.add('highlight-focus');
+        };
 
         window.startDemoSequence = (name) => {
             window.demoInProgress = true;
@@ -820,47 +871,64 @@
             const btn = document.getElementById('mentorNext');
             const email = auth.currentUser.email.toLowerCase();
 
-            const speak = (text) => {
-                const msg = new SpeechSynthesisUtterance(text);
-                msg.rate = 0.9;
-                window.speechSynthesis.speak(msg);
-            };
-
             const steps = [
                 {
-                    text: `Welcome to Mercedes-Benz Plant Operations, ${name}. I am your system guide. Your account has been registered, but you have no permissions yet. Let me show you the protocol.`,
-                    action: () => { window.showPage('mainPage'); document.getElementById('nav_mainPage').classList.add('highlight-focus'); }
-                },
-                {
-                    text: "This is the Dashboard. Here you see all 105 machines across Robotic, Press, and Assembly sections. Red status means a critical failure.",
-                    action: () => { document.getElementById('nav_mainPage').classList.remove('highlight-focus'); }
-                },
-                {
-                    text: "If a machine breaks down, its status turns RED and you will receive a high-priority alert. You must then request an intervention.",
-                    action: () => { window.showPage('interventionPage'); document.getElementById('interventionCard').classList.add('highlight-focus'); }
-                },
-                {
-                    text: "Let's simulate a breakdown. Select a machine and write 'DEMO FAILURE' in the box, then click Submit.",
-                    action: () => { btn.style.display = 'none'; } // Hide button until they submit
-                },
-                {
-                    text: "Request sent! Now, the Director will review it. Meanwhile, you will receive an emergency briefing. Watch the screen.",
+                    text: `Welcome, Specialist ${name}. I am the Plant Overseer. I will guide you through our core operational protocols. Let's begin by examining your workstation.`,
                     action: () => { 
+                        window.showPage('mainPage'); 
+                        setFocus('nav_mainPage');
+                    }
+                },
+                {
+                    text: "This is your Live Dashboard. It monitors all 105 machines across our Robotic and Assembly lines. Notice the Status column; green indicates peak performance, while red signals a total line stoppage.",
+                    action: () => { setFocus('mainPage'); }
+                },
+                {
+                    text: "Security is paramount. Let me show you what happens if you attempt to access restricted director files without authorization. Click the Personnel tab now.",
+                    action: () => { 
+                        setFocus('nav_personnelPage'); 
+                        btn.style.display = 'none'; // Force them to click
+                    }
+                },
+                {
+                    text: "As expected, the system blocked you. Don't worry, that was a test. Now, let's handle a real emergency. A sensor just failed in the robotic unit. Go to Interventions.",
+                    action: () => { 
+                        document.getElementById('accessDeniedModal').style.display = 'none';
+                        window.showPage('interventionPage');
+                        setFocus('nav_interventionPage');
                         btn.style.display = 'block';
+                    }
+                },
+                {
+                    text: "I will handle the paperwork for this demo. I'm selecting Machine M-001 and describing the hydraulic failure now. Watch as the request is dispatched to Mohamed.",
+                    action: () => {
+                        setFocus('interventionCard');
+                        const mSel = document.getElementById('reqMachine');
+                        const tArea = document.getElementById('reqIssue');
+                        mSel.selectedIndex = 1;
+                        tArea.value = "[DEMO] Hydraulic Pressure Drop in Axis 4.";
+                        setTimeout(() => {
+                            window.submitReq();
+                        }, 1500);
+                    }
+                },
+                {
+                    text: "Request sent. Now, observe your Emergency Comms. The Director is initiating a visual briefing. Ensure your environment is secure.",
+                    action: () => { 
                         window.simulateRobotCall(name);
                     }
                 },
                 {
-                    text: "Once approved, the task appears in 'Missions'. There, you must upload a 'Before' photo, follow 6 technical steps, and upload an 'After' photo.",
-                    action: () => { window.showPage('missionPage'); }
-                },
-                {
-                    text: "Finally, once the Director archives your report, it is saved in 'History'. You can audit any machine's life cycle by clicking its ID in the library.",
-                    action: () => { window.showPage('historyPage'); }
-                },
-                {
-                    text: "The demo is complete. Please contact Director Mohamed to grant your permanent operational permissions. Welcome to the team.",
+                    text: "The Director has authorized the mission. It is now in your active task list. Here you will find the 6-step technical protocol and upload evidence of the fix.",
                     action: () => { 
+                        window.showPage('missionPage'); 
+                        setFocus('missionPage');
+                    }
+                },
+                {
+                    text: "Protocol complete. Once the Director confirms the repair, the machine status will automatically reset to green across the entire global plant. Welcome to Mercedes-Benz.",
+                    action: () => { 
+                        clearFocus();
                         localStorage.setItem(`demoDone_${email}`, 'true');
                         window.demoInProgress = false;
                         document.getElementById('demoMentor').style.display = 'none';
@@ -872,7 +940,7 @@
             if (demoStep < steps.length) {
                 const current = steps[demoStep];
                 mentor.innerHTML = current.text;
-                speak(current.text);
+                speakNative(current.text);
                 current.action();
                 demoStep++;
             }
@@ -883,14 +951,15 @@
         window.simulateRobotCall = (name) => {
             const popup = document.getElementById('callPopup');
             popup.style.display = 'block';
-            document.getElementById('callMachineName').innerText = "VIRTUAL BRIEFING";
-            document.getElementById('videoContainer').innerHTML = "<div style='height:100%; display:flex; align-items:center; justify-content:center; font-size:50px;'>🤖</div>";
+            document.getElementById('callMachineName').innerText = "DIRECTOR BRIEFING";
+            document.getElementById('videoContainer').innerHTML = "<div style='height:100%; display:flex; align-items:center; justify-content:center; font-size:50px; background:#000;'>👔</div>";
             
-            const msg = new SpeechSynthesisUtterance(`Hello ${name}. You have been assigned to monitor the Robotic units. Take charge of this task and update the system of your progress immediately. Good luck.`);
-            msg.onend = () => {
-                setTimeout(() => { popup.style.display = 'none'; }, 2000);
-            };
-            window.speechSynthesis.speak(msg);
+            speakNative(`Attention Specialist ${name}. I have reviewed your request. Machine M-001 is critical for today's quota. I am approving your intervention immediately. Execute the 6-step protocol and report back. End of transmission.`, () => {
+                setTimeout(() => { 
+                    popup.style.display = 'none'; 
+                    window.nextDemoStep();
+                }, 1000);
+            });
         };
 
         // RE-DESIGNED PERSONNEL DASHBOARD
@@ -904,19 +973,19 @@
                 if (userEmail === DIRECTOR) return;
                 const perms = d.data();
                 
-                // Simulate Presence & Metadata (In real app, fetch from /users/ collection)
                 const name = userEmail.split('@')[0].toUpperCase();
-                const isOnline = Math.random() > 0.3; // Simulated
+                const isOnline = Math.random() > 0.3; 
                 const position = "PLANT TECHNICIAN";
                 const avatar = `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`;
+                const isRequesting = perms.requestingAccess === true;
 
                 const div = document.createElement('div');
-                div.className = "tech-profile-card";
+                div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
                 div.innerHTML = `
                     <img src="${avatar}" class="tech-avatar">
                     <div class="tech-info">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span class="tech-name">${name}</span>
+                            <span class="tech-name">${name} ${isRequesting ? ' <span style="color:#ffcc00; font-size:9px;">[REQUESTING ACCESS]</span>' : ''}</span>
                             <button onclick="event.stopPropagation(); window.directorTriggerCall('${name}')" style="font-size:10px; padding:5px; background:transparent; border:1px solid #444;">📞 CALL</button>
                         </div>
                         <div style="font-size:10px; color:#666; margin-top:2px;">${userEmail} | ${position}</div>
@@ -977,8 +1046,7 @@
                 if (data.triggerSound && micReady) {
                     const audio = document.getElementById('effectAudio');
                     audio.play().catch(() => {});
-                    const msg = new SpeechSynthesisUtterance("Please respond to director.");
-                    msg.lang = 'en-US'; window.speechSynthesis.speak(msg);
+                    speakNative("Direct line opened. Please respond to the Director immediately.");
                 }
 
                 if (data.active && data.callMachine && email !== DIRECTOR) {
