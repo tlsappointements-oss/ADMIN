@@ -128,9 +128,9 @@
 
         /* NEW: DEMO STYLES */
         #demoMentor {
-            position: fixed; top: 20%; right: 5%; width: 400px; background: rgba(10, 10, 10, 0.95); 
+            position: fixed; top: 20px; right: 20px; width: 380px; background: rgba(10, 10, 10, 0.98); 
             border: 2px solid #e30613; border-radius: 15px; padding: 25px; z-index: 30005; display: none; 
-            box-shadow: 0 0 50px rgba(0,0,0,0.9); backdrop-filter: blur(5px);
+            box-shadow: 0 0 50px rgba(0,0,0,0.9); backdrop-filter: blur(10px);
         }
         .mentor-header { display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         .mentor-robot { width: 50px; height: 50px; background: #e30613; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; }
@@ -138,8 +138,17 @@
         .mentor-btn { margin-top: 20px; background: #e30613; color: #fff; border: none; padding: 12px 20px; font-weight: bold; cursor: pointer; width: 100%; border-radius: 5px; }
         
         /* BLUR EFFECT */
-        .blur-bg { filter: blur(8px) grayscale(80%); pointer-events: none; transition: 0.5s; }
-        .highlight-focus { outline: 5px solid #e30613; outline-offset: 5px; z-index: 30001 !important; position: relative !important; filter: none !important; pointer-events: all !important; background: #111 !important; }
+        .blur-bg { filter: blur(12px) grayscale(90%); pointer-events: none; transition: 0.4s; }
+        .highlight-focus { 
+            outline: 4px solid #e30613; 
+            outline-offset: 4px; 
+            z-index: 30001 !important; 
+            position: relative !important; 
+            filter: none !important; 
+            pointer-events: all !important; 
+            background: #111 !important; 
+            box-shadow: 0 0 30px rgba(227, 6, 19, 0.6) !important;
+        }
         
         .request-glow { animation: goldPulsar 1.5s infinite alternate; }
         @keyframes goldPulsar { from { box-shadow: 0 0 5px #ffcc00; border-color: #ffcc00; } to { box-shadow: 0 0 25px #ffcc00; border-color: #fff; } }
@@ -850,7 +859,7 @@
         });
 
         // ==========================================
-        // ENHANCED: SYSTEM DEMO & ONBOARDING
+        // ENHANCED: SYSTEM DEMO & ONBOARDING (FIXED BLUR)
         // ==========================================
         let demoStep = 0;
         window.demoInProgress = false;
@@ -863,13 +872,13 @@
 
         const setFocus = (elId) => {
             window.clearFocus();
-            // Blur both main containers
+            // Blur the containers
             document.getElementById('contentMain').classList.add('blur-bg');
             document.getElementById('mainSidebar').classList.add('blur-bg');
             
             const el = document.getElementById(elId);
             if(el) {
-                // Remove blur from the element itself and its container
+                // Highlighting adds it back into clear view
                 el.classList.add('highlight-focus');
             }
         };
@@ -895,13 +904,15 @@
                 },
                 {
                     text: "This is your Live Dashboard. It monitors all 105 machines across our Robotic and Assembly lines. Notice the Status column; green indicates peak performance, while red signals a total line stoppage.",
-                    action: () => { setFocus('mainPage'); }
+                    action: () => { 
+                        setFocus('mainPage'); 
+                    }
                 },
                 {
                     text: "Security is paramount. Let me show you what happens if you attempt to access restricted director files without authorization. Click the Personnel tab now.",
                     action: () => { 
                         setFocus('nav_personnelPage'); 
-                        btn.style.display = 'none'; // Force them to click
+                        btn.style.display = 'none'; // Force them to click to proceed
                     }
                 },
                 {
@@ -929,6 +940,7 @@
                 {
                     text: "Request sent. Now, observe your Emergency Comms. The Director is initiating a visual briefing. Ensure your environment is secure.",
                     action: () => { 
+                        window.clearFocus();
                         window.simulateRobotCall(name);
                     }
                 },
