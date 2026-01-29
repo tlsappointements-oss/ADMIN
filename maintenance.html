@@ -126,11 +126,34 @@
         .perm-chip { font-size: 10px; padding: 6px; border: 1px solid #333; text-align: center; cursor: pointer; border-radius: 4px; background: #0a0a0a; color: #666; }
         .perm-active { background: #e30613; border-color: #e30613; color: #fff; box-shadow: 0 0 10px rgba(227, 6, 19, 0.3); }
 
+        /* NEW: DEMO STYLES */
+        #demoMentor {
+            position: fixed; bottom: 30px; right: 30px; width: 350px; background: #000; border: 2px solid #e30613;
+            border-radius: 15px; padding: 20px; z-index: 30000; display: none; box-shadow: 0 0 30px rgba(227, 6, 19, 0.4);
+        }
+        .mentor-header { display: flex; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .mentor-robot { width: 50px; height: 50px; background: #e30613; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; }
+        .mentor-text { font-size: 0.9rem; line-height: 1.4; color: #ccc; }
+        .mentor-btn { margin-top: 15px; background: #e30613; color: #fff; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; width: 100%; }
+        .highlight-focus { outline: 4px solid #e30613; z-index: 30001; position: relative; }
+
     </style>
 </head>
 <body onclick="window.handleFirstInteraction()">
 
     <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <div id="demoMentor">
+        <div class="mentor-header">
+            <div class="mentor-robot">🤖</div>
+            <div>
+                <b style="color:#e30613; display:block;">SYSTEM MENTOR</b>
+                <small style="color:#666;">Instructional Unit 01</small>
+            </div>
+        </div>
+        <div id="mentorContent" class="mentor-text"></div>
+        <button id="mentorNext" class="mentor-btn">ACKNOWLEDGE & PROCEED</button>
+    </div>
 
     <div id="accessDeniedModal">
         <div class="security-shield">
@@ -224,7 +247,7 @@
 
         <div id="interventionPage">
             <h1>Step 1: Request Intervention</h1>
-            <div class="card">
+            <div class="card" id="interventionCard">
                 <select id="reqMachine" onchange="window.previewMachine(this.value)"></select>
                 <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
                 <button onclick="window.submitReq()">SUBMIT TO DIRECTOR</button>
@@ -602,6 +625,7 @@
                 status: "PENDING_MOHAMED", timestamp: serverTimestamp(), requester: auth.currentUser.email
             });
             alert("Request sent to Director.");
+            if (window.demoInProgress) window.nextDemoStep();
         };
 
         window.startEmergencyCall = (mName, isDirector = false) => {
@@ -723,10 +747,24 @@
             }
         };
 
-        onAuthStateChanged(auth, user => {
+        onAuthStateChanged(auth, async user => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+
+            // AUTO-REGISTER NEW USERS
+            const userRef = doc(db, "users", email);
+            const userDoc = await getDoc(userRef);
+            if (!userDoc.exists()) {
+                await setDoc(userRef, { email, role: "technician", joinedAt: serverTimestamp() });
+                await setDoc(doc(db, "permissions", email), {
+                    view_dashboard: true,
+                    request_intervention: false,
+                    do_missions: false,
+                    view_history: false,
+                    view_kpi: false
+                });
+            }
 
             // Listen for global permissions
             onSnapshot(collection(db, "permissions"), snap => {
@@ -734,7 +772,7 @@
                 
                 ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(id => {
                     const btn = document.getElementById('nav_' + id);
-                    if (btn) btn.style.display = window.checkPermission(id) ? 'block' : 'none';
+                    if (btn) btn.style.display = (window.checkPermission(id) || window.demoInProgress) ? 'block' : 'none';
                 });
 
                 if (email === DIRECTOR) {
@@ -753,12 +791,107 @@
             } else {
                 document.getElementById('hangUpBtn').style.display = "none";
                 loadMyMissions(email);
+                
+                // TRIGGER DEMO IF NEW
+                if (!localStorage.getItem(`demoDone_${email}`)) {
+                    window.startDemoSequence(user.displayName || email.split('@')[0]);
+                }
             }
 
             loadMachinesLive(email);
             loadHistory();
             listenForEmergency(email);
         });
+
+        // ==========================================
+        // NEW FEATURE: SYSTEM DEMO & ONBOARDING
+        // ==========================================
+        let demoStep = 0;
+        window.demoInProgress = false;
+
+        window.startDemoSequence = (name) => {
+            window.demoInProgress = true;
+            document.getElementById('demoMentor').style.display = 'block';
+            window.nextDemoStep(name);
+        };
+
+        window.nextDemoStep = (name) => {
+            const mentor = document.getElementById('mentorContent');
+            const btn = document.getElementById('mentorNext');
+            const email = auth.currentUser.email.toLowerCase();
+
+            const speak = (text) => {
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.rate = 0.9;
+                window.speechSynthesis.speak(msg);
+            };
+
+            const steps = [
+                {
+                    text: `Welcome to Mercedes-Benz Plant Operations, ${name}. I am your system guide. Your account has been registered, but you have no permissions yet. Let me show you the protocol.`,
+                    action: () => { window.showPage('mainPage'); document.getElementById('nav_mainPage').classList.add('highlight-focus'); }
+                },
+                {
+                    text: "This is the Dashboard. Here you see all 105 machines across Robotic, Press, and Assembly sections. Red status means a critical failure.",
+                    action: () => { document.getElementById('nav_mainPage').classList.remove('highlight-focus'); }
+                },
+                {
+                    text: "If a machine breaks down, its status turns RED and you will receive a high-priority alert. You must then request an intervention.",
+                    action: () => { window.showPage('interventionPage'); document.getElementById('interventionCard').classList.add('highlight-focus'); }
+                },
+                {
+                    text: "Let's simulate a breakdown. Select a machine and write 'DEMO FAILURE' in the box, then click Submit.",
+                    action: () => { btn.style.display = 'none'; } // Hide button until they submit
+                },
+                {
+                    text: "Request sent! Now, the Director will review it. Meanwhile, you will receive an emergency briefing. Watch the screen.",
+                    action: () => { 
+                        btn.style.display = 'block';
+                        window.simulateRobotCall(name);
+                    }
+                },
+                {
+                    text: "Once approved, the task appears in 'Missions'. There, you must upload a 'Before' photo, follow 6 technical steps, and upload an 'After' photo.",
+                    action: () => { window.showPage('missionPage'); }
+                },
+                {
+                    text: "Finally, once the Director archives your report, it is saved in 'History'. You can audit any machine's life cycle by clicking its ID in the library.",
+                    action: () => { window.showPage('historyPage'); }
+                },
+                {
+                    text: "The demo is complete. Please contact Director Mohamed to grant your permanent operational permissions. Welcome to the team.",
+                    action: () => { 
+                        localStorage.setItem(`demoDone_${email}`, 'true');
+                        window.demoInProgress = false;
+                        document.getElementById('demoMentor').style.display = 'none';
+                        window.showPage('mainPage');
+                    }
+                }
+            ];
+
+            if (demoStep < steps.length) {
+                const current = steps[demoStep];
+                mentor.innerHTML = current.text;
+                speak(current.text);
+                current.action();
+                demoStep++;
+            }
+        };
+
+        document.getElementById('mentorNext').onclick = () => window.nextDemoStep();
+
+        window.simulateRobotCall = (name) => {
+            const popup = document.getElementById('callPopup');
+            popup.style.display = 'block';
+            document.getElementById('callMachineName').innerText = "VIRTUAL BRIEFING";
+            document.getElementById('videoContainer').innerHTML = "<div style='height:100%; display:flex; align-items:center; justify-content:center; font-size:50px;'>🤖</div>";
+            
+            const msg = new SpeechSynthesisUtterance(`Hello ${name}. You have been assigned to monitor the Robotic units. Take charge of this task and update the system of your progress immediately. Good luck.`);
+            msg.onend = () => {
+                setTimeout(() => { popup.style.display = 'none'; }, 2000);
+            };
+            window.speechSynthesis.speak(msg);
+        };
 
         // RE-DESIGNED PERSONNEL DASHBOARD
         function renderPersonnelDashboard(snap) {
