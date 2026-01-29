@@ -865,21 +865,43 @@
         window.demoInProgress = false;
 
         window.clearFocus = () => {
+            // Remove highlight classes
             document.querySelectorAll('.highlight-focus').forEach(el => el.classList.remove('highlight-focus'));
+            
+            // Remove blur from all possible containers
             document.getElementById('contentMain').classList.remove('blur-bg');
             document.getElementById('mainSidebar').classList.remove('blur-bg');
+            
+            // Specifically reset any inline filters if they were stuck
+            document.getElementById('contentMain').style.filter = "none";
+            document.getElementById('mainSidebar').style.filter = "none";
+            document.getElementById('contentMain').style.pointerEvents = "all";
+            document.getElementById('mainSidebar').style.pointerEvents = "all";
         };
 
         const setFocus = (elId) => {
             window.clearFocus();
-            // Blur the containers
-            document.getElementById('contentMain').classList.add('blur-bg');
-            document.getElementById('mainSidebar').classList.add('blur-bg');
             
-            const el = document.getElementById(elId);
-            if(el) {
-                // Highlighting adds it back into clear view
-                el.classList.add('highlight-focus');
+            const targetEl = document.getElementById(elId);
+            const sidebar = document.getElementById('mainSidebar');
+            const mainContent = document.getElementById('contentMain');
+
+            // Logic: Determine if the target is in the Sidebar or the Main Content
+            if (sidebar.contains(targetEl)) {
+                // If focusing something in the sidebar, blur the main content only
+                mainContent.classList.add('blur-bg');
+            } else if (mainContent.contains(targetEl)) {
+                // If focusing something in main content, blur the sidebar
+                sidebar.classList.add('blur-bg');
+            }
+
+            // Apply the focus style to the element
+            if (targetEl) {
+                targetEl.classList.add('highlight-focus');
+                // Ensure the focused element is definitely visible and clickable
+                targetEl.style.filter = "none"; 
+                targetEl.style.opacity = "1";
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         };
 
