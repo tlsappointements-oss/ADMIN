@@ -424,6 +424,9 @@
                 speakNative("Warning. Access Denied. Biometric signature mismatch. Security protocol 1 0 2 is now active.");
                 return;
             }
+            if (window.demoInProgress) {
+                document.getElementById('accessDeniedModal').style.display = 'none';
+            }
             ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(p => {
                 const el = document.getElementById(p);
                 if(el) el.style.display = (p === id ? 'block' : 'none');
