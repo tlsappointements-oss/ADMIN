@@ -11,7 +11,7 @@
         .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10005; }
         .main { margin-left: 285px; padding: 40px; flex: 1; }
         
-        #mainPage, #adminPanel, #interventionPage, #missionPage, #historyPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
+        #mainPage, #adminPanel, #interventionPage, #missionPage, #historyPage, #kpiTrackerPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
         
         /* Show Dashboard by default */
         #mainPage { display: block; }
@@ -93,6 +93,17 @@
         .machine-img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
         .preview-img { width: 120px; height: 120px; object-fit: cover; margin-right: 10px; border: 2px solid #444; border-radius: 5px; }
         .img-edit-btn { background: #444; color: white; padding: 3px 8px; font-size: 10px; display: block; margin-top: 5px; width: 120px; text-align: center; cursor: pointer; }
+
+        /* FUTURISTIC KPI STYLES */
+        .trading-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .kpi-circle-container { position: relative; width: 100px; height: 100px; display: inline-block; margin: 10px; }
+        .kpi-circle-svg { transform: rotate(-90deg); width: 100px; height: 100px; }
+        .kpi-circle-bg { fill: none; stroke: #222; stroke-width: 8; }
+        .kpi-circle-progress { fill: none; stroke: #00ff00; stroke-width: 8; stroke-dasharray: 251.2; stroke-dashoffset: 251.2; transition: 1s ease-out; stroke-linecap: round; filter: drop-shadow(0 0 5px #00ff00); }
+        .kpi-percent-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.2rem; color: #fff; }
+        .performance-bar-wrap { background: #222; height: 10px; border-radius: 5px; margin: 10px 0; overflow: hidden; }
+        .performance-bar-fill { height: 100%; background: linear-gradient(90deg, #e30613, #ffcc00, #00ff00); transition: 1s; width: 0%; }
+        .trading-value { font-family: 'Courier New', monospace; font-size: 1.5rem; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5); }
     </style>
 </head>
 <body onclick="window.handleFirstInteraction()">
@@ -142,6 +153,7 @@
         <button class="btn-nav" onclick="window.showPage('interventionPage')">📝 Interventions</button>
         <button class="btn-nav" onclick="window.showPage('missionPage')">🛠️ Missions</button>
         <button class="btn-nav" onclick="window.showPage('historyPage')">📚 History</button>
+        <button class="btn-nav" onclick="window.showPage('kpiTrackerPage')">📊 KPI Command</button>
         <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
     </div>
 
@@ -193,6 +205,44 @@
                 </select>
             </div>
             <div id="historyList"></div>
+        </div>
+
+        <div id="kpiTrackerPage">
+            <h1 style="letter-spacing: 2px;">STRATEGIC KPI COMMAND CENTER</h1>
+            
+            <div class="trading-grid">
+                <div class="card" style="border-top: 4px solid #00ff00;">
+                    <h3 style="margin-top:0">PRODUCTION LINE HEALTH</h3>
+                    <div id="lineHealthContent"></div>
+                </div>
+
+                <div class="card" style="text-align:center;">
+                    <h3>PLANT EFFICIENCY</h3>
+                    <div class="kpi-circle-container">
+                        <svg class="kpi-circle-svg">
+                            <circle class="kpi-circle-bg" cx="50" cy="50" r="40"></circle>
+                            <circle id="globalKpiCircle" class="kpi-circle-progress" cx="50" cy="50" r="40"></circle>
+                        </svg>
+                        <div class="kpi-percent-text" id="globalKpiVal">0%</div>
+                    </div>
+                    <p style="color:#666; font-size:11px;">Target vs Actual Resolution Time</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>TECHNICIAN PERFORMANCE AUDIT</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IDENTIFIER</th>
+                            <th>COMPLETIONS</th>
+                            <th>AVG ACCURACY</th>
+                            <th>EFFICIENCY RATING</th>
+                        </tr>
+                    </thead>
+                    <tbody id="techKpiTable"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -256,10 +306,18 @@
         };
 
         window.showPage = (id) => {
-            ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage'].forEach(p => {
+            if (id === 'kpiTrackerPage' && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
+                document.getElementById('accessDeniedModal').style.display = 'flex';
+                const voice = new SpeechSynthesisUtterance("Access Denied. Security protocol 1 0 2 active. Restricted to Plant Director only.");
+                voice.rate = 0.9; voice.pitch = 0.8;
+                window.speechSynthesis.speak(voice);
+                return;
+            }
+            ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage'].forEach(p => {
                 const el = document.getElementById(p);
                 if(el) el.style.display = (p === id ? 'block' : 'none');
             });
+            if (id === 'kpiTrackerPage') window.calculateKPIs();
         }
 
         window.previewMachine = (id) => {
@@ -526,6 +584,76 @@
             window.startEmergencyCall(mName, true);
         };
 
+        /* NEW KPI LOGIC */
+        window.calculateKPIs = () => {
+            const sections = { "ROBOTIC": { total: 0, working: 0 }, "PRESS": { total: 0, working: 0 }, "ASSEMBLY": { total: 0, working: 0 } };
+            const techStats = {};
+            let totalTarget = 0, totalActual = 0;
+
+            Object.values(machineCache).forEach(m => {
+                if (sections[m.section]) {
+                    sections[m.section].total++;
+                    if (m.status === "WORKING") sections[m.section].working++;
+                }
+            });
+
+            archivedInterventions.forEach(i => {
+                const tech = i.requester || "Unknown";
+                if (!techStats[tech]) techStats[tech] = { count: 0, totalTarget: 0, totalActual: 0 };
+                
+                const target = machineCache[i.machineId]?.targetMaintenanceTime || 60;
+                const actual = Math.round((i.actualEnd - i.actualStart) / 60000);
+                
+                techStats[tech].count++;
+                techStats[tech].totalTarget += target;
+                techStats[tech].totalActual += actual;
+
+                totalTarget += target;
+                totalActual += actual;
+            });
+
+            // Update Circle
+            const globalEfficiency = totalActual > 0 ? Math.min(100, Math.round((totalTarget / totalActual) * 100)) : 0;
+            const offset = 251.2 - (251.2 * globalEfficiency) / 100;
+            document.getElementById('globalKpiCircle').style.strokeDashoffset = offset;
+            document.getElementById('globalKpiVal').innerText = globalEfficiency + "%";
+
+            // Update Lines
+            let healthHtml = "";
+            for (const [name, data] of Object.entries(sections)) {
+                const percent = data.total > 0 ? Math.round((data.working / data.total) * 100) : 0;
+                healthHtml += `
+                    <div style="margin-bottom:15px">
+                        <div style="display:flex; justify-content:space-between; font-size:12px;">
+                            <span>${name} LINE</span><span>${percent}%</span>
+                        </div>
+                        <div class="performance-bar-wrap">
+                            <div class="performance-bar-fill" style="width:${percent}%"></div>
+                        </div>
+                    </div>`;
+            }
+            document.getElementById('lineHealthContent').innerHTML = healthHtml;
+
+            // Update Tech Table
+            const table = document.getElementById('techKpiTable');
+            table.innerHTML = "";
+            Object.entries(techStats).forEach(([name, stats]) => {
+                const efficiency = Math.min(100, Math.round((stats.totalTarget / stats.totalActual) * 100));
+                table.innerHTML += `
+                    <tr>
+                        <td><b>${name.split('@')[0].toUpperCase()}</b></td>
+                        <td class="trading-value">${stats.count}</td>
+                        <td>${efficiency}% Accuracy</td>
+                        <td>
+                             <div class="performance-bar-wrap" style="width:100px; display:inline-block; margin-right:10px;">
+                                <div class="performance-bar-fill" style="width:${efficiency}%"></div>
+                             </div>
+                             <span style="color:${efficiency > 80 ? '#00ff00' : '#ffcc00'}">${efficiency > 80 ? 'ELITE' : 'AVERAGE'}</span>
+                        </td>
+                    </tr>`;
+            });
+        };
+
         onAuthStateChanged(auth, user => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
@@ -689,6 +817,7 @@
                 archivedInterventions = [];
                 snap.forEach(d => archivedInterventions.push({id: d.id, ...d.data()}));
                 window.filterHistory();
+                if(document.getElementById('kpiTrackerPage').style.display === 'block') window.calculateKPIs();
             });
         }
 
