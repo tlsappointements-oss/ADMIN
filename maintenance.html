@@ -127,6 +127,10 @@
     <div class="main">
         <div id="adminPanel">
             <h3>DIRECTOR CONTROL</h3>
+            <div id="directorActiveCalls" class="card" style="border: 2px solid #ffcc00;">
+                <h4>ACTIVE BREAKDOWNS (CALLS)</h4>
+                <div id="breakdownCallList"></div>
+            </div>
             <div id="adminApprovalList"></div>
             <hr style="border-color: #333; margin: 20px 0;">
             <div class="card">
@@ -416,8 +420,8 @@
             alert("Request sent to Director.");
         };
 
-        /* CALL PART START - DO NOT CHANGE */
-        window.startEmergencyCall = (mName) => {
+        /* CALL PART START - UPDATED FOR DIRECTOR MANAGEMENT */
+        window.startEmergencyCall = (mName, isDirector = false) => {
             document.getElementById('callPopup').style.display = 'block';
             document.getElementById('callMachineName').innerText = mName;
             document.getElementById('statusDot').classList.add('dot-active');
@@ -429,8 +433,16 @@
                     width: '100%',
                     height: '100%',
                     parentNode: document.getElementById('videoContainer'),
-                    configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: false },
-                    interfaceConfigOverwrite: { TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup'] }
+                    // Director has full toolbar; technician is restricted
+                    configOverwrite: { 
+                        startWithAudioMuted: false, 
+                        startWithVideoMuted: false,
+                        enableWelcomePage: false,
+                        prejoinPageEnabled: false
+                    },
+                    interfaceConfigOverwrite: { 
+                        TOOLBAR_BUTTONS: isDirector ? ['microphone', 'camera', 'hangup', 'fittowindow', 'videobackgroundblur'] : [] 
+                    }
                 };
                 jitsiApi = new JitsiMeetExternalAPI(domain, options);
             }
@@ -440,7 +452,20 @@
             if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
             document.getElementById('callPopup').style.display = 'none';
             document.getElementById('statusDot').classList.remove('dot-active');
-            await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false });
+            // If director ends call, inform system
+            if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+                await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false, callMachine: "" });
+            }
+        };
+
+        window.directorTriggerCall = async (mName) => {
+            await setDoc(doc(db, "emergency_calls", "active_session"), { 
+                active: true, 
+                callMachine: mName, 
+                triggerSound: Date.now(),
+                timestamp: serverTimestamp()
+            });
+            window.startEmergencyCall(mName, true);
         };
         /* CALL PART END */
 
@@ -470,23 +495,62 @@
         function listenForEmergency(email) {
             onSnapshot(collection(db, "machines"), (snap) => {
                 let dangerFound = false;
+                let breakdownListHtml = "";
+                
                 snap.forEach(doc => {
                     const m = doc.data();
-                    if (m.status === "BREAKDOWN" && m.assignedTech === email && !m.acknowledged) {
-                        dangerFound = true;
-                        document.getElementById('dangerDescription').innerText = `FAILURE: ${m.name} [${m.section}]`;
-                        document.getElementById('dangerOverlay').style.display = 'flex';
-                        if (micReady) window.startEmergencyCall(m.name);
+                    if (m.status === "BREAKDOWN" && !m.acknowledged) {
+                        // For Technician
+                        if (m.assignedTech === email) {
+                            dangerFound = true;
+                            document.getElementById('dangerDescription').innerText = `FAILURE: ${m.name} [${m.section}]`;
+                            document.getElementById('dangerOverlay').style.display = 'flex';
+                        }
+                        // For Director: Build a list of call-ready machines
+                        if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+                            breakdownListHtml += `
+                                <div style="display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px;">
+                                    <span><b>${m.name}</b> (Tech: ${m.assignedTech})</span>
+                                    <button onclick="window.directorTriggerCall('${m.name}')" style="font-size:10px; padding:5px 10px;">📞 RING & OPEN CALL</button>
+                                </div>`;
+                        }
                     }
                 });
+                
+                if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+                    document.getElementById('breakdownCallList').innerHTML = breakdownListHtml || "No active breakdowns requiring calls.";
+                }
+                
                 if (!dangerFound) document.getElementById('dangerOverlay').style.display = 'none';
             });
 
+            // Universal listener for the Call Command from Director
             onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
                 const data = snap.data();
-                if (data?.triggerSound && micReady) {
+                if (!data) return;
+
+                const email = auth.currentUser.email.toLowerCase();
+                
+                // If there's an active sound trigger and user has clicked Step 1
+                if (data.triggerSound && micReady) {
                     const audio = document.getElementById('effectAudio');
                     audio.play().catch(() => {});
+                    
+                    // Voice Alert
+                    const msg = new SpeechSynthesisUtterance("Please respond to director. You have been assigned to repair this problem.");
+                    msg.lang = 'en-US';
+                    window.speechSynthesis.speak(msg);
+                }
+
+                // If Director has opened a call room for a machine assigned to this tech
+                if (data.active && data.callMachine && email !== DIRECTOR) {
+                    // Check if the machine being called is assigned to this tech
+                    const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === email);
+                    if (assignedMachine && micReady) {
+                        window.startEmergencyCall(data.callMachine, false);
+                    }
+                } else if (!data.active && jitsiApi && email !== DIRECTOR) {
+                    window.endEmergencyCall();
                 }
             });
         }
