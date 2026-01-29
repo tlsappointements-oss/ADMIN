@@ -8,7 +8,7 @@
         body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
         
         /* SIDEBAR ALWAYS ON TOP */
-        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10005; }
+        .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10005; overflow-y: auto; }
         .main { margin-left: 285px; padding: 40px; flex: 1; }
         
         #mainPage, #adminPanel, #interventionPage, #missionPage, #historyPage, #kpiTrackerPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
@@ -112,12 +112,19 @@
 
         .line-health-row { background: #111; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 2px solid #333; }
         .health-bar-bg { background: #222; height: 4px; width: 100%; margin-top: 10px; }
-        .health-bar-fill { height: 100%; background: #e30613; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); box-shadow: 0 0 10px #e30613; }
+        .health-bar-fill { height: 100%; background: #e30613; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); box-shadow: 0 0 100px #e30613; }
 
         /* ACCESS MANAGEMENT STYLES */
         .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 5px; margin-top: 10px; }
         .perm-chip { font-size: 9px; padding: 4px; border: 1px solid #333; text-align: center; cursor: pointer; border-radius: 3px; }
         .perm-active { background: #e30613; border-color: #e30613; color: #fff; }
+
+        /* NEW PERSONNEL STYLES */
+        .personnel-section { margin-top: 30px; }
+        .personnel-header { color: #666; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px; margin-bottom: 15px; border-bottom: 1px solid #222; padding-bottom: 5px; }
+        .user-profile-btn { width: 100%; text-align: left; background: #111; border: 1px solid #222; padding: 10px; margin-bottom: 8px; cursor: pointer; font-size: 0.8rem; border-left: 3px solid #666; transition: 0.2s; }
+        .user-profile-btn:hover { border-left-color: #e30613; background: #1a1a1a; }
+        .breakdown-sidebar-card { background: rgba(227, 6, 19, 0.1); border: 1px solid #e30613; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.75rem; }
 
     </style>
 </head>
@@ -170,22 +177,21 @@
         <button class="btn-nav" id="nav_missionPage" onclick="window.showPage('missionPage')">🛠️ Missions</button>
         <button class="btn-nav" id="nav_historyPage" onclick="window.showPage('historyPage')">📚 History</button>
         <button class="btn-nav" id="nav_kpiTrackerPage" onclick="window.showPage('kpiTrackerPage')">📊 KPI Command</button>
+        
+        <div id="personnelSection" class="personnel-section" style="display:none;">
+            <div class="personnel-header">Personnel & Access</div>
+            <div id="sidebarUserList"></div>
+            
+            <div class="personnel-header" style="margin-top:20px;">Live Emergency Calls</div>
+            <div id="sidebarBreakdownCalls"></div>
+        </div>
+
         <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
     </div>
 
     <div class="main">
         <div id="adminPanel">
             <h3>DIRECTOR CONTROL</h3>
-            
-            <div class="card" style="border: 1px solid #ffcc00;">
-                <h4 style="color:#ffcc00">SECURITY & ACCESS MATRIX</h4>
-                <div id="userAccessList"></div>
-            </div>
-
-            <div id="directorActiveCalls" class="card" style="border: 2px solid #ffcc00;">
-                <h4>ACTIVE BREAKDOWNS (CALLS)</h4>
-                <div id="breakdownCallList"></div>
-            </div>
             <div id="adminApprovalList"></div>
             <hr style="border-color: #333; margin: 20px 0;">
             <div class="card">
@@ -353,6 +359,8 @@
             const current = userPermissions[email] || {};
             current[key] = !current[key];
             await setDoc(doc(db, "permissions", email), current);
+            // Refresh the UI manager in popup
+            window.manageUserAccess(email);
         };
 
         window.showPage = (id) => {
@@ -380,6 +388,31 @@
                 <p><b>Description:</b> ${m.description}</p>
                 <h4>Recent History</h4>
                 <div class="history-log">${m.history?.length ? m.history.map(h => `<div>• ${h}</div>`).join('') : 'No previous records.'}</div>
+            `;
+            document.getElementById('machineDetailContent').innerHTML = content;
+            document.getElementById('machineDetailPopup').style.display = 'block';
+        };
+
+        // NEW: USER MANAGEMENT POPUP
+        window.manageUserAccess = (email) => {
+            const perms = userPermissions[email] || {};
+            const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
+            const content = `
+                <h2 style="color:#e30613">Manage User: ${email}</h2>
+                <div class="card">
+                    <h4>Security & Access Matrix</h4>
+                    <div class="perm-grid">
+                        ${keys.map(k => `
+                            <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick="window.togglePermission('${email}', '${k}')">
+                                ${k.replace(/_/g, ' ').toUpperCase()}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>Emergency Actions</h4>
+                    <button onclick="window.directorTriggerCall('DIRECT_USER_CALL', '${email}')" style="width:100%; background:#ffcc00; color:#000;">📞 START DIRECT CALL</button>
+                </div>
             `;
             document.getElementById('machineDetailContent').innerHTML = content;
             document.getElementById('machineDetailPopup').style.display = 'block';
@@ -619,17 +652,17 @@
             }
         };
 
-        window.directorTriggerCall = async (mName) => {
+        window.directorTriggerCall = async (mName, specificUserEmail = null) => {
             await setDoc(doc(db, "emergency_calls", "active_session"), { 
                 active: true, 
                 callMachine: mName, 
                 triggerSound: Date.now(),
+                targetUser: specificUserEmail,
                 timestamp: serverTimestamp()
             });
             window.startEmergencyCall(mName, true);
         };
 
-        /* RE-DESIGNED KPI LOGIC - ULTRA FUTURISTIC */
         window.calculateKPIs = () => {
             const sections = { "ROBOTIC": { total: 0, working: 0 }, "PRESS": { total: 0, working: 0 }, "ASSEMBLY": { total: 0, working: 0 } };
             const techStats = {};
@@ -658,13 +691,11 @@
                 totalActual += actual;
             });
 
-            // Update Futuristic Hero Stats
             const globalEfficiency = totalActual > 0 ? Math.min(100, Math.round((totalTarget / totalActual) * 100)) : 0;
             document.getElementById('globalKpiVal').innerText = globalEfficiency + "%";
             document.getElementById('globalKpiFill').style.width = globalEfficiency + "%";
             document.getElementById('activeMissionsVal').innerText = activeMissions;
 
-            // Update Section Telemetry
             let healthHtml = "";
             for (const [name, data] of Object.entries(sections)) {
                 const percent = data.total > 0 ? Math.round((data.working / data.total) * 100) : 0;
@@ -681,7 +712,6 @@
             }
             document.getElementById('lineHealthContent').innerHTML = healthHtml;
 
-            // Update Tech Performance Table
             const table = document.getElementById('techKpiTable');
             table.innerHTML = "";
             Object.entries(techStats).sort((a,b) => b[1].count - a[1].count).forEach(([name, stats]) => {
@@ -704,18 +734,17 @@
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
 
-            // Listen for global permissions
             onSnapshot(collection(db, "permissions"), snap => {
                 snap.forEach(d => userPermissions[d.id] = d.data());
                 
-                // Hide sidebar buttons based on real-time permissions
                 ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage'].forEach(id => {
                     const btn = document.getElementById('nav_' + id);
                     if (btn) btn.style.display = window.checkPermission(id) ? 'block' : 'none';
                 });
 
                 if (email === DIRECTOR) {
-                    renderAccessManager(snap);
+                    document.getElementById('personnelSection').style.display = "block";
+                    renderSidebarPersonnel(snap);
                 }
             });
 
@@ -737,29 +766,18 @@
             listenForEmergency(email);
         });
 
-        function renderAccessManager(snap) {
-            const container = document.getElementById('userAccessList');
+        // REFACTORED: RENDER USERS IN SIDEBAR
+        function renderSidebarPersonnel(snap) {
+            const container = document.getElementById('sidebarUserList');
             container.innerHTML = "";
-            const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
-            
             snap.forEach(d => {
                 const userEmail = d.id;
                 if (userEmail === DIRECTOR) return;
-                const perms = d.data();
-                
-                const div = document.createElement('div');
-                div.className = "card";
-                div.innerHTML = `
-                    <div style="font-size:12px; margin-bottom:10px; color:#e30613;">USER: ${userEmail}</div>
-                    <div class="perm-grid">
-                        ${keys.map(k => `
-                            <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick="window.togglePermission('${userEmail}', '${k}')">
-                                ${k.replace('_', ' ').toUpperCase()}
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                container.appendChild(div);
+                const btn = document.createElement('div');
+                btn.className = "user-profile-btn";
+                btn.innerHTML = `👤 ${userEmail.split('@')[0].toUpperCase()}`;
+                btn.onclick = () => window.manageUserAccess(userEmail);
+                container.appendChild(btn);
             });
         }
 
@@ -778,16 +796,17 @@
                         }
                         if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
                             breakdownListHtml += `
-                                <div style="display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px;">
-                                    <span><b>${m.name}</b> (Tech: ${m.assignedTech})</span>
-                                    <button onclick="window.directorTriggerCall('${m.name}')" style="font-size:10px; padding:5px 10px;">📞 RING & OPEN CALL</button>
+                                <div class="breakdown-sidebar-card">
+                                    <div style="font-weight:bold; margin-bottom:5px;">⚠️ ${m.name}</div>
+                                    <div style="font-size:9px; color:#aaa;">TECH: ${m.assignedTech || 'UNASSIGNED'}</div>
+                                    <button onclick="window.directorTriggerCall('${m.name}')" style="font-size:9px; width:100%; margin-top:5px; padding:5px;">📞 OPEN CHANNEL</button>
                                 </div>`;
                         }
                     }
                 });
                 
                 if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
-                    document.getElementById('breakdownCallList').innerHTML = breakdownListHtml || "No active breakdowns requiring calls.";
+                    document.getElementById('sidebarBreakdownCalls').innerHTML = breakdownListHtml || "<div style='font-size:10px; color:#444;'>No active breakdowns.</div>";
                 }
                 
                 if (!dangerFound) document.getElementById('dangerOverlay').style.display = 'none';
@@ -806,8 +825,11 @@
                 }
 
                 if (data.active && data.callMachine && email !== DIRECTOR) {
+                    // Check if it's a specific user call or a machine-assigned tech call
+                    const isTargeted = data.targetUser === email;
                     const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === email);
-                    if (assignedMachine && micReady) {
+                    
+                    if ((isTargeted || assignedMachine) && micReady) {
                         window.startEmergencyCall(data.callMachine, false);
                     }
                 } else if (!data.active && jitsiApi && email !== DIRECTOR) {
