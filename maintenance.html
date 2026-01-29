@@ -427,6 +427,12 @@
             if (window.demoInProgress) {
                 document.getElementById('accessDeniedModal').style.display = 'none';
             }
+            
+            // AUTOMATIC UI BLUR CLEANUP WHEN CHANGING PAGES
+            if (!window.demoInProgress) {
+                window.clearFocus(); 
+            }
+
             ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(p => {
                 const el = document.getElementById(p);
                 if(el) el.style.display = (p === id ? 'block' : 'none');
@@ -849,14 +855,14 @@
         let demoStep = 0;
         window.demoInProgress = false;
 
-        const clearFocus = () => {
+        window.clearFocus = () => {
             document.querySelectorAll('.highlight-focus').forEach(el => el.classList.remove('highlight-focus'));
             document.getElementById('contentMain').classList.remove('blur-bg');
             document.getElementById('mainSidebar').classList.remove('blur-bg');
         };
 
         const setFocus = (elId) => {
-            clearFocus();
+            window.clearFocus();
             // Blur both main containers
             document.getElementById('contentMain').classList.add('blur-bg');
             document.getElementById('mainSidebar').classList.add('blur-bg');
@@ -936,7 +942,7 @@
                 {
                     text: "Protocol complete. Once the Director confirms the repair, the machine status will automatically reset to green across the entire global plant. Welcome to Mercedes-Benz.",
                     action: () => { 
-                        clearFocus();
+                        window.clearFocus();
                         localStorage.setItem(`demoDone_${email}`, 'true');
                         window.demoInProgress = false;
                         document.getElementById('demoMentor').style.display = 'none';
