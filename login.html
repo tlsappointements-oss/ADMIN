@@ -141,6 +141,9 @@
             pctText.innerText = `${Math.floor(value)}%`;
         }
 
+        // Global promise to track model loading
+        let modelsLoaded = null;
+
         async function loadSecurityModels() {
             try {
                 const MODEL_URL = './models';
@@ -150,12 +153,17 @@
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
-            } catch (e) { console.error("Model load error"); }
+            } catch (e) { console.error("Model load error", e); }
         }
-        loadSecurityModels();
+        
+        // Assign the promise so runFaceVerification can wait for it
+        modelsLoaded = loadSecurityModels();
 
         async function runFaceVerification(email) {
             try {
+                // FORCE THE SYSTEM TO WAIT FOR MODELS BEFORE PROCEEDING
+                await modelsLoaded;
+
                 const [username, fullDomain] = email.split('@');
                 const domain = fullDomain.split('.')[0];
                 const imagePath = `./images/${domain}/${username}.jpg`;
@@ -209,7 +217,7 @@
                     }, 50);
                 });
             } catch (err) {
-                alert("Identity verification error.");
+                alert("Identity verification error. Please ensure models are loaded.");
                 return false;
             }
         }
