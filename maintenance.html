@@ -121,47 +121,6 @@
   </div>
 
   <!-- MACHINE DETAIL POPUP -->
-  <!-- USER PROFILE POPUP -->
-  <div id="userProfilePopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-       width:700px; max-height:90vh; background:#050505; border:2px solid #e30613; padding:30px; z-index:10011;
-       overflow-y:auto; border-radius:15px; box-shadow:0 0 50px #000;">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 style="color:#e30613; margin:0;" id="up_name">Technician Profile</h2>
-      <button onclick="document.getElementById('userProfilePopup').style.display='none'" style="background:#444;">CLOSE</button>
-    </div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:15px;">
-      <div class="card" style="margin:0;">
-        <div style="display:flex; gap:15px; align-items:center;">
-          <img id="up_avatar" src="" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:2px solid #333;">
-          <div>
-            <div id="up_email" style="color:#888; font-size:12px;"></div>
-            <div id="up_status" style="margin-top:6px; font-size:12px;"></div>
-          </div>
-        </div>
-        <div style="margin-top:10px;">
-          <button id="up_btn_change_photo" style="background:#555; font-size:12px;">UPDATE PHOTO</button>
-        </div>
-      </div>
-      <div class="card" style="margin:0;">
-        <label>Position / Role</label>
-        <select id="up_role">
-          <option value="technician">Technician</option>
-          <option value="team_leader">Team Leader</option>
-          <option value="project_leader">Project Leader</option>
-        </select>
-        <button id="up_btn_save_role" style="width:100%; background:#28a745;">SAVE ROLE</button>
-      </div>
-    </div>
-    <div class="card" style="margin-top:20px;">
-      <h3 style="margin-top:0;">Access Control</h3>
-      <div id="up_perm_chips" class="perm-grid"></div>
-    </div>
-    <div style="display:flex; gap:10px;">
-      <button id="up_btn_call" style="background:#007bff; flex:1;">📞 CALL NOW</button>
-      <button id="up_btn_close" onclick="document.getElementById('userProfilePopup').style.display='none'" style="background:#444; flex:1;">CLOSE</button>
-    </div>
-  </div>
-
   <div id="machineDetailPopup">
     <div id="machineDetailContent"></div>
     <button onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
@@ -330,7 +289,9 @@
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
     let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
-    let userPermissions = {}, userDirectory = {}, lastPermSnap = null;
+    let userPermissions = {};
+    let usersMeta = {}; // users collection (displayName, role, photoURL)
+    let lastPermsSnap = null;
     const M_STEPS = {
       "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
       "PRESS": ["Oil pressure check", "Die alignment inspection", "Lubrication cycle test", "Safety light curtain check", "Ram stroke measurement", "Plate cleaning"],
@@ -691,7 +652,6 @@
 
       // Listen for global permissions
       onSnapshot(collection(db, "permissions"), snap => {
-        lastPermSnap = snap;
         snap.forEach(d => {
           userPermissions[d.id] = d.data();
           if (d.id === email) {
@@ -703,7 +663,7 @@
           const btn = document.getElementById('nav_' + id);
           if (btn) btn.style.display = (window.checkPermission(id)) ? 'block' : 'none';
         });
-        if (email === DIRECTOR) { renderPersonnelDashboard(snap); }
+        if (email === DIRECTOR) { lastPermsSnap = snap; renderPersonnelDashboard(snap); }
       });
 
       if (email === DIRECTOR) {
@@ -711,9 +671,10 @@
         document.getElementById('mohamedConsole').style.display = "block";
         document.getElementById('hangUpBtn').style.display = "inline-block";
         onSnapshot(collection(db, "users"), snap => {
-          techList = []; userDirectory = {};
-          snap.forEach(d => { techList.push(d.id); userDirectory[d.id] = d.data(); });
-          if (lastPermSnap) renderPersonnelDashboard(lastPermSnap);
+          techList = [];
+          usersMeta = {};
+          snap.forEach(d => { techList.push(d.id); usersMeta[d.id] = d.data(); });
+          if (lastPermsSnap) renderPersonnelDashboard(lastPermsSnap);
         });
         loadAdminApprovals();
       } else {
@@ -793,13 +754,16 @@
 
       onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
         const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
-        if (data.active && data.targetUser && emailNow !== DIRECTOR && data.targetUser === emailNow) {
-        if (micReady) { window.startEmergencyCall(data.callMachine || 'DIRECT CALL', false); }
-      }
-      if (data.triggerSound && micReady) { const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{}); speakNative("Direct line opened. Please respond to the Director immediately."); }
-        if (data.active && data.callMachine && emailNow !== DIRECTOR) {
+        if (data.triggerSound && micReady) { const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{}); speakNative("Direct line opened. Please respond to the Director immediately."); }
+        // Machine-targeted call
+        if (data.active && data.type !== 'USER' && data.callMachine && emailNow !== DIRECTOR) {
           const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
           if (assignedMachine && micReady) { window.startEmergencyCall(data.callMachine, false); }
+        }
+        // User-targeted call
+        else if (data.active && data.type === 'USER' && data.callUser === emailNow && emailNow !== DIRECTOR) {
+          const roomHint = data.room || ('MercedesDirect_' + emailNow.replace(/[^a-zA-Z0-9]/g,''));
+          if (micReady) { window.startEmergencyCall(roomHint, false); }
         } else if (!data.active && jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); }
       });
     }
@@ -899,61 +863,6 @@
       document.getElementById('machineDetailContent').innerHTML = content;
       document.getElementById('machineDetailPopup').style.display = 'block';
     }
-    // === USER PROFILE PANEL ===
-    window.openUserProfile = async (email) => {
-      try {
-        const uref = doc(db, 'users', email);
-        const us = await getDoc(uref);
-        const data = us.exists() ? us.data() : { email, role: 'technician', avatar: '' };
-        const perms = userPermissions[email] || {};
-        const modal = document.getElementById('userProfilePopup');
-        document.getElementById('up_name').innerText = (data.displayName || email.split('@')[0]).toUpperCase();
-        document.getElementById('up_email').innerText = email;
-        document.getElementById('up_status').innerHTML = (userPermissions[email]?.onlineStatus === 'online') ? '<span style="color:#00ff00">ONLINE</span>' : '<span style="color:#666">OFFLINE</span>';
-        document.getElementById('up_avatar').src = data.avatar || `https://ui-avatars.com/api/?name=${(data.displayName||email.split('@')[0]).toUpperCase()}&background=333&color=fff`;
-        const roleSel = document.getElementById('up_role');
-        roleSel.value = (data.role || 'technician');
-        // Build permission chips
-        const keys = ['view_dashboard','request_intervention','do_missions','view_history','view_kpi','disabled'];
-        const holder = document.getElementById('up_perm_chips');
-        holder.innerHTML = keys.map(k => `
-          <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick="window.togglePermission('${email}','${k}')">
-            ${k.replace('view_','').replace('request_','').replace('_',' ').toUpperCase()}
-          </div>`).join('');
-        document.getElementById('up_btn_save_role').onclick = async () => {
-          const role = document.getElementById('up_role').value;
-          await setDoc(uref, { role }, { merge:true });
-          alert('Role updated');
-        };
-        document.getElementById('up_btn_change_photo').onclick = () => window.updateUserAvatar(email);
-        document.getElementById('up_btn_call').onclick = () => window.directorDirectCall(email, (data.displayName||email.split('@')[0]));
-        modal.style.display = 'block';
-      } catch(e) { alert('Failed to load user: '+e.message); }
-    };
-
-    window.updateUserAvatar = (email) => {
-      const input = document.createElement('input'); input.type='file'; input.accept='image/*';
-      input.onchange = async (e) => {
-        const file = e.target.files[0]; if(!file) return;
-        const r = new FileReader();
-        r.onload = async () => {
-          try { await setDoc(doc(db,'users',email), { avatar: r.result }, { merge:true }); alert('Photo updated'); document.getElementById('up_avatar').src = r.result; }
-          catch(err){ alert('Photo update failed: '+err.message); }
-        };
-        r.readAsDataURL(file);
-      };
-      input.click();
-    };
-
-    window.directorDirectCall = async (email, displayName) => {
-      try {
-        await setDoc(doc(db, 'emergency_calls', 'active_session'), {
-          active: true, targetUser: email, callMachine: 'DIRECT CALL', triggerSound: Date.now(), timestamp: serverTimestamp()
-        });
-        window.startEmergencyCall('DIRECT CALL', true);
-      } catch(e){ alert('Failed to start call: '+e.message); }
-    };
-
   </script>
 </body>
 </html>
