@@ -267,18 +267,30 @@
         <div id="interventionPage">
             <h1>Step 1: Request Intervention</h1>
             <div class="card" id="interventionCard">
-                <select id="reqMachine" onchange="window.previewMachine(this.value)">
+                <select id="reqMachine">
                     <option value="">Select Machine...</option>
                     <option value="M-001">Robotic Axis 4</option>
                 </select>
                 <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
-                <button id="submitReqBtn" onclick="window.submitReq()">SUBMIT TO DIRECTOR</button>
+                <button id="submitReqBtn">SUBMIT TO DIRECTOR</button>
             </div>
         </div>
 
         <div id="missionPage">
             <h1>Step 3: Technical Missions</h1>
-            <div id="missionList"></div>
+            <div id="missionList">
+                <div id="demoMissionCard" class="card" style="display:none; border-left: 4px solid #ffa500;">
+                    <h3>MISSION: M-001 Repair</h3>
+                    <div id="demoPrePhoto" style="display:flex; gap:10px; margin-bottom:15px;"></div>
+                    <div id="demoChecklist">
+                        <label class="checklist-item"><input type="checkbox" id="check1"> Isolate Power Supply</label>
+                        <label class="checklist-item"><input type="checkbox" id="check2"> Replace Hydraulic Seal</label>
+                        <label class="checklist-item"><input type="checkbox" id="check3"> Pressure Test System</label>
+                    </div>
+                    <div id="demoPostPhoto" style="display:flex; gap:10px; margin-top:15px;"></div>
+                    <button id="demoSubmitMission" style="margin-top:15px; width:100%;">SUBMIT FINAL REPORT</button>
+                </div>
+            </div>
         </div>
 
         <div id="historyPage">
@@ -305,10 +317,6 @@
         const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
         let micReady = false, machineCache = {}, jitsiApi = null, userPermissions = {};
 
-        // ==========================================
-        // 1. ORIGINAL PAGE LOGIC
-        // ==========================================
-
         window.activateAudioSystem = async () => {
             micReady = true;
             document.getElementById('audioActivator').style.background = "#00ff00";
@@ -321,12 +329,10 @@
                 speakNative("Warning. Access Denied. Biometric signature mismatch.");
                 return;
             }
-
             ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(p => {
                 const el = document.getElementById(p);
                 if(el) el.style.display = (p === id ? 'block' : 'none');
             });
-
             if (!window.demoModeActive) window.clearFocus();
         };
 
@@ -338,21 +344,10 @@
             return perms[mapping[pageId]] === true;
         };
 
-        window.submitReq = async () => {
-            if (window.demoModeActive) {
-                alert("Demo Request Logged.");
-                window.nextDemoStep();
-                return;
-            }
-        };
-
-        // NATIVE SPEAKER VOICE LOGIC
         function speakNative(text, callback) {
             const msg = new SpeechSynthesisUtterance(text);
             const voices = window.speechSynthesis.getVoices();
-            // Try to find a high-quality natural male voice (Google or Apple)
             const preferredVoice = voices.find(v => (v.name.includes("Google") || v.name.includes("Natural")) && v.lang.startsWith("en-US")) || voices[0];
-            
             msg.voice = preferredVoice;
             msg.rate = 1.0;
             msg.pitch = 1.0;
@@ -371,10 +366,8 @@
             const targetEl = document.getElementById(elId);
             const sidebar = document.getElementById('mainSidebar');
             const mainContent = document.getElementById('contentMain');
-
             if (sidebar.contains(targetEl)) mainContent.classList.add('blur-bg');
             else if (mainContent.contains(targetEl)) sidebar.classList.add('blur-bg');
-
             if (targetEl) {
                 targetEl.classList.add('highlight-focus');
                 targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -382,7 +375,7 @@
         }
 
         // ==========================================
-        // 2. FIXED DEMO MODULE (SYNCHRONIZED)
+        // DEMO MODULE
         // ==========================================
         let demoStep = 0;
         window.demoModeActive = false;
@@ -401,16 +394,12 @@
             const steps = [
                 {
                     text: `Welcome, Specialist ${name}. I am the Plant Overseer. I will guide you through our core operational protocols. Let's start with your Dashboard.`,
-                    action: () => { 
-                        window.showPage('mainPage'); 
-                        setFocus('nav_mainPage');
-                    }
+                    action: () => { window.showPage('mainPage'); setFocus('nav_mainPage'); }
                 },
                 {
                     text: "Observe the Asset Library. I am now simulating a sensor failure in Robotic Axis 4. Notice the status indicator transitioning to critical breakdown status.",
                     action: () => { 
                         setFocus('assetTableElement'); 
-                        // Wait for narration to reach the "transitioning" part
                         setTimeout(() => {
                             const status = document.getElementById('demoStatus1');
                             status.innerText = "BREAKDOWN";
@@ -419,11 +408,10 @@
                     }
                 },
                 {
-                    text: "Security is our highest priority. Attempting to access unauthorized personnel records triggers an immediate biometric lockout. Observe.",
+                    text: "Security is vital. Attempting unauthorized access to personnel records triggers an immediate biometric lockout. Observe.",
                     action: () => { 
                         setFocus('nav_personnelPage'); 
                         btn.style.display = 'none';
-                        // Wait until the word "Observe" is spoken
                         setTimeout(() => {
                              document.getElementById('accessDeniedModal').style.display = 'flex';
                              speakNative("Warning. Access Denied. Biometric signature mismatch.");
@@ -432,7 +420,7 @@
                     }
                 },
                 {
-                    text: "Lockout cleared for training purposes. Now, let's report that failure. Navigate to the Interventions section.",
+                    text: "Now, let's report the failure. Navigate to the Interventions section.",
                     action: () => { 
                         document.getElementById('accessDeniedModal').style.display = 'none';
                         window.showPage('interventionPage');
@@ -440,28 +428,55 @@
                     }
                 },
                 {
-                    text: "Select Robotic Axis 4 from the menu and describe the hydraulic pressure drop. Once complete, submit your report to the Director.",
+                    text: "Select Robotic Axis 4 and describe the pressure drop. Then, submit your report to the Director.",
                     action: () => {
                         setFocus('interventionCard');
-                        // Slow down the filling of the form
                         setTimeout(() => {
                             document.getElementById('reqMachine').selectedIndex = 1;
                             setTimeout(() => {
-                                document.getElementById('reqIssue').value = "[DEMO] Hydraulic Pressure Drop detected in sector 7.";
+                                document.getElementById('reqIssue').value = "[DEMO] Hydraulic Pressure Drop detected.";
                             }, 1500);
                         }, 1000);
                     }
                 },
                 {
-                    text: "The Director is initiating an emergency brief via the encrypted line to discuss your findings. Stay alert and stand by for connection.",
-                    action: () => { 
-                        window.clearFocus();
-                        // Delay the call until narration is almost done
-                        setTimeout(() => window.simulateRobotCall(name), 3000);
+                    text: "The Director is initiating a brief via the encrypted line to review your request.",
+                    action: () => { window.clearFocus(); setTimeout(() => window.simulateRobotCall(name), 2000); }
+                },
+                {
+                    text: "Now that the Director has approved your request, you must go and fix the problem. First, take a picture of the panne and upload it to your mission file.",
+                    action: () => {
+                        window.showPage('missionPage');
+                        setFocus('demoMissionCard');
+                        document.getElementById('demoMissionCard').style.display = 'block';
+                        setTimeout(() => {
+                            document.getElementById('demoPrePhoto').innerHTML = "<div style='width:60px; height:60px; background:#333; border:1px solid #e30613; display:flex; align-items:center; justify-content:center; font-size:20px;'>📸</div><small style='color:#666;'>panne_initial.jpg</small>";
+                        }, 4000);
                     }
                 },
                 {
-                    text: "Onboarding complete. You are now authorized for limited plant activity within the Mercedes-Benz network. Welcome to the team.",
+                    text: "Excellent. After finishing the repair, you must tick each maintenance step you have completed to verify the fix.",
+                    action: () => {
+                        setFocus('demoChecklist');
+                        setTimeout(() => {
+                            document.getElementById('check1').checked = true;
+                            setTimeout(() => { document.getElementById('check2').checked = true; 
+                                setTimeout(() => { document.getElementById('check3').checked = true; }, 1000);
+                            }, 1000);
+                        }, 3000);
+                    }
+                },
+                {
+                    text: "Finally, upload the image of the problem fixed and submit your report. The Director will review and approve it shortly.",
+                    action: () => {
+                        setFocus('demoSubmitMission');
+                        setTimeout(() => {
+                            document.getElementById('demoPostPhoto').innerHTML = "<div style='width:60px; height:60px; background:#333; border:1px solid #00ff00; display:flex; align-items:center; justify-content:center; font-size:20px;'>✅</div><small style='color:#666;'>fixed_final.jpg</small>";
+                        }, 3000);
+                    }
+                },
+                {
+                    text: "If there are any issues with your report, the Director will contact you directly. Onboarding complete. Welcome to Mercedes-Benz Operations.",
                     action: () => { 
                         window.clearFocus();
                         window.demoModeActive = false;
@@ -486,7 +501,7 @@
             document.getElementById('callMachineName').innerText = "DIRECTOR BRIEFING";
             document.getElementById('videoContainer').innerHTML = "<div style='height:100%; display:flex; align-items:center; justify-content:center; font-size:50px; background:#000;'>👔</div>";
             
-            speakNative(`Specialist ${name}. I have reviewed your pressure drop report. I am approving your mission. Do not fail our production quota.`, () => {
+            speakNative(`Specialist ${name}. I have reviewed the pressure drop. I will approve your request. Proceed with the maintenance mission immediately.`, () => {
                 setTimeout(() => { 
                     popup.style.display = 'none'; 
                     window.nextDemoStep();
@@ -496,20 +511,15 @@
 
         document.getElementById('mentorNext').onclick = () => window.nextDemoStep();
 
-        // ==========================================
-        // 3. AUTH & INIT
-        // ==========================================
         onAuthStateChanged(auth, async user => {
             if (!user) { window.location.href = "login.html"; return; }
             const email = user.email.toLowerCase();
             document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
 
             if (!localStorage.getItem(`demoDone_${email}`)) {
-                // Ensure voices are loaded before starting
                 window.speechSynthesis.onvoiceschanged = () => {
-                    setTimeout(() => window.startDemoSequence(user.displayName || email.split('@')[0]), 2000);
+                    setTimeout(() => { if(!window.demoModeActive) window.startDemoSequence(user.displayName || email.split('@')[0]); }, 2000);
                 };
-                // Fallback if voiceschanged doesn't fire
                 setTimeout(() => { if(!window.demoModeActive) window.startDemoSequence(user.displayName || email.split('@')[0]); }, 3000);
             }
 
