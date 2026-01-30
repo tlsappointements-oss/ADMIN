@@ -121,6 +121,47 @@
   </div>
 
   <!-- MACHINE DETAIL POPUP -->
+  <!-- USER PROFILE POPUP -->
+  <div id="userProfilePopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+       width:700px; max-height:90vh; background:#050505; border:2px solid #e30613; padding:30px; z-index:10011;
+       overflow-y:auto; border-radius:15px; box-shadow:0 0 50px #000;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2 style="color:#e30613; margin:0;" id="up_name">Technician Profile</h2>
+      <button onclick="document.getElementById('userProfilePopup').style.display='none'" style="background:#444;">CLOSE</button>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:15px;">
+      <div class="card" style="margin:0;">
+        <div style="display:flex; gap:15px; align-items:center;">
+          <img id="up_avatar" src="" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:2px solid #333;">
+          <div>
+            <div id="up_email" style="color:#888; font-size:12px;"></div>
+            <div id="up_status" style="margin-top:6px; font-size:12px;"></div>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <button id="up_btn_change_photo" style="background:#555; font-size:12px;">UPDATE PHOTO</button>
+        </div>
+      </div>
+      <div class="card" style="margin:0;">
+        <label>Position / Role</label>
+        <select id="up_role">
+          <option value="technician">Technician</option>
+          <option value="team_leader">Team Leader</option>
+          <option value="project_leader">Project Leader</option>
+        </select>
+        <button id="up_btn_save_role" style="width:100%; background:#28a745;">SAVE ROLE</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px;">
+      <h3 style="margin-top:0;">Access Control</h3>
+      <div id="up_perm_chips" class="perm-grid"></div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button id="up_btn_call" style="background:#007bff; flex:1;">📞 CALL NOW</button>
+      <button id="up_btn_close" onclick="document.getElementById('userProfilePopup').style.display='none'" style="background:#444; flex:1;">CLOSE</button>
+    </div>
+  </div>
+
   <div id="machineDetailPopup">
     <div id="machineDetailContent"></div>
     <button onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
@@ -289,7 +330,7 @@
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
     let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
-    let userPermissions = {};
+    let userPermissions = {}, userDirectory = {}, lastPermSnap = null;
     const M_STEPS = {
       "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
       "PRESS": ["Oil pressure check", "Die alignment inspection", "Lubrication cycle test", "Safety light curtain check", "Ram stroke measurement", "Plate cleaning"],
@@ -568,14 +609,7 @@
 
     window.assignTech = async (id, tech) => { await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false }); };
 
-    window.logout = async () => {
-  try {
-    const email = auth.currentUser.email.toLowerCase();
-    await setDoc(doc(db, 'user_logs', `${email}_${Date.now()}`), { email, action: 'LOGOUT', timestamp: serverTimestamp() });
-    try { await updateDoc(doc(db, 'presence', email), { state: 'offline', lastSeen: serverTimestamp() }); } catch(e){}
-  } catch(e) {}
-  return signOut(auth);
-};
+    window.logout = () => signOut(auth);
 
     window.submitReq = async () => {
       const mId = document.getElementById('reqMachine').value; const issue = document.getElementById('reqIssue').value;
@@ -604,34 +638,13 @@
     };
 
     window.endEmergencyCall = async () => {
-  if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
-  document.getElementById('callPopup').style.display = 'none';
-  document.getElementById('statusDot').classList.remove('dot-active');
-
-  // Soft post-call guidance for technicians (not for Director)
-  try {
-    const emailNow = auth.currentUser?.email?.toLowerCase();
-    if (emailNow && emailNow !== DIRECTOR) {
-      const msg = new SpeechSynthesisUtterance(
-        'Technician, the call has ended. Please proceed to the placement of the machine now.'
-      );
-      msg.rate = 1; msg.pitch = 1;
-      window.speechSynthesis.speak(msg);
-      const notice = document.getElementById('postCallNotice');
-      if (notice) {
-        notice.style.display = 'block';
-        setTimeout(() => {
-          notice.style.opacity = 0;
-          setTimeout(() => { notice.style.display = 'none'; notice.style.opacity = 1; }, 2000);
-        }, 6000);
+      if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
+      document.getElementById('callPopup').style.display = 'none';
+      document.getElementById('statusDot').classList.remove('dot-active');
+      if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+        await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false, callMachine: "" });
       }
-    }
-  } catch (e) {}
-
-  if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
-    await updateDoc(doc(db, 'emergency_calls', 'active_session'), { active: false, callMachine: '' });
-  }
-};
+    };
 
     window.directorTriggerCall = async (mName) => {
       await setDoc(doc(db, "emergency_calls", "active_session"), { active: true, callMachine: mName, triggerSound: Date.now(), timestamp: serverTimestamp() });
@@ -675,39 +688,15 @@
       if (!user) { window.location.href = "login.html"; return; }
       const email = user.email.toLowerCase();
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
-      // LOGIN AUDIT LOG
-      try {
-        await setDoc(doc(db, 'user_logs', `${email}_${Date.now()}`), { email, action: 'LOGIN', timestamp: serverTimestamp() });
-      } catch (e) {}
-
-      // REALTIME PRESENCE
-      try {
-        const statusRef = doc(db, 'presence', email);
-        await setDoc(statusRef, { state: 'online', lastSeen: serverTimestamp() }, { merge: true });
-        window.addEventListener('beforeunload', async () => {
-          try { await updateDoc(statusRef, { state: 'offline', lastSeen: serverTimestamp() }); } catch(e){}
-        });
-        document.addEventListener('visibilitychange', async () => {
-          try { await updateDoc(statusRef, { state: document.visibilityState === 'visible' ? 'online' : 'offline', lastSeen: serverTimestamp() }); } catch(e){}
-        });
-      } catch(e) {}
-
 
       // Listen for global permissions
       onSnapshot(collection(db, "permissions"), snap => {
+        lastPermSnap = snap;
         snap.forEach(d => {
           userPermissions[d.id] = d.data();
           if (d.id === email) {
             const hasAll = d.data().do_missions && d.data().view_history;
             document.getElementById('reqPermissionBox').style.display = hasAll ? 'none' : 'block';
-            if (d.data().disabled === true) {
-              document.body.innerHTML = `
-                <div style="display:flex; justify-content:center; align-items:center; height:100vh; background:black; color:#e30613; font-size:2rem; font-family:Segoe UI;">
-                  YOUR ACCESS HAS BEEN DISABLED BY THE DIRECTOR
-                </div>
-              `;
-              return;
-            }
           }
         });
         ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(id => {
@@ -721,7 +710,11 @@
         document.getElementById('adminPanel').style.display = "block";
         document.getElementById('mohamedConsole').style.display = "block";
         document.getElementById('hangUpBtn').style.display = "inline-block";
-        onSnapshot(collection(db, "users"), snap => { techList = []; snap.forEach(d => techList.push(d.id)); });
+        onSnapshot(collection(db, "users"), snap => {
+          techList = []; userDirectory = {};
+          snap.forEach(d => { techList.push(d.id); userDirectory[d.id] = d.data(); });
+          if (lastPermSnap) renderPersonnelDashboard(lastPermSnap);
+        });
         loadAdminApprovals();
       } else {
         document.getElementById('hangUpBtn').style.display = "none";
@@ -743,11 +736,11 @@
     function renderPersonnelDashboard(snap) {
       const container = document.getElementById('userAccessList');
       container.innerHTML = "";
-      const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi', 'disabled'];
+      const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
       snap.forEach(d => {
         const userEmail = d.id; if (userEmail === DIRECTOR) return;
         const perms = d.data(); const name = userEmail.split('@')[0].toUpperCase();
-        const isOnline = (userPermissions[userEmail]?.onlineStatus === 'online'); const position = "PLANT TECHNICIAN";
+        const isOnline = Math.random() > 0.3; const position = "PLANT TECHNICIAN";
         const avatar = `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`;
         const isRequesting = perms.requestingAccess === true;
         const div = document.createElement('div');
@@ -800,7 +793,10 @@
 
       onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
         const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
-        if (data.triggerSound && micReady) { const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{}); speakNative("Direct line opened. Please respond to the Director immediately."); }
+        if (data.active && data.targetUser && emailNow !== DIRECTOR && data.targetUser === emailNow) {
+        if (micReady) { window.startEmergencyCall(data.callMachine || 'DIRECT CALL', false); }
+      }
+      if (data.triggerSound && micReady) { const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{}); speakNative("Direct line opened. Please respond to the Director immediately."); }
         if (data.active && data.callMachine && emailNow !== DIRECTOR) {
           const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
           if (assignedMachine && micReady) { window.startEmergencyCall(data.callMachine, false); }
@@ -903,6 +899,61 @@
       document.getElementById('machineDetailContent').innerHTML = content;
       document.getElementById('machineDetailPopup').style.display = 'block';
     }
+    // === USER PROFILE PANEL ===
+    window.openUserProfile = async (email) => {
+      try {
+        const uref = doc(db, 'users', email);
+        const us = await getDoc(uref);
+        const data = us.exists() ? us.data() : { email, role: 'technician', avatar: '' };
+        const perms = userPermissions[email] || {};
+        const modal = document.getElementById('userProfilePopup');
+        document.getElementById('up_name').innerText = (data.displayName || email.split('@')[0]).toUpperCase();
+        document.getElementById('up_email').innerText = email;
+        document.getElementById('up_status').innerHTML = (userPermissions[email]?.onlineStatus === 'online') ? '<span style="color:#00ff00">ONLINE</span>' : '<span style="color:#666">OFFLINE</span>';
+        document.getElementById('up_avatar').src = data.avatar || `https://ui-avatars.com/api/?name=${(data.displayName||email.split('@')[0]).toUpperCase()}&background=333&color=fff`;
+        const roleSel = document.getElementById('up_role');
+        roleSel.value = (data.role || 'technician');
+        // Build permission chips
+        const keys = ['view_dashboard','request_intervention','do_missions','view_history','view_kpi','disabled'];
+        const holder = document.getElementById('up_perm_chips');
+        holder.innerHTML = keys.map(k => `
+          <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick="window.togglePermission('${email}','${k}')">
+            ${k.replace('view_','').replace('request_','').replace('_',' ').toUpperCase()}
+          </div>`).join('');
+        document.getElementById('up_btn_save_role').onclick = async () => {
+          const role = document.getElementById('up_role').value;
+          await setDoc(uref, { role }, { merge:true });
+          alert('Role updated');
+        };
+        document.getElementById('up_btn_change_photo').onclick = () => window.updateUserAvatar(email);
+        document.getElementById('up_btn_call').onclick = () => window.directorDirectCall(email, (data.displayName||email.split('@')[0]));
+        modal.style.display = 'block';
+      } catch(e) { alert('Failed to load user: '+e.message); }
+    };
+
+    window.updateUserAvatar = (email) => {
+      const input = document.createElement('input'); input.type='file'; input.accept='image/*';
+      input.onchange = async (e) => {
+        const file = e.target.files[0]; if(!file) return;
+        const r = new FileReader();
+        r.onload = async () => {
+          try { await setDoc(doc(db,'users',email), { avatar: r.result }, { merge:true }); alert('Photo updated'); document.getElementById('up_avatar').src = r.result; }
+          catch(err){ alert('Photo update failed: '+err.message); }
+        };
+        r.readAsDataURL(file);
+      };
+      input.click();
+    };
+
+    window.directorDirectCall = async (email, displayName) => {
+      try {
+        await setDoc(doc(db, 'emergency_calls', 'active_session'), {
+          active: true, targetUser: email, callMachine: 'DIRECT CALL', triggerSound: Date.now(), timestamp: serverTimestamp()
+        });
+        window.startEmergencyCall('DIRECT CALL', true);
+      } catch(e){ alert('Failed to start call: '+e.message); }
+    };
+
   </script>
 </body>
 </html>
