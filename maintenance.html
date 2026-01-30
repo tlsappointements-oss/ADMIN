@@ -568,7 +568,14 @@
 
     window.assignTech = async (id, tech) => { await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false }); };
 
-    window.logout = () => signOut(auth);
+    window.logout = async () => {
+  try {
+    const email = auth.currentUser.email.toLowerCase();
+    await setDoc(doc(db, 'user_logs', `${email}_${Date.now()}`), { email, action: 'LOGOUT', timestamp: serverTimestamp() });
+    try { await updateDoc(doc(db, 'presence', email), { state: 'offline', lastSeen: serverTimestamp() }); } catch(e){}
+  } catch(e) {}
+  return signOut(auth);
+};
 
     window.submitReq = async () => {
       const mId = document.getElementById('reqMachine').value; const issue = document.getElementById('reqIssue').value;
@@ -597,13 +604,34 @@
     };
 
     window.endEmergencyCall = async () => {
-      if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
-      document.getElementById('callPopup').style.display = 'none';
-      document.getElementById('statusDot').classList.remove('dot-active');
-      if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
-        await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false, callMachine: "" });
+  if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
+  document.getElementById('callPopup').style.display = 'none';
+  document.getElementById('statusDot').classList.remove('dot-active');
+
+  // Soft post-call guidance for technicians (not for Director)
+  try {
+    const emailNow = auth.currentUser?.email?.toLowerCase();
+    if (emailNow && emailNow !== DIRECTOR) {
+      const msg = new SpeechSynthesisUtterance(
+        'Technician, the call has ended. Please proceed to the placement of the machine now.'
+      );
+      msg.rate = 1; msg.pitch = 1;
+      window.speechSynthesis.speak(msg);
+      const notice = document.getElementById('postCallNotice');
+      if (notice) {
+        notice.style.display = 'block';
+        setTimeout(() => {
+          notice.style.opacity = 0;
+          setTimeout(() => { notice.style.display = 'none'; notice.style.opacity = 1; }, 2000);
+        }, 6000);
       }
-    };
+    }
+  } catch (e) {}
+
+  if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+    await updateDoc(doc(db, 'emergency_calls', 'active_session'), { active: false, callMachine: '' });
+  }
+};
 
     window.directorTriggerCall = async (mName) => {
       await setDoc(doc(db, "emergency_calls", "active_session"), { active: true, callMachine: mName, triggerSound: Date.now(), timestamp: serverTimestamp() });
@@ -647,6 +675,23 @@
       if (!user) { window.location.href = "login.html"; return; }
       const email = user.email.toLowerCase();
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+      // LOGIN AUDIT LOG
+      try {
+        await setDoc(doc(db, 'user_logs', `${email}_${Date.now()}`), { email, action: 'LOGIN', timestamp: serverTimestamp() });
+      } catch (e) {}
+
+      // REALTIME PRESENCE
+      try {
+        const statusRef = doc(db, 'presence', email);
+        await setDoc(statusRef, { state: 'online', lastSeen: serverTimestamp() }, { merge: true });
+        window.addEventListener('beforeunload', async () => {
+          try { await updateDoc(statusRef, { state: 'offline', lastSeen: serverTimestamp() }); } catch(e){}
+        });
+        document.addEventListener('visibilitychange', async () => {
+          try { await updateDoc(statusRef, { state: document.visibilityState === 'visible' ? 'online' : 'offline', lastSeen: serverTimestamp() }); } catch(e){}
+        });
+      } catch(e) {}
+
 
       // Listen for global permissions
       onSnapshot(collection(db, "permissions"), snap => {
@@ -655,6 +700,14 @@
           if (d.id === email) {
             const hasAll = d.data().do_missions && d.data().view_history;
             document.getElementById('reqPermissionBox').style.display = hasAll ? 'none' : 'block';
+            if (d.data().disabled === true) {
+              document.body.innerHTML = `
+                <div style="display:flex; justify-content:center; align-items:center; height:100vh; background:black; color:#e30613; font-size:2rem; font-family:Segoe UI;">
+                  YOUR ACCESS HAS BEEN DISABLED BY THE DIRECTOR
+                </div>
+              `;
+              return;
+            }
           }
         });
         ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(id => {
@@ -690,11 +743,11 @@
     function renderPersonnelDashboard(snap) {
       const container = document.getElementById('userAccessList');
       container.innerHTML = "";
-      const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
+      const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi', 'disabled'];
       snap.forEach(d => {
         const userEmail = d.id; if (userEmail === DIRECTOR) return;
         const perms = d.data(); const name = userEmail.split('@')[0].toUpperCase();
-        const isOnline = Math.random() > 0.3; const position = "PLANT TECHNICIAN";
+        const isOnline = (userPermissions[userEmail]?.onlineStatus === 'online'); const position = "PLANT TECHNICIAN";
         const avatar = `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`;
         const isRequesting = perms.requestingAccess === true;
         const div = document.createElement('div');
