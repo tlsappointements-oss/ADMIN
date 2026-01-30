@@ -424,6 +424,29 @@
             await setDoc(doc(db, "permissions", email), current);
             alert("Your request has been broadcasted to Mohamed's command center.");
         };
+// FIX: ensure navigation works by defining clearFocus and setFocus (no other changes)
+window.clearFocus = () => {
+  try {
+    document.querySelectorAll('.highlight-focus').forEach(el => el.classList.remove('highlight-focus'));
+  } catch (e) {}
+  const cm = document.getElementById('contentMain');
+  const sb = document.getElementById('mainSidebar');
+  if (cm) cm.classList.remove('blur-bg');
+  if (sb) sb.classList.remove('blur-bg');
+};
+function setFocus(elId) {
+  window.clearFocus();
+  const targetEl = document.getElementById(elId);
+  const sidebar = document.getElementById('mainSidebar');
+  const mainContent = document.getElementById('contentMain');
+  if (targetEl) {
+    if (sidebar && sidebar.contains(targetEl)) { if (mainContent) mainContent.classList.add('blur-bg'); }
+    else if (mainContent && mainContent.contains(targetEl)) { if (sidebar) sidebar.classList.add('blur-bg'); }
+    targetEl.classList.add('highlight-focus');
+    try { targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+  }
+}
+
 
         window.showPage = (id) => {
             if (!window.checkPermission(id) && !window.demoInProgress) {
