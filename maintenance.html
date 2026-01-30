@@ -925,20 +925,33 @@
                     }
                 },
                 {
-                    text: "This is your Live Dashboard. It monitors all 105 machines across our Robotic and Assembly lines. Notice the Status column; green indicates peak performance, while red signals a total line stoppage.",
+                    text: "This is your Live Dashboard. It monitors all machines across the plant. I will now demonstrate the status indicators. Watch the status switch from 'WORKING' to 'BREAKDOWN' and back. Red signals a total line stoppage.",
                     action: () => { 
                         setFocus('mainPage'); 
+                        // DEMO STATUS SWITCH LOGIC
+                        const firstStatus = document.querySelector('.status-working');
+                        if (firstStatus) {
+                            setTimeout(() => {
+                                firstStatus.innerText = "BREAKDOWN";
+                                firstStatus.className = "status-breakdown";
+                                setTimeout(() => {
+                                    firstStatus.innerText = "WORKING";
+                                    firstStatus.className = "status-working";
+                                }, 1500);
+                            }, 1000);
+                        }
                     }
                 },
                 {
                     text: "Security is paramount. Let me show you what happens if you attempt to access restricted director files without authorization. Click the Personnel tab now.",
                     action: () => { 
                         setFocus('nav_personnelPage'); 
-                        btn.style.display = 'none'; // Force them to click to proceed
+                        btn.style.display = 'none'; // Force they to click the tab
+                        // ATTENTION: Logic for personnel click is handled in showPage now
                     }
                 },
                 {
-                    text: "As expected, the system blocked you. Don't worry, that was a test. Now, let's handle a real emergency. A sensor just failed in the robotic unit. Go to Interventions.",
+                    text: "As expected, the system blocked you immediately. Now, let's handle a real emergency. A sensor just failed in the robotic unit. Go to Interventions.",
                     action: () => { 
                         document.getElementById('accessDeniedModal').style.display = 'none';
                         window.showPage('interventionPage');
