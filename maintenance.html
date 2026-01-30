@@ -290,8 +290,6 @@
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
     let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
     let userPermissions = {};
-    let usersMeta = {};
-    let lastPermsSnap = null;
     const M_STEPS = {
       "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
       "PRESS": ["Oil pressure check", "Die alignment inspection", "Lubrication cycle test", "Safety light curtain check", "Ram stroke measurement", "Plate cleaning"],
@@ -663,19 +661,14 @@
           const btn = document.getElementById('nav_' + id);
           if (btn) btn.style.display = (window.checkPermission(id)) ? 'block' : 'none';
         });
-        if (email === DIRECTOR) { lastPermsSnap = snap; renderPersonnelDashboard(snap); }
+        if (email === DIRECTOR) { renderPersonnelDashboard(snap); }
       });
 
       if (email === DIRECTOR) {
         document.getElementById('adminPanel').style.display = "block";
         document.getElementById('mohamedConsole').style.display = "block";
         document.getElementById('hangUpBtn').style.display = "inline-block";
-        onSnapshot(collection(db, "users"), snap => {
-          techList = [];
-          usersMeta = {};
-          snap.forEach(d => { techList.push(d.id); usersMeta[d.id] = d.data(); });
-          if (lastPermsSnap) renderPersonnelDashboard(lastPermsSnap);
-        });
+        onSnapshot(collection(db, "users"), snap => { techList = []; snap.forEach(d => techList.push(d.id)); });
         loadAdminApprovals();
       } else {
         document.getElementById('hangUpBtn').style.display = "none";
@@ -755,12 +748,9 @@
       onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
         const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
         if (data.triggerSound && micReady) { const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{}); speakNative("Direct line opened. Please respond to the Director immediately."); }
-        if (data.active && data.type !== 'USER' && data.callMachine && emailNow !== DIRECTOR) {
+        if (data.active && data.callMachine && emailNow !== DIRECTOR) {
           const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
           if (assignedMachine && micReady) { window.startEmergencyCall(data.callMachine, false); }
-        } else if (data.active && data.type === 'USER' && data.callUser === emailNow && emailNow !== DIRECTOR) {
-          const roomHint = data.room || ('MercedesDirect_' + emailNow.replace(/[^a-zA-Z0-9]/g,''));
-          if (micReady) { window.startEmergencyCall(roomHint, false); }
         } else if (!data.active && jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); }
       });
     }
@@ -861,15 +851,5 @@
       document.getElementById('machineDetailPopup').style.display = 'block';
     }
   </script>
-
-  <!-- USER PROFILE MODAL (personnel) -->
-  <div id="userProfileModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:720px; max-height:90vh; background:#0a0a0a; border:2px solid #e30613; padding:25px; z-index:10050; overflow-y:auto; border-radius:14px; box-shadow:0 0 60px rgba(0,0,0,0.8);">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 style="margin:0; color:#e30613; letter-spacing:2px;">USER PROFILE</h2>
-      <button onclick="document.getElementById('userProfileModal').style.display='none'" style="background:#444;">CLOSE</button>
-    </div>
-    <div id="userProfileContent"></div>
-  </div>
-
 </body>
 </html>
