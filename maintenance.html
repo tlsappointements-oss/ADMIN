@@ -129,6 +129,16 @@
     @keyframes reqPulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); } 70% { box-shadow: 0 0 0 16px rgba(255,204,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); } }
     /* Direct call video container */
     #directVideoContainer { width: 100%; height: 350px; background: #000; border-radius: 12px; overflow: hidden; }
+
+    /* === Incoming call banner for technicians (NEW) === */
+    #incomingCallBanner {
+      display: none; position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 20px; z-index: 12000; background: #151515; border: 1px solid #444;
+      padding: 12px 16px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      font-size: 14px; color: #ddd; min-width: 320px;
+    }
+    #incomingCallBanner .title { font-weight: 600; margin-right: 10px; }
+    #incomingCallBanner .join-btn { background: #28a745; padding: 8px 14px; margin-left: 12px; }
   </style>
 </head>
 <body>
@@ -212,6 +222,14 @@
     <div style="font-size: 2.5rem; font-weight: 900;">DANGER</div>
     <div id="dangerDescription" style="background:black; padding:10px 20px; margin-top:20px; font-size: 1.5rem;"></div>
     <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
+  </div>
+
+  <!-- Incoming Call Banner (Technician join button) -->
+  <div id="incomingCallBanner">
+    <span class="title">📞 Director is calling…</span>
+    <span id="incomingCallContext"></span>
+    <button class="join-btn" onclick="window.joinIncomingCall()">JOIN CALL</button>
+    <button class="btn-ghost" style="margin-left:6px;" onclick="window.dismissIncomingCall()">DISMISS</button>
   </div>
 
   <!-- SIDEBAR -->
@@ -355,6 +373,7 @@
     let userPermissions = {};
     let currentTechEmailForEdit = null;    // Personnel: who is being edited (NEW)
     let directJitsiApi = null;             // Personnel: direct (non-emergency) Jitsi instance (NEW)
+    let pendingIncomingMachine = null;     // For technician banner join (NEW)
 
     const M_STEPS = {
       "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
@@ -423,14 +442,14 @@
       const current = userPermissions[email] || {};
       current[key] = !current[key];
       current.requestingAccess = false;
-      await setDoc(doc(db, "permissions", email), current);
+      await setDoc(doc(db, "permissions", email), current, { merge: true });
     };
 
     window.requestAccess = async () => {
       const email = auth.currentUser.email.toLowerCase();
       const current = userPermissions[email] || {};
       current.requestingAccess = true;
-      await setDoc(doc(db, "permissions", email), current);
+      await setDoc(doc(db, "permissions", email), current, { merge: true });
       alert("Your request has been broadcasted to Mohamed's command center.");
     };
 
@@ -769,7 +788,7 @@
 
         const div = document.createElement('div');
         div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
-        div.onclick = () => window.openTechProfile(userEmail);   // 👉 open detailed editable profile
+        div.onclick = () => window.openTechProfile(userEmail);
 
         div.innerHTML = `
           <img src="${avatar}" class="tech-avatar">
@@ -857,16 +876,21 @@
       const status = document.getElementById('techStatusSelect').value;
 
       try {
+        // Update profile doc
         await setDoc(
           doc(db, "users", currentTechEmailForEdit),
           { position, description, status, updatedAt: serverTimestamp() },
           { merge: true }
         );
 
-        // If explicitly set to Blocked, also enforce a full revoke
+        // Enforce block/unblock synchronization with permissions
         if (status === 'Blocked') {
           await window.blockAllAccess();
+        } else {
+          // On restore: ensure the blocked flag is cleared immediately
+          await setDoc(doc(db, "permissions", currentTechEmailForEdit), { blocked: false }, { merge: true });
         }
+
         alert("Technician profile updated.");
         document.getElementById('techProfilePopup').style.display = 'none';
       } catch (e) {
@@ -891,7 +915,6 @@
         await setDoc(doc(db, "permissions", email), allFalse, { merge: true });
         await setDoc(doc(db, "users", email), { status: 'Blocked', blockedAt: serverTimestamp() }, { merge: true });
         alert("All accesses revoked and status set to Blocked.");
-        // reflect in the profile header immediately
         document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class="status-badge status-blocked">BLOCKED</span>`;
       } catch (e) {
         alert("Error revoking access: " + e.message);
@@ -944,6 +967,23 @@
       document.getElementById('directCallPopup').style.display = 'none';
     };
 
+    // ========== Incoming call banner helpers (Technician) ==========
+    window.showIncomingCallBanner = (machineName) => {
+      const b = document.getElementById('incomingCallBanner');
+      document.getElementById('incomingCallContext').innerText = `· ${machineName}`;
+      b.style.display = 'block';
+    };
+    window.dismissIncomingCall = () => {
+      const b = document.getElementById('incomingCallBanner');
+      b.style.display = 'none';
+      pendingIncomingMachine = null;
+    };
+    window.joinIncomingCall = () => {
+      if (!pendingIncomingMachine) return;
+      window.startEmergencyCall(pendingIncomingMachine, false);
+      window.dismissIncomingCall();
+    };
+
     function listenForEmergency(email) {
       onSnapshot(collection(db, "machines"), (snap) => {
         let dangerFound = false; let breakdownListHtml = "";
@@ -955,9 +995,9 @@
             }
             if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
               breakdownListHtml += `
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px; border-left: 2px solid #ff3333;">
-                  <span><b>${m.name}</b><br><small style="color:#666">Tech: ${m.assignedTech}</small></span>
-                  <button onclick="window.directorTriggerCall('${m.name}')" style="font-size:10px; padding:5px 10px; height:fit-content;">📞 EMERGENCY CALL</button>
+                <div style=\"display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px; border-left: 2px solid #ff3333;\">
+                  <span><b>${m.name}</b><br><small style=\"color:#666\">Tech: ${m.assignedTech}</small></span>
+                  <button onclick=\"window.directorTriggerCall('${m.name}')\" style=\"font-size:10px; padding:5px 10px; height:fit-content;\">📞 EMERGENCY CALL</button>
                 </div>`;
             }
           }
@@ -966,13 +1006,38 @@
         if (listEl) listEl.innerHTML = breakdownListHtml || "<p style='color:#444; font-size:12px;'>No active breakdowns requiring communication.</p>";
         if (!dangerFound) { const overlay = document.getElementById('dangerOverlay'); if(overlay) overlay.style.display = 'none'; }
       });
+
       onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
         const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
-        if (data.triggerSound && micReady) { const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{}); speakNative("Direct line opened. Please respond to the Director immediately."); }
-        if (data.active && data.callMachine && emailNow !== DIRECTOR) {
-          const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
-          if (assignedMachine && micReady) { window.startEmergencyCall(data.callMachine, false); }
-        } else if (!data.active && jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); }
+
+        // 🔔 Play alarm for everyone; TTS only for technicians (not Director)
+        if (data.triggerSound && micReady) {
+          const audio = document.getElementById('effectAudio');
+          audio.play().catch(()=>{});
+          if (emailNow !== DIRECTOR) {
+            // Tech only: voice guidance
+            speakNative("Direct line opened. Please respond to the Director immediately.");
+          }
+        }
+
+        // 📞 If an emergency call is active
+        if (data.active && data.callMachine) {
+          if (emailNow === DIRECTOR) {
+            // Director already opened his call via directorTriggerCall -> startEmergencyCall(true)
+            // Nothing else required
+          } else {
+            // Technician side: Do NOT auto-join. Show banner to join.
+            const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
+            if (assignedMachine && micReady) {
+              pendingIncomingMachine = data.callMachine;
+              window.showIncomingCallBanner(data.callMachine);
+            }
+          }
+        } else {
+          // Call ended: ensure banner hidden and end call if previously joined
+          window.dismissIncomingCall();
+          if (jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); }
+        }
       });
     }
 
@@ -985,15 +1050,15 @@
           const m = snapshotDoc.data(); const id = snapshotDoc.id; machineCache[id] = m; const isWorking = m.status === "WORKING";
           if(table) {
             let row = `<tr>
-              <td><b style="cursor:pointer;text-decoration:underline" onclick="window.previewMachine('${id}')">${m.machineId || id}</b></td>
+              <td><b style=\"cursor:pointer;text-decoration:underline\" onclick=\"window.previewMachine('${id}')\">${m.machineId || id}</b></td>
               <td>${m.name}</td>
               <td>${m.section}</td>
-              <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}" onclick="window.toggleStatus('${id}', '${m.status}')" style="cursor:pointer">${m.status}</span></td>
+              <td><span class=\"${isWorking ? 'status-working' : 'status-breakdown'}\" onclick=\"window.toggleStatus('${id}', '${m.status}')\" style=\"cursor:pointer\">${m.status}</span></td>
               <td>`;
             if (userEmail === DIRECTOR) {
-              row += `<select class="tech-select" onchange="window.assignTech('${id}', this.value)">
-                <option value="">Assign...</option>
-                ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
+              row += `<select class=\"tech-select\" onchange=\"window.assignTech('${id}', this.value)\">
+                <option value=\"\">Assign...</option>
+                ${techList.map(t => `<option value=\"${t}\" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
               </select>`;
             } else {
               row += `<span>${m.assignedTech || '---'}</span>`;
@@ -1008,7 +1073,7 @@
       const list = document.getElementById('missionList');
       onSnapshot(query(collection(db, "interventions"), where("status", "==", "APPROVED")), (snap) => {
         if(list) { list.innerHTML = ""; snap.forEach(d => { const data = d.data(); if (data.requester === email || machineCache[data.machineId]?.assignedTech === email) { const card = document.createElement('div'); card.className = "card"; card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
-          <button onclick="window.openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>`; list.appendChild(card); } }); }
+          <button onclick=\"window.openMaintenanceGuide('${d.id}', '${data.machineId}')\" style=\"background:#28a745\">START MAINTENANCE GUIDE</button>`; list.appendChild(card); } }); }
       });
     }
 
@@ -1018,17 +1083,17 @@
         if(list) { list.innerHTML = ""; snap.forEach(d => { const data = d.data(); const card = document.createElement('div'); card.className = "card";
           if(data.status === "PENDING_MOHAMED") {
             card.innerHTML = `<b>STEP 1: ${data.machineName} REQ</b><br><small>Issue: ${data.issue}</small><br>
-              <textarea id="appComment_${d.id}" placeholder="Approval notes..."></textarea>
-              <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR</button>`;
+              <textarea id=\"appComment_${d.id}\" placeholder=\"Approval notes...\"></textarea>
+              <button onclick=\"window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')\">APPROVE REPAIR</button>`;
           } else {
             const actualDuration = Math.round((data.actualEnd - data.actualStart) / 60000);
             const manualDuration = Math.round((new Date(data.manualEnd) - new Date(data.manualStart)) / 60000);
             const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
-            let kpiHtml = `<div style="font-size:12px; margin-top:5px;">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
-            if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class="kpi-alert">⚠️ KPI VARIANCE DETECTED</div>`;
+            let kpiHtml = `<div style=\"font-size:12px; margin-top:5px;\">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
+            if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class=\"kpi-alert\">⚠️ KPI VARIANCE DETECTED</div>`;
             card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br><small>Report: ${data.techComment}</small>${kpiHtml}
-              <div style="margin-top:10px;"><img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img"></div>
-              <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
+              <div style=\"margin-top:10px;\"><img src=\"${data.imageBefore}\" class=\"preview-img\"><img src=\"${data.imageAfter}\" class=\"preview-img\"></div>
+              <button onclick=\"window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')\" style=\"background:#007bff; width:100%; margin-top:10px;\">ARCHIVE & CLOSE ASSET</button>`;
           }
           list.appendChild(card);
         }); }
@@ -1044,29 +1109,29 @@
 
     function showHistoryDetail(i) {
       const content = `
-        <div style="display:flex; justify-content:space-between;">
-          <h2 style="color:#e30613">AUDIT LOG: ${i.machineName}</h2>
-          <button onclick="window.deleteIntervention('${i.id}')" style="background:red; font-size:10px;">DELETE RECORD</button>
+        <div style=\"display:flex; justify-content:space-between;\">
+          <h2 style=\"color:#e30613\">AUDIT LOG: ${i.machineName}</h2>
+          <button onclick=\"window.deleteIntervention('${i.id}')\" style=\"background:red; font-size:10px;\">DELETE RECORD</button>
         </div>
-        <div class="card">
+        <div class=\"card\">
           <p><b>Original Issue:</b> ${i.issue}</p>
           <p><b>Final Resolution:</b> ${i.techComment}</p>
           <hr>
-          <div style="display:flex; gap:10px;">
+          <div style=\"display:flex; gap:10px;\">
             <div>
               <small>BEFORE</small><br>
-              ${i.imageBefore ? `<img src="${i.imageBefore}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
-              <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageBefore')">REPLACE</span>
-              <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageBefore')">DELETE</span>
+              ${i.imageBefore ? `<img src=\"${i.imageBefore}\" class=\"preview-img\">` : '<div class=\"preview-img\" style=\"border:1px dashed #333; display:flex; align-items:center; justify-content:center;\">No Image</div>'}
+              <span class=\"img-edit-btn\" onclick=\"window.updateHistoryImage('${i.id}', 'imageBefore')\">REPLACE</span>
+              <span class=\"img-edit-btn\" style=\"color:red;\" onclick=\"window.deleteImage('${i.id}', 'imageBefore')\">DELETE</span>
             </div>
             <div>
               <small>AFTER</small><br>
-              ${i.imageAfter ? `<img src="${i.imageAfter}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
-              <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageAfter')">REPLACE</span>
-              <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageAfter')">DELETE</span>
+              ${i.imageAfter ? `<img src=\"${i.imageAfter}\" class=\"preview-img\">` : '<div class=\"preview-img\" style=\"border:1px dashed #333; display:flex; align-items:center; justify-content:center;\">No Image</div>'}
+              <span class=\"img-edit-btn\" onclick=\"window.updateHistoryImage('${i.id}', 'imageAfter')\">REPLACE</span>
+              <span class=\"img-edit-btn\" style=\"color:red;\" onclick=\"window.deleteImage('${i.id}', 'imageAfter')\">DELETE</span>
             </div>
           </div>
-          <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; margin-top:15px; width:100%">FORCE EDIT TEXT LOGS</button>
+          <button onclick=\"window.forceModifyReport('${i.id}')\" style=\"background:#ffcc00; color:#000; margin-top:15px; width:100%\">FORCE EDIT TEXT LOGS</button>
         </div>`;
       document.getElementById('machineDetailContent').innerHTML = content;
       document.getElementById('machineDetailPopup').style.display = 'block';
