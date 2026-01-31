@@ -358,7 +358,12 @@
     let userPermissions = {};
     let currentTechEmailForEdit = null;
     let directJitsiApi = null;
-    let lastEmergencyTarget = null; // NEW: stores current emergency target to avoid race conditions
+    let lastEmergencyTarget = null; // Emergency: current target to avoid race
+
+    // --- NEW: direct-call helpers ---
+    function emailKey(email) {
+      return email.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    }
 
     const M_STEPS = {
       "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
@@ -370,8 +375,8 @@
     // --- MEDIA: manual button remains for UX, but no longer gates auto-join
     window.activateAudioSystem = async () => {
       micReady = true;
-      document.getElementById('audioActivator').style.background = "#00ff00";
-      document.getElementById('audioActivator').innerText = "✅ SYSTEM READY";
+      const btn = document.getElementById('audioActivator');
+      if (btn) { btn.style.background = "#00ff00"; btn.innerText = "✅ SYSTEM READY"; }
     };
 
     // NEW: Silent primer for mic/camera permission after login (improves first-join)
@@ -380,13 +385,9 @@
         await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
         micReady = true;
         const btn = document.getElementById('audioActivator');
-        if (btn) {
-          btn.style.background = '#00ff00';
-          btn.innerText = '✅ SYSTEM READY';
-        }
+        if (btn) { btn.style.background = '#00ff00'; btn.innerText = '✅ SYSTEM READY'; }
       } catch (e) {
         console.warn('Media permission not granted yet:', e);
-        // We still allow auto-join; mic may be muted by the browser until accepted.
       }
     }
 
@@ -666,6 +667,7 @@
       alert("Request sent to Director.");
     };
 
+    // -------------------- EMERGENCY CALL FLOW --------------------
     window.startEmergencyCall = (mName, isDirector = false) => {
       document.getElementById('callPopup').style.display = 'block';
       document.getElementById('callMachineName').innerText = mName;
@@ -681,11 +683,11 @@
             startWithVideoMuted: false,
             enableWelcomePage: false,
             prejoinPageEnabled: false,
-            disableShortcuts: !isDirector,   // NEW: technicians can't use keyboard shortcuts
-            enableClosePage: isDirector      // NEW: only director sees the "left the meeting" page
+            disableShortcuts: !isDirector,
+            enableClosePage: isDirector
           },
           interfaceConfigOverwrite: {
-            TOOLBAR_BUTTONS: isDirector ? ['microphone', 'camera', 'hangup', 'fittowindow', 'videobackgroundblur'] : [] // technician: no toolbar at all
+            TOOLBAR_BUTTONS: isDirector ? ['microphone', 'camera', 'hangup', 'fittowindow', 'videobackgroundblur'] : []
           }
         };
         jitsiApi = new JitsiMeetExternalAPI(domain, options);
@@ -705,6 +707,75 @@
       await setDoc(doc(db, "emergency_calls", "active_session"), { active: true, callMachine: mName, triggerSound: Date.now(), timestamp: serverTimestamp() });
       window.startEmergencyCall(mName, true);
     };
+
+    // -------------------- DIRECT CALL FLOW (NEW SIGNALING) --------------------
+    window.directCallTech = async (email) => {
+      const display = email.split('@')[0].toUpperCase();
+      const roomName = "MercedesDirect_" + email.replace(/[^a-zA-Z0-9_]/g, "_");
+
+      // Signal the target technician to join this room
+      const docId = "active_" + emailKey(email);
+      await setDoc(doc(db, "direct_calls", docId), {
+        active: true,
+        roomName,
+        from: auth.currentUser.email.toLowerCase(),
+        timestamp: serverTimestamp()
+      });
+
+      // Open Director side UI
+      document.getElementById('directCallTitle').innerText = `Call with ${display}`;
+      document.getElementById('directCallPopup').style.display = 'block';
+
+      if (!directJitsiApi) {
+        const domain = "meet.jit.si";
+        const options = { roomName, width:'100%', height:'100%', parentNode: document.getElementById('directVideoContainer'), configOverwrite:{ startWithAudioMuted:false, startWithVideoMuted:false, enableWelcomePage:false, prejoinPageEnabled:false, disableShortcuts:false, enableClosePage:true }, interfaceConfigOverwrite:{ TOOLBAR_BUTTONS:['microphone','camera','hangup','fittowindow','tileview','chat'] } };
+        directJitsiApi = new JitsiMeetExternalAPI(domain, options);
+      }
+    };
+
+    window.directCallTechFromProfile = () => { if (!currentTechEmailForEdit) return; window.directCallTech(currentTechEmailForEdit); };
+
+    window.endDirectCall = async () => {
+      if (directJitsiApi) { try { directJitsiApi.dispose(); } catch (e) {} directJitsiApi = null; }
+      document.getElementById('directCallPopup').style.display = 'none';
+      // Set any direct calls started by this Director to inactive
+      try {
+        const q = query(collection(db, "direct_calls"), where("from", "==", auth.currentUser.email.toLowerCase()));
+        const shots = await getDocs(q);
+        const ops = [];
+        shots.forEach(s => ops.push(updateDoc(doc(db, "direct_calls", s.id), { active: false })));
+        await Promise.all(ops);
+      } catch (e) { console.warn('Direct call cleanup warning:', e); }
+    };
+
+    function listenForDirectCalls(email) {
+      const myDocId = "active_" + emailKey(email);
+      onSnapshot(doc(db, "direct_calls", myDocId), (snap) => {
+        const data = snap.data(); if (!data) return;
+        const isDirector = auth.currentUser.email.toLowerCase() === DIRECTOR;
+
+        if (data.active && data.roomName) {
+          if (!isDirector && !jitsiApi) {
+            // Reuse emergency popup UI for tech direct calls
+            document.getElementById('callPopup').style.display = 'block';
+            document.getElementById('callMachineName').innerText = `DIRECT LINE (${data.from})`;
+            document.getElementById('statusDot').classList.add('dot-active');
+
+            const domain = "meet.jit.si";
+            const options = {
+              roomName: data.roomName,
+              width: '100%', height: '100%', parentNode: document.getElementById('videoContainer'),
+              configOverwrite: { startWithAudioMuted:false, startWithVideoMuted:false, enableWelcomePage:false, prejoinPageEnabled:false, disableShortcuts:true, enableClosePage:false },
+              interfaceConfigOverwrite: { TOOLBAR_BUTTONS: [] }
+            };
+            jitsiApi = new JitsiMeetExternalAPI(domain, options);
+          }
+        } else {
+          // Director ended the direct call → ensure tech leaves
+          if (jitsiApi && !isDirector) { window.endEmergencyCall(); }
+        }
+      });
+    }
 
     /* KPI LOGIC */
     window.calculateKPIs = () => {
@@ -744,7 +815,6 @@
       const email = user.email.toLowerCase();
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
 
-      // NEW: ask for mic/cam once; does NOT gate auto-join
       await primeMediaAccess();
 
       onSnapshot(collection(db, "permissions"), snap => {
@@ -781,6 +851,7 @@
       loadMachinesLive(email);
       loadHistory();
       listenForEmergency(email);
+      listenForDirectCalls(email); // NEW: start direct-call listener for this user
     });
 
     function renderPersonnelDashboard(snap) {
@@ -867,11 +938,8 @@
       const status = document.getElementById('techStatusSelect').value;
       try {
         await setDoc(doc(db, "users", currentTechEmailForEdit), { position, description, status, updatedAt: serverTimestamp() }, { merge: true });
-        if (status === 'Blocked') {
-          await window.blockAllAccess();
-        } else {
-          await setDoc(doc(db, "permissions", currentTechEmailForEdit), { blocked: false }, { merge: true });
-        }
+        if (status === 'Blocked') { await window.blockAllAccess(); }
+        else { await setDoc(doc(db, "permissions", currentTechEmailForEdit), { blocked: false }, { merge: true }); }
         alert("Technician profile updated.");
         document.getElementById('techProfilePopup').style.display = 'none';
       } catch (e) { alert("Error saving profile: " + e.message); }
@@ -888,22 +956,6 @@
         document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class="status-badge status-blocked">BLOCKED</span>`;
       } catch (e) { alert("Error revoking access: " + e.message); }
     };
-
-    window.directCallTech = async (email) => {
-      const display = email.split('@')[0].toUpperCase();
-      const roomName = "MercedesDirect_" + email.replace(/[^a-zA-Z0-9_]/g, "_");
-      document.getElementById('directCallTitle').innerText = `Call with ${display}`;
-      document.getElementById('directCallPopup').style.display = 'block';
-      if (!directJitsiApi) {
-        const domain = "meet.jit.si";
-        const options = { roomName, width:'100%', height:'100%', parentNode: document.getElementById('directVideoContainer'), configOverwrite:{ startWithAudioMuted:false, startWithVideoMuted:false, enableWelcomePage:false, prejoinPageEnabled:false }, interfaceConfigOverwrite:{ TOOLBAR_BUTTONS:['microphone','camera','hangup','fittowindow','tileview','chat'] } };
-        directJitsiApi = new JitsiMeetExternalAPI(domain, options);
-      }
-    };
-
-    window.directCallTechFromProfile = () => { if (!currentTechEmailForEdit) return; window.directCallTech(currentTechEmailForEdit); };
-
-    window.endDirectCall = () => { if (directJitsiApi) { try { directJitsiApi.dispose(); } catch (e) {} directJitsiApi = null; } document.getElementById('directCallPopup').style.display = 'none'; };
 
     function listenForEmergency(email) {
       onSnapshot(collection(db, "machines"), (snap) => {
@@ -927,42 +979,50 @@
         if (listEl) listEl.innerHTML = breakdownListHtml || "<p style='color:#444; font-size:12px;'>No active breakdowns requiring communication.</p>";
         if (!dangerFound) { const overlay = document.getElementById('dangerOverlay'); if(overlay) overlay.style.display = 'none'; }
 
-        // NEW: if emergency doc already active when machines load, try to auto-join now
+        // Retry auto-join if emergency target was set before machines loaded
         if (lastEmergencyTarget && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
           const emailNow = auth.currentUser.email.toLowerCase();
           const assigned = Object.values(machineCache)
             .find(m => m.name === lastEmergencyTarget && m.assignedTech === emailNow);
-          if (assigned && !jitsiApi) {
-            window.startEmergencyCall(lastEmergencyTarget, false);
-          }
+          if (assigned && !jitsiApi) { window.startEmergencyCall(lastEmergencyTarget, false); }
         }
       });
 
       onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
         const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
-
-        // NEW: remember current emergency target for race-free retry from machines listener
         lastEmergencyTarget = (data.active && data.callMachine) ? data.callMachine : null;
 
-        // Alarm for everyone; TTS only for technicians (when mic ready we play the ping)
         if (data.triggerSound && micReady) {
           const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{});
           if (emailNow !== DIRECTOR) { speakNative("Direct line opened. Please respond to the Director immediately."); }
         }
 
         if (data.active && data.callMachine) {
-          if (emailNow === DIRECTOR) {
-            // Director already started via directorTriggerCall
-          } else {
-            // Technician: auto-join immediately (no banner, no controls) — micReady NO LONGER REQUIRED
+          if (emailNow !== DIRECTOR) {
             const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
-            if (assignedMachine && !jitsiApi) {
-              window.startEmergencyCall(data.callMachine, false);
-            }
+            if (assignedMachine && !jitsiApi) { window.startEmergencyCall(data.callMachine, false); }
           }
         } else {
-          // End call cleanup on tech side if joined (no hangup button is shown anyway)
           if (jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); }
+        }
+      });
+    }
+
+    function listenForDirectCalls(email) {
+      const myDocId = "active_" + emailKey(email);
+      onSnapshot(doc(db, "direct_calls", myDocId), (snap) => {
+        const data = snap.data(); if (!data) return; const isDirector = auth.currentUser.email.toLowerCase() === DIRECTOR;
+        if (data.active && data.roomName) {
+          if (!isDirector && !jitsiApi) {
+            document.getElementById('callPopup').style.display = 'block';
+            document.getElementById('callMachineName').innerText = `DIRECT LINE (${data.from})`;
+            document.getElementById('statusDot').classList.add('dot-active');
+            const domain = "meet.jit.si";
+            const options = { roomName: data.roomName, width:'100%', height:'100%', parentNode: document.getElementById('videoContainer'), configOverwrite:{ startWithAudioMuted:false, startWithVideoMuted:false, enableWelcomePage:false, prejoinPageEnabled:false, disableShortcuts:true, enableClosePage:false }, interfaceConfigOverwrite:{ TOOLBAR_BUTTONS: [] } };
+            jitsiApi = new JitsiMeetExternalAPI(domain, options);
+          }
+        } else {
+          if (jitsiApi && !isDirector) { window.endEmergencyCall(); }
         }
       });
     }
@@ -993,14 +1053,11 @@
           }
         });
 
-        // NEW: retry auto-join if emergency target was set before machines loaded
         if (lastEmergencyTarget && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
           const emailNow = auth.currentUser.email.toLowerCase();
           const assigned = Object.values(machineCache)
             .find(m => m.name === lastEmergencyTarget && m.assignedTech === emailNow);
-          if (assigned && !jitsiApi) {
-            window.startEmergencyCall(lastEmergencyTarget, false);
-          }
+          if (assigned && !jitsiApi) { window.startEmergencyCall(lastEmergencyTarget, false); }
         }
       });
     }
