@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Mercedes-Benz Plant Operations</title>
-  https://meet.jit.si/external_api.js</script>
+  <script src="https://meet.jit.si/external_api.js"></script>
   <style>
     body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
     /* SIDEBAR */
@@ -89,7 +89,8 @@
     .kpi-main-val { font-size: 3.5rem; font-weight: 900; font-family: 'Courier New', monospace; color: #fff; margin: 10px 0; display: block; }
     .kpi-sub-label { color: #666; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px; }
     .pulse-ring { width: 12px; height: 12px; border-radius: 50%; background: #00ff00; display: inline-block; margin-right: 8px; animation: pulseGreen 1.5s infinite; }
-    @keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } }
+    @keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+    }
     .line-health-row { background: #111; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 2px solid #333; }
     .health-bar-bg { background: #222; height: 4px; width: 100%; margin-top: 10px; }
     .health-bar-fill { height: 100%; background: #e30613; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); box-shadow: 0 0 10px #e30613; }
@@ -125,7 +126,8 @@
     .status-suspended { color: #ffa500; border-color: #a96f00; }
     .status-blocked { color: #ff3333; border-color: #a10000; }
     .request-glow { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); animation: reqPulse 1.6s infinite; }
-    @keyframes reqPulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); } 70% { box-shadow: 0 0 0 16px rgba(255,204,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); } }
+    @keyframes reqPulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); } 70% { box-shadow: 0 0 0 16px rgba(255,204,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); }
+    }
     /* Direct call video container */
     #directVideoContainer { width: 100%; height: 350px; background: #000; border-radius: 12px; overflow: hidden; }
     /* Incoming banner (kept but unused now) */
@@ -133,7 +135,7 @@
   </style>
 </head>
 <body>
-  <audio id="effectAudio" src="https://assets/2869/2869-preview.mp3</audio>
+  <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
   <!-- ACCESS DENIED MODAL (kept) -->
   <div id="accessDeniedModal">
@@ -487,7 +489,7 @@
       const m = machineCache[id]; if(!m) return;
       const content = `
         <h2 style="color:#e30613">Machine Profile: ${m.name}</h2>
-        ${m.image}
+        <img src="${m.image}" class="machine-img">
         <p><b>Target Maint. Time:</b> ${m.targetMaintenanceTime} mins</p>
         <p><b>Description:</b> ${m.description}</p>
         <h4>Recent History</h4>
@@ -797,7 +799,7 @@
         div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
         div.onclick = () => window.openTechProfile(userEmail);
         div.innerHTML = `
-          ${avatar}
+          <img src="${avatar}" class="tech-avatar">
           <div class="tech-info">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span class="tech-name">
@@ -1026,7 +1028,7 @@
             let kpiHtml = `<div style="font-size:12px; margin-top:5px;">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
             if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class="kpi-alert">⚠️ KPI VARIANCE DETECTED</div>`;
             card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br><small>Report: ${data.techComment}</small>${kpiHtml}
-            <div style="margin-top:10px;">${data.imageBefore}<{data.imageAfter}</div>
+            <div style="margin-top:10px;"><img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img"></div>
             <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
           }
           list.appendChild(card);
@@ -1054,13 +1056,13 @@
           <div style="display:flex; gap:10px;">
             <div>
               <small>BEFORE</small><br>
-              ${i.imageBefore ? `${i.imageBefore}` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              ${i.imageBefore ? `<img src="${i.imageBefore}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
               <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageBefore')">REPLACE</span>
               <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageBefore')">DELETE</span>
             </div>
             <div>
               <small>AFTER</small><br>
-              ${i.imageAfter ? `<img src="${i.imageAfter}"lass="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              ${i.imageAfter ? `<img src="${i.imageAfter}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
               <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageAfter')">REPLACE</span>
               <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageAfter')">DELETE</span>
             </div>
