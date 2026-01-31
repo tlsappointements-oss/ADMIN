@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Mercedes-Benz Plant Operations</title>
-  <script src="https://meet.jit.si/external_api.js"></script>
+  https://meet.jit.si/external_api.js</script>
   <style>
     body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
     /* SIDEBAR */
@@ -104,7 +104,6 @@
     .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 15px; }
     .perm-chip { font-size: 10px; padding: 6px; border: 1px solid #333; text-align: center; cursor: pointer; border-radius: 4px; background: #0a0a0a; color: #666; }
     .perm-active { background: #e30613; border-color: #e30613; color: #fff; box-shadow: 0 0 10px rgba(227, 6, 19, 0.3); }
-
     /* === PERSONNEL: Tech Profile Modal & Direct Call (NEW) === */
     #techProfilePopup, #directCallPopup {
       display: none; position: fixed; top: 50%; left: 50%;
@@ -129,13 +128,13 @@
     @keyframes reqPulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); } 70% { box-shadow: 0 0 0 16px rgba(255,204,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); } }
     /* Direct call video container */
     #directVideoContainer { width: 100%; height: 350px; background: #000; border-radius: 12px; overflow: hidden; }
-
     /* Incoming banner (kept but unused now) */
     #incomingCallBanner { display:none; }
   </style>
 </head>
 <body>
-  <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+  <audio id="effectAudio" src="https://assets/2869/2869-preview.mp3</audio>
+
   <!-- ACCESS DENIED MODAL (kept) -->
   <div id="accessDeniedModal">
     <div class="security-shield">
@@ -157,7 +156,6 @@
   <div id="techProfilePopup">
     <h2 class="modal-title">Technician Profile</h2>
     <div id="techIdentityLine" class="modal-subtle"></div>
-
     <div class="modal-row">
       <div>
         <label>Position</label>
@@ -173,10 +171,8 @@
         </select>
       </div>
     </div>
-
     <label style="margin-top:8px;">Full Description</label>
     <textarea id="techDescriptionInput" rows="5" placeholder="Team, capabilities, specialization, shift info…"></textarea>
-
     <div class="modal-actions">
       <button id="saveTechProfileBtn" onclick="window.saveTechProfile()" style="background:#28a745;">SAVE CHANGES</button>
       <button class="btn-ghost" onclick="document.getElementById('techProfilePopup').style.display='none'">CLOSE</button>
@@ -353,11 +349,14 @@
     import { auth, db } from './firebase.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
+
     let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
     let userPermissions = {};
     let currentTechEmailForEdit = null;
     let directJitsiApi = null;
+    let lastEmergencyTarget = null; // NEW: stores current emergency target to avoid race conditions
 
     const M_STEPS = {
       "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
@@ -366,11 +365,28 @@
       "DEFAULT": ["General visual inspection", "Power supply check", "Input/Output verification", "Component cleaning", "Operational test", "Safety check"]
     };
 
+    // --- MEDIA: manual button remains for UX, but no longer gates auto-join
     window.activateAudioSystem = async () => {
       micReady = true;
       document.getElementById('audioActivator').style.background = "#00ff00";
       document.getElementById('audioActivator').innerText = "✅ SYSTEM READY";
     };
+
+    // NEW: Silent primer for mic/camera permission after login (improves first-join)
+    async function primeMediaAccess() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        micReady = true;
+        const btn = document.getElementById('audioActivator');
+        if (btn) {
+          btn.style.background = '#00ff00';
+          btn.innerText = '✅ SYSTEM READY';
+        }
+      } catch (e) {
+        console.warn('Media permission not granted yet:', e);
+        // We still allow auto-join; mic may be muted by the browser until accepted.
+      }
+    }
 
     window.triggerRemoteAudio = async () => {
       await updateDoc(doc(db, "emergency_calls", "active_session"), { triggerSound: Date.now() });
@@ -471,7 +487,7 @@
       const m = machineCache[id]; if(!m) return;
       const content = `
         <h2 style="color:#e30613">Machine Profile: ${m.name}</h2>
-        <img src="${m.image}" class="machine-img">
+        ${m.image}
         <p><b>Target Maint. Time:</b> ${m.targetMaintenanceTime} mins</p>
         <p><b>Description:</b> ${m.description}</p>
         <h4>Recent History</h4>
@@ -484,7 +500,7 @@
     window.openMaintenanceGuide = async (intId, mId) => {
       const popup = document.getElementById('machineDetailPopup');
       const contentDiv = document.getElementById('machineDetailContent');
-      contentDiv.innerHTML = `<h2 style=\"color:#e30613; text-align:center;\">INITIALIZING PROTOCOL...</h2>`;
+      contentDiv.innerHTML = `<h2 style="color:#e30613; text-align:center;">INITIALIZING PROTOCOL...</h2>`;
       popup.style.display = 'block';
       try {
         const mDoc = await getDoc(doc(db, "machines", mId));
@@ -515,7 +531,7 @@
           <button id="finalSubmitBtn" onclick="window.submitTechReport('${intId}', '${mId}', ${actualStart})" style="width:100%">SUBMIT FINAL REPORT</button>
         `;
       } catch (err) {
-        contentDiv.innerHTML = `<h2 style=\"color:red\">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
+        contentDiv.innerHTML = `<h2 style="color:red">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
       }
     };
 
@@ -652,13 +668,23 @@
       document.getElementById('callPopup').style.display = 'block';
       document.getElementById('callMachineName').innerText = mName;
       document.getElementById('statusDot').classList.add('dot-active');
+
       if (!jitsiApi) {
         const domain = "meet.jit.si";
         const options = {
           roomName: "MercedesEmergency_" + mName.replace(/\s+/g, '_'),
           width: '100%', height: '100%', parentNode: document.getElementById('videoContainer'),
-          configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: false, enableWelcomePage: false, prejoinPageEnabled: false },
-          interfaceConfigOverwrite: { TOOLBAR_BUTTONS: isDirector ? ['microphone', 'camera', 'hangup', 'fittowindow', 'videobackgroundblur'] : [] }
+          configOverwrite: {
+            startWithAudioMuted: false,
+            startWithVideoMuted: false,
+            enableWelcomePage: false,
+            prejoinPageEnabled: false,
+            disableShortcuts: !isDirector,   // NEW: technicians can't use keyboard shortcuts
+            enableClosePage: isDirector      // NEW: only director sees the "left the meeting" page
+          },
+          interfaceConfigOverwrite: {
+            TOOLBAR_BUTTONS: isDirector ? ['microphone', 'camera', 'hangup', 'fittowindow', 'videobackgroundblur'] : [] // technician: no toolbar at all
+          }
         };
         jitsiApi = new JitsiMeetExternalAPI(domain, options);
       }
@@ -715,6 +741,10 @@
       if (!user) { window.location.href = "login.html"; return; }
       const email = user.email.toLowerCase();
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+
+      // NEW: ask for mic/cam once; does NOT gate auto-join
+      await primeMediaAccess();
+
       onSnapshot(collection(db, "permissions"), snap => {
         snap.forEach(d => {
           userPermissions[d.id] = d.data();
@@ -745,6 +775,7 @@
         }
         loadMyMissions(email);
       }
+
       loadMachinesLive(email);
       loadHistory();
       listenForEmergency(email);
@@ -754,7 +785,6 @@
       const container = document.getElementById('userAccessList');
       container.innerHTML = "";
       const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
-
       snap.forEach(d => {
         const userEmail = d.id; if (userEmail === DIRECTOR) return;
         const perms = d.data();
@@ -763,13 +793,11 @@
         const position = "PLANT TECHNICIAN";
         const avatar = `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`;
         const isRequesting = perms.requestingAccess === true;
-
         const div = document.createElement('div');
         div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
         div.onclick = () => window.openTechProfile(userEmail);
-
         div.innerHTML = `
-          <img src="${avatar}" class="tech-avatar">
+          ${avatar}
           <div class="tech-info">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span class="tech-name">
@@ -777,8 +805,8 @@
                 ${isRequesting ? ' <span style="color:#ffcc00; font-size:9px;">[REQUESTING ACCESS]</span>' : ''}
               </span>
               <div style="display:flex; gap:6px;">
-                <button onclick=\"event.stopPropagation(); window.directCallTech('${userEmail}')\" class=\"btn-ghost\" style=\"font-size:10px; padding:5px;\">📞 DIRECT CALL</button>
-                <button onclick=\"event.stopPropagation(); window.directorTriggerCall('${name}')\" class=\"btn-ghost\" style=\"font-size:10px; padding:5px;\">🚨 EMERGENCY</button>
+                <button onclick="event.stopPropagation(); window.directCallTech('${userEmail}')" class="btn-ghost" style="font-size:10px; padding:5px;">📞 DIRECT CALL</button>
+                <button onclick="event.stopPropagation(); window.directorTriggerCall('${name}')" class="btn-ghost" style="font-size:10px; padding:5px;">🚨 EMERGENCY</button>
               </div>
             </div>
             <div style="font-size:10px; color:#666; margin-top:2px;">
@@ -790,7 +818,7 @@
             </div>
             <div class="perm-grid">
               ${keys.map(k => `
-                <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick=\"event.stopPropagation(); window.togglePermission('${userEmail}', '${k}')\">${k.replace('view_', '').replace('request_', '').replace('_', ' ').toUpperCase()}</div>`).join('')}
+                <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick="event.stopPropagation(); window.togglePermission('${userEmail}', '${k}')">${k.replace('view_', '').replace('request_', '').replace('_', ' ').toUpperCase()}</div>`).join('')}
             </div>
           </div>
         `;
@@ -810,21 +838,19 @@
           status = ud.status || 'Active';
         }
       } catch (e) {}
-
       let blockedBadge = '';
       try {
         const p = await getDoc(doc(db, "permissions", email));
         if (p.exists() && p.data().blocked === true) {
-          blockedBadge = `<span class=\"status-badge status-blocked\">BLOCKED</span>`;
+          blockedBadge = `<span class="status-badge status-blocked">BLOCKED</span>`;
         } else if (status === 'Active') {
-          blockedBadge = `<span class=\"status-badge status-active\">ACTIVE</span>`;
+          blockedBadge = `<span class="status-badge status-active">ACTIVE</span>`;
         } else if (status === 'On Leave') {
-          blockedBadge = `<span class=\"status-badge status-leave\">ON LEAVE</span>`;
+          blockedBadge = `<span class="status-badge status-leave">ON LEAVE</span>`;
         } else if (status === 'Suspended') {
-          blockedBadge = `<span class=\"status-badge status-suspended\">SUSPENDED</span>`;
+          blockedBadge = `<span class="status-badge status-suspended">SUSPENDED</span>`;
         }
       } catch (e) {}
-
       document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> ${blockedBadge}`;
       document.getElementById('techPositionInput').value = position;
       document.getElementById('techDescriptionInput').value = description;
@@ -857,7 +883,7 @@
         await setDoc(doc(db, "permissions", email), allFalse, { merge: true });
         await setDoc(doc(db, "users", email), { status: 'Blocked', blockedAt: serverTimestamp() }, { merge: true });
         alert("All accesses revoked and status set to Blocked.");
-        document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class=\"status-badge status-blocked\">BLOCKED</span>`;
+        document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class="status-badge status-blocked">BLOCKED</span>`;
       } catch (e) { alert("Error revoking access: " + e.message); }
     };
 
@@ -874,6 +900,7 @@
     };
 
     window.directCallTechFromProfile = () => { if (!currentTechEmailForEdit) return; window.directCallTech(currentTechEmailForEdit); };
+
     window.endDirectCall = () => { if (directJitsiApi) { try { directJitsiApi.dispose(); } catch (e) {} directJitsiApi = null; } document.getElementById('directCallPopup').style.display = 'none'; };
 
     function listenForEmergency(email) {
@@ -887,9 +914,9 @@
             }
             if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
               breakdownListHtml += `
-                <div style=\"display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px; border-left: 2px solid #ff3333;\">
-                  <span><b>${m.name}</b><br><small style=\"color:#666\">Tech: ${m.assignedTech}</small></span>
-                  <button onclick=\"window.directorTriggerCall('${m.name}')\" style=\"font-size:10px; padding:5px 10px; height:fit-content;\">📞 EMERGENCY CALL</button>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px; border-left: 2px solid #ff3333;">
+                  <span><b>${m.name}</b><br><small style="color:#666">Tech: ${m.assignedTech}</small></span>
+                  <button onclick="window.directorTriggerCall('${m.name}')" style="font-size:10px; padding:5px 10px; height:fit-content;">📞 EMERGENCY CALL</button>
                 </div>`;
             }
           }
@@ -897,12 +924,25 @@
         const listEl = document.getElementById('breakdownCallList');
         if (listEl) listEl.innerHTML = breakdownListHtml || "<p style='color:#444; font-size:12px;'>No active breakdowns requiring communication.</p>";
         if (!dangerFound) { const overlay = document.getElementById('dangerOverlay'); if(overlay) overlay.style.display = 'none'; }
+
+        // NEW: if emergency doc already active when machines load, try to auto-join now
+        if (lastEmergencyTarget && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
+          const emailNow = auth.currentUser.email.toLowerCase();
+          const assigned = Object.values(machineCache)
+            .find(m => m.name === lastEmergencyTarget && m.assignedTech === emailNow);
+          if (assigned && !jitsiApi) {
+            window.startEmergencyCall(lastEmergencyTarget, false);
+          }
+        }
       });
 
       onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
         const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
 
-        // Alarm for everyone; TTS only for technicians
+        // NEW: remember current emergency target for race-free retry from machines listener
+        lastEmergencyTarget = (data.active && data.callMachine) ? data.callMachine : null;
+
+        // Alarm for everyone; TTS only for technicians (when mic ready we play the ping)
         if (data.triggerSound && micReady) {
           const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{});
           if (emailNow !== DIRECTOR) { speakNative("Direct line opened. Please respond to the Director immediately."); }
@@ -912,9 +952,9 @@
           if (emailNow === DIRECTOR) {
             // Director already started via directorTriggerCall
           } else {
-            // Technician: auto-join immediately (no banner, no controls)
+            // Technician: auto-join immediately (no banner, no controls) — micReady NO LONGER REQUIRED
             const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
-            if (assignedMachine && micReady) {
+            if (assignedMachine && !jitsiApi) {
               window.startEmergencyCall(data.callMachine, false);
             }
           }
@@ -934,15 +974,15 @@
           const m = snapshotDoc.data(); const id = snapshotDoc.id; machineCache[id] = m; const isWorking = m.status === "WORKING";
           if(table) {
             let row = `<tr>
-              <td><b style=\"cursor:pointer;text-decoration:underline\" onclick=\"window.previewMachine('${id}')\">${m.machineId || id}</b></td>
+              <td><b style="cursor:pointer;text-decoration:underline" onclick="window.previewMachine('${id}')">${m.machineId || id}</b></td>
               <td>${m.name}</td>
               <td>${m.section}</td>
-              <td><span class=\"${isWorking ? 'status-working' : 'status-breakdown'}\" onclick=\"window.toggleStatus('${id}', '${m.status}')\" style=\"cursor:pointer\">${m.status}</span></td>
+              <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}" onclick="window.toggleStatus('${id}', '${m.status}')" style="cursor:pointer">${m.status}</span></td>
               <td>`;
             if (userEmail === DIRECTOR) {
-              row += `<select class=\"tech-select\" onchange=\"window.assignTech('${id}', this.value)\">
-                <option value=\"\">Assign...</option>
-                ${techList.map(t => `<option value=\"${t}\" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
+              row += `<select class="tech-select" onchange="window.assignTech('${id}', this.value)">
+                <option value="">Assign...</option>
+                ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
               </select>`;
             } else {
               row += `<span>${m.assignedTech || '---'}</span>`;
@@ -950,6 +990,16 @@
             row += `</td></tr>`; table.innerHTML += row;
           }
         });
+
+        // NEW: retry auto-join if emergency target was set before machines loaded
+        if (lastEmergencyTarget && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
+          const emailNow = auth.currentUser.email.toLowerCase();
+          const assigned = Object.values(machineCache)
+            .find(m => m.name === lastEmergencyTarget && m.assignedTech === emailNow);
+          if (assigned && !jitsiApi) {
+            window.startEmergencyCall(lastEmergencyTarget, false);
+          }
+        }
       });
     }
 
@@ -957,7 +1007,7 @@
       const list = document.getElementById('missionList');
       onSnapshot(query(collection(db, "interventions"), where("status", "==", "APPROVED")), (snap) => {
         if(list) { list.innerHTML = ""; snap.forEach(d => { const data = d.data(); if (data.requester === email || machineCache[data.machineId]?.assignedTech === email) { const card = document.createElement('div'); card.className = "card"; card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
-          <button onclick=\"window.openMaintenanceGuide('${d.id}', '${data.machineId}')\" style=\"background:#28a745\">START MAINTENANCE GUIDE</button>`; list.appendChild(card); } }); }
+          <button onclick="window.openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>`; list.appendChild(card); } }); }
       });
     }
 
@@ -967,17 +1017,17 @@
         if(list) { list.innerHTML = ""; snap.forEach(d => { const data = d.data(); const card = document.createElement('div'); card.className = "card";
           if(data.status === "PENDING_MOHAMED") {
             card.innerHTML = `<b>STEP 1: ${data.machineName} REQ</b><br><small>Issue: ${data.issue}</small><br>
-              <textarea id=\"appComment_${d.id}\" placeholder=\"Approval notes...\"></textarea>
-              <button onclick=\"window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')\">APPROVE REPAIR</button>`;
+            <textarea id="appComment_${d.id}" placeholder="Approval notes..."></textarea>
+            <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR</button>`;
           } else {
             const actualDuration = Math.round((data.actualEnd - data.actualStart) / 60000);
             const manualDuration = Math.round((new Date(data.manualEnd) - new Date(data.manualStart)) / 60000);
             const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
-            let kpiHtml = `<div style=\"font-size:12px; margin-top:5px;\">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
-            if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class=\"kpi-alert\">⚠️ KPI VARIANCE DETECTED</div>`;
+            let kpiHtml = `<div style="font-size:12px; margin-top:5px;">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
+            if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class="kpi-alert">⚠️ KPI VARIANCE DETECTED</div>`;
             card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br><small>Report: ${data.techComment}</small>${kpiHtml}
-              <div style=\"margin-top:10px;\"><img src=\"${data.imageBefore}\" class=\"preview-img\"><img src=\"${data.imageAfter}\" class=\"preview-img\"></div>
-              <button onclick=\"window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')\" style=\"background:#007bff; width:100%; margin-top:10px;\">ARCHIVE & CLOSE ASSET</button>`;
+            <div style="margin-top:10px;">${data.imageBefore}<{data.imageAfter}</div>
+            <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
           }
           list.appendChild(card);
         }); }
@@ -993,29 +1043,29 @@
 
     function showHistoryDetail(i) {
       const content = `
-        <div style=\"display:flex; justify-content:space-between;\">
-          <h2 style=\"color:#e30613\">AUDIT LOG: ${i.machineName}</h2>
-          <button onclick=\"window.deleteIntervention('${i.id}')\" style=\"background:red; font-size:10px;\">DELETE RECORD</button>
+        <div style="display:flex; justify-content:space-between;">
+          <h2 style="color:#e30613">AUDIT LOG: ${i.machineName}</h2>
+          <button onclick="window.deleteIntervention('${i.id}')" style="background:red; font-size:10px;">DELETE RECORD</button>
         </div>
-        <div class=\"card\">
+        <div class="card">
           <p><b>Original Issue:</b> ${i.issue}</p>
           <p><b>Final Resolution:</b> ${i.techComment}</p>
           <hr>
-          <div style=\"display:flex; gap:10px;\">
+          <div style="display:flex; gap:10px;">
             <div>
               <small>BEFORE</small><br>
-              ${i.imageBefore ? `<img src=\"${i.imageBefore}\" class=\"preview-img\">` : '<div class=\"preview-img\" style=\"border:1px dashed #333; display:flex; align-items:center; justify-content:center;\">No Image</div>'}
-              <span class=\"img-edit-btn\" onclick=\"window.updateHistoryImage('${i.id}', 'imageBefore')\">REPLACE</span>
-              <span class=\"img-edit-btn\" style=\"color:red;\" onclick=\"window.deleteImage('${i.id}', 'imageBefore')\">DELETE</span>
+              ${i.imageBefore ? `${i.imageBefore}` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageBefore')">REPLACE</span>
+              <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageBefore')">DELETE</span>
             </div>
             <div>
               <small>AFTER</small><br>
-              ${i.imageAfter ? `<img src=\"${i.imageAfter}\" class=\"preview-img\">` : '<div class=\"preview-img\" style=\"border:1px dashed #333; display:flex; align-items:center; justify-content:center;\">No Image</div>'}
-              <span class=\"img-edit-btn\" onclick=\"window.updateHistoryImage('${i.id}', 'imageAfter')\">REPLACE</span>
-              <span class=\"img-edit-btn\" style=\"color:red;\" onclick=\"window.deleteImage('${i.id}', 'imageAfter')\">DELETE</span>
+              ${i.imageAfter ? `<img src="${i.imageAfter}"lass="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageAfter')">REPLACE</span>
+              <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageAfter')">DELETE</span>
             </div>
           </div>
-          <button onclick=\"window.forceModifyReport('${i.id}')\" style=\"background:#ffcc00; color:#000; margin-top:15px; width:100%\">FORCE EDIT TEXT LOGS</button>
+          <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; margin-top:15px; width:100%">FORCE EDIT TEXT LOGS</button>
         </div>`;
       document.getElementById('machineDetailContent').innerHTML = content;
       document.getElementById('machineDetailPopup').style.display = 'block';
