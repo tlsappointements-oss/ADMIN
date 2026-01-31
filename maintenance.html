@@ -104,11 +104,35 @@
     .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 15px; }
     .perm-chip { font-size: 10px; padding: 6px; border: 1px solid #333; text-align: center; cursor: pointer; border-radius: 4px; background: #0a0a0a; color: #666; }
     .perm-active { background: #e30613; border-color: #e30613; color: #fff; box-shadow: 0 0 10px rgba(227, 6, 19, 0.3); }
+
+    /* === PERSONNEL: Tech Profile Modal & Direct Call (NEW) === */
+    #techProfilePopup, #directCallPopup {
+      display: none; position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 680px; max-height: 90vh; overflow-y: auto;
+      background: #0b0b0b; border: 2px solid #e30613;
+      border-radius: 14px; padding: 24px; z-index: 10012;
+      box-shadow: 0 0 50px #000;
+    }
+    .modal-title { margin: 0 0 10px 0; color: #e30613; letter-spacing: 1px; }
+    .modal-subtle { color: #777; font-size: 11px; margin-bottom: 10px; }
+    .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 12px; }
+    .btn-ghost { background: transparent; border: 1px solid #444; color: #bbb; }
+    .btn-danger { background: #b10000; }
+    .status-badge { font-size: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid #333; margin-left: 8px; }
+    .status-active { color: #00ff00; border-color: #093; }
+    .status-leave { color: #ffcc00; border-color: #aa8d00; }
+    .status-suspended { color: #ffa500; border-color: #a96f00; }
+    .status-blocked { color: #ff3333; border-color: #a10000; }
+    .request-glow { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); animation: reqPulse 1.6s infinite; }
+    @keyframes reqPulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); } 70% { box-shadow: 0 0 0 16px rgba(255,204,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); } }
+    /* Direct call video container */
+    #directVideoContainer { width: 100%; height: 350px; background: #000; border-radius: 12px; overflow: hidden; }
   </style>
 </head>
 <body>
   <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
-
   <!-- ACCESS DENIED MODAL (kept) -->
   <div id="accessDeniedModal">
     <div class="security-shield">
@@ -124,6 +148,48 @@
   <div id="machineDetailPopup">
     <div id="machineDetailContent"></div>
     <button onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
+  </div>
+
+  <!-- TECH PROFILE POPUP (NEW) -->
+  <div id="techProfilePopup">
+    <h2 class="modal-title">Technician Profile</h2>
+    <div id="techIdentityLine" class="modal-subtle"></div>
+
+    <div class="modal-row">
+      <div>
+        <label>Position</label>
+        <input type="text" id="techPositionInput" placeholder="e.g., Senior Maintenance Technician">
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="techStatusSelect">
+          <option value="Active">Active</option>
+          <option value="On Leave">On Leave</option>
+          <option value="Suspended">Suspended</option>
+          <option value="Blocked">Blocked</option>
+        </select>
+      </div>
+    </div>
+
+    <label style="margin-top:8px;">Full Description</label>
+    <textarea id="techDescriptionInput" rows="5" placeholder="Team, capabilities, specialization, shift info…"></textarea>
+
+    <div class="modal-actions">
+      <button id="saveTechProfileBtn" onclick="window.saveTechProfile()" style="background:#28a745;">SAVE CHANGES</button>
+      <button class="btn-ghost" onclick="document.getElementById('techProfilePopup').style.display='none'">CLOSE</button>
+      <button class="btn-danger" style="margin-left:auto" onclick="window.blockAllAccess()">BLOCK ALL ACCESS</button>
+      <button class="btn-ghost" onclick="window.directCallTechFromProfile()">📞 DIRECT CALL</button>
+    </div>
+  </div>
+
+  <!-- DIRECT CALL POPUP (NEW) -->
+  <div id="directCallPopup">
+    <h2 class="modal-title">Direct Line</h2>
+    <div id="directCallTitle" class="modal-subtle"></div>
+    <div id="directVideoContainer"></div>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn-danger" onclick="window.endDirectCall()">HANG UP</button>
+    </div>
   </div>
 
   <!-- EMERGENCY CALL POPUP -->
@@ -153,11 +219,9 @@
     <h2 style="color: #e30613;">MERCEDES</h2>
     <button id="audioActivator" onclick="window.activateAudioSystem()">STEP 1: ENABLE MIC</button>
     <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
-
     <div id="reqPermissionBox" style="display:none; margin-bottom: 10px;">
       <button onclick="window.requestAccess()" style="background:#444; font-size: 10px; width: 100%; padding: 5px;">PROMPT MOHAMED FOR ACCESS</button>
     </div>
-
     <hr style="border:0; border-top:1px solid #333;">
     <button class="btn-nav" id="nav_mainPage" onclick="window.showPage('mainPage')">🏠 Dashboard</button>
     <button class="btn-nav" id="nav_interventionPage" onclick="window.showPage('interventionPage')">📝 Interventions</button>
@@ -286,10 +350,12 @@
     import { auth, db } from './firebase.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
     let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
     let userPermissions = {};
+    let currentTechEmailForEdit = null;    // Personnel: who is being edited (NEW)
+    let directJitsiApi = null;             // Personnel: direct (non-emergency) Jitsi instance (NEW)
+
     const M_STEPS = {
       "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
       "PRESS": ["Oil pressure check", "Die alignment inspection", "Lubrication cycle test", "Safety light curtain check", "Ram stroke measurement", "Plate cleaning"],
@@ -631,15 +697,15 @@
         </div>`; }
       const lineHealthEl = document.getElementById('lineHealthContent'); if(lineHealthEl) lineHealthEl.innerHTML = healthHtml;
       const table = document.getElementById('techKpiTable'); if(table) { table.innerHTML = ""; Object.entries(techStats).sort((a,b) => b[1].count - a[1].count).forEach(([name, stats]) => { const efficiency = Math.min(100, Math.round((stats.totalTarget / stats.totalActual) * 100)); table.innerHTML += `
-          <tr>
-            <td><span style="color:#666; font-size:10px;">ID:</span> <b>${name.split('@')[0].toUpperCase()}</b></td>
-            <td style="font-family:monospace; color:#00ff00;">${efficiency}%</td>
-            <td>
-              <span style="padding:2px 8px; font-size:9px; border:1px solid ${efficiency > 80 ? '#00ff00' : '#ffcc00'}; color:${efficiency > 80 ? '#00ff00' : '#ffcc00'}">
-                ${efficiency > 80 ? 'ELITE' : 'OPERATIONAL'}
-              </span>
-            </td>
-          </tr>`; }); }
+        <tr>
+          <td><span style="color:#666; font-size:10px;">ID:</span> <b>${name.split('@')[0].toUpperCase()}</b></td>
+          <td style="font-family:monospace; color:#00ff00;">${efficiency}%</td>
+          <td>
+            <span style="padding:2px 8px; font-size:9px; border:1px solid ${efficiency > 80 ? '#00ff00' : '#ffcc00'}; color:${efficiency > 80 ? '#00ff00' : '#ffcc00'}">
+              ${efficiency > 80 ? 'ELITE' : 'OPERATIONAL'}
+            </span>
+          </td>
+        </tr>`; }); }
     };
 
     // AUTH
@@ -647,7 +713,6 @@
       if (!user) { window.location.href = "login.html"; return; }
       const email = user.email.toLowerCase();
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
-
       // Listen for global permissions
       onSnapshot(collection(db, "permissions"), snap => {
         snap.forEach(d => {
@@ -680,47 +745,204 @@
         }
         loadMyMissions(email);
       }
-
       loadMachinesLive(email);
       loadHistory();
       listenForEmergency(email);
     });
 
-    // PERSONNEL DASHBOARD
+    // PERSONNEL DASHBOARD (ENHANCED)
     function renderPersonnelDashboard(snap) {
       const container = document.getElementById('userAccessList');
       container.innerHTML = "";
       const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
+
       snap.forEach(d => {
         const userEmail = d.id; if (userEmail === DIRECTOR) return;
-        const perms = d.data(); const name = userEmail.split('@')[0].toUpperCase();
-        const isOnline = Math.random() > 0.3; const position = "PLANT TECHNICIAN";
+        const perms = d.data();
+        const name = userEmail.split('@')[0].toUpperCase();
+
+        // Basic (fast) placeholders — full details will appear in profile modal
+        const isOnline = Math.random() > 0.3;
+        const position = "PLANT TECHNICIAN";
         const avatar = `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`;
         const isRequesting = perms.requestingAccess === true;
+
         const div = document.createElement('div');
         div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
+        div.onclick = () => window.openTechProfile(userEmail);   // 👉 open detailed editable profile
+
         div.innerHTML = `
           <img src="${avatar}" class="tech-avatar">
           <div class="tech-info">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span class="tech-name">${name} ${isRequesting ? ' <span style="color:#ffcc00; font-size:9px;">[REQUESTING ACCESS]</span>' : ''}</span>
-              <button onclick="event.stopPropagation(); window.directorTriggerCall('${name}')" style="font-size:10px; padding:5px; background:transparent; border:1px solid #444;">📞 CALL</button>
+              <span class="tech-name">
+                ${name}
+                ${isRequesting ? ' <span style="color:#ffcc00; font-size:9px;">[REQUESTING ACCESS]</span>' : ''}
+              </span>
+              <div style="display:flex; gap:6px;">
+                <button onclick="event.stopPropagation(); window.directCallTech('${userEmail}')" 
+                        class="btn-ghost" style="font-size:10px; padding:5px;">📞 DIRECT CALL</button>
+                <button onclick="event.stopPropagation(); window.directorTriggerCall('${name}')"
+                        class="btn-ghost" style="font-size:10px; padding:5px;">🚨 EMERGENCY</button>
+              </div>
             </div>
-            <div style="font-size:10px; color:#666; margin-top:2px;">${userEmail} · ${position}</div>
+            <div style="font-size:10px; color:#666; margin-top:2px;">
+              ${userEmail} · ${position}
+            </div>
             <div class="tech-status">
               <span class="status-dot-small" style="background:${isOnline ? '#00ff00' : '#555'}"></span>
               <span style="color:${isOnline ? '#00ff00' : '#666'}">${isOnline ? 'ACTIVE ON SITE' : 'OFFLINE'}</span>
             </div>
             <div class="perm-grid">
               ${keys.map(k => `
-                <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick="event.stopPropagation(); window.togglePermission('${userEmail}', '${k}')">
+                <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" 
+                     onclick="event.stopPropagation(); window.togglePermission('${userEmail}', '${k}')">
                   ${k.replace('view_', '').replace('request_', '').replace('_', ' ').toUpperCase()}
                 </div>`).join('')}
             </div>
-          </div>`;
+          </div>
+        `;
         container.appendChild(div);
       });
     }
+
+    // ========== PERSONNEL: open editable profile ==========
+    window.openTechProfile = async (email) => {
+      currentTechEmailForEdit = email;
+
+      // 1) Load user profile
+      let position = '', description = '', status = 'Active';
+      try {
+        const u = await getDoc(doc(db, "users", email));
+        if (u.exists()) {
+          const ud = u.data() || {};
+          position = ud.position || '';
+          description = ud.description || '';
+          status = ud.status || 'Active';
+        }
+      } catch (e) { /* non-fatal */ }
+
+      // 2) Load permissions to show a status badge hint (blocked flag)
+      let blockedBadge = '';
+      try {
+        const p = await getDoc(doc(db, "permissions", email));
+        if (p.exists() && p.data().blocked === true) {
+          blockedBadge = `<span class="status-badge status-blocked">BLOCKED</span>`;
+        } else if (status === 'Active') {
+          blockedBadge = `<span class="status-badge status-active">ACTIVE</span>`;
+        } else if (status === 'On Leave') {
+          blockedBadge = `<span class="status-badge status-leave">ON LEAVE</span>`;
+        } else if (status === 'Suspended') {
+          blockedBadge = `<span class="status-badge status-suspended">SUSPENDED</span>`;
+        }
+      } catch (e) { /* ignore */ }
+
+      // 3) Fill modal fields
+      document.getElementById('techIdentityLine').innerHTML = `
+        <b>${email}</b> ${blockedBadge}
+      `;
+      document.getElementById('techPositionInput').value = position;
+      document.getElementById('techDescriptionInput').value = description;
+      document.getElementById('techStatusSelect').value = status;
+
+      // 4) Show
+      document.getElementById('techProfilePopup').style.display = 'block';
+    };
+
+    // ========== PERSONNEL: save profile (position / description / status) ==========
+    window.saveTechProfile = async () => {
+      if (!currentTechEmailForEdit) return;
+      const position = document.getElementById('techPositionInput').value.trim();
+      const description = document.getElementById('techDescriptionInput').value.trim();
+      const status = document.getElementById('techStatusSelect').value;
+
+      try {
+        await setDoc(
+          doc(db, "users", currentTechEmailForEdit),
+          { position, description, status, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+
+        // If explicitly set to Blocked, also enforce a full revoke
+        if (status === 'Blocked') {
+          await window.blockAllAccess();
+        }
+        alert("Technician profile updated.");
+        document.getElementById('techProfilePopup').style.display = 'none';
+      } catch (e) {
+        alert("Error saving profile: " + e.message);
+      }
+    };
+
+    // ========== PERSONNEL: one-click revoke (block all access) ==========
+    window.blockAllAccess = async () => {
+      if (!currentTechEmailForEdit) return;
+      const email = currentTechEmailForEdit;
+      const allFalse = {
+        view_dashboard: false,
+        request_intervention: false,
+        do_missions: false,
+        view_history: false,
+        view_kpi: false,
+        requestingAccess: false,
+        blocked: true
+      };
+      try {
+        await setDoc(doc(db, "permissions", email), allFalse, { merge: true });
+        await setDoc(doc(db, "users", email), { status: 'Blocked', blockedAt: serverTimestamp() }, { merge: true });
+        alert("All accesses revoked and status set to Blocked.");
+        // reflect in the profile header immediately
+        document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class="status-badge status-blocked">BLOCKED</span>`;
+      } catch (e) {
+        alert("Error revoking access: " + e.message);
+      }
+    };
+
+    // ========== PERSONNEL: direct (non-emergency) call from card ==========
+    window.directCallTech = async (email) => {
+      const display = email.split('@')[0].toUpperCase();
+      const roomName = "MercedesDirect_" + email.replace(/[^a-zA-Z0-9_]/g, "_");
+
+      // Open popup
+      document.getElementById('directCallTitle').innerText = `Call with ${display}`;
+      document.getElementById('directCallPopup').style.display = 'block';
+
+      // Create Jitsi instance (separate from emergency flow)
+      if (!directJitsiApi) {
+        const domain = "meet.jit.si";
+        const options = {
+          roomName,
+          width: '100%',
+          height: '100%',
+          parentNode: document.getElementById('directVideoContainer'),
+          configOverwrite: {
+            startWithAudioMuted: false,
+            startWithVideoMuted: false,
+            enableWelcomePage: false,
+            prejoinPageEnabled: false
+          },
+          interfaceConfigOverwrite: {
+            TOOLBAR_BUTTONS: ['microphone','camera','hangup','fittowindow','tileview','chat']
+          }
+        };
+        directJitsiApi = new JitsiMeetExternalAPI(domain, options);
+      }
+    };
+
+    // ========== PERSONNEL: direct call from within profile modal ==========
+    window.directCallTechFromProfile = () => {
+      if (!currentTechEmailForEdit) return;
+      window.directCallTech(currentTechEmailForEdit);
+    };
+
+    // ========== PERSONNEL: end direct (non-emergency) call ==========
+    window.endDirectCall = () => {
+      if (directJitsiApi) {
+        try { directJitsiApi.dispose(); } catch (e) {}
+        directJitsiApi = null;
+      }
+      document.getElementById('directCallPopup').style.display = 'none';
+    };
 
     function listenForEmergency(email) {
       onSnapshot(collection(db, "machines"), (snap) => {
@@ -744,7 +966,6 @@
         if (listEl) listEl.innerHTML = breakdownListHtml || "<p style='color:#444; font-size:12px;'>No active breakdowns requiring communication.</p>";
         if (!dangerFound) { const overlay = document.getElementById('dangerOverlay'); if(overlay) overlay.style.display = 'none'; }
       });
-
       onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
         const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
         if (data.triggerSound && micReady) { const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{}); speakNative("Direct line opened. Please respond to the Director immediately."); }
@@ -771,9 +992,9 @@
               <td>`;
             if (userEmail === DIRECTOR) {
               row += `<select class="tech-select" onchange="window.assignTech('${id}', this.value)">
-                        <option value="">Assign...</option>
-                        ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
-                      </select>`;
+                <option value="">Assign...</option>
+                ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
+              </select>`;
             } else {
               row += `<span>${m.assignedTech || '---'}</span>`;
             }
