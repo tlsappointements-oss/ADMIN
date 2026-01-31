@@ -130,15 +130,8 @@
     /* Direct call video container */
     #directVideoContainer { width: 100%; height: 350px; background: #000; border-radius: 12px; overflow: hidden; }
 
-    /* === Incoming call banner for technicians (NEW) === */
-    #incomingCallBanner {
-      display: none; position: fixed; left: 50%; transform: translateX(-50%);
-      bottom: 20px; z-index: 12000; background: #151515; border: 1px solid #444;
-      padding: 12px 16px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-      font-size: 14px; color: #ddd; min-width: 320px;
-    }
-    #incomingCallBanner .title { font-weight: 600; margin-right: 10px; }
-    #incomingCallBanner .join-btn { background: #28a745; padding: 8px 14px; margin-left: 12px; }
+    /* Incoming banner (kept but unused now) */
+    #incomingCallBanner { display:none; }
   </style>
 </head>
 <body>
@@ -222,14 +215,6 @@
     <div style="font-size: 2.5rem; font-weight: 900;">DANGER</div>
     <div id="dangerDescription" style="background:black; padding:10px 20px; margin-top:20px; font-size: 1.5rem;"></div>
     <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
-  </div>
-
-  <!-- Incoming Call Banner (Technician join button) -->
-  <div id="incomingCallBanner">
-    <span class="title">📞 Director is calling…</span>
-    <span id="incomingCallContext"></span>
-    <button class="join-btn" onclick="window.joinIncomingCall()">JOIN CALL</button>
-    <button class="btn-ghost" style="margin-left:6px;" onclick="window.dismissIncomingCall()">DISMISS</button>
   </div>
 
   <!-- SIDEBAR -->
@@ -371,9 +356,8 @@
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
     let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
     let userPermissions = {};
-    let currentTechEmailForEdit = null;    // Personnel: who is being edited (NEW)
-    let directJitsiApi = null;             // Personnel: direct (non-emergency) Jitsi instance (NEW)
-    let pendingIncomingMachine = null;     // For technician banner join (NEW)
+    let currentTechEmailForEdit = null;
+    let directJitsiApi = null;
 
     const M_STEPS = {
       "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
@@ -468,7 +452,6 @@
         speakNative("Warning. Access Denied. Biometric signature mismatch. Security protocol 1 0 2 is now active.");
         return;
       }
-      // change page
       ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(p => {
         const el = document.getElementById(p);
         if (el) el.style.display = (p === id ? 'block' : 'none');
@@ -501,7 +484,7 @@
     window.openMaintenanceGuide = async (intId, mId) => {
       const popup = document.getElementById('machineDetailPopup');
       const contentDiv = document.getElementById('machineDetailContent');
-      contentDiv.innerHTML = `<h2 style="color:#e30613; text-align:center;">INITIALIZING PROTOCOL...</h2>`;
+      contentDiv.innerHTML = `<h2 style=\"color:#e30613; text-align:center;\">INITIALIZING PROTOCOL...</h2>`;
       popup.style.display = 'block';
       try {
         const mDoc = await getDoc(doc(db, "machines", mId));
@@ -532,7 +515,7 @@
           <button id="finalSubmitBtn" onclick="window.submitTechReport('${intId}', '${mId}', ${actualStart})" style="width:100%">SUBMIT FINAL REPORT</button>
         `;
       } catch (err) {
-        contentDiv.innerHTML = `<h2 style="color:red">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
+        contentDiv.innerHTML = `<h2 style=\"color:red\">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
       }
     };
 
@@ -732,7 +715,6 @@
       if (!user) { window.location.href = "login.html"; return; }
       const email = user.email.toLowerCase();
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
-      // Listen for global permissions
       onSnapshot(collection(db, "permissions"), snap => {
         snap.forEach(d => {
           userPermissions[d.id] = d.data();
@@ -756,7 +738,6 @@
         loadAdminApprovals();
       } else {
         document.getElementById('hangUpBtn').style.display = "none";
-        // 👉 FIRST-TIME REDIRECT TO DEMO
         const demoKey = `demoDone_${email}`;
         if (!localStorage.getItem(demoKey)) {
           window.location.href = 'demo.html';
@@ -769,7 +750,6 @@
       listenForEmergency(email);
     });
 
-    // PERSONNEL DASHBOARD (ENHANCED)
     function renderPersonnelDashboard(snap) {
       const container = document.getElementById('userAccessList');
       container.innerHTML = "";
@@ -779,8 +759,6 @@
         const userEmail = d.id; if (userEmail === DIRECTOR) return;
         const perms = d.data();
         const name = userEmail.split('@')[0].toUpperCase();
-
-        // Basic (fast) placeholders — full details will appear in profile modal
         const isOnline = Math.random() > 0.3;
         const position = "PLANT TECHNICIAN";
         const avatar = `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`;
@@ -799,10 +777,8 @@
                 ${isRequesting ? ' <span style="color:#ffcc00; font-size:9px;">[REQUESTING ACCESS]</span>' : ''}
               </span>
               <div style="display:flex; gap:6px;">
-                <button onclick="event.stopPropagation(); window.directCallTech('${userEmail}')" 
-                        class="btn-ghost" style="font-size:10px; padding:5px;">📞 DIRECT CALL</button>
-                <button onclick="event.stopPropagation(); window.directorTriggerCall('${name}')"
-                        class="btn-ghost" style="font-size:10px; padding:5px;">🚨 EMERGENCY</button>
+                <button onclick=\"event.stopPropagation(); window.directCallTech('${userEmail}')\" class=\"btn-ghost\" style=\"font-size:10px; padding:5px;\">📞 DIRECT CALL</button>
+                <button onclick=\"event.stopPropagation(); window.directorTriggerCall('${name}')\" class=\"btn-ghost\" style=\"font-size:10px; padding:5px;\">🚨 EMERGENCY</button>
               </div>
             </div>
             <div style="font-size:10px; color:#666; margin-top:2px;">
@@ -814,10 +790,7 @@
             </div>
             <div class="perm-grid">
               ${keys.map(k => `
-                <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" 
-                     onclick="event.stopPropagation(); window.togglePermission('${userEmail}', '${k}')">
-                  ${k.replace('view_', '').replace('request_', '').replace('_', ' ').toUpperCase()}
-                </div>`).join('')}
+                <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick=\"event.stopPropagation(); window.togglePermission('${userEmail}', '${k}')\">${k.replace('view_', '').replace('request_', '').replace('_', ' ').toUpperCase()}</div>`).join('')}
             </div>
           </div>
         `;
@@ -825,11 +798,8 @@
       });
     }
 
-    // ========== PERSONNEL: open editable profile ==========
     window.openTechProfile = async (email) => {
       currentTechEmailForEdit = email;
-
-      // 1) Load user profile
       let position = '', description = '', status = 'Active';
       try {
         const u = await getDoc(doc(db, "users", email));
@@ -839,150 +809,72 @@
           description = ud.description || '';
           status = ud.status || 'Active';
         }
-      } catch (e) { /* non-fatal */ }
+      } catch (e) {}
 
-      // 2) Load permissions to show a status badge hint (blocked flag)
       let blockedBadge = '';
       try {
         const p = await getDoc(doc(db, "permissions", email));
         if (p.exists() && p.data().blocked === true) {
-          blockedBadge = `<span class="status-badge status-blocked">BLOCKED</span>`;
+          blockedBadge = `<span class=\"status-badge status-blocked\">BLOCKED</span>`;
         } else if (status === 'Active') {
-          blockedBadge = `<span class="status-badge status-active">ACTIVE</span>`;
+          blockedBadge = `<span class=\"status-badge status-active\">ACTIVE</span>`;
         } else if (status === 'On Leave') {
-          blockedBadge = `<span class="status-badge status-leave">ON LEAVE</span>`;
+          blockedBadge = `<span class=\"status-badge status-leave\">ON LEAVE</span>`;
         } else if (status === 'Suspended') {
-          blockedBadge = `<span class="status-badge status-suspended">SUSPENDED</span>`;
+          blockedBadge = `<span class=\"status-badge status-suspended\">SUSPENDED</span>`;
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {}
 
-      // 3) Fill modal fields
-      document.getElementById('techIdentityLine').innerHTML = `
-        <b>${email}</b> ${blockedBadge}
-      `;
+      document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> ${blockedBadge}`;
       document.getElementById('techPositionInput').value = position;
       document.getElementById('techDescriptionInput').value = description;
       document.getElementById('techStatusSelect').value = status;
-
-      // 4) Show
       document.getElementById('techProfilePopup').style.display = 'block';
     };
 
-    // ========== PERSONNEL: save profile (position / description / status) ==========
     window.saveTechProfile = async () => {
       if (!currentTechEmailForEdit) return;
       const position = document.getElementById('techPositionInput').value.trim();
       const description = document.getElementById('techDescriptionInput').value.trim();
       const status = document.getElementById('techStatusSelect').value;
-
       try {
-        // Update profile doc
-        await setDoc(
-          doc(db, "users", currentTechEmailForEdit),
-          { position, description, status, updatedAt: serverTimestamp() },
-          { merge: true }
-        );
-
-        // Enforce block/unblock synchronization with permissions
+        await setDoc(doc(db, "users", currentTechEmailForEdit), { position, description, status, updatedAt: serverTimestamp() }, { merge: true });
         if (status === 'Blocked') {
           await window.blockAllAccess();
         } else {
-          // On restore: ensure the blocked flag is cleared immediately
           await setDoc(doc(db, "permissions", currentTechEmailForEdit), { blocked: false }, { merge: true });
         }
-
         alert("Technician profile updated.");
         document.getElementById('techProfilePopup').style.display = 'none';
-      } catch (e) {
-        alert("Error saving profile: " + e.message);
-      }
+      } catch (e) { alert("Error saving profile: " + e.message); }
     };
 
-    // ========== PERSONNEL: one-click revoke (block all access) ==========
     window.blockAllAccess = async () => {
       if (!currentTechEmailForEdit) return;
       const email = currentTechEmailForEdit;
-      const allFalse = {
-        view_dashboard: false,
-        request_intervention: false,
-        do_missions: false,
-        view_history: false,
-        view_kpi: false,
-        requestingAccess: false,
-        blocked: true
-      };
+      const allFalse = { view_dashboard:false, request_intervention:false, do_missions:false, view_history:false, view_kpi:false, requestingAccess:false, blocked:true };
       try {
         await setDoc(doc(db, "permissions", email), allFalse, { merge: true });
         await setDoc(doc(db, "users", email), { status: 'Blocked', blockedAt: serverTimestamp() }, { merge: true });
         alert("All accesses revoked and status set to Blocked.");
-        document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class="status-badge status-blocked">BLOCKED</span>`;
-      } catch (e) {
-        alert("Error revoking access: " + e.message);
-      }
+        document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class=\"status-badge status-blocked\">BLOCKED</span>`;
+      } catch (e) { alert("Error revoking access: " + e.message); }
     };
 
-    // ========== PERSONNEL: direct (non-emergency) call from card ==========
     window.directCallTech = async (email) => {
       const display = email.split('@')[0].toUpperCase();
       const roomName = "MercedesDirect_" + email.replace(/[^a-zA-Z0-9_]/g, "_");
-
-      // Open popup
       document.getElementById('directCallTitle').innerText = `Call with ${display}`;
       document.getElementById('directCallPopup').style.display = 'block';
-
-      // Create Jitsi instance (separate from emergency flow)
       if (!directJitsiApi) {
         const domain = "meet.jit.si";
-        const options = {
-          roomName,
-          width: '100%',
-          height: '100%',
-          parentNode: document.getElementById('directVideoContainer'),
-          configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            enableWelcomePage: false,
-            prejoinPageEnabled: false
-          },
-          interfaceConfigOverwrite: {
-            TOOLBAR_BUTTONS: ['microphone','camera','hangup','fittowindow','tileview','chat']
-          }
-        };
+        const options = { roomName, width:'100%', height:'100%', parentNode: document.getElementById('directVideoContainer'), configOverwrite:{ startWithAudioMuted:false, startWithVideoMuted:false, enableWelcomePage:false, prejoinPageEnabled:false }, interfaceConfigOverwrite:{ TOOLBAR_BUTTONS:['microphone','camera','hangup','fittowindow','tileview','chat'] } };
         directJitsiApi = new JitsiMeetExternalAPI(domain, options);
       }
     };
 
-    // ========== PERSONNEL: direct call from within profile modal ==========
-    window.directCallTechFromProfile = () => {
-      if (!currentTechEmailForEdit) return;
-      window.directCallTech(currentTechEmailForEdit);
-    };
-
-    // ========== PERSONNEL: end direct (non-emergency) call ==========
-    window.endDirectCall = () => {
-      if (directJitsiApi) {
-        try { directJitsiApi.dispose(); } catch (e) {}
-        directJitsiApi = null;
-      }
-      document.getElementById('directCallPopup').style.display = 'none';
-    };
-
-    // ========== Incoming call banner helpers (Technician) ==========
-    window.showIncomingCallBanner = (machineName) => {
-      const b = document.getElementById('incomingCallBanner');
-      document.getElementById('incomingCallContext').innerText = `· ${machineName}`;
-      b.style.display = 'block';
-    };
-    window.dismissIncomingCall = () => {
-      const b = document.getElementById('incomingCallBanner');
-      b.style.display = 'none';
-      pendingIncomingMachine = null;
-    };
-    window.joinIncomingCall = () => {
-      if (!pendingIncomingMachine) return;
-      window.startEmergencyCall(pendingIncomingMachine, false);
-      window.dismissIncomingCall();
-    };
+    window.directCallTechFromProfile = () => { if (!currentTechEmailForEdit) return; window.directCallTech(currentTechEmailForEdit); };
+    window.endDirectCall = () => { if (directJitsiApi) { try { directJitsiApi.dispose(); } catch (e) {} directJitsiApi = null; } document.getElementById('directCallPopup').style.display = 'none'; };
 
     function listenForEmergency(email) {
       onSnapshot(collection(db, "machines"), (snap) => {
@@ -1010,32 +902,24 @@
       onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
         const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
 
-        // 🔔 Play alarm for everyone; TTS only for technicians (not Director)
+        // Alarm for everyone; TTS only for technicians
         if (data.triggerSound && micReady) {
-          const audio = document.getElementById('effectAudio');
-          audio.play().catch(()=>{});
-          if (emailNow !== DIRECTOR) {
-            // Tech only: voice guidance
-            speakNative("Direct line opened. Please respond to the Director immediately.");
-          }
+          const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{});
+          if (emailNow !== DIRECTOR) { speakNative("Direct line opened. Please respond to the Director immediately."); }
         }
 
-        // 📞 If an emergency call is active
         if (data.active && data.callMachine) {
           if (emailNow === DIRECTOR) {
-            // Director already opened his call via directorTriggerCall -> startEmergencyCall(true)
-            // Nothing else required
+            // Director already started via directorTriggerCall
           } else {
-            // Technician side: Do NOT auto-join. Show banner to join.
+            // Technician: auto-join immediately (no banner, no controls)
             const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
             if (assignedMachine && micReady) {
-              pendingIncomingMachine = data.callMachine;
-              window.showIncomingCallBanner(data.callMachine);
+              window.startEmergencyCall(data.callMachine, false);
             }
           }
         } else {
-          // Call ended: ensure banner hidden and end call if previously joined
-          window.dismissIncomingCall();
+          // End call cleanup on tech side if joined (no hangup button is shown anyway)
           if (jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); }
         }
       });
