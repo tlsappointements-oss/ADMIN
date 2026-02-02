@@ -600,7 +600,7 @@
           <button id="finalSubmitBtn" onclick="window.submitTechReport('${intId}', '${mId}', ${actualStart})" style="width:100%">SUBMIT FINAL REPORT</button>
         `;
       } catch (err) {
-        contentDiv.innerHTML = `<h2 style=\"color:red\">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
+        contentDiv.innerHTML = `<h2 style="color:red">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
       }
     };
 
@@ -721,7 +721,7 @@
       filtered.forEach(i => {
         const card = document.createElement('div'); card.className = 'card'; card.style.cursor = 'pointer';
         const editBadge = i.isEdited ? '<span class="edited-tag">MODIFIED BY DIRECTOR</span>' : '';
-        card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} ${editBadge} <span style="float:right; color:#e30613">Audit Logs ></span>`;
+        card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} ${editBadge} <span style="float:right; color:#e30613">Audit Logs &gt;</span>`;
         card.onclick = () => {
           const email = auth.currentUser.email.toLowerCase();
           if (email === DIRECTOR || (userPermissions[email] && userPermissions[email].view_history)) {
@@ -1086,14 +1086,7 @@
             let kpiHtml = `<div style="font-size:12px; margin-top:5px;">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
             if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class="kpi-alert">⚠️ KPI VARIANCE DETECTED</div>`;
             card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br><small>Report: ${data.techComment}</small>${kpiHtml}
-              <div style="margin-top:10px;"><img src="${data.imageBefore}" class="preview             <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
-          }
-          list.appendChild(card);
-        }); }
-      });
-    }
-
-    function loadHistory() {
+              <div style="margin-top:10px;"><img src="${data.imageBefore}" class="preview             <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')"History() {
       onSnapshot(query(collection(db, 'interventions'), where('status', '==', 'ARCHIVED')), (snap) => {
         archivedInterventions = []; snap.forEach(d => archivedInterventions.push({id: d.id, ...d.data()}));
         window.filterHistory(); const kpiPage = document.getElementById('kpiTrackerPage'); if(kpiPage && kpiPage.style.display === 'block') window.calculateKPIs();
