@@ -134,7 +134,11 @@
     #incomingCallBanner { display:none; }
     /* A11y helper: visible to screen readers, hidden visually */
     .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-  </style>
+  /* NEW: History Image Management & Tagging */
+.img-edit-btn { background: #444; color: white; padding: 3px 8px; font-size: 10px; display: block; margin-top: 5px; width: 120px; text-align: center; cursor: pointer; }
+.img-edit-btn:hover { background: #e30613; }
+.edited-tag { color: #ffcc00; font-weight: bold; font-size: 0.7rem; border: 1px solid #ffcc00; padding: 2px 5px; border-radius: 3px; margin-left: 10px; }
+ </style>
 </head>
 <body>
   <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
@@ -419,7 +423,38 @@
     }
 
     /* ======== END PDF GENERATOR ======== */
+/* ======== NEW FEATURE: HISTORY MANAGEMENT ======== */
+// Allows replacing a Before/After image in the archive
+window.updateHistoryImage = async (historyId, field) => {
+  const url = prompt("Enter the new Image URL for " + field + ":");
+  if (!url) return;
+  try {
+    await updateDoc(doc(db, 'interventions', historyId), { [field]: url });
+    alert("Image updated successfully.");
+  } catch (e) { alert("Error: " + e.message); }
+};
 
+// Allows deleting a specific image from the archive
+window.deleteImage = async (historyId, field) => {
+  if (!confirm("Confirm permanent deletion of this image?")) return;
+  try {
+    await updateDoc(doc(db, 'interventions', historyId), { [field]: "" });
+    alert("Image removed.");
+  } catch (e) { alert("Error: " + e.message); }
+};
+
+// Allows modifying the text of a technical report
+window.forceModifyReport = async (historyId) => {
+  const newComment = prompt("Modify technical report log:");
+  if (newComment === null) return;
+  try {
+    await updateDoc(doc(db, 'interventions', historyId), { 
+      techComment: newComment, 
+      edited: true 
+    });
+    alert("Database log updated successfully.");
+  } catch (e) { alert("Error: " + e.message); }
+};
     // MEDIA activation button (UX only)
     window.activateAudioSystem = async () => {
       micReady = true;
@@ -685,6 +720,18 @@
     };
 
     window.deleteImage = async (intId, field) => {
+	window.forceModifyReport = async (intId) => {
+      if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return alert('Restricted to Director only.');
+      const newComment = prompt("Override Technical Report Log:");
+      if (newComment === null) return;
+      await updateDoc(doc(db, 'interventions', intId), { 
+        techComment: newComment, 
+        isEdited: true 
+      });
+      const updated = await getDoc(doc(db, 'interventions', intId));
+      showHistoryDetail({id: updated.id, ...updated.data()});
+      alert("Database log updated.");
+ 
       if (confirm('Delete this evidence image?')) {
         await updateDoc(doc(db, 'interventions', intId), { [field]: '' });
         const updated = await getDoc(doc(db, 'interventions', intId)); showHistoryDetail({id: updated.id, ...updated.data()});
@@ -1074,6 +1121,55 @@
           }
           list.appendChild(card);
         }); }
+		/* ======== NEW FEATURE: HISTORY MANAGEMENT LOGIC ======== */
+    window.updateHistoryImage = async (intId, field) => {
+      const url = prompt("Enter the new Image URL:");
+      if (!url) return;
+      await updateDoc(doc(db, 'interventions', intId), { [field]: url });
+      const snap = await getDoc(doc(db, 'interventions', intId));
+      window.showHistoryDetail({id: snap.id, ...snap.data()});
+      alert("Image Database Updated.");
+    };
+
+    window.forceModifyReport = async (intId) => {
+      const oldMsg = document.getElementById('reportText') ? document.getElementById('reportText').innerText : "";
+      const newMsg = prompt("Update technical report description:", oldMsg);
+      if (newMsg === null) return;
+      await updateDoc(doc(db, 'interventions', intId), { techComment: newMsg, isEdited: true });
+      const snap = await getDoc(doc(db, 'interventions', intId));
+      window.showHistoryDetail({id: snap.id, ...snap.data()});
+      alert("Technical Log Updated.");
+    };
+	window.showHistoryDetail = (i) => {
+      const popup = document.getElementById('machineDetailPopup');
+      const content = document.getElementById('machineDetailContent');
+      if (!popup || !content) return;
+
+      content.innerHTML = `
+        <h2 style="color:#e30613">${i.machineName} - Audit Detail</h2>
+        
+        <div style="background:#222; padding:15px; border-radius:8px; margin-bottom:15px; border-left:4px solid #ffcc00;">
+          <small style="color:#888; text-transform:uppercase; font-size:10px;">Technical Report Logs:</small>
+          <p id="reportText" style="margin:10px 0; font-style:italic;">"${i.techComment || 'No description provided'}"</p>
+          <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; font-size:10px; padding:4px 8px; border-radius:3px; border:none; font-weight:bold; cursor:pointer;">✏️ MODIFY LOGS</button>
+        </div>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+          <div style="text-align:center; background:#111; padding:10px; border-radius:5px;">
+            <small style="display:block; margin-bottom:5px; color:#666;">BEFORE</small>
+            ${i.imageBefore ? `<img src="${i.imageBefore}" style="width:100%; height:120px; object-fit:cover; border:1px solid #333;">` : '<div style="height:120px; background:#222; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+            <button onclick="window.updateHistoryImage('${i.id}', 'imageBefore')" style="width:100%; font-size:9px; margin-top:5px; background:#444; color:white; border:none; padding:5px; cursor:pointer;">🔄 REPLACE</button>
+          </div>
+
+          <div style="text-align:center; background:#111; padding:10px; border-radius:5px;">
+            <small style="display:block; margin-bottom:5px; color:#666;">AFTER</small>
+            ${i.imageAfter ? `<img src="${i.imageAfter}" style="width:100%; height:120px; object-fit:cover; border:1px solid #333;">` : '<div style="height:120px; background:#222; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+            <button onclick="window.updateHistoryImage('${i.id}', 'imageAfter')" style="width:100%; font-size:9px; margin-top:5px; background:#444; color:white; border:none; padding:5px; cursor:pointer;">🔄 REPLACE</button>
+          </div>
+        </div>
+      `;
+      popup.style.display = 'block';
+    };
       });
     }
 
