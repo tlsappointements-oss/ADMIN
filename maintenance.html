@@ -3,10 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Mercedes-Benz Plant Operations</title>
-  https://meet.jit.si/external_api.js</script>
-  <!-- ===== ADDED: jsPDF for client-side PDF generation ===== -->
-  https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js</script>
-  <!-- ======================================================= -->
+  <script src="https://meet.jit.si/external_api.js"></script>
   <style>
     body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
     /* SIDEBAR */
@@ -92,7 +89,8 @@
     .kpi-main-val { font-size: 3.5rem; font-weight: 900; font-family: 'Courier New', monospace; color: #fff; margin: 10px 0; display: block; }
     .kpi-sub-label { color: #666; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px; }
     .pulse-ring { width: 12px; height: 12px; border-radius: 50%; background: #00ff00; display: inline-block; margin-right: 8px; animation: pulseGreen 1.5s infinite; }
-    @keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } }
+    @keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+    }
     .line-health-row { background: #111; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 2px solid #333; }
     .health-bar-bg { background: #222; height: 4px; width: 100%; margin-top: 10px; }
     .health-bar-fill { height: 100%; background: #e30613; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); box-shadow: 0 0 10px #e30613; }
@@ -134,12 +132,14 @@
     #directVideoContainer { width: 100%; height: 350px; background: #000; border-radius: 12px; overflow: hidden; }
     /* Incoming banner (kept but unused now) */
     #incomingCallBanner { display:none; }
+
     /* A11y helper: visible to screen readers, hidden visually */
     .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   </style>
 </head>
 <body>
-  https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3</audio>
+  <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
   <!-- ACCESS DENIED MODAL (kept) -->
   <div id="accessDeniedModal">
     <div class="security-shield">
@@ -150,11 +150,13 @@
       <button onclick="document.getElementById('accessDeniedModal').style.display='none'" style="margin-top:30px; background:transparent; border: 1px solid #e30613; color: #e30613; padding: 10px 40px;">DISMISS</button>
     </div>
   </div>
+
   <!-- MACHINE DETAIL POPUP -->
   <div id="machineDetailPopup">
     <div id="machineDetailContent"></div>
     <button onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
   </div>
+
   <!-- TECH PROFILE POPUP (A11y-labeled) -->
   <div id="techProfilePopup">
     <h2 class="modal-title">Technician Profile</h2>
@@ -183,6 +185,7 @@
       <button class="btn-ghost" onclick="window.directCallTechFromProfile()">📞 DIRECT CALL</button>
     </div>
   </div>
+
   <!-- DIRECT CALL POPUP (NEW) -->
   <div id="directCallPopup">
     <h2 class="modal-title">Direct Line</h2>
@@ -192,6 +195,7 @@
       <button class="btn-danger" onclick="window.endDirectCall()">HANG UP</button>
     </div>
   </div>
+
   <!-- EMERGENCY CALL POPUP -->
   <div id="callPopup">
     <h2 style="font-size: 1.2rem; margin: 0;">DIRECTOR EMERGENCY LINE</h2>
@@ -205,6 +209,7 @@
       <span id="statusDot" class="status-dot"></span> <span id="webrtcState">DIRECT LINE ENCRYPTED</span>
     </div>
   </div>
+
   <!-- DANGER OVERLAY (technician assigned) -->
   <div id="dangerOverlay">
     <div class="giant-triangle">⚠️</div>
@@ -212,6 +217,7 @@
     <div id="dangerDescription" style="background:black; padding:10px 20px; margin-top:20px; font-size: 1.5rem;"></div>
     <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
   </div>
+
   <!-- SIDEBAR -->
   <div class="sidebar" id="mainSidebar">
     <h2 style="color: #e30613;">MERCEDES</h2>
@@ -229,6 +235,7 @@
     <button class="btn-nav" id="nav_personnelPage" onclick="window.showPage('personnelPage')" style="border: 1px solid #e30613; color: #e30613;">👥 Personnel</button>
     <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
   </div>
+
   <!-- MAIN CONTENT -->
   <div class="main" id="contentMain">
     <!-- PERSONNEL -->
@@ -250,6 +257,7 @@
         </div>
       </div>
     </div>
+
     <!-- ADMIN -->
     <div id="adminPanel">
       <h3>DIRECTOR CONTROL</h3>
@@ -262,6 +270,7 @@
         <button onclick="window.syncDatabase()" style="width: 100%; background: #28a745;">PUSH 105 MACHINES</button>
       </div>
     </div>
+
     <!-- DASHBOARD -->
     <div id="mainPage">
       <h1>Plant Asset Library</h1>
@@ -270,6 +279,7 @@
         <tbody id="assetTable"></tbody>
       </table>
     </div>
+
     <!-- INTERVENTION -->
     <div id="interventionPage">
       <h1>Step 1: Request Intervention</h1>
@@ -281,11 +291,13 @@
         <button id="submitReqBtn" onclick="window.submitReq()">SUBMIT TO DIRECTOR</button>
       </div>
     </div>
+
     <!-- MISSIONS -->
     <div id="missionPage">
       <h1>Step 3: Technical Missions</h1>
       <div id="missionList"></div>
     </div>
+
     <!-- HISTORY -->
     <div id="historyPage">
       <h1>Maintenance Archive</h1>
@@ -300,6 +312,7 @@
       </div>
       <div id="historyList"></div>
     </div>
+
     <!-- KPI -->
     <div id="kpiTrackerPage">
       <h1 style="letter-spacing: 5px; text-shadow: 0 0 20px rgba(227,6,19,0.5);">STRATEGIC MISSION CONTROL</h1>
@@ -348,6 +361,7 @@
     import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
+
     let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
     let userPermissions = {};
     let currentTechEmailForEdit = null;
@@ -360,82 +374,6 @@
       "ASSEMBLY": ["Conveyor belt tension", "Sensor debris cleaning", "Pneumatic valve check", "Fastener torque audit", "Control panel inspection", "Emergency stop test"],
       "DEFAULT": ["General visual inspection", "Power supply check", "Input/Output verification", "Component cleaning", "Operational test", "Safety check"]
     };
-
-    /* ======== ADDED: PDF GENERATOR (jsPDF) ======== */
-
-    // Charge une signature (username -> images/Signatures/<username>.png)
-    async function loadSignature(username) {
-      try {
-        const fname = (username || '').split("@")[0].toLowerCase() + ".png";
-        const url = "images/Signatures/" + fname;
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.onload = () => resolve(img);
-          img.onerror = () => resolve(null);
-          img.src = url + "?t=" + Date.now(); // bust cache
-        });
-      } catch {
-        return null;
-      }
-    }
-
-    // Génère un PDF pour demande / ordre de mission / clôture
-    async function generatePDF(data, title) {
-      try {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF();
-
-        const machineName = data?.machineName || "Unknown Machine";
-        const requester = data?.requester || "Unknown";
-        const bodyText = (data?.issue || data?.techComment || "").toString();
-
-        pdf.setFontSize(18);
-        pdf.text(title, 10, 20);
-
-        pdf.setFontSize(12);
-        pdf.text("Machine : " + machineName, 10, 40);
-        pdf.text("Demandeur : " + requester, 10, 50);
-        pdf.text("Date : " + new Date().toLocaleString(), 10, 60);
-        pdf.text("Description :", 10, 75);
-
-        const wrapped = pdf.splitTextToSize(bodyText, 180);
-        pdf.text(wrapped, 10, 85);
-
-        // Signature utilisateur
-        const sigUserImg = await loadSignature(requester);
-        if (sigUserImg) {
-          const canvas = document.createElement("canvas");
-          canvas.width = sigUserImg.width;
-          canvas.height = sigUserImg.height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(sigUserImg, 0, 0);
-          const base64 = canvas.toDataURL("image/png");
-          pdf.text("Signature utilisateur", 10, 145);
-          pdf.addImage(base64, "PNG", 10, 150, 50, 20);
-        }
-
-        // Signature Directeur (mohamed)
-        const sigDirImg = await loadSignature(DIRECTOR);
-        if (sigDirImg) {
-          const canvas2 = document.createElement("canvas");
-          canvas2.width = sigDirImg.width;
-          canvas2.height = sigDirImg.height;
-          const ctx2 = canvas2.getContext("2d");
-          ctx2.drawImage(sigDirImg, 0, 0);
-          const base64b = canvas2.toDataURL("image/png");
-          pdf.text("Signature Directeur", 120, 145);
-          pdf.addImage(base64b, "PNG", 120, 150, 50, 20);
-        }
-
-        const filename = (title || "document").replace(/\s+/g, "_") + "_" + Date.now() + ".pdf";
-        pdf.save(filename);
-      } catch (e) {
-        console.warn("PDF generation failed:", e);
-      }
-    }
-
-    /* ======== END PDF GENERATOR ======== */
 
     // MEDIA activation button (UX only)
     window.activateAudioSystem = async () => {
@@ -553,7 +491,7 @@
       const m = machineCache[id]; if(!m) return;
       const content = `
         <h2 style="color:#e30613">Machine Profile: ${m.name}</h2>
-        ${m.image}
+        <img src="${m.image}" class="machine-img">
         <p><b>Target Maint. Time:</b> ${m.targetMaintenanceTime} mins</p>
         <p><b>Description:</b> ${m.description}</p>
         <h4>Recent History</h4>
@@ -632,36 +570,15 @@
 
     window.approveAction = async (intId, mId, status) => {
       if(status === 'PENDING_MOHAMED') {
-        // ---- ADDED: load data to include in PDF ----
-        const intDocBefore = await getDoc(doc(db, 'interventions', intId));
-        const dataBefore = intDocBefore.data() || {};
-        // --------------------------------------------
-
         const commentEl = document.getElementById(`appComment_${intId}`);
         const comment = commentEl ? commentEl.value : 'Auto-Approved';
         await updateDoc(doc(db, 'interventions', intId), { status: 'APPROVED', directorApprovalComment: comment, approvedAt: serverTimestamp() });
         await updateDoc(doc(db, 'machines', mId), { status: 'BREAKDOWN', acknowledged: false });
-
-        // ---- ADDED: Generate "Ordre de Mission" PDF ----
-        generatePDF({
-          machineName: machineCache[mId]?.name || dataBefore.machineName || 'Unknown Machine',
-          requester: dataBefore.requester || 'Unknown',
-          issue: dataBefore.issue || comment || ''
-        }, "Ordre de Mission");
-        // -------------------------------------------------
       } else {
         const intDoc = await getDoc(doc(db, 'interventions', intId));
         const data = intDoc.data();
         await updateDoc(doc(db, 'interventions', intId), { status: 'ARCHIVED', finalResetAt: serverTimestamp() });
         await updateDoc(doc(db, 'machines', mId), { status: 'WORKING', acknowledged: true, history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed - ${data.techComment}`) });
-
-        // ---- ADDED: Generate final approval PDF (accord/clôture) ----
-        generatePDF({
-          machineName: machineCache[mId]?.name || data.machineName || 'Unknown Machine',
-          requester: data.requester || 'Unknown',
-          issue: data.techComment || ''
-        }, "Accord de Clôture");
-        // -------------------------------------------------------------
       }
     };
 
@@ -741,24 +658,16 @@
     };
 
     window.assignTech = async (id, tech) => { await updateDoc(doc(db, 'machines', id), { assignedTech: tech.toLowerCase(), acknowledged: false }); };
+
     window.logout = () => signOut(auth);
 
     window.submitReq = async () => {
       const mId = document.getElementById('reqMachine').value; const issue = document.getElementById('reqIssue').value;
       if(!mId || !issue) return alert('Select machine and describe issue.');
-      const ref = await addDoc(collection(db, 'interventions'), {
+      await addDoc(collection(db, 'interventions'), {
         machineId: mId, machineName: (machineCache[mId] ? machineCache[mId].name : 'Unknown Machine'), issue: issue,
         status: 'PENDING_MOHAMED', timestamp: serverTimestamp(), requester: auth.currentUser.email
       });
-
-      // ---- ADDED: Generate PDF for Demande d'intervention ----
-      generatePDF({
-        machineName: machineCache[mId]?.name || 'Unknown Machine',
-        requester: auth.currentUser.email,
-        issue: issue
-      }, "Demande d'intervention");
-      // --------------------------------------------------------
-
       alert('Request sent to Director.');
     };
 
@@ -766,6 +675,7 @@
       document.getElementById('callPopup').style.display = 'block';
       document.getElementById('callMachineName').innerText = mName;
       document.getElementById('statusDot').classList.add('dot-active');
+
       if (!jitsiApi) {
         const domain = 'meet.jit.si';
         const options = {
@@ -838,6 +748,7 @@
       if (!user) { window.location.href = 'login.html'; return; }
       const email = user.email.toLowerCase();
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+
       await primeMediaAccess();
 
       onSnapshot(collection(db, 'permissions'), snap => {
@@ -889,7 +800,7 @@
         div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
         div.onclick = () => window.openTechProfile(userEmail);
         div.innerHTML = `
-          ${avatar}
+          <img src="${avatar}" class="tech-avatar">
           <div class="tech-info">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span class="tech-name">
@@ -1013,10 +924,12 @@
       onSnapshot(doc(db, 'emergency_calls', 'active_session'), (snap) => {
         const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
         lastEmergencyTarget = (data.active && data.callMachine) ? data.callMachine : null;
+
         if (data.triggerSound && micReady) {
           const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{});
           if (emailNow !== DIRECTOR) { speakNative('Direct line opened. Please respond to the Director immediately.'); }
         }
+
         if (data.active && data.callMachine) {
           if (emailNow !== DIRECTOR) {
             const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
@@ -1053,6 +966,7 @@
             row += `</td></tr>`; table.innerHTML += row;
           }
         });
+
         if (lastEmergencyTarget && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
           const emailNow = auth.currentUser.email.toLowerCase();
           const assigned = Object.values(machineCache)
@@ -1076,9 +990,9 @@
         if(list) { list.innerHTML = ''; snap.forEach(d => { const data = d.data(); const card = document.createElement('div'); card.className = 'card';
           if(data.status === 'PENDING_MOHAMED') {
             card.innerHTML = `<b>STEP 1: ${data.machineName} REQ</b><br><small>Issue: ${data.issue}</small><br>
-              <label for="appComment_${d.id}">Approval notes</label>
-              <textarea id="appComment_${d.id}" placeholder="Approval notes..."></textarea>
-              <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR</button>`;
+            <label for="appComment_${d.id}">Approval notes</label>
+            <textarea id="appComment_${d.id}" placeholder="Approval notes..."></textarea>
+            <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR</button>`;
           } else {
             const actualDuration = Math.round((data.actualEnd - data.actualStart) / 60000);
             const manualDuration = Math.round((new Date(data.manualEnd) - new Date(data.manualStart)) / 60000);
@@ -1086,7 +1000,8 @@
             let kpiHtml = `<div style="font-size:12px; margin-top:5px;">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
             if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class="kpi-alert">⚠️ KPI VARIANCE DETECTED</div>`;
             card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br><small>Report: ${data.techComment}</small>${kpiHtml}
-              <div style="margin-top:10px;"><img src="${data.imageBefore}" class="preview             <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
+            <div style="margin-top:10px;"><img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img"></div>
+            <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
           }
           list.appendChild(card);
         }); }
@@ -1113,13 +1028,13 @@
           <div style="display:flex; gap:10px;">
             <div>
               <small>BEFORE</small><br>
-              ${i.imageBefore ? `${i.imageBefore}` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              ${i.imageBefore ? `<img src="${i.imageBefore}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
               <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageBefore')">REPLACE</span>
               <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageBefore')">DELETE</span>
             </div>
             <div>
               <small>AFTER</small><br>
-              ${i.imageAfter ? `${i.imageAfter}` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              ${i.imageAfter ? `<img src="${i.imageAfter}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
               <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageAfter')">REPLACE</span>
               <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageAfter')">DELETE</span>
             </div>
