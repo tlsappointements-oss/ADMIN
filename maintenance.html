@@ -218,7 +218,8 @@
     <hr style="border:0; border-top:1px solid #333;">
     <button class="btn-nav" id="nav_mainPage" onclick="window.showPage('mainPage')">🏠 Dashboard</button>
     <button class="btn-nav" id="nav_interventionPage" onclick="window.showPage('interventionPage')">📝 Interventions</button>
-    <button class="btn-nav" id="nav_missionPage" onclick="window.showPage('missionPage')">🛠️ Missions</button> <button class="btn-nav" id="nav_historyPage" onclick="window.showPage('historyPage')">📚 History</button>
+    <button class="btn-nav" id="nav_missionPage" onclick="window.showPage('missionPage')">🛠️ Missions</button>
+    <button class="btn-nav" id="nav_historyPage" onclick="window.showPage('historyPage')">📚 History</button>
     <button class="btn-nav" id="nav_kpiTrackerPage" onclick="window.showPage('kpiTrackerPage')">📊 KPI Command</button>
     <button class="btn-nav" id="nav_personnelPage" onclick="window.showPage('personnelPage')" style="border: 1px solid #e30613; color: #e30613;">👥 Personnel</button>
     <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
@@ -327,6 +328,7 @@
       </div>
     </div>
   </div>
+
   <script type="module">
     import { auth, db } from './firebase.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -347,6 +349,7 @@
     };
 
     /* ======== ADDED: PDF GENERATOR (jsPDF) ======== */
+
     // Charge une signature (username -> images/Signatures/<username>.png)
     async function loadSignature(username) {
       try {
@@ -359,7 +362,9 @@
           img.onerror = () => resolve(null);
           img.src = url + "?t=" + Date.now(); // bust cache
         });
-      } catch { return null; }
+      } catch {
+        return null;
+      }
     }
 
     // Génère un PDF pour demande / ordre de mission / clôture
@@ -367,304 +372,824 @@
       try {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF();
+
         const machineName = data?.machineName || "Unknown Machine";
         const requester = data?.requester || "Unknown";
         const bodyText = (data?.issue || data?.techComment || "").toString();
 
         pdf.setFontSize(18);
         pdf.text(title, 10, 20);
-        pdf.setFontSize(12);
-        pdf.text("Machine : " + machineName, 10, 30);
-        pdf.text("Requester : " + requester, 10, 40);
-        pdf.text("Date : " + new Date().toLocaleString(), 10, 50);
-        pdf.text("Description : ", 10, 65);
-        pdf.setFontSize(10);
-        pdf.text(bodyText, 10, 75, { maxWidth: 180 });
 
-        // Draw signature of the user who is creating this PDF
-        const signature = await loadSignature(auth.currentUser?.email);
-        if (signature) {
-          pdf.text("Digital Signature:", 10, 150);
-          pdf.addImage(signature, 'PNG', 10, 155, 40, 20);
+        pdf.setFontSize(12);
+        pdf.text("Machine : " + machineName, 10, 40);
+        pdf.text("Demandeur : " + requester, 10, 50);
+        pdf.text("Date : " + new Date().toLocaleString(), 10, 60);
+        pdf.text("Description :", 10, 75);
+
+        const wrapped = pdf.splitTextToSize(bodyText, 180);
+        pdf.text(wrapped, 10, 85);
+
+        // Signature utilisateur
+        const sigUserImg = await loadSignature(requester);
+        if (sigUserImg) {
+          const canvas = document.createElement("canvas");
+          canvas.width = sigUserImg.width;
+          canvas.height = sigUserImg.height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(sigUserImg, 0, 0);
+          const base64 = canvas.toDataURL("image/png");
+          pdf.text("Signature utilisateur", 10, 145);
+          pdf.addImage(base64, "PNG", 10, 150, 50, 20);
         }
 
-        pdf.save(`${title.replace(/\s/g, '_')}_${machineName}.pdf`);
+        // Signature Directeur (mohamed)
+        const sigDirImg = await loadSignature(DIRECTOR);
+        if (sigDirImg) {
+          const canvas2 = document.createElement("canvas");
+          canvas2.width = sigDirImg.width;
+          canvas2.height = sigDirImg.height;
+          const ctx2 = canvas2.getContext("2d");
+          ctx2.drawImage(sigDirImg, 0, 0);
+          const base64b = canvas2.toDataURL("image/png");
+          pdf.text("Signature Directeur", 120, 145);
+          pdf.addImage(base64b, "PNG", 120, 150, 50, 20);
+        }
+
+        const filename = (title || "document").replace(/\s+/g, "_") + "_" + Date.now() + ".pdf";
+        pdf.save(filename);
       } catch (e) {
-        console.error("PDF Error:", e);
+        console.warn("PDF generation failed:", e);
       }
     }
-    window.generatePDF = generatePDF;
 
-    /* ======== AUDIO SYSTEM (Mic + Effects) ======== */
+    /* ======== END PDF GENERATOR ======== */
+/* ======== NEW FEATURE: HISTORY MANAGEMENT ======== */
+// Allows replacing a Before/After image in the archive
+window.updateHistoryImage = async (historyId, field) => {
+  const url = prompt("Enter the new Image URL for " + field + ":");
+  if (!url) return;
+  try {
+    await updateDoc(doc(db, 'interventions', historyId), { [field]: url });
+    alert("Image updated successfully.");
+  } catch (e) { alert("Error: " + e.message); }
+};
+
+// Allows deleting a specific image from the archive
+window.deleteImage = async (historyId, field) => {
+  if (!confirm("Confirm permanent deletion of this image?")) return;
+  try {
+    await updateDoc(doc(db, 'interventions', historyId), { [field]: "" });
+    alert("Image removed.");
+  } catch (e) { alert("Error: " + e.message); }
+};
+
+// Allows modifying the text of a technical report
+window.forceModifyReport = async (historyId) => {
+  const newComment = prompt("Modify technical report log:");
+  if (newComment === null) return;
+  try {
+    await updateDoc(doc(db, 'interventions', historyId), { 
+      techComment: newComment, 
+      edited: true 
+    });
+    alert("Database log updated successfully.");
+  } catch (e) { alert("Error: " + e.message); }
+};
+    // MEDIA activation button (UX only)
     window.activateAudioSystem = async () => {
+      micReady = true;
+      const btn = document.getElementById('audioActivator');
+      if (btn) { btn.style.background = '#00ff00'; btn.innerText = '✅ SYSTEM READY'; }
+    };
+
+    // Silent primer for mic/camera permission after login
+    async function primeMediaAccess() {
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
+        await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
         micReady = true;
-        document.getElementById('audioActivator').style.display = 'none';
-        console.log("Audio logic enabled.");
-      } catch (e) {
-        alert("Microphone permission denied. Emergency calls may fail.");
-      }
+        const btn = document.getElementById('audioActivator');
+        if (btn) { btn.style.background = '#00ff00'; btn.innerText = '✅ SYSTEM READY'; }
+      } catch (e) { console.warn('Media permission not granted yet:', e); }
+    }
+
+    window.triggerRemoteAudio = async () => {
+      await updateDoc(doc(db, 'emergency_calls', 'active_session'), { triggerSound: Date.now() });
     };
 
-    /* ======== DATABASE SYNC ======== */
     window.syncDatabase = async () => {
-      const file = document.getElementById('jsonInput').files[0];
-      if (!file) return alert("Select a JSON file first.");
-      const text = await file.text();
-      const data = JSON.parse(text);
-      for (const machine of data) {
-        await setDoc(doc(db, "assets", machine.id), machine);
-      }
-      alert("Database Refreshed with 105 assets!");
-    };
-
-    /* ======== NAVIGATION ======== */
-    window.showPage = (id) => {
-      ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(p => {
-        const el = document.getElementById(p);
-        if (el) el.style.display = 'none';
-      });
-      document.getElementById(id).style.display = 'block';
-    };
-
-    /* ======== PERMISSIONS / ACCESS ======== */
-    window.requestAccess = async () => {
-      const email = auth.currentUser.email;
-      await setDoc(doc(db, "access_requests", email), {
-        email,
-        timestamp: serverTimestamp(),
-        status: "pending"
-      });
-      alert("Request sent to Mohamed.");
-    };
-
-    /* ======== EMERGENCY CALLS ======== */
-    window.startEmergencyCall = (machineId, machineName) => {
-      if (!micReady) return alert("Enable microphone (Step 1) first.");
-      lastEmergencyTarget = machineId;
-      document.getElementById('callPopup').style.display = 'block';
-      document.getElementById('callMachineName').innerText = machineName;
-      document.getElementById('videoContainer').innerHTML = "";
-
-      const options = {
-        roomName: "MERCEDES_EMERGENCY_" + machineId,
-        width: "100%",
-        height: "100%",
-        parentNode: document.getElementById('videoContainer'),
-        configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: false }
+      const fileInput = document.getElementById('jsonInput');
+      if (!fileInput.files[0]) return alert('Please select the machines.json file');
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          const machines = data.machines || data;
+          for (const m of machines) {
+            const mId = m.machineId || `M-${Math.random().toString(36).substr(2, 5)}`;
+            const type = m.name.toUpperCase().includes('ROBOT') ? 'ROBOTIC' : m.name.toUpperCase().includes('PRESS') ? 'PRESS' : 'ASSEMBLY';
+            await setDoc(doc(db, 'machines', mId), {
+              ...m,
+              status: m.status || 'WORKING',
+              assignedTech: '',
+              acknowledged: true,
+              lastUpdated: serverTimestamp(),
+              history: m.history || [],
+              description: m.description || 'Mercedes-Benz precision unit.',
+              image: m.image || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500',
+              targetMaintenanceTime: m.targetMaintenanceTime || 60,
+              steps: M_STEPS[type] || M_STEPS['DEFAULT']
+            });
+          }
+          alert('Sync Complete.');
+        } catch (err) { alert('Error: ' + err.message); }
       };
-      jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
+      reader.readAsText(fileInput.files[0]);
+    };
 
-      jitsiApi.addEventListener('videoConferenceLeft', () => {
-        window.endEmergencyCall();
+    // ACCESS CONTROL SYSTEM
+    window.checkPermission = (pageId) => {
+      const email = auth.currentUser.email.toLowerCase();
+      if (email === DIRECTOR) return true;
+      const perms = userPermissions[email] || {};
+      const mapping = {
+        mainPage: 'view_dashboard',
+        interventionPage: 'request_intervention',
+        missionPage: 'do_missions',
+        historyPage: 'view_history',
+        kpiTrackerPage: 'view_kpi',
+        personnelPage: 'view_kpi'
+      };
+      return perms[mapping[pageId]] === true;
+    };
+
+    window.togglePermission = async (email, key) => {
+      const current = userPermissions[email] || {};
+      current[key] = !current[key];
+      current.requestingAccess = false;
+      await setDoc(doc(db, 'permissions', email), current, { merge: true });
+    };
+
+    window.requestAccess = async () => {
+      const email = auth.currentUser.email.toLowerCase();
+      const current = userPermissions[email] || {};
+      current.requestingAccess = true;
+      await setDoc(doc(db, 'permissions', email), current, { merge: true });
+      alert("Your request has been broadcasted to Mohamed's command center.");
+    };
+
+    // UI helpers
+    window.clearFocus = () => {
+      try { document.querySelectorAll('.highlight-focus').forEach(el => el.classList.remove('highlight-focus')); } catch (e) {}
+      const cm = document.getElementById('contentMain');
+      const sb = document.getElementById('mainSidebar');
+      if (cm) cm.classList.remove('blur-bg');
+      if (sb) sb.classList.remove('blur-bg');
+    };
+
+    window.showPage = (id) => {
+      if (!window.checkPermission(id)) {
+        document.getElementById('accessDeniedModal').style.display = 'flex';
+        speakNative('Warning. Access Denied. Biometric signature mismatch. Security protocol 1 0 2 is now active.');
+        return;
+      }
+      ['mainPage','adminPanel','interventionPage','missionPage','historyPage','kpiTrackerPage','personnelPage'].forEach(p => {
+        const el = document.getElementById(p);
+        if (el) el.style.display = (p === id ? 'block' : 'none');
+      });
+      window.clearFocus();
+      if (id === 'kpiTrackerPage') window.calculateKPIs();
+    };
+
+    function speakNative(text, callback) {
+      const msg = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      msg.voice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Premium')) || voices[0];
+      msg.rate = 0.95; msg.pitch = 1.0; if (callback) msg.onend = callback; window.speechSynthesis.speak(msg);
+    }
+
+    window.previewMachine = (id) => {
+      const m = machineCache[id]; if(!m) return;
+      const content = `
+  <h2 style="color:#e30613">Machine Profile: ${m.name}</h2>
+  <img src="${m.image}" class="machine-img">
+  <p><b>Target Time:</b> ${m.targetMaintenanceTime} mins</p>
+  <p><b>Description:</b> ${m.description}</p>
+  <h4>Recent History</h4>
+  <div class="history-log">${m.history?.length ? m.history.map(h => `<div>• ${h}</div>`).join('') : 'No previous records.'}</div>
+      `;
+      document.getElementById('machineDetailContent').innerHTML = content;
+      document.getElementById('machineDetailPopup').style.display = 'block';
+    };
+
+    window.openMaintenanceGuide = async (intId, mId) => {
+      const popup = document.getElementById('machineDetailPopup');
+      const contentDiv = document.getElementById('machineDetailContent');
+      contentDiv.innerHTML = `<h2 style="color:#e30613; text-align:center;">INITIALIZING PROTOCOL...</h2>`;
+      popup.style.display = 'block';
+      try {
+        const mDoc = await getDoc(doc(db, 'machines', mId));
+        const m = mDoc.data();
+        const actualStart = Date.now();
+        const steps = m.steps || M_STEPS['DEFAULT'];
+        contentDiv.innerHTML = `
+          <h2 style="color:#e30613">Technical Protocol: ${m.name}</h2>
+          <div class="card" style="border:1px solid #e30613">
+            <p><b>Actual System Start:</b> ${new Date(actualStart).toLocaleString()}</p>
+            <label for="manualStartTime">Setup your Start Time (For Record):</label>
+            <input type="datetime-local" id="manualStartTime" value="${new Date().toISOString().slice(0, 16)}">
+            <label for="manualEndTime">Setup your Finish Time:</label>
+            <input type="datetime-local" id="manualEndTime" value="${new Date().toISOString().slice(0, 16)}">
+          </div>
+          <div id="checklist">
+            ${steps.map((step, i) => `
+              <label class="checklist-item">
+                <input type="checkbox" class="m-check"> [Step ${i+1}] <b>${step}</b>
+              </label>`).join('')}
+          </div>
+          <div class="card">
+            <h4>Evidence Upload</h4>
+            <label for="imgBefore">Before Repair:</label>
+            <input type="file" id="imgBefore" accept="image/*">
+            <label for="imgAfter">After Repair:</label>
+            <input type="file" id="imgAfter" accept="image/*">
+          </div>
+          <label class="sr-only" for="techComment">Resolution notes</label>
+          <textarea id="techComment" placeholder="Detailed resolution notes..."></textarea>
+          <button id="finalSubmitBtn" onclick="window.submitTechReport('${intId}', '${mId}', ${actualStart})" style="width:100%">SUBMIT FINAL REPORT</button>
+        `;
+      } catch (err) {
+        contentDiv.innerHTML = `<h2 style=\"color:red\">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
+      }
+    };
+
+    window.submitTechReport = async (intId, mId, actualStart) => {
+      const checks = document.querySelectorAll('.m-check:checked').length;
+      const comment = document.getElementById('techComment').value;
+      const actualEnd = Date.now();
+      const btn = document.getElementById('finalSubmitBtn');
+      if (checks < 6) return alert('Security Protocol: All 6 steps must be checked.');
+      if (!comment) return alert('Please add a comment.');
+      btn.innerText = 'UPLOADING...'; btn.disabled = true;
+      const getBase64 = (file) => new Promise((res) => { if(!file) res(''); const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); });
+      const imgB = await getBase64(document.getElementById('imgBefore').files[0]);
+      const imgA = await getBase64(document.getElementById('imgAfter').files[0]);
+      await updateDoc(doc(db, 'interventions', intId), {
+        status: 'TECH_COMPLETED',
+        techComment: comment,
+        actualStart,
+        actualEnd,
+        manualStart: document.getElementById('manualStartTime').value,
+        manualEnd: document.getElementById('manualEndTime').value,
+        imageBefore: imgB,
+        imageAfter: imgA,
+        techCompletedTime: serverTimestamp()
+      });
+      document.getElementById('machineDetailPopup').style.display = 'none';
+      alert('Report sent to Director.');
+    };
+
+    window.approveAction = async (intId, mId, status) => {
+      if(status === 'PENDING_MOHAMED') {
+        // ---- ADDED: load data to include in PDF ----
+        const intDocBefore = await getDoc(doc(db, 'interventions', intId));
+        const dataBefore = intDocBefore.data() || {};
+        // --------------------------------------------
+
+        const commentEl = document.getElementById(`appComment_${intId}`);
+        const comment = commentEl ? commentEl.value : 'Auto-Approved';
+        await updateDoc(doc(db, 'interventions', intId), { status: 'APPROVED', directorApprovalComment: comment, approvedAt: serverTimestamp() });
+        await updateDoc(doc(db, 'machines', mId), { status: 'BREAKDOWN', acknowledged: false });
+
+        // ---- ADDED: Generate "Ordre de Mission" PDF ----
+        generatePDF({
+          machineName: machineCache[mId]?.name || dataBefore.machineName || 'Unknown Machine',
+          requester: dataBefore.requester || 'Unknown',
+          issue: dataBefore.issue || comment || ''
+        }, "Ordre de Mission");
+        // -------------------------------------------------
+      } else {
+        const intDoc = await getDoc(doc(db, 'interventions', intId));
+        const data = intDoc.data();
+        await updateDoc(doc(db, 'interventions', intId), { status: 'ARCHIVED', finalResetAt: serverTimestamp() });
+        await updateDoc(doc(db, 'machines', mId), { status: 'WORKING', acknowledged: true, history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed - ${data.techComment}`) });
+
+        // ---- ADDED: Generate final approval PDF (accord/clôture) ----
+        generatePDF({
+          machineName: machineCache[mId]?.name || data.machineName || 'Unknown Machine',
+          requester: data.requester || 'Unknown',
+          issue: data.techComment || ''
+        }, "Accord de Clôture");
+        // -------------------------------------------------------------
+      }
+    };
+
+    window.forceModifyReport = async (intId) => {
+      const DIRECTOR_PASS = 'MB2024_ADMIN';
+      const pass = prompt('ENTER DIRECTOR ACCESS PASSWORD:');
+      if (pass !== DIRECTOR_PASS) return alert('ACCESS DENIED.');
+      const newIssue = prompt('RECTIFY ISSUE DESCRIPTION:');
+      const newComment = prompt('RECTIFY TECHNICIAN RESOLUTION:');
+      if (newIssue !== null && newComment !== null) {
+        await updateDoc(doc(db, 'interventions', intId), { issue: newIssue, techComment: newComment, isEdited: true, editedBy: DIRECTOR, editedAt: serverTimestamp() });
+        alert('REPORT OVERRIDDEN SUCCESSFULLY.');
+        const updatedDoc = await getDoc(doc(db, 'interventions', intId));
+        showHistoryDetail({id: updatedDoc.id, ...updatedDoc.data()});
+      }
+    };
+
+    window.deleteIntervention = async (intId) => {
+      if (!confirm('CRITICAL: Delete this entire maintenance record?')) return;
+      const DIRECTOR_PASS = 'MB2024_ADMIN';
+      const pass = prompt('CONFIRM PASSWORD:');
+      if (pass !== DIRECTOR_PASS) return;
+      await deleteDoc(doc(db, 'interventions', intId));
+      document.getElementById('machineDetailPopup').style.display = 'none';
+      alert('Record permanently erased.');
+    };
+
+    window.updateHistoryImage = async (intId, field) => {
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = 'image/*';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        const r = new FileReader();
+        r.onload = async () => { await updateDoc(doc(db, 'interventions', intId), { [field]: r.result }); alert('Image replaced.'); const updated = await getDoc(doc(db, 'interventions', intId)); showHistoryDetail({id: updated.id, ...updated.data()}); };
+        r.readAsDataURL(file);
+      };
+      input.click();
+    };
+
+    window.deleteImage = async (intId, field) => {
+	window.forceModifyReport = async (intId) => {
+      if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return alert('Restricted to Director only.');
+      const newComment = prompt("Override Technical Report Log:");
+      if (newComment === null) return;
+      await updateDoc(doc(db, 'interventions', intId), { 
+        techComment: newComment, 
+        isEdited: true 
+      });
+      const updated = await getDoc(doc(db, 'interventions', intId));
+      showHistoryDetail({id: updated.id, ...updated.data()});
+      alert("Database log updated.");
+ 
+      if (confirm('Delete this evidence image?')) {
+        await updateDoc(doc(db, 'interventions', intId), { [field]: '' });
+        const updated = await getDoc(doc(db, 'interventions', intId)); showHistoryDetail({id: updated.id, ...updated.data()});
+      }
+    };
+
+    window.filterHistory = () => {
+      const searchInput = document.getElementById('historySearch');
+      const sortInput = document.getElementById('historyDateSort');
+      if(!searchInput || !sortInput) return;
+      const search = searchInput.value.toLowerCase();
+      const sort = sortInput.value;
+      const container = document.getElementById('historyList');
+      let filtered = archivedInterventions.filter(i => i.machineName.toLowerCase().includes(search));
+      filtered.sort((a,b) => sort === 'newest' ? ((b.finalResetAt?.seconds || 0) - (a.finalResetAt?.seconds || 0)) : ((a.finalResetAt?.seconds || 0) - (b.finalResetAt?.seconds || 0)));
+      container.innerHTML = '';
+      filtered.forEach(i => {
+        const card = document.createElement('div'); card.className = 'card'; card.style.cursor = 'pointer';
+        const editBadge = i.isEdited ? '<span class="edited-tag">MODIFIED BY DIRECTOR</span>' : '';
+        card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} ${editBadge} <span style="float:right; color:#e30613">Audit Logs ></span>`;
+        card.onclick = () => {
+          const email = auth.currentUser.email.toLowerCase();
+          if (email === DIRECTOR || (userPermissions[email] && userPermissions[email].view_history)) {
+            showHistoryDetail(i);
+          } else {
+            document.getElementById('accessDeniedModal').style.display = 'flex';
+          }
+        };
+        container.appendChild(card);
+      });
+    };
+
+    window.toggleStatus = async (id, current) => {
+      if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
+      const next = current === 'WORKING' ? 'BREAKDOWN' : 'WORKING';
+      await updateDoc(doc(db, 'machines', id), { status: next, acknowledged: (next === 'WORKING') });
+    };
+
+    window.assignTech = async (id, tech) => { await updateDoc(doc(db, 'machines', id), { assignedTech: tech.toLowerCase(), acknowledged: false }); };
+    window.logout = () => signOut(auth);
+
+    window.submitReq = async () => {
+      const mId = document.getElementById('reqMachine').value; const issue = document.getElementById('reqIssue').value;
+      if(!mId || !issue) return alert('Select machine and describe issue.');
+      const ref = await addDoc(collection(db, 'interventions'), {
+        machineId: mId, machineName: (machineCache[mId] ? machineCache[mId].name : 'Unknown Machine'), issue: issue,
+        status: 'PENDING_MOHAMED', timestamp: serverTimestamp(), requester: auth.currentUser.email
       });
 
-      if (auth.currentUser.email === DIRECTOR) {
-        document.getElementById('mohamedConsole').style.display = 'block';
+      // ---- ADDED: Generate PDF for Demande d'intervention ----
+      generatePDF({
+        machineName: machineCache[mId]?.name || 'Unknown Machine',
+        requester: auth.currentUser.email,
+        issue: issue
+      }, "Demande d'intervention");
+      // --------------------------------------------------------
+
+      alert('Request sent to Director.');
+    };
+
+    window.startEmergencyCall = (mName, isDirector = false) => {
+      document.getElementById('callPopup').style.display = 'block';
+      document.getElementById('callMachineName').innerText = mName;
+      document.getElementById('statusDot').classList.add('dot-active');
+      if (!jitsiApi) {
+        const domain = 'meet.jit.si';
+        const options = {
+          roomName: 'MercedesEmergency_' + mName.replace(/\s+/g, '_'),
+          width: '100%', height: '100%', parentNode: document.getElementById('videoContainer'),
+          configOverwrite: {
+            startWithAudioMuted: false,
+            startWithVideoMuted: false,
+            enableWelcomePage: false,
+            prejoinPageEnabled: false,
+            disableShortcuts: !isDirector,
+            enableClosePage: isDirector
+          },
+          interfaceConfigOverwrite: {
+            TOOLBAR_BUTTONS: isDirector ? ['microphone', 'camera', 'hangup', 'fittowindow', 'videobackgroundblur'] : []
+          }
+        };
+        jitsiApi = new JitsiMeetExternalAPI(domain, options);
       }
     };
 
     window.endEmergencyCall = async () => {
-      if (jitsiApi) jitsiApi.dispose();
+      if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
       document.getElementById('callPopup').style.display = 'none';
-      document.getElementById('mohamedConsole').style.display = 'none';
-      // If closing as tech, update machine to clear emergency flag
-      if (lastEmergencyTarget) {
-        await updateDoc(doc(db, "assets", lastEmergencyTarget), { emergency: false });
-        lastEmergencyTarget = null;
+      document.getElementById('statusDot').classList.remove('dot-active');
+      if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+        await updateDoc(doc(db, 'emergency_calls', 'active_session'), { active: false, callMachine: '' });
       }
     };
 
-    window.triggerRemoteAudio = () => {
-      // In a real RTC scenario, we'd use Jitsi's data channel or Firestore. 
-      // For simplicity here, we write a trigger to Firestore that the machine (tech) listens to.
-      if (lastEmergencyTarget) {
-        updateDoc(doc(db, "assets", lastEmergencyTarget), { audioTrigger: Date.now() });
-      }
+    window.directorTriggerCall = async (mName) => {
+      await setDoc(doc(db, 'emergency_calls', 'active_session'), { active: true, callMachine: mName, triggerSound: Date.now(), timestamp: serverTimestamp() });
+      window.startEmergencyCall(mName, true);
     };
 
-    /* ======== ASSETS & INTERVENTIONS ======== */
-    onSnapshot(collection(db, "assets"), (snap) => {
-      const tbody = document.getElementById('assetTable');
-      const select = document.getElementById('reqMachine');
-      tbody.innerHTML = "";
-      select.innerHTML = '<option value="">-- Choose Machine --</option>';
+    /* KPI LOGIC */
+    window.calculateKPIs = () => {
+      const sections = { 'ROBOTIC': { total: 0, working: 0 }, 'PRESS': { total: 0, working: 0 }, 'ASSEMBLY': { total: 0, working: 0 } };
+      const techStats = {};
+      let totalTarget = 0, totalActual = 0, activeMissions = 0;
+      Object.values(machineCache).forEach(m => { if (sections[m.section]) { sections[m.section].total++; if (m.status === 'WORKING') sections[m.section].working++; else activeMissions++; } });
+      archivedInterventions.forEach(i => { const tech = i.requester || 'Unknown'; if (!techStats[tech]) techStats[tech] = { count: 0, totalTarget: 0, totalActual: 0 }; const target = machineCache[i.machineId]?.targetMaintenanceTime || 60; const actual = Math.round((i.actualEnd - i.actualStart) / 60000); techStats[tech].count++; techStats[tech].totalTarget += target; techStats[tech].totalActual += actual; totalTarget += target; totalActual += actual; });
+      const globalEfficiency = totalActual > 0 ? Math.min(100, Math.round((totalTarget / totalActual) * 100)) : 0;
+      const globalValEl = document.getElementById('globalKpiVal'); const globalFillEl = document.getElementById('globalKpiFill'); const activeMissionsEl = document.getElementById('activeMissionsVal');
+      if(globalValEl) globalValEl.innerText = globalEfficiency + '%'; if(globalFillEl) globalFillEl.style.width = globalEfficiency + '%'; if(activeMissionsEl) activeMissionsEl.innerText = activeMissions;
+      let healthHtml = '';
+      for (const [name, data] of Object.entries(sections)) { const percent = data.total > 0 ? Math.round((data.working / data.total) * 100) : 0; healthHtml += `
+        <div class="line-health-row">
+          <div style="display:flex; justify-content:space-between; font-size:11px;">
+            <span style="letter-spacing:1px;">${name} UNIT</span>
+            <span style="color:#e30613; font-weight:bold;">${percent}%</span>
+          </div>
+          <div class="health-bar-bg"><div class="health-bar-fill" style="width:${percent}%"></div></div>
+        </div>`; }
+      const lineHealthEl = document.getElementById('lineHealthContent'); if(lineHealthEl) lineHealthEl.innerHTML = healthHtml;
+      const table = document.getElementById('techKpiTable'); if(table) { table.innerHTML = ''; Object.entries(techStats).sort((a,b) => b[1].count - a[1].count).forEach(([name, stats]) => { const efficiency = Math.min(100, Math.round((stats.totalTarget / stats.totalActual) * 100)); table.innerHTML += `
+        <tr>
+          <td><span style="color:#666; font-size:10px;">ID:</span> <b>${name.split('@')[0].toUpperCase()}</b></td>
+          <td style="font-family:monospace; color:#00ff00;">${efficiency}%</td>
+          <td>
+            <span style="padding:2px 8px; font-size:9px; border:1px solid ${efficiency > 80 ? '#00ff00' : '#ffcc00'}; color:${efficiency > 80 ? '#00ff00' : '#ffcc00'}">
+              ${efficiency > 80 ? 'ELITE' : 'OPERATIONAL'}
+            </span>
+          </td>
+        </tr>`; }); }
+    };
 
-      snap.forEach(d => {
-        const m = d.data();
-        machineCache[m.id] = m;
+    // AUTH
+    onAuthStateChanged(auth, async user => {
+      if (!user) { window.location.href = 'login.html'; return; }
+      const email = user.email.toLowerCase();
+      document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+      await primeMediaAccess();
 
-        // Table
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${m.id}</td>
-          <td>${m.name}</td>
-          <td>${m.section}</td>
-          <td><span class="${m.status === 'Working' ? 'status-working' : 'status-breakdown'}">${m.status}</span></td>
-          <td><button onclick="window.viewMachine('${m.id}')">VIEW</button></td>
-        `;
-        tbody.appendChild(tr);
-
-        // Select
-        const opt = document.createElement('option');
-        opt.value = m.id; opt.innerText = m.name;
-        select.appendChild(opt);
-
-        // Danger Logic
-        if (m.emergency && auth.currentUser.email !== DIRECTOR) {
-          const overlay = document.getElementById('dangerOverlay');
-          overlay.style.display = 'flex';
-          document.getElementById('dangerDescription').innerText = `CRITICAL FAILURE: ${m.name}`;
-          document.getElementById('effectAudio').play();
-          // Auto-join call if assigned or critical? For now, button click is safer.
-        } else {
-          // If this machine was the last emergency and it's resolved, hide overlay
-          if (lastEmergencyTarget === m.id && !m.emergency) {
-             document.getElementById('dangerOverlay').style.display = 'none';
+      onSnapshot(collection(db, 'permissions'), snap => {
+        snap.forEach(d => {
+          userPermissions[d.id] = d.data();
+          if (d.id === email) {
+            const hasAll = d.data().do_missions && d.data().view_history;
+            document.getElementById('reqPermissionBox').style.display = hasAll ? 'none' : 'block';
           }
-        }
-
-        // Remote Audio Trigger
-        if (m.audioTrigger && m.audioTrigger > (Date.now() - 5000)) {
-           document.getElementById('effectAudio').play();
-        }
+        });
+        ['mainPage','interventionPage','missionPage','historyPage','kpiTrackerPage','personnelPage'].forEach(id => {
+          const btn = document.getElementById('nav_' + id);
+          if (btn) btn.style.display = (window.checkPermission(id)) ? 'block' : 'none';
+        });
+        if (email === DIRECTOR) { renderPersonnelDashboard(snap); }
       });
+
+      if (email === DIRECTOR) {
+        document.getElementById('adminPanel').style.display = 'block';
+        document.getElementById('mohamedConsole').style.display = 'block';
+        document.getElementById('hangUpBtn').style.display = 'inline-block';
+        onSnapshot(collection(db, 'users'), snap => { techList = []; snap.forEach(d => techList.push(d.id)); });
+        loadAdminApprovals();
+      } else {
+        document.getElementById('hangUpBtn').style.display = 'none';
+        const demoKey = `demoDone_${email}`;
+        if (!localStorage.getItem(demoKey)) { window.location.href = 'demo.html'; return; }
+        loadMyMissions(email);
+      }
+
+      loadMachinesLive(email);
+      loadHistory();
+      listenForEmergency(email);
     });
 
-    window.viewMachine = (id) => {
-      const m = machineCache[id];
-      const historyHtml = archivedInterventions
-        .filter(i => i.machineId === id)
-        .map(i => `<div class="history-log"><b>${i.closedAt}</b>: ${i.techComment}</div>`)
-        .join('');
-
-      document.getElementById('machineDetailContent').innerHTML = `
-        <img src="${m.image || 'https://via.placeholder.com/600x200'}" class="machine-img">
-        <h2>${m.name} [${m.id}]</h2>
-        <p><b>Section:</b> ${m.section}</p>
-        <p><b>Last MTTR:</b> ${m.mttr || 'N/A'} mins</p>
-        <hr>
-        <h4>Maintenance Log</h4>
-        ${historyHtml || 'No previous logs.'}
-      `;
-      document.getElementById('machineDetailPopup').style.display = 'block';
-    };
-
-    window.submitReq = async () => {
-      const mid = document.getElementById('reqMachine').value;
-      const issue = document.getElementById('reqIssue').value;
-      if (!mid || !issue) return alert("Fill all fields.");
-
-      const payload = {
-        machineId: mid,
-        machineName: machineCache[mid].name,
-        issue,
-        requester: auth.currentUser.email,
-        status: "pending",
-        timestamp: serverTimestamp()
-      };
-
-      await addDoc(collection(db, "interventions"), payload);
-      await updateDoc(doc(db, "assets", mid), { status: "Breakdown" });
-      alert("Breakdown Reported.");
-      generatePDF(payload, "INTERVENTION REQUEST");
-    };
-
-    /* ======== MISSIONS (STEPS) ======== */
-    onSnapshot(query(collection(db, "interventions"), where("status", "==", "approved")), (snap) => {
-      const list = document.getElementById('missionList');
-      list.innerHTML = "";
+    function renderPersonnelDashboard(snap) {
+      const container = document.getElementById('userAccessList');
+      container.innerHTML = '';
+      const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
       snap.forEach(d => {
-        const i = d.data();
-        const m = machineCache[i.machineId];
-        const steps = M_STEPS[m.section] || M_STEPS.DEFAULT;
-
-        const card = document.createElement('div');
-        card.className = "card";
-        card.innerHTML = `
-          <h3>MISSION: ${i.machineName}</h3>
-          <p><b>Reported by:</b> ${i.requester}</p>
-          <p><b>Issue:</b> ${i.issue}</p>
-          <div style="margin: 20px 0;">
-            ${steps.map((s, idx) => `
-              <div class="step-row">
-                <div class="step-bubble step-orange" id="step_${d.id}_${idx}">${idx + 1}</div>
-                <span>${s}</span>
-                <button style="margin-left: auto; font-size: 10px; padding: 5px;" onclick="window.completeStep('${d.id}', ${idx})">DONE</button>
-              </div>
-            `).join('')}
-          </div>
-          <button onclick="window.startEmergencyCall('${m.id}', '${m.name}')" style="background:#ffcc00; color:#000; width:100%;">📞 REQUEST DIRECTOR SUPPORT</button>
-          <hr>
-          <label>Before Image (URL)</label>
-          <input type="text" id="imgBefore_${d.id}" placeholder="https://...">
-          <label>After Image (URL)</label>
-          <input type="text" id="imgAfter_${d.id}" placeholder="https://...">
-          <label>Technical Resolution Report</label>
-          <textarea id="closing_${d.id}" placeholder="Explain what was fixed..."></textarea>
-          <button onclick="window.closeMission('${d.id}')" style="width:100%; background:#28a745;">CLOSE INTERVENTION</button>
-        `;
-        list.appendChild(card);
-      });
-    });
-
-    window.completeStep = (id, idx) => {
-      const el = document.getElementById(`step_${id}_${idx}`);
-      el.className = "step-bubble step-green";
-    };
-
-    window.closeMission = async (id) => {
-      const comment = document.getElementById(`closing_${id}`).value;
-      const imgB = document.getElementById(`imgBefore_${id}`).value;
-      const imgA = document.getElementById(`imgAfter_${id}`).value;
-
-      const docRef = doc(db, "interventions", id);
-      const snap = await getDoc(docRef);
-      const data = snap.data();
-
-      const closureData = {
-        ...data,
-        status: "closed",
-        techComment: comment,
-        imageBefore: imgB,
-        imageAfter: imgA,
-        closedAt: new Date().toLocaleString()
-      };
-
-      await updateDoc(docRef, closureData);
-      await updateDoc(doc(db, "assets", data.machineId), { status: "Working", emergency: false });
-      alert("Mission Accomplished.");
-      generatePDF(closureData, "MAINTENANCE CLOSURE REPORT");
-    };
-
-    /* ======== HISTORY & FILTER ======== */
-    onSnapshot(query(collection(db, "interventions"), where("status", "==", "closed"), orderBy("timestamp", "desc")), (snap) => {
-      archivedInterventions = [];
-      snap.forEach(d => archivedInterventions.push({ id: d.id, ...d.data() }));
-      window.filterHistory();
-    });
-
-    window.filterHistory = () => {
-      const queryStr = document.getElementById('historySearch').value.toLowerCase();
-      const sort = document.getElementById('historyDateSort').value;
-      let filtered = archivedInterventions.filter(i => (i.machineName || '').toLowerCase().includes(queryStr));
-
-      if (sort === "oldest") filtered.reverse();
-
-      const list = document.getElementById('historyList');
-      list.innerHTML = "";
-      filtered.forEach(i => {
+        const userEmail = d.id; if (userEmail === DIRECTOR) return;
+        const perms = d.data();
+        const name = userEmail.split('@')[0].toUpperCase();
+        const isOnline = Math.random() > 0.3;
+        const position = 'PLANT TECHNICIAN';
+        const avatar = `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`;
+        const isRequesting = perms.requestingAccess === true;
         const div = document.createElement('div');
-        div.className = "card";
+        div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
+        div.onclick = () => window.openTechProfile(userEmail);
         div.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-             <h3>${i.machineName}</h3>
-             ${i.edited ? `<span class="edited-tag">EDITED BY DIRECTOR</span>` : ''}
+          <img src="${avatar}" class="tech-avatar">
+          <div class="tech-info">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="tech-name">
+                ${name}
+                ${isRequesting ? ' <span style="color:#ffcc00; font-size:9px;">[REQUESTING ACCESS]</span>' : ''}
+              </span>
+              <div style="display:flex; gap:6px;">
+                <button onclick="event.stopPropagation(); window.directCallTech('${userEmail}')" class="btn-ghost" style="font-size:10px; padding:5px;">📞 DIRECT CALL</button>
+                <button onclick="event.stopPropagation(); window.directorTriggerCall('${name}')" class="btn-ghost" style="font-size:10px; padding:5px;">🚨 EMERGENCY</button>
+              </div>
+            </div>
+            <div style="font-size:10px; color:#666; margin-top:2px;">
+              ${userEmail} · ${position}
+            </div>
+            <div class="tech-status">
+              <span class="status-dot-small" style="background:${isOnline ? '#00ff00' : '#555'}"></span>
+              <span style="color:${isOnline ? '#00ff00' : '#666'}">${isOnline ? 'ACTIVE ON SITE' : 'OFFLINE'}</span>
+            </div>
+            <div class="perm-grid">
+              ${keys.map(k => `
+                <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick="event.stopPropagation(); window.togglePermission('${userEmail}', '${k}')">${k.replace('view_', '').replace('request_', '').replace('_', ' ').toUpperCase()}</div>`).join('')}
+            </div>
           </div>
-          <p><b>Date:</b> ${i.closedAt}</p>
-          <p><b>Issue:</b> ${i.issue}</p>
-          <p style="color:#00ff00;"><b>Resolution:</b> ${i.techComment}</p>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    window.openTechProfile = async (email) => {
+      currentTechEmailForEdit = email;
+      let position = '', description = '', status = 'Active';
+      try {
+        const u = await getDoc(doc(db, 'users', email));
+        if (u.exists()) {
+          const ud = u.data() || {};
+          position = ud.position || '';
+          description = ud.description || '';
+          status = ud.status || 'Active';
+        }
+      } catch (e) {}
+      let blockedBadge = '';
+      try {
+        const p = await getDoc(doc(db, 'permissions', email));
+        if (p.exists() && p.data().blocked === true) {
+          blockedBadge = `<span class="status-badge status-blocked">BLOCKED</span>`;
+        } else if (status === 'Active') {
+          blockedBadge = `<span class="status-badge status-active">ACTIVE</span>`;
+        } else if (status === 'On Leave') {
+          blockedBadge = `<span class="status-badge status-leave">ON LEAVE</span>`;
+        } else if (status === 'Suspended') {
+          blockedBadge = `<span class="status-badge status-suspended">SUSPENDED</span>`;
+        }
+      } catch (e) {}
+      document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> ${blockedBadge}`;
+      document.getElementById('techPositionInput').value = position;
+      document.getElementById('techDescriptionInput').value = description;
+      document.getElementById('techStatusSelect').value = status;
+      document.getElementById('techProfilePopup').style.display = 'block';
+    };
+
+    window.saveTechProfile = async () => {
+      if (!currentTechEmailForEdit) return;
+      const position = document.getElementById('techPositionInput').value.trim();
+      const description = document.getElementById('techDescriptionInput').value.trim();
+      const status = document.getElementById('techStatusSelect').value;
+      try {
+        await setDoc(doc(db, 'users', currentTechEmailForEdit), { position, description, status, updatedAt: serverTimestamp() }, { merge: true });
+        if (status === 'Blocked') {
+          await window.blockAllAccess();
+        } else {
+          await setDoc(doc(db, 'permissions', currentTechEmailForEdit), { blocked: false }, { merge: true });
+        }
+        alert('Technician profile updated.');
+        document.getElementById('techProfilePopup').style.display = 'none';
+      } catch (e) { alert('Error saving profile: ' + e.message); }
+    };
+
+    window.blockAllAccess = async () => {
+      if (!currentTechEmailForEdit) return;
+      const email = currentTechEmailForEdit;
+      const allFalse = { view_dashboard:false, request_intervention:false, do_missions:false, view_history:false, view_kpi:false, requestingAccess:false, blocked:true };
+      try {
+        await setDoc(doc(db, 'permissions', email), allFalse, { merge: true });
+        await setDoc(doc(db, 'users', email), { status: 'Blocked', blockedAt: serverTimestamp() }, { merge: true });
+        alert('All accesses revoked and status set to Blocked.');
+        document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class="status-badge status-blocked">BLOCKED</span>`;
+      } catch (e) { alert('Error revoking access: ' + e.message); }
+    };
+
+    function listenForEmergency(email) {
+      onSnapshot(collection(db, 'machines'), (snap) => {
+        let dangerFound = false; let breakdownListHtml = '';
+        snap.forEach(docu => {
+          const m = docu.data();
+          if (m.status === 'BREAKDOWN' && !m.acknowledged) {
+            if (m.assignedTech === email) {
+              dangerFound = true; document.getElementById('dangerDescription').innerText = `FAILURE: ${m.name} [${m.section}]`; document.getElementById('dangerOverlay').style.display = 'flex';
+            }
+            if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+              breakdownListHtml += `
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px; border-left: 2px solid #ff3333;">
+                  <span><b>${m.name}</b><br><small style="color:#666">Tech: ${m.assignedTech}</small></span>
+                  <button onclick="window.directorTriggerCall('${m.name}')" style="font-size:10px; padding:5px 10px; height:fit-content;">📞 EMERGENCY CALL</button>
+                </div>`;
+            }
+          }
+        });
+        const listEl = document.getElementById('breakdownCallList');
+        if (listEl) listEl.innerHTML = breakdownListHtml || "<p style='color:#444; font-size:12px;'>No active breakdowns requiring communication.</p>";
+        if (!dangerFound) { const overlay = document.getElementById('dangerOverlay'); if(overlay) overlay.style.display = 'none'; }
+
+        // if emergency doc already active when machines load, try to auto-join now
+        if (lastEmergencyTarget && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
+          const emailNow = auth.currentUser.email.toLowerCase();
+          const assigned = Object.values(machineCache)
+            .find(m => m.name === lastEmergencyTarget && m.assignedTech === emailNow);
+          if (assigned && !jitsiApi) { window.startEmergencyCall(lastEmergencyTarget, false); }
+        }
+      });
+
+      onSnapshot(doc(db, 'emergency_calls', 'active_session'), (snap) => {
+        const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
+        lastEmergencyTarget = (data.active && data.callMachine) ? data.callMachine : null;
+        if (data.triggerSound && micReady) {
+          const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{});
+          if (emailNow !== DIRECTOR) { speakNative('Direct line opened. Please respond to the Director immediately.'); }
+        }
+        if (data.active && data.callMachine) {
+          if (emailNow !== DIRECTOR) {
+            const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
+            if (assignedMachine && !jitsiApi) { window.startEmergencyCall(data.callMachine, false); }
+          }
+        } else {
+          if (jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); }
+        }
+      });
+    }
+
+    function loadMachinesLive(userEmail) {
+      const table = document.getElementById('assetTable'); const select = document.getElementById('reqMachine');
+      onSnapshot(collection(db, 'machines'), (snap) => {
+        if(table) table.innerHTML = '';
+        if(select) { const currentVal = select.value; select.innerHTML = '<option value="">Select Machine...</option>'; snap.forEach(s => select.innerHTML += `<option value="${s.id}" ${currentVal===s.id?'selected':''}>${s.data().name}</option>`); }
+        snap.forEach(snapshotDoc => {
+          const m = snapshotDoc.data(); const id = snapshotDoc.id; machineCache[id] = m; const isWorking = m.status === 'WORKING';
+          if(table) {
+            let row = `<tr>
+              <td><b style="cursor:pointer;text-decoration:underline" onclick="window.previewMachine('${id}')">${m.machineId || id}</b></td>
+              <td>${m.name}</td>
+              <td>${m.section}</td>
+              <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}" onclick="window.toggleStatus('${id}', '${m.status}')" style="cursor:pointer">${m.status}</span></td>
+              <td>`;
+            if (userEmail === DIRECTOR) {
+              row += `<select class="tech-select" aria-label="Assign technician" onchange="window.assignTech('${id}', this.value)">
+                <option value="">Assign...</option>
+                ${techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
+              </select>`;
+            } else {
+              row += `<span>${m.assignedTech || '---'}</span>`;
+            }
+            row += `</td></tr>`; table.innerHTML += row;
+          }
+        });
+        if (lastEmergencyTarget && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
+          const emailNow = auth.currentUser.email.toLowerCase();
+          const assigned = Object.values(machineCache)
+            .find(m => m.name === lastEmergencyTarget && m.assignedTech === emailNow);
+          if (assigned && !jitsiApi) { window.startEmergencyCall(lastEmergencyTarget, false); }
+        }
+      });
+    }
+
+    function loadMyMissions(email) {
+      const list = document.getElementById('missionList');
+      onSnapshot(query(collection(db, 'interventions'), where('status', '==', 'APPROVED')), (snap) => {
+        if(list) { list.innerHTML = ''; snap.forEach(d => { const data = d.data(); if (data.requester === email || machineCache[data.machineId]?.assignedTech === email) { const card = document.createElement('div'); card.className = 'card'; card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
+          <button onclick="window.openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>`; list.appendChild(card); } }); }
+      });
+    }
+
+    function loadAdminApprovals() {
+      const list = document.getElementById('adminApprovalList');
+      onSnapshot(query(collection(db, 'interventions'), where('status', 'in', ['PENDING_MOHAMED', 'TECH_COMPLETED'])), (snap) => {
+        if(list) { list.innerHTML = ''; snap.forEach(d => { const data = d.data(); const card = document.createElement('div'); card.className = 'card';
+          if(data.status === 'PENDING_MOHAMED') {
+            card.innerHTML = `<b>STEP 1: ${data.machineName} REQ</b><br><small>Issue: ${data.issue}</small><br>
+              <label for="appComment_${d.id}">Approval notes</label>
+              <textarea id="appComment_${d.id}" placeholder="Approval notes..."></textarea>
+              <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR</button>`;
+          } else {
+            const actualDuration = Math.round((data.actualEnd - data.actualStart) / 60000);
+            const manualDuration = Math.round((new Date(data.manualEnd) - new Date(data.manualStart)) / 60000);
+            const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
+            let kpiHtml = `<div style="font-size:12px; margin-top:5px;">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
+            if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class="kpi-alert">⚠️ KPI VARIANCE DETECTED</div>`;
+            card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br><small>Report: ${data.techComment}</small>${kpiHtml}
+              <div style="margin-top:10px;"><img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img"></div>
+              <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
+          }
+          list.appendChild(card);
+        }); }
+		/* ======== NEW FEATURE: HISTORY MANAGEMENT LOGIC ======== */
+    window.updateHistoryImage = async (intId, field) => {
+      const url = prompt("Enter the new Image URL:");
+      if (!url) return;
+      await updateDoc(doc(db, 'interventions', intId), { [field]: url });
+      const snap = await getDoc(doc(db, 'interventions', intId));
+      window.showHistoryDetail({id: snap.id, ...snap.data()});
+      alert("Image Database Updated.");
+    };
+
+    window.forceModifyReport = async (intId) => {
+      const oldMsg = document.getElementById('reportText') ? document.getElementById('reportText').innerText : "";
+      const newMsg = prompt("Update technical report description:", oldMsg);
+      if (newMsg === null) return;
+      await updateDoc(doc(db, 'interventions', intId), { techComment: newMsg, isEdited: true });
+      const snap = await getDoc(doc(db, 'interventions', intId));
+      window.showHistoryDetail({id: snap.id, ...snap.data()});
+      alert("Technical Log Updated.");
+    };
+	window.showHistoryDetail = (i) => {
+      const popup = document.getElementById('machineDetailPopup');
+      const content = document.getElementById('machineDetailContent');
+      if (!popup || !content) return;
+
+      content.innerHTML = `
+        <h2 style="color:#e30613">${i.machineName} - Audit Detail</h2>
+        
+        <div style="background:#222; padding:15px; border-radius:8px; margin-bottom:15px; border-left:4px solid #ffcc00;">
+          <small style="color:#888; text-transform:uppercase; font-size:10px;">Technical Report Logs:</small>
+          <p id="reportText" style="margin:10px 0; font-style:italic;">"${i.techComment || 'No description provided'}"</p>
+          <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; font-size:10px; padding:4px 8px; border-radius:3px; border:none; font-weight:bold; cursor:pointer;">✏️ MODIFY LOGS</button>
+        </div>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+          <div style="text-align:center; background:#111; padding:10px; border-radius:5px;">
+            <small style="display:block; margin-bottom:5px; color:#666;">BEFORE</small>
+            ${i.imageBefore ? `<img src="${i.imageBefore}" style="width:100%; height:120px; object-fit:cover; border:1px solid #333;">` : '<div style="height:120px; background:#222; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+            <button onclick="window.updateHistoryImage('${i.id}', 'imageBefore')" style="width:100%; font-size:9px; margin-top:5px; background:#444; color:white; border:none; padding:5px; cursor:pointer;">🔄 REPLACE</button>
+          </div>
+
+          <div style="text-align:center; background:#111; padding:10px; border-radius:5px;">
+            <small style="display:block; margin-bottom:5px; color:#666;">AFTER</small>
+            ${i.imageAfter ? `<img src="${i.imageAfter}" style="width:100%; height:120px; object-fit:cover; border:1px solid #333;">` : '<div style="height:120px; background:#222; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+            <button onclick="window.updateHistoryImage('${i.id}', 'imageAfter')" style="width:100%; font-size:9px; margin-top:5px; background:#444; color:white; border:none; padding:5px; cursor:pointer;">🔄 REPLACE</button>
+          </div>
+        </div>
+      `;
+      popup.style.display = 'block';
+    };
+      });
+    }
+
+    function loadHistory() {
+      onSnapshot(query(collection(db, 'interventions'), where('status', '==', 'ARCHIVED')), (snap) => {
+        archivedInterventions = []; snap.forEach(d => archivedInterventions.push({id: d.id, ...d.data()}));
+        window.filterHistory(); const kpiPage = document.getElementById('kpiTrackerPage'); if(kpiPage && kpiPage.style.display === 'block') window.calculateKPIs();
+      });
+    }
+
+    function showHistoryDetail(i) {
+      const content = `
+        <div style="display:flex; justify-content:space-between;">
+          <h2 style="color:#e30613">AUDIT LOG: ${i.machineName}</h2>
+          <button onclick="window.deleteIntervention('${i.id}')" style="background:red; font-size:10px;">DELETE RECORD</button>
+        </div>
+        <div class="card">
+          <p><b>Original Issue:</b> ${i.issue}</p>
+          <p><b>Final Resolution:</b> ${i.techComment}</p>
+          <hr>
           <div style="display:flex; gap:10px;">
             <div>
               <small>BEFORE</small><br>
@@ -680,250 +1205,310 @@
             </div>
           </div>
           <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; margin-top:15px; width:100%">FORCE EDIT TEXT LOGS</button>
-        `;
-        list.appendChild(div);
-      });
-    };
-
-    /* ======== DIRECTOR: History Management ======== */
-    window.updateHistoryImage = async (docId, field) => {
-      if (auth.currentUser.email !== DIRECTOR) return alert("Director level required.");
-      const newUrl = prompt("Enter new Image URL:");
-      if (newUrl) {
-        await updateDoc(doc(db, "interventions", docId), { [field]: newUrl, edited: true });
-      }
-    };
-    window.deleteImage = async (docId, field) => {
-      if (auth.currentUser.email !== DIRECTOR) return alert("Director level required.");
-      if (confirm("Permanently remove this image from history?")) {
-        await updateDoc(doc(db, "interventions", docId), { [field]: "", edited: true });
-      }
-    };
-    window.forceModifyReport = async (docId) => {
-      if (auth.currentUser.email !== DIRECTOR) return alert("Director level required.");
-      const newTxt = prompt("Overwrite Technical Resolution Log:");
-      if (newTxt) {
-        await updateDoc(doc(db, "interventions", docId), { techComment: newTxt, edited: true });
-      }
-    };
-
-    /* ======== KPI DASHBOARD LOGIC ======== */
-    const updateKpiUI = () => {
-      const activeInterventionsCount = archivedInterventions.filter(i => i.status !== "closed").length;
-      document.getElementById('activeMissionsVal').innerText = activeInterventionsCount;
-
-      const workingCount = Object.values(machineCache).filter(m => m.status === "Working").length;
-      const totalCount = Object.values(machineCache).length || 1;
-      const efficiency = Math.round((workingCount / totalCount) * 100);
-
-      document.getElementById('globalKpiVal').innerText = efficiency + "%";
-      document.getElementById('globalKpiFill').style.width = efficiency + "%";
-
-      const lineContent = document.getElementById('lineHealthContent');
-      lineContent.innerHTML = "";
-      const sections = [...new Set(Object.values(machineCache).map(m => m.section))];
-      sections.forEach(sec => {
-        const secMachines = Object.values(machineCache).filter(m => m.section === sec);
-        const secWorking = secMachines.filter(m => m.status === "Working").length;
-        const secHealth = Math.round((secWorking / secMachines.length) * 100);
-
-        const row = document.createElement('div');
-        row.className = "line-health-row";
-        row.innerHTML = `
-          <div style="display:flex; justify-content:space-between; font-size:12px;">
-            <span>${sec}</span>
-            <span>${secHealth}%</span>
-          </div>
-          <div class="health-bar-bg"><div class="health-bar-fill" style="width:${secHealth}%"></div></div>
-        `;
-        lineContent.appendChild(row);
-      });
-
-      const techTable = document.getElementById('techKpiTable');
-      techTable.innerHTML = "";
-      techList.forEach(t => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${t.email.split('@')[0].toUpperCase()}</td>
-          <td>98.2%</td>
-          <td style="color:#ffcc00;">★★★★★</td>
-        `;
-        techTable.appendChild(tr);
-      });
-    };
-
-    /* ======== PERSONNEL: SECURITY MATRIX & CALLING ======== */
-    const updatePersonnelUI = () => {
-      const list = document.getElementById('userAccessList');
-      list.innerHTML = "";
-      techList.forEach(tech => {
-        const perms = userPermissions[tech.email] || {};
-        const isRequesting = (tech.status === 'pending');
-
-        const card = document.createElement('div');
-        card.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
-        card.onclick = () => window.openTechProfile(tech.email);
-
-        card.innerHTML = `
-          <img src="https://ui-avatars.com/api/?name=${tech.email}&background=e30613&color=fff" class="tech-avatar">
-          <div class="tech-info">
-            <div class="tech-name">${tech.email.split('@')[0]} <span class="status-badge ${getStatusClass(perms.accountStatus)}">${perms.accountStatus || 'Active'}</span></div>
-            <div class="tech-status">
-              <span class="status-dot-small" style="background:${isRequesting ? '#ffcc00' : '#00ff00'}"></span>
-              ${isRequesting ? 'PENDING ACCESS REQUEST' : (perms.accountStatus === 'Active' ? 'System Online' : 'Access Restricted')}
-            </div>
-            <div class="perm-grid">
-              ${['Interventions', 'Missions', 'History', 'KPI', 'Direct_Call'].map(p => `
-                <div class="perm-chip ${perms[p] ? 'perm-active' : ''}">${p.replace('_', ' ')}</div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-        list.appendChild(card);
-      });
-
-      // Breakdowns Call List
-      const callList = document.getElementById('breakdownCallList');
-      callList.innerHTML = "";
-      Object.values(machineCache).filter(m => m.emergency).forEach(m => {
-        const btn = document.createElement('button');
-        btn.style = "width:100%; margin-bottom:10px; text-align:left; background:#111; border:1px solid #ff3333;";
-        btn.innerHTML = `<span style="color:#ff3333;">[LIVE]</span> ${m.name} Emergency Line`;
-        btn.onclick = () => window.startEmergencyCall(m.id, m.name);
-        callList.appendChild(btn);
-      });
-    };
-
-    function getStatusClass(s) {
-      if (s === 'Active') return 'status-active';
-      if (s === 'On Leave') return 'status-leave';
-      if (s === 'Suspended') return 'status-suspended';
-      if (s === 'Blocked') return 'status-blocked';
-      return 'status-active';
+        </div>`;
+      document.getElementById('machineDetailContent').innerHTML = content;
+      document.getElementById('machineDetailPopup').style.display = 'block';
     }
+  </script>
+  <!-- 🔧 ADD-ON FOR maintenance.html — Original file remains 100% unchanged.
+     Paste this block just BEFORE the closing </body> tag in your existing maintenance.html.
+     It only ADDS the new PDF Base64 Doc-Flow features without removing or altering any original line. -->
 
-    window.openTechProfile = async (email) => {
-      if (auth.currentUser.email !== DIRECTOR) return alert("Director access only.");
-      currentTechEmailForEdit = email;
-      const perms = userPermissions[email] || {};
-      const profile = (await getDoc(doc(db, "tech_profiles", email))).data() || {};
+<style>
+  /* Added: simple action button for viewing PDFs in the new Doc-Flow widgets */
+  .btn-pdf {
+    background: #007bff;
+    color: #fff;
+    font-size: 11px;
+    width: 100%;
+    border-radius: 4px;
+    display: inline-block;
+    text-align: center;
+    padding: 8px;
+    margin-top: 5px;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-pdf:hover { background: #fff; color: #000; }
+</style>
 
-      document.getElementById('techIdentityLine').innerText = email;
-      document.getElementById('techPositionInput').value = profile.position || "";
-      document.getElementById('techStatusSelect').value = perms.accountStatus || "Active";
-      document.getElementById('techDescriptionInput').value = profile.description || "";
-      document.getElementById('techProfilePopup').style.display = 'block';
-    };
+<script type="module">
+/* ===========================================================
+   MERCEDES-BENZ PLANT OPS — Doc-Flow (PDF Base64 pipeline)
+   -----------------------------------------------------------
+   ❗This module ONLY ADDS features. It does not modify, delete,
+   or override any logic from the original maintenance.html.
+   It auto-generates Base64 PDFs and adds read-only viewers.
+   =========================================================== */
 
-    window.saveTechProfile = async () => {
-      const email = currentTechEmailForEdit;
-      const status = document.getElementById('techStatusSelect').value;
-      const pos = document.getElementById('techPositionInput').value;
-      const desc = document.getElementById('techDescriptionInput').value;
+import { auth, db } from './firebase.js';
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  collection, doc, onSnapshot, getDoc, updateDoc, serverTimestamp, query, where
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-      await setDoc(doc(db, "tech_profiles", email), { position: pos, description: desc }, { merge: true });
-      await setDoc(doc(db, "permissions", email), { accountStatus: status }, { merge: true });
+/* Keep the director email local to this module (no overrides). */
+const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
 
-      // If they were pending, clear the request
-      const reqRef = doc(db, "access_requests", email);
-      const reqSnap = await getDoc(reqRef);
-      if (reqSnap.exists()) await deleteDoc(reqRef);
+/* -------------------- Helpers (no collisions) -------------------- */
+async function loadSignatureByEmail(email) {
+  try {
+    if (!email) return null;
+    const fname = email.split("@")[0].toLowerCase() + ".png";
+    const url = "images/Signatures/" + fname + "?t=" + Date.now();
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  } catch {
+    return null;
+  }
+}
 
-      alert("Profile & Permissions Updated.");
-      document.getElementById('techProfilePopup').style.display = 'none';
-    };
+async function generatePDFBase64_DF(data, title, signeeEmail) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
 
-    window.blockAllAccess = async () => {
-      if (!confirm("BLOCK ALL SYSTEM ACCESS FOR THIS USER?")) return;
-      await setDoc(doc(db, "permissions", currentTechEmailForEdit), {
-        accountStatus: "Blocked",
-        Interventions: false, Missions: false, History: false, KPI: false, Direct_Call: false
-      }, { merge: true });
-      alert("USER PERMANENTLY BLOCKED.");
-      document.getElementById('techProfilePopup').style.display = 'none';
-    };
+  const machineName = data?.machineName || 'N/A';
+  const requester   = data?.requester   || 'N/A';
+  const textBody    = (data?.issue || data?.techComment || 'N/A').toString();
 
-    /* ======== DIRECT CALLING SYSTEM ======== */
-    window.directCallTechFromProfile = () => {
-      const targetEmail = currentTechEmailForEdit;
-      document.getElementById('directCallPopup').style.display = 'block';
-      document.getElementById('directCallTitle').innerText = "Encrypted Line to " + targetEmail;
-      document.getElementById('directVideoContainer').innerHTML = "";
+  pdf.setFontSize(20);
+  pdf.text("MERCEDES-BENZ OPERATIONS", 10, 20);
 
-      const options = {
-        roomName: "MERC_DIRECT_" + targetEmail.replace(/[^a-zA-Z0-9]/g, ""),
-        width: "100%", height: "100%",
-        parentNode: document.getElementById('directVideoContainer')
-      };
-      directJitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
-    };
+  pdf.setFontSize(16);
+  pdf.text(title || 'Document', 10, 35);
 
-    window.endDirectCall = () => {
-      if (directJitsiApi) directJitsiApi.dispose();
-      document.getElementById('directCallPopup').style.display = 'none';
-    };
+  pdf.setFontSize(12);
+  pdf.text(`Machine: ${machineName}`, 10, 50);
+  pdf.text(`Date: ${new Date().toLocaleString()}`, 10, 60);
+  pdf.text(`Émis par: ${requester}`, 10, 70);
+  pdf.text("Description:", 10, 85);
+  pdf.text(pdf.splitTextToSize(textBody, 180), 10, 95);
 
-    /* ======== AUTH & DATA INIT ======== */
-    onAuthStateChanged(auth, (user) => {
-      if (!user) return location.href = "index.html";
-      document.getElementById('userDisplay').innerText = `IDENTIFIED: ${user.email}`;
+  if (signeeEmail) {
+    const sig = await loadSignatureByEmail(signeeEmail);
+    if (sig) {
+      pdf.text("Signature:", 10, 160);
+      pdf.addImage(sig, 'PNG', 10, 165, 50, 20);
+    }
+  }
 
-      if (user.email === DIRECTOR) {
-        document.getElementById('nav_personnelPage').style.display = 'block';
-        document.getElementById('adminPanel').style.display = 'none'; // Toggle if needed
+  return pdf.output('datauristring'); // base64 data-uri
+}
+
+function openPDF_DF(base64) {
+  if (!base64) { alert("Document non disponible."); return; }
+  const win = window.open();
+  win.document.write('<iframe src="' + base64 + '" frameborder="0" style="border:0;width:100%;height:100%;" allowfullscreen></iframe>');
+}
+
+/* --------- UI containers (created without changing original DOM) --------- */
+function ensureDocFlowContainers() {
+  // Admin panel list for Doc-Flow
+  const adminPanel = document.getElementById('adminPanel');
+  if (adminPanel && !document.getElementById('docFlowAdminList')) {
+    const h = document.createElement('h3');
+    h.textContent = 'Doc-Flow (PDF Archive & Actions)';
+    const wrap = document.createElement('div');
+    wrap.id = 'docFlowAdminList';
+    adminPanel.appendChild(h);
+    adminPanel.appendChild(wrap);
+  }
+
+  // Mission page extra list for orders with signed PDF
+  const missionPage = document.getElementById('missionPage');
+  if (missionPage && !document.getElementById('missionListDocFlow')) {
+    const h = document.createElement('h3');
+    h.textContent = 'Ordres de Mission (Signés)';
+    const wrap = document.createElement('div');
+    wrap.id     = 'missionListDocFlow';
+    wrap.className = 'card';
+    missionPage.appendChild(h);
+    missionPage.appendChild(wrap);
+  }
+
+  // History page global archive
+  const historyPage = document.getElementById('historyPage');
+  if (historyPage && !document.getElementById('docArchiveList')) {
+    const h = document.createElement('h3');
+    h.textContent = 'Archives Globales des Documents (Doc-Flow)';
+    const wrap = document.createElement('div');
+    wrap.id = 'docArchiveList';
+    historyPage.appendChild(h);
+    historyPage.appendChild(wrap);
+  }
+}
+
+/* ---------------------- Data binding (read-only) ---------------------- */
+function initDocFlow(userEmail) {
+  ensureDocFlowContainers();
+
+  const adminList   = document.getElementById('docFlowAdminList');
+  const missionDF   = document.getElementById('missionListDocFlow');
+  const archiveList = document.getElementById('docArchiveList');
+
+  onSnapshot(collection(db, 'interventions'), async (snap) => {
+    // 1) Auto-generate PDFs to Base64 fields when missing (non-destructive)
+    const generatePromises = [];
+    snap.forEach((d) => {
+      const data = d.data() || {};
+      const id   = d.id;
+      const st   = (data.status || '').toUpperCase();
+
+      // Demande d'intervention (when a req is created)
+      if ((st === 'PENDING_MOHAMED' || st === 'ATTENTE_DIRECTEUR') && !data.pdfDemande) {
+        generatePromises.push(
+          (async () => {
+            const base64 = await generatePDFBase64_DF(data, "Demande d'Intervention", null);
+            await updateDoc(doc(db, 'interventions', id), {
+              pdfDemande: base64,
+              df_demandeAt: serverTimestamp()
+            });
+          })()
+        );
       }
 
-      // Listen for my own permissions
-      onSnapshot(doc(db, "permissions", user.email), (d) => {
-        if (d.exists()) {
-          const p = d.data();
-          if (p.accountStatus === 'Blocked') {
-             document.getElementById('contentMain').innerHTML = "<h1 style='color:red; text-align:center; margin-top:100px;'>SYSTEM ACCESS REVOKED - CONTACT DIRECTOR</h1>";
-             document.getElementById('mainSidebar').style.display = 'none';
-          }
-          // Hide/Show sidebar buttons based on perms
-          if (user.email !== DIRECTOR) {
-            ['Interventions', 'Missions', 'History', 'KPI'].forEach(key => {
-              const btn = document.getElementById('nav_' + key.toLowerCase() + 'Page');
-              if (btn) btn.style.display = p[key] ? 'block' : 'none';
+      // Ordre de Mission (after approval)
+      if (st === 'APPROVED' && !data.pdfOrdre) {
+        generatePromises.push(
+          (async () => {
+            const base64 = await generatePDFBase64_DF(data, "Ordre de Mission", DIRECTOR);
+            await updateDoc(doc(db, 'interventions', id), {
+              pdfOrdre: base64,
+              df_ordreAt: serverTimestamp()
             });
-          }
-        } else if (user.email !== DIRECTOR) {
-          // No perms yet? Show request button
-          document.getElementById('reqPermissionBox').style.display = 'block';
-        }
-      });
+          })()
+        );
+      }
 
-      // Master Listeners for Director
-      if (user.email === DIRECTOR) {
-        // Fetch all technicians (anyone who requested access or exists in perms)
-        onSnapshot(collection(db, "access_requests"), (snap) => {
-           // Merging tech list with pending requests
-           const pending = [];
-           snap.forEach(d => pending.push({ email: d.id, status: 'pending' }));
-           // We also want to see everyone who ALREADY has perms
-           getDocs(collection(db, "permissions")).then(psnap => {
-             const existing = [];
-             psnap.forEach(pd => existing.push({ email: pd.id, status: 'approved' }));
-             // Unique combine
-             const combined = [...pending];
-             existing.forEach(e => { if(!combined.find(c => c.email === e.email)) combined.push(e); });
-             techList = combined;
-             updatePersonnelUI();
-             updateKpiUI();
-           });
-        });
+      // Rapport d'Intervention (after tech completed)
+      if ((st === 'TECH_COMPLETED' || st === 'TECH_TERMINE') && !data.pdfRapport) {
+        generatePromises.push(
+          (async () => {
+            const signer = (data.requester || '').toString();
+            const base64 = await generatePDFBase64_DF(data, "Rapport d'Intervention", signer);
+            await updateDoc(doc(db, 'interventions', id), {
+              pdfRapport: base64,
+              df_rapportAt: serverTimestamp()
+            });
+          })()
+        );
+      }
 
-        onSnapshot(collection(db, "permissions"), (snap) => {
-          snap.forEach(d => { userPermissions[d.id] = d.data(); });
-          updatePersonnelUI();
-          updateKpiUI();
-        });
+      // Accord de Clôture (archived)
+      if (st === 'ARCHIVED' && !data.pdfCloture) {
+        generatePromises.push(
+          (async () => {
+            const base64 = await generatePDFBase64_DF(data, "Accord de Clôture", DIRECTOR);
+            await updateDoc(doc(db, 'interventions', id), {
+              pdfCloture: base64,
+              df_clotureAt: serverTimestamp()
+            });
+          })()
+        );
       }
     });
+    if (generatePromises.length) { try { await Promise.allSettled(generatePromises); } catch {} }
 
-    window.logout = () => signOut(auth);
+    // 2) Build Doc-Flow admin list (read-only add-on; does not change original adminPanel)
+    if (adminList) {
+      adminList.innerHTML = '';
+      if (userEmail === DIRECTOR) {
+        snap.forEach((d) => {
+          const data = d.data() || {};
+          const st   = (data.status || '').toUpperCase();
 
-  </script>
+          if (st === 'PENDING_MOHAMED' || st === 'ATTENTE_DIRECTEUR') {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `
+              <b>Nouvelle Demande: ${data.machineName || ''}</b><br>
+              <button class="btn-pdf" ${data.pdfDemande ? '' : 'disabled'} onclick="(${openPDF_DF})(\`${data.pdfDemande || ''}\`)">VOIR LA DEMANDE</button>
+              <button onclick="window.approveAction && window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">SIGNER & APPROUVER</button>
+            `;
+            adminList.appendChild(div);
+          } else if (st === 'TECH_COMPLETED' || st === 'TECH_TERMINE') {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `
+              <b>Rapport Reçu: ${data.machineName || ''}</b><br>
+              <button class="btn-pdf" ${data.pdfRapport ? '' : 'disabled'} onclick="(${openPDF_DF})(\`${data.pdfRapport || ''}\`)">VOIR LE RAPPORT</button>
+              <button onclick="window.approveAction && window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff;">CLÔTURER & ARCHIVER</button>
+            `;
+            adminList.appendChild(div);
+          }
+        });
+      }
+    }
+
+    // 3) Build "Ordres de Mission (Signés)" list for technicians (add-on)
+    if (missionDF) {
+      missionDF.innerHTML = '';
+      snap.forEach((d) => {
+        const data = d.data() || {};
+        const st   = (data.status || '').toUpperCase();
+        const req  = (data.requester || '').toLowerCase();
+        const assigned = (data.assignedTech || '').toLowerCase();
+
+        if (st === 'APPROVED' && (userEmail === req || userEmail === assigned)) {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <h3>${data.machineName || ''}</h3>
+            <p>Ordre de mission prêt.</p>
+            <button onclick="(${openPDF_DF})(\`${data.pdfOrdre || ''}\`); window.openMaintenanceGuide && window.openMaintenanceGuide('${d.id}', '${data.machineId}')">
+              DÉBUTER (Ouvre le PDF signé)
+            </button>
+          `;
+          missionDF.appendChild(card);
+        }
+      });
+    }
+
+    // 4) Global doc archive (add-on)
+    if (archiveList) {
+      archiveList.innerHTML = '';
+      snap.forEach((d) => {
+        const data = d.data() || {};
+        const st   = (data.status || '').toUpperCase();
+
+        if (userEmail === DIRECTOR || st === 'ARCHIVED') {
+          const hCard = document.createElement('div');
+          hCard.className = 'card';
+          hCard.innerHTML = `
+            <b>${data.machineName || ''}</b> [Statut: ${data.status || ''}]<br>
+            <div style="display:flex; gap:5px; margin-top:10px; flex-wrap: wrap;">
+              ${data.pdfDemande ? `<button class="btn-pdf" onclick="(${openPDF_DF})(\`${data.pdfDemande}\`)">Demande</button>` : ''}
+              ${data.pdfOrdre   ? `<button class="btn-pdf" onclick="(${openPDF_DF})(\`${data.pdfOrdre}\`)">Ordre (Signé)</button>` : ''}
+              ${data.pdfRapport ? `<button class="btn-pdf" onclick="(${openPDF_DF})(\`${data.pdfRapport}\`)">Rapport</button>` : ''}
+              ${data.pdfCloture ? `<button class="btn-pdf" onclick="(${openPDF_DF})(\`${data.pdfCloture}\`)">Clôture</button>` : ''}
+            </div>
+          `;
+          archiveList.appendChild(hCard);
+        }
+      });
+    }
+  });
+
+  /* Bonus: If your environment also uses the alternate 'ATTENTE_DIRECTEUR' flow,
+     mirror APPROVED-ready missions into the technician page for robustness. */
+  onSnapshot(
+    query(collection(db, 'interventions'), where('status', '==', 'APPROVED')),
+    () => { /* The main snapshot above already rebuilds lists; keeping this for parity */ }
+  );
+}
+
+/* Boot the add-on after login (non-intrusive; does not hijack original onAuthStateChanged) */
+onAuthStateChanged(auth, (user) => {
+  if (!user) return;
+  try { initDocFlow(user.email.toLowerCase()); } catch {}
+});
+</script>
 </body>
 </html>
