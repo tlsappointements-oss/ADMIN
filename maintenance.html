@@ -3,10 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Mercedes-Benz Plant Operations</title>
-  https://meet.jit.si/external_api.js</script>
-  <!-- ===== ADDED: jsPDF for client-side PDF generation ===== -->
-  https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js</script>
-  <!-- ======================================================= -->
+  <script src="https://meet.jit.si/external_api.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
     /* SIDEBAR */
@@ -139,8 +137,7 @@
   </style>
 </head>
 <body>
-  https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3</audio>
-  <!-- ACCESS DENIED MODAL (kept) -->
+  <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
   <div id="accessDeniedModal">
     <div class="security-shield">
       <div class="security-scan-line"></div>
@@ -150,12 +147,10 @@
       <button onclick="document.getElementById('accessDeniedModal').style.display='none'" style="margin-top:30px; background:transparent; border: 1px solid #e30613; color: #e30613; padding: 10px 40px;">DISMISS</button>
     </div>
   </div>
-  <!-- MACHINE DETAIL POPUP -->
   <div id="machineDetailPopup">
     <div id="machineDetailContent"></div>
     <button onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
   </div>
-  <!-- TECH PROFILE POPUP (A11y-labeled) -->
   <div id="techProfilePopup">
     <h2 class="modal-title">Technician Profile</h2>
     <div id="techIdentityLine" class="modal-subtle"></div>
@@ -183,7 +178,6 @@
       <button class="btn-ghost" onclick="window.directCallTechFromProfile()">📞 DIRECT CALL</button>
     </div>
   </div>
-  <!-- DIRECT CALL POPUP (NEW) -->
   <div id="directCallPopup">
     <h2 class="modal-title">Direct Line</h2>
     <div id="directCallTitle" class="modal-subtle"></div>
@@ -192,7 +186,6 @@
       <button class="btn-danger" onclick="window.endDirectCall()">HANG UP</button>
     </div>
   </div>
-  <!-- EMERGENCY CALL POPUP -->
   <div id="callPopup">
     <h2 style="font-size: 1.2rem; margin: 0;">DIRECTOR EMERGENCY LINE</h2>
     <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 5px 0;"></p>
@@ -205,14 +198,12 @@
       <span id="statusDot" class="status-dot"></span> <span id="webrtcState">DIRECT LINE ENCRYPTED</span>
     </div>
   </div>
-  <!-- DANGER OVERLAY (technician assigned) -->
   <div id="dangerOverlay">
     <div class="giant-triangle">⚠️</div>
     <div style="font-size: 2.5rem; font-weight: 900;">DANGER</div>
     <div id="dangerDescription" style="background:black; padding:10px 20px; margin-top:20px; font-size: 1.5rem;"></div>
     <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
   </div>
-  <!-- SIDEBAR -->
   <div class="sidebar" id="mainSidebar">
     <h2 style="color: #e30613;">MERCEDES</h2>
     <button id="audioActivator" onclick="window.activateAudioSystem()">STEP 1: ENABLE MIC</button>
@@ -229,9 +220,7 @@
     <button class="btn-nav" id="nav_personnelPage" onclick="window.showPage('personnelPage')" style="border: 1px solid #e30613; color: #e30613;">👥 Personnel</button>
     <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
   </div>
-  <!-- MAIN CONTENT -->
   <div class="main" id="contentMain">
-    <!-- PERSONNEL -->
     <div id="personnelPage">
       <h1 style="letter-spacing: 5px;">PERSONNEL & ACCESS CONTROL</h1>
       <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px;">
@@ -250,7 +239,6 @@
         </div>
       </div>
     </div>
-    <!-- ADMIN -->
     <div id="adminPanel">
       <h3>DIRECTOR CONTROL</h3>
       <div id="adminApprovalList"></div>
@@ -262,7 +250,6 @@
         <button onclick="window.syncDatabase()" style="width: 100%; background: #28a745;">PUSH 105 MACHINES</button>
       </div>
     </div>
-    <!-- DASHBOARD -->
     <div id="mainPage">
       <h1>Plant Asset Library</h1>
       <table>
@@ -270,7 +257,6 @@
         <tbody id="assetTable"></tbody>
       </table>
     </div>
-    <!-- INTERVENTION -->
     <div id="interventionPage">
       <h1>Step 1: Request Intervention</h1>
       <div class="card" id="interventionCard">
@@ -281,12 +267,10 @@
         <button id="submitReqBtn" onclick="window.submitReq()">SUBMIT TO DIRECTOR</button>
       </div>
     </div>
-    <!-- MISSIONS -->
     <div id="missionPage">
       <h1>Step 3: Technical Missions</h1>
       <div id="missionList"></div>
     </div>
-    <!-- HISTORY -->
     <div id="historyPage">
       <h1>Maintenance Archive</h1>
       <div class="card">
@@ -300,7 +284,6 @@
       </div>
       <div id="historyList"></div>
     </div>
-    <!-- KPI -->
     <div id="kpiTrackerPage">
       <h1 style="letter-spacing: 5px; text-shadow: 0 0 20px rgba(227,6,19,0.5);">STRATEGIC MISSION CONTROL</h1>
       <div class="kpi-container">
@@ -553,7 +536,8 @@
       const m = machineCache[id]; if(!m) return;
       const content = `
   <h2 style="color:#e30613">Machine Profile: ${m.name}</h2>
-  <img src="${m.image}" class="machinee:</b> ${m.targetMaintenanceTime} mins</p>
+  <img src="${m.image}" class="machine-img">
+  <p><b>Target Time:</b> ${m.targetMaintenanceTime} mins</p>
   <p><b>Description:</b> ${m.description}</p>
   <h4>Recent History</h4>
   <div class="history-log">${m.history?.length ? m.history.map(h => `<div>• ${h}</div>`).join('') : 'No previous records.'}</div>
@@ -888,7 +872,7 @@
         div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
         div.onclick = () => window.openTechProfile(userEmail);
         div.innerHTML = `
-          <imgatar}
+          <img src="${avatar}" class="tech-avatar">
           <div class="tech-info">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span class="tech-name">
@@ -1085,7 +1069,8 @@
             let kpiHtml = `<div style="font-size:12px; margin-top:5px;">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
             if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class="kpi-alert">⚠️ KPI VARIANCE DETECTED</div>`;
             card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br><small>Report: ${data.techComment}</small>${kpiHtml}
-              <div style="margin-top:10px;"><img src="${data.imageBefore}" class="preview             <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
+              <div style="margin-top:10px;"><img src="${data.imageBefore}" class="preview-img"><img src="${data.imageAfter}" class="preview-img"></div>
+              <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
           }
           list.appendChild(card);
         }); }
@@ -1112,13 +1097,13 @@
           <div style="display:flex; gap:10px;">
             <div>
               <small>BEFORE</small><br>
-              ${i.imageBefore ? `${i.imageBefore}` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              ${i.imageBefore ? `<img src="${i.imageBefore}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
               <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageBefore')">REPLACE</span>
               <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageBefore')">DELETE</span>
             </div>
             <div>
               <small>AFTER</small><br>
-              ${i.imageAfter ? `${i.imageAfter}` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              ${i.imageAfter ? `<img src="${i.imageAfter}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
               <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageAfter')">REPLACE</span>
               <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageAfter')">DELETE</span>
             </div>
