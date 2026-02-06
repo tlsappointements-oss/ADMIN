@@ -1,169 +1,120 @@
-<!-- ============================================================
- SECTION 1 — DOCUMENT HEAD & GLOBAL STYLE SYSTEM
- (Scripts in <head>, global CSS, component styles)
-============================================================ -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Mercedes-Benz Plant Operations</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- External libraries -->
-  <script src="https://meet.jl_api.js</script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.in.js</script>
-
+  <script src="https://meet.jit.si/external_api.js"></script>
   <style>
-    :root { --mb-red:#e30613; }
-    * { box-sizing: border-box; }
-    body {
-      background: #000; color: #fff; font-family: 'Segoe UI', sans-serif;
-      margin: 0; display: flex; overflow-x: hidden;
-    }
-
+    body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
     /* SIDEBAR */
-    .sidebar {
-      width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px;
-      position: fixed; background: #050505; z-index: 10005; overflow-y: auto;
-    }
+    .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10005; overflow-y: auto; }
     .main { margin-left: 285px; padding: 40px; flex: 1; transition: filter 0.5s ease; }
-
-    #mainPage, #adminPanel, #interventionPage, #missionPage,
-    #historyPage, #kpiTrackerPage, #personnelPage {
-      display: none; background: #111; border-left: 4px solid var(--mb-red);
-      padding: 25px; margin-bottom: 30px;
-    }
+    #mainPage, #adminPanel, #interventionPage, #missionPage, #historyPage, #kpiTrackerPage, #personnelPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
     /* Show Dashboard by default */
     #mainPage { display: block; }
-
     .card { background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
     .checklist-item { display: block; margin: 10px 0; font-size: 0.9rem; }
-
-    input, select, textarea {
-      width: 100%; padding: 10px; margin: 10px 0; background: #222;
-      border: 1px solid #444; color: #fff;
-    }
-
+    input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; box-sizing: border-box; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th { text-align: left; padding: 15px; color: #666; border-bottom: 2px solid #222; font-size: 0.8rem; }
     td { padding: 15px; border-bottom: 1px solid #1a1a1a; }
-
-    .status-working { color: #00ff00; background: rgba(0,255,0,0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-    .status-breakdown { color: #ff3333; background: rgba(255,51,51,0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-
-    button { cursor: pointer; padding: 10px 20px; background: var(--mb-red); color: white; border: none; font-weight: bold; transition: 0.3s; }
+    .status-working { color: #00ff00; background: rgba(0, 255, 0, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+    .status-breakdown { color: #ff3333; background: rgba(255, 51, 51, 0.1); padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+    button { cursor: pointer; padding: 10px 20px; background: #e30613; color: white; border: none; font-weight: bold; transition: 0.3s; }
     button:hover { background: #fff; color: #000; }
     .btn-nav { width: 100%; margin-top: 10px; text-align: left; background: transparent; color: #aaa; border: 1px solid #222; }
-
     .tech-select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; font-size: 0.7rem; width: auto; }
-
     /* KPI Alert */
     .kpi-alert { background: #ff3333; color: #fff; padding: 5px; font-weight: bold; border-radius: 4px; display: inline-block; margin-top: 5px; border: 1px solid #fff; }
-
     /* Step Indicators */
     .step-row { display: flex; align-items: center; margin-bottom: 10px; }
-    .step-bubble {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 28px; height: 28px; border-radius: 50%; margin-right: 15px; font-weight: bold; font-size: 14px;
-    }
+    .step-bubble { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; margin-right: 15px; font-weight: bold; font-size: 14px; }
     .step-green { background: #00ff00; color: #000; }
     .step-red { background: #ff3333; color: #fff; }
     .step-orange { background: #ffa500; color: #000; }
-
     /* Edited Tag */
     .edited-tag { color: #ffcc00; font-weight: bold; font-size: 0.7rem; border: 1px solid #ffcc00; padding: 2px 5px; border-radius: 3px; margin-left: 10px; }
-
     /* CALL POPUP */
     #callPopup {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      width: 500px; background: #111; border: 3px solid var(--mb-red); border-radius: 25px;
+      width: 500px; background: #111; border: 3px solid #e30613; border-radius: 25px;
       padding: 20px; text-align: center; z-index: 10002; box-shadow: 0 0 100px rgba(255,0,0,0.5);
     }
     #videoContainer { width: 100%; height: 350px; background: #000; border-radius: 15px; margin-top: 15px; overflow: hidden; }
     .director-console { background: #000; padding: 15px; border-radius: 15px; margin-top: 20px; border: 1px dashed #444; }
     .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; background: #555; margin-right: 5px; }
     .dot-active { background: #00ff00; box-shadow: 0 0 15px #00ff00; }
-
     #audioActivator {
-      background: #ffcc00; color: #000; border: none; padding: 15px; font-weight: 900; width: 100%;
-      margin-bottom: 20px; border-radius: 5px; cursor: pointer; display: block; animation: pulse 2s infinite;
+      background: #ffcc00; color: #000; border: none; padding: 15px;
+      font-weight: 900; width: 100%; margin-bottom: 20px; border-radius: 5px;
+      cursor: pointer; display: block; animation: pulse 2s infinite;
     }
-
     /* DANGER OVERLAY */
     #dangerOverlay {
       display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(150,0,0,0.9); z-index: 9999; flex-direction: column;
+      background: rgba(150, 0, 0, 0.9); z-index: 9999; flex-direction: column;
       justify-content: center; align-items: center; text-align: center;
     }
     .giant-triangle { font-size: 120px; animation: pulse 0.5s infinite; }
-
-    @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.1);} 100% {transform: scale(1);} }
-
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     /* ACCESS DENIED MODAL */
     #accessDeniedModal {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: radial-gradient(circle, #200 0%, #000 100%); z-index: 20000; align-items: center; justify-content: center;
     }
     .security-shield {
-      border: 1px solid var(--mb-red); padding: 60px; border-radius: 5px; text-align: center;
+      border: 1px solid #e30613; padding: 60px; border-radius: 5px; text-align: center;
       background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
-      box-shadow: 0 0 50px rgba(227,6,19,0.2); position: relative; overflow: hidden;
+      box-shadow: 0 0 50px rgba(227, 6, 19, 0.2); position: relative; overflow: hidden;
     }
     .security-scan-line {
-      position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: var(--mb-red);
-      box-shadow: 0 0 15px var(--mb-red); animation: scanMove 2s infinite linear;
+      position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #e30613;
+      box-shadow: 0 0 15px #e30613; animation: scanMove 2s infinite linear;
     }
     @keyframes scanMove { 0% { top: 0; } 100% { top: 100%; } }
-
     /* MACHINE INFO POPUP */
     #machineDetailPopup {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      width: 700px; max-height: 90vh; background: #050505; border: 2px solid var(--mb-red);
+      width: 700px; max-height: 90vh; background: #050505; border: 2px solid #e30613;
       padding: 30px; z-index: 10010; overflow-y: auto; border-radius: 15px; box-shadow: 0 0 50px #000;
     }
     .history-log { font-size: 0.8rem; background: #000; padding: 10px; border: 1px solid #333; margin-top: 10px; max-height: 150px; overflow-y: auto; }
     .machine-img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
     .preview-img { width: 120px; height: 120px; object-fit: cover; margin-right: 10px; border: 2px solid #444; border-radius: 5px; }
-    .img-edit-btn { background: #444; color: #fff; padding: 3px 8px; font-size: 10px; display: block; margin-top: 5px; width: 120px; text-align: center; cursor: pointer; }
-    .img-edit-btn:hover { background: var(--mb-red); }
-
+    .img-edit-btn { background: #444; color: white; padding: 3px 8px; font-size: 10px; display: block; margin-top: 5px; width: 120px; text-align: center; cursor: pointer; }
     /* KPI DASHBOARD STYLES */
     .kpi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
-    .kpi-hero-card {
-      background: linear-gradient(145deg,#151515,#0a0a0a); border: 1px solid #222; border-radius: 15px; padding: 25px; position: relative; overflow: hidden;
-    }
-    .kpi-hero-card::after { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--mb-red); }
+    .kpi-hero-card { background: linear-gradient(145deg, #151515, #0a0a0a); border: 1px solid #222; border-radius: 15px; padding: 25px; position: relative; overflow: hidden; }
+    .kpi-hero-card::after { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #e30613; }
     .kpi-main-val { font-size: 3.5rem; font-weight: 900; font-family: 'Courier New', monospace; color: #fff; margin: 10px 0; display: block; }
     .kpi-sub-label { color: #666; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px; }
     .pulse-ring { width: 12px; height: 12px; border-radius: 50%; background: #00ff00; display: inline-block; margin-right: 8px; animation: pulseGreen 1.5s infinite; }
-    @keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(0,255,0,0.7); } 70% { box-shadow: 0 0 0 10px rgba(0,255,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,255,0,0); } }
-
+    @keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); } }
     .line-health-row { background: #111; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 2px solid #333; }
     .health-bar-bg { background: #222; height: 4px; width: 100%; margin-top: 10px; }
-    .health-bar-fill { height: 100%; background: var(--mb-red); transition: 1.5s cubic-bezier(0.19,1,0.22,1); box-shadow: 0 0 10px var(--mb-red); }
-
+    .health-bar-fill { height: 100%; background: #e30613; transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); box-shadow: 0 0 10px #e30613; }
     /* PERSONNEL STYLES */
     .tech-profile-card { display: flex; align-items: center; background: #151515; border: 1px solid #333; padding: 15px; border-radius: 10px; margin-bottom: 15px; transition: 0.3s; cursor: pointer; }
-    .tech-profile-card:hover { border-color: var(--mb-red); background: #1a1a1a; }
+    .tech-profile-card:hover { border-color: #e30613; background: #1a1a1a; }
     .tech-avatar { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #333; margin-right: 20px; object-fit: cover; }
     .tech-info { flex-grow: 1; }
     .tech-name { font-weight: bold; font-size: 1.1rem; color: #fff; }
     .tech-status { font-size: 0.8rem; display: flex; align-items: center; margin-top: 5px; }
     .status-dot-small { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
-    .perm-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(110px,1fr)); gap: 8px; margin-top: 15px; }
+    .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 15px; }
     .perm-chip { font-size: 10px; padding: 6px; border: 1px solid #333; text-align: center; cursor: pointer; border-radius: 4px; background: #0a0a0a; color: #666; }
-    .perm-active { background: var(--mb-red); border-color: var(--mb-red); color: #fff; box-shadow: 0 0 10px rgba(227,6,19,0.3); }
+    .perm-active { background: #e30613; border-color: #e30613; color: #fff; box-shadow: 0 0 10px rgba(227, 6, 19, 0.3); }
 
-    /* === PERSONNEL: Tech Profile Modal & Direct Call === */
+    /* === PERSONNEL: Tech Profile Modal & Direct Call (NEW) === */
     #techProfilePopup, #directCallPopup {
       display: none; position: fixed; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       width: 680px; max-height: 90vh; overflow-y: auto;
-      background: #0b0b0b; border: 2px solid var(--mb-red);
+      background: #0b0b0b; border: 2px solid #e30613;
       border-radius: 14px; padding: 24px; z-index: 10012;
       box-shadow: 0 0 50px #000;
     }
-    .modal-title { margin: 0 0 10px 0; color: var(--mb-red); letter-spacing: 1px; }
+    .modal-title { margin: 0 0 10px 0; color: #e30613; letter-spacing: 1px; }
     .modal-subtle { color: #777; font-size: 11px; margin-bottom: 10px; }
     .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .modal-actions { display: flex; gap: 10px; margin-top: 12px; }
@@ -175,60 +126,52 @@
     .status-suspended { color: #ffa500; border-color: #a96f00; }
     .status-blocked { color: #ff3333; border-color: #a10000; }
     .request-glow { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); animation: reqPulse 1.6s infinite; }
-    @keyframes reqPulse { 0% {box-shadow:0 0 0 0 rgba(255,204,0,0.4);} 70% {box-shadow:0 0 0 16px rgba(255,204,0,0);} 100% {box-shadow:0 0 0 0 rgba(255,204,0,0);} }
+    @keyframes reqPulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.4); } 70% { box-shadow: 0 0 0 16px rgba(255,204,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); } }
+    /* Direct call video container */
     #directVideoContainer { width: 100%; height: 350px; background: #000; border-radius: 12px; overflow: hidden; }
-    #incomingCallBanner { display: none; }
 
-    /* A11y helper: visible to screen readers, hidden visually */
-    .sr-only {
-      position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
-      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+    /* === Incoming call banner for technicians (NEW) === */
+    #incomingCallBanner {
+      display: none; position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 20px; z-index: 12000; background: #151515; border: 1px solid #444;
+      padding: 12px 16px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      font-size: 14px; color: #ddd; min-width: 320px;
     }
+    #incomingCallBanner .title { font-weight: 600; margin-right: 10px; }
+    #incomingCallBanner .join-btn { background: #28a745; padding: 8px 14px; margin-left: 12px; }
   </style>
 </head>
-<!-- ============================================================
- SECTION 2 — POPUPS, OVERLAYS & CALL WINDOWS
- (Access denied modal, machine details, tech profile, direct call,
- emergency line popup, danger overlay)
-============================================================ -->
 <body>
-  <!-- Sound effect for emergency trigger -->
-  https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3</audio>
-
-  <!-- ACCESS DENIED -->
+  <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+  <!-- ACCESS DENIED MODAL (kept) -->
   <div id="accessDeniedModal">
     <div class="security-shield">
       <div class="security-scan-line"></div>
       <h1 style="font-size: 4rem; color: #e30613; margin: 0; font-family: monospace;">[!]</h1>
       <h2 style="letter-spacing: 8px; color: #fff;">SECURITY VIOLATION</h2>
-      <p id="deniedText" style="color: #666; font-size: 0.8rem;">
-        BIOMETRIC SIGNATURE NOT RECOGNIZED.<br />ENCRYPTION LEVEL 102 ACTIVE.
-      </p>
-      <button onclick="document.getElementById('accessDeniedModal').style.display='none'"
-              style="margin-top:30px; background:transparent; border: 1px solid #e30613; color: #e30613; padding: 10px 40px;">
-        DISMISS
-      </button>
+      <p id="deniedText" style="color: #666; font-size: 0.8rem;">BIOMETRIC SIGNATURE NOT RECOGNIZED.<br>ENCRYPTION LEVEL 102 ACTIVE.</p>
+      <button onclick="document.getElementById('accessDeniedModal').style.display='none'" style="margin-top:30px; background:transparent; border: 1px solid #e30613; color: #e30613; padding: 10px 40px;">DISMISS</button>
     </div>
   </div>
 
-  <!-- MACHINE DETAIL -->
+  <!-- MACHINE DETAIL POPUP -->
   <div id="machineDetailPopup">
     <div id="machineDetailContent"></div>
     <button onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
   </div>
 
-  <!-- TECH PROFILE -->
+  <!-- TECH PROFILE POPUP (NEW) -->
   <div id="techProfilePopup">
     <h2 class="modal-title">Technician Profile</h2>
     <div id="techIdentityLine" class="modal-subtle"></div>
 
     <div class="modal-row">
       <div>
-        <label for="techPositionInput">Position</label>
-        <input type="text" id="techPositionInput" placeholder="e.g., Senior Maintenance Technician" />
+        <label>Position</label>
+        <input type="text" id="techPositionInput" placeholder="e.g., Senior Maintenance Technician">
       </div>
       <div>
-        <label for="techStatusSelect">Status</label>
+        <label>Status</label>
         <select id="techStatusSelect">
           <option value="Active">Active</option>
           <option value="On Leave">On Leave</option>
@@ -238,7 +181,7 @@
       </div>
     </div>
 
-    <label for="techDescriptionInput" style="margin-top:8px;">Full Description</label>
+    <label style="margin-top:8px;">Full Description</label>
     <textarea id="techDescriptionInput" rows="5" placeholder="Team, capabilities, specialization, shift info…"></textarea>
 
     <div class="modal-actions">
@@ -249,7 +192,7 @@
     </div>
   </div>
 
-  <!-- DIRECT CALL -->
+  <!-- DIRECT CALL POPUP (NEW) -->
   <div id="directCallPopup">
     <h2 class="modal-title">Direct Line</h2>
     <div id="directCallTitle" class="modal-subtle"></div>
@@ -259,7 +202,7 @@
     </div>
   </div>
 
-  <!-- EMERGENCY CALL -->
+  <!-- EMERGENCY CALL POPUP -->
   <div id="callPopup">
     <h2 style="font-size: 1.2rem; margin: 0;">DIRECTOR EMERGENCY LINE</h2>
     <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 5px 0;"></p>
@@ -267,51 +210,47 @@
     <div id="mohamedConsole" class="director-console" style="display:none;">
       <button onclick="window.triggerRemoteAudio()" style="background:#ffcc00; color:#000; font-size: 12px; width: 100%;">🔔 SEND ALERT SOUND</button>
     </div>
-    <button id="hangUpBtn"
-            style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;"
-            onclick="window.endEmergencyCall()">📞</button>
+    <button id="hangUpBtn" style="background:#ff3333; border-radius:50%; width:50px; height:50px; border:none; color:white; font-size:1.2rem; margin-top:15px;" onclick="window.endEmergencyCall()">📞</button>
     <div style="margin-top:10px; font-size:11px; border-top:1px solid #333; padding-top:10px;">
-      <span id="statusDot" class="status-dot"></span>
-      <span id="webrtcState">DIRECT LINE ENCRYPTED</span>
+      <span id="statusDot" class="status-dot"></span> <span id="webrtcState">DIRECT LINE ENCRYPTED</span>
     </div>
   </div>
 
-  <!-- DANGER OVERLAY -->
+  <!-- DANGER OVERLAY (technician assigned) -->
   <div id="dangerOverlay">
     <div class="giant-triangle">⚠️</div>
     <div style="font-size: 2.5rem; font-weight: 900;">DANGER</div>
     <div id="dangerDescription" style="background:black; padding:10px 20px; margin-top:20px; font-size: 1.5rem;"></div>
     <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
   </div>
-  <!-- ============================================================
- SECTION 3 — SIDEBAR & PRIMARY NAVIGATION
-============================================================ -->
+
+  <!-- Incoming Call Banner (Technician join button) -->
+  <div id="incomingCallBanner">
+    <span class="title">📞 Director is calling…</span>
+    <span id="incomingCallContext"></span>
+    <button class="join-btn" onclick="window.joinIncomingCall()">JOIN CALL</button>
+    <button class="btn-ghost" style="margin-left:6px;" onclick="window.dismissIncomingCall()">DISMISS</button>
+  </div>
+
+  <!-- SIDEBAR -->
   <div class="sidebar" id="mainSidebar">
     <h2 style="color: #e30613;">MERCEDES</h2>
-
     <button id="audioActivator" onclick="window.activateAudioSystem()">STEP 1: ENABLE MIC</button>
     <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
-
     <div id="reqPermissionBox" style="display:none; margin-bottom: 10px;">
       <button onclick="window.requestAccess()" style="background:#444; font-size: 10px; width: 100%; padding: 5px;">PROMPT MOHAMED FOR ACCESS</button>
     </div>
-
-    <hr style="border:0; border-top:1px solid #333;" />
-
+    <hr style="border:0; border-top:1px solid #333;">
     <button class="btn-nav" id="nav_mainPage" onclick="window.showPage('mainPage')">🏠 Dashboard</button>
     <button class="btn-nav" id="nav_interventionPage" onclick="window.showPage('interventionPage')">📝 Interventions</button>
     <button class="btn-nav" id="nav_missionPage" onclick="window.showPage('missionPage')">🛠️ Missions</button>
     <button class="btn-nav" id="nav_historyPage" onclick="window.showPage('historyPage')">📚 History</button>
     <button class="btn-nav" id="nav_kpiTrackerPage" onclick="window.showPage('kpiTrackerPage')">📊 KPI Command</button>
     <button class="btn-nav" id="nav_personnelPage" onclick="window.showPage('personnelPage')" style="border: 1px solid #e30613; color: #e30613;">👥 Personnel</button>
-
     <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
   </div>
-  <!-- ============================================================
- SECTION 4 — MAIN CONTENT PAGES
- (Personnel, Admin panel, Dashboard, Intervention, Missions,
- History, KPI Tracker)
-============================================================ -->
+
+  <!-- MAIN CONTENT -->
   <div class="main" id="contentMain">
     <!-- PERSONNEL -->
     <div id="personnelPage">
@@ -333,16 +272,14 @@
       </div>
     </div>
 
-    <!-- ADMIN PANEL -->
+    <!-- ADMIN -->
     <div id="adminPanel">
       <h3>DIRECTOR CONTROL</h3>
       <div id="adminApprovalList"></div>
-
-      <hr style="border-color: #333; margin: 20px 0;" />
+      <hr style="border-color: #333; margin: 20px 0;">
       <div class="card">
         <h4>DATA SYNCHRONIZATION</h4>
-        <label for="jsonInput">Machines JSON</label>
-        <input type="file" id="jsonInput" accept=".json" />
+        <input type="file" id="jsonInput" accept=".json">
         <button onclick="window.syncDatabase()" style="width: 100%; background: #28a745;">PUSH 105 MACHINES</button>
       </div>
     </div>
@@ -351,9 +288,7 @@
     <div id="mainPage">
       <h1>Plant Asset Library</h1>
       <table>
-        <thead>
-          <tr><th>ID</th><th>NAME</th><th>SECTION</th><th>STATUS</th><th>ACTIONS</th></tr>
-        </thead>
+        <thead><tr><th>ID</th><th>NAME</th><th>SECTION</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
         <tbody id="assetTable"></tbody>
       </table>
     </div>
@@ -362,9 +297,7 @@
     <div id="interventionPage">
       <h1>Step 1: Request Intervention</h1>
       <div class="card" id="interventionCard">
-        <label for="reqMachine">Machine</label>
         <select id="reqMachine" onchange="window.previewMachine(this.value)"></select>
-        <label for="reqIssue">Issue description</label>
         <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
         <button id="submitReqBtn" onclick="window.submitReq()">SUBMIT TO DIRECTOR</button>
       </div>
@@ -380,9 +313,7 @@
     <div id="historyPage">
       <h1>Maintenance Archive</h1>
       <div class="card">
-        <label class="sr-only" for="historySearch">Search by Machine Name</label>
-        <input type="text" id="historySearch" placeholder="Search by Machine Name..." onkeyup="window.filterHistory()" />
-        <label class="sr-only" for="historyDateSort">Sort order</label>
+        <input type="text" id="historySearch" placeholder="Search by Machine Name..." onkeyup="window.filterHistory()">
         <select id="historyDateSort" onchange="window.filterHistory()">
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
@@ -391,10 +322,9 @@
       <div id="historyList"></div>
     </div>
 
-    <!-- KPI TRACKER -->
+    <!-- KPI -->
     <div id="kpiTrackerPage">
       <h1 style="letter-spacing: 5px; text-shadow: 0 0 20px rgba(227,6,19,0.5);">STRATEGIC MISSION CONTROL</h1>
-
       <div class="kpi-container">
         <div class="kpi-hero-card">
           <span class="kpi-sub-label">Global Plant Efficiency</span>
@@ -412,7 +342,6 @@
           <div style="font-size:11px;"><span class="pulse-ring"></span> Real-time Telemetry</div>
         </div>
       </div>
-
       <div style="display:grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-top:20px;">
         <div class="card">
           <h3>LINE TELEMETRY</h3>
@@ -422,7 +351,11 @@
           <h3>ELITE TECHNICIAN PERFORMANCE</h3>
           <table style="margin-top:0">
             <thead>
-              <tr><th>IDENTIFIER</th><th>MTTR ACCURACY</th><th>RATING</th></tr>
+              <tr>
+                <th>IDENTIFIER</th>
+                <th>MTTR ACCURACY</th>
+                <th>RATING</th>
+              </tr>
             </thead>
             <tbody id="techKpiTable"></tbody>
           </table>
@@ -430,1238 +363,779 @@
       </div>
     </div>
   </div>
-  <!-- ============================================================
- SECTION 5 — SCRIPT (MODULE): IMPORTS, CONSTANTS, GLOBALS
-============================================================ -->
-<script type="module">
-  import { auth, db } from './firebase.js';
-  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import {
-    collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where,
-    deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-  let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
-  let userPermissions = {};
-  let currentTechEmailForEdit = null;
-  let directJitsiApi = null;
-  let lastEmergencyTarget = null; // stores current emergency target to avoid race conditions
+  <script type="module">
+    import { auth, db } from './firebase.js';
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
+    let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
+    let userPermissions = {};
+    let currentTechEmailForEdit = null;    // Personnel: who is being edited (NEW)
+    let directJitsiApi = null;             // Personnel: direct (non-emergency) Jitsi instance (NEW)
+    let pendingIncomingMachine = null;     // For technician banner join (NEW)
 
-  const M_STEPS = {
-    "ROBOTIC": [
-      "Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature",
-      "Software diagnostic run", "End-effector alignment", "Safety barrier test"
-    ],
-    "PRESS": [
-      "Oil pressure check", "Die alignment inspection", "Lubrication cycle test",
-      "Safety light curtain check", "Ram stroke measurement", "Plate cleaning"
-    ],
-    "ASSEMBLY": [
-      "Conveyor belt tension", "Sensor debris cleaning", "Pneumatic valve check",
-      "Fastener torque audit", "Control panel inspection", "Emergency stop test"
-    ],
-    "DEFAULT": [
-      "General visual inspection", "Power supply check", "Input/Output verification",
-      "Component cleaning", "Operational test", "Safety check"
-    ]
-  ];
-</script>
-<!-- ============================================================
- SECTION 6 — SCRIPT (MODULE): PDF ENGINE & HISTORY TOOLS
-============================================================ -->
-<script type="module">
-  import { db } from './firebase.js';
-  import { doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  /* ======== PDF GENERATOR (jsPDF) ======== */
-  // Loads a signature image (username -> images/Signatures/<username>.png)
-  async function loadSignature(username) {
-    try {
-      const fname = (username || '').split("@")[0].toLowerCase() + ".png";
-      const url = "images/Signatures/" + fname;
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-        img.src = url + "?t=" + Date.now(); // bust cache
-      });
-    } catch {
-      return null;
-    }
-  }
-
-  // Generate a PDF for request / work order / closure
-  async function generatePDF(data, title) {
-    try {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-      const machineName = data?.machineName || "Unknown Machine";
-      const requester = data?.requester || "Unknown";
-      const bodyText = (data?.issue || data?.techComment || "").toString();
-
-      pdf.setFontSize(18); pdf.text(title, 10, 20);
-      pdf.setFontSize(12);
-      pdf.text("Machine : " + machineName, 10, 40);
-      pdf.text("Demandeur : " + requester, 10, 50);
-      pdf.text("Date : " + new Date().toLocaleString(), 10, 60);
-      pdf.text("Description :", 10, 75);
-      const wrapped = pdf.splitTextToSize(bodyText, 180);
-      pdf.text(wrapped, 10, 85);
-
-      // User signature
-      const sigUserImg = await loadSignature(requester);
-      if (sigUserImg) {
-        const canvas = document.createElement("canvas");
-        canvas.width = sigUserImg.width; canvas.height = sigUserImg.height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(sigUserImg, 0, 0);
-        const base64 = canvas.toDataURL("image/png");
-        pdf.text("Signature utilisateur", 10, 145);
-        pdf.addImage(base64, "PNG", 10, 150, 50, 20);
-      }
-
-      // Director signature (Mohamed)
-      const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-      const sigDirImg = await loadSignature(DIRECTOR);
-      if (sigDirImg) {
-        const canvas2 = document.createElement("canvas");
-        canvas2.width = sigDirImg.width; canvas2.height = sigDirImg.height;
-        const ctx2 = canvas2.getContext("2d");
-        ctx2.drawImage(sigDirImg, 0, 0);
-        const base64b = canvas2.toDataURL("image/png");
-        pdf.text("Signature Directeur", 120, 145);
-        pdf.addImage(base64b, "PNG", 120, 150, 50, 20);
-      }
-
-      const filename = (title || "document").replace(/\s+/g, "_") + "_" + Date.now() + ".pdf";
-      pdf.save(filename);
-    } catch (e) {
-      console.warn("PDF generation failed:", e);
-    }
-  }
-  // Expose to the global scope for other sections to use
-  window.generatePDF = window.generatePDF || generatePDF;
-
-  /* ======== HISTORY MANAGEMENT (guards to avoid duplicate definitions) ======== */
-  if (!window.updateHistoryImage) {
-    window.updateHistoryImage = async (historyId, field) => {
-      const url = prompt("Enter the new Image URL for " + field + ":");
-      if (!url) return;
-      try {
-        await updateDoc(doc(db, 'interventions', historyId), { [field]: url });
-        alert("Image updated successfully.");
-      } catch (e) { alert("Error: " + e.message); }
+    const M_STEPS = {
+      "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
+      "PRESS": ["Oil pressure check", "Die alignment inspection", "Lubrication cycle test", "Safety light curtain check", "Ram stroke measurement", "Plate cleaning"],
+      "ASSEMBLY": ["Conveyor belt tension", "Sensor debris cleaning", "Pneumatic valve check", "Fastener torque audit", "Control panel inspection", "Emergency stop test"],
+      "DEFAULT": ["General visual inspection", "Power supply check", "Input/Output verification", "Component cleaning", "Operational test", "Safety check"]
     };
-  }
 
-  if (!window.deleteImage) {
-    window.deleteImage = async (historyId, field) => {
-      if (!confirm("Confirm permanent deletion of this image?")) return;
-      try {
-        await updateDoc(doc(db, 'interventions', historyId), { [field]: "" });
-        alert("Image removed.");
-      } catch (e) { alert("Error: " + e.message); }
+    window.activateAudioSystem = async () => {
+      micReady = true;
+      document.getElementById('audioActivator').style.background = "#00ff00";
+      document.getElementById('audioActivator').innerText = "✅ SYSTEM READY";
     };
-  }
 
-  if (!window.forceModifyReport) {
-    window.forceModifyReport = async (historyId) => {
-      const newComment = prompt("Modify technical report log:");
-      if (newComment === null) return;
-      try {
-        await updateDoc(doc(db, 'interventions', historyId), { techComment: newComment, edited: true });
-        alert("Database log updated successfully.");
-      } catch (e) { alert("Error: " + e.message); }
+    window.triggerRemoteAudio = async () => {
+      await updateDoc(doc(db, "emergency_calls", "active_session"), { triggerSound: Date.now() });
     };
-  }
-</script>
-<!-- ============================================================
- SECTION 7 — SCRIPT (MODULE): CORE APP LOGIC
- (Media priming, emergency triggers, sync, permission system,
- UI helpers, navigation, maintenance flow, approvals, deletes,
- filters, KPIs, auth wiring, dashboards)
-============================================================ -->
-<script type="module">
-  import { auth, db } from './firebase.js';
-  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import {
-    collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where,
-    deleteDoc, serverTimestamp, getDoc, arrayUnion
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-  const state = {
-    techList: [],
-    micReady: false,
-    machineCache: {},
-    archivedInterventions: [],
-    jitsiApi: null,
-    userPermissions: {},
-    currentTechEmailForEdit: null,
-    lastEmergencyTarget: null
-  };
-
-  // MEDIA activation button (UX only)
-  window.activateAudioSystem = async () => {
-    state.micReady = true;
-    const btn = document.getElementById('audioActivator');
-    if (btn) { btn.style.background = '#00ff00'; btn.innerText = '✅ SYSTEM READY'; }
-  };
-
-  // Silent primer for mic/camera permission after login
-  async function primeMediaAccess() {
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      state.micReady = true;
-      const btn = document.getElementById('audioActivator');
-      if (btn) { btn.style.background = '#00ff00'; btn.innerText = '✅ SYSTEM READY'; }
-    } catch (e) { console.warn('Media permission not granted yet:', e); }
-  }
-
-  window.triggerRemoteAudio = async () => {
-    await updateDoc(doc(db, 'emergency_calls', 'active_session'), { triggerSound: Date.now() });
-  };
-
-  window.syncDatabase = async () => {
-    const fileInput = document.getElementById('jsonInput');
-    if (!fileInput.files[0]) return alert('Please select the machines.json file');
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        const machines = data.machines || data;
-        for (const m of machines) {
-          const mId = m.machineId || `M-${Math.random().toString(36).substr(2, 5)}`;
-          const type = m.name.toUpperCase().includes('ROBOT') ? 'ROBOTIC'
-                    : m.name.toUpperCase().includes('PRESS') ? 'PRESS'
-                    : 'ASSEMBLY';
-          await setDoc(doc(db, 'machines', mId), {
-            ...m,
-            status: m.status || 'WORKING',
-            assignedTech: '',
-            acknowledged: true,
-            lastUpdated: serverTimestamp(),
-            history: m.history || [],
-            description: m.description || 'Mercedes-Benz precision unit.',
-            image: m.image || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500',
-            targetMaintenanceTime: m.targetMaintenanceTime || 60,
-            steps: (window.M_STEPS || {})[type] || (window.M_STEPS || {})['DEFAULT'] || []
-          });
-        }
-        alert('Sync Complete.');
-      } catch (err) { alert('Error: ' + err.message); }
-    };
-    reader.readAsText(fileInput.files[0]);
-  };
-
-  // ACCESS CONTROL SYSTEM
-  window.checkPermission = (pageId) => {
-    const email = auth.currentUser.email.toLowerCase();
-    if (email === DIRECTOR) return true;
-    const perms = state.userPermissions[email] || {};
-    const mapping = {
-      mainPage: 'view_dashboard',
-      interventionPage: 'request_intervention',
-      missionPage: 'do_missions',
-      historyPage: 'view_history',
-      kpiTrackerPage: 'view_kpi',
-      personnelPage: 'view_kpi'
-    };
-    return perms[mapping[pageId]] === true;
-  };
-
-  window.togglePermission = async (email, key) => {
-    const current = state.userPermissions[email] || {};
-    current[key] = !current[key];
-    current.requestingAccess = false;
-    await setDoc(doc(db, 'permissions', email), current, { merge: true });
-  };
-
-  window.requestAccess = async () => {
-    const email = auth.currentUser.email.toLowerCase();
-    const current = state.userPermissions[email] || {};
-    current.requestingAccess = true;
-    await setDoc(doc(db, 'permissions', email), current, { merge: true });
-    alert("Your request has been broadcasted to Mohamed's command center.");
-  };
-
-  // UI helpers
-  window.clearFocus = () => {
-    try { document.querySelectorAll('.highlight-focus').forEach(el => el.classList.remove('highlight-focus')); } catch {}
-    const cm = document.getElementById('contentMain');
-    const sb = document.getElementById('mainSidebar');
-    if (cm) cm.classList.remove('blur-bg');
-    if (sb) sb.classList.remove('blur-bg');
-  };
-
-  window.showPage = (id) => {
-    if (!window.checkPermission(id)) {
-      document.getElementById('accessDeniedModal').style.display = 'flex';
-      speakNative('Warning. Access Denied. Biometric signature mismatch. Security protocol 1 0 2 is now active.');
-      return;
-    }
-    ['mainPage','adminPanel','interventionPage','missionPage','historyPage','kpiTrackerPage','personnelPage'].forEach(p => {
-      const el = document.getElementById(p);
-      if (el) el.style.display = (p === id ? 'block' : 'none');
-    });
-    window.clearFocus();
-    if (id === 'kpiTrackerPage') window.calculateKPIs();
-  };
-
-  function speakNative(text, callback) {
-    const msg = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    msg.voice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Premium')) || voices[0];
-    msg.rate = 0.95; msg.pitch = 1.0; if (callback) msg.onend = callback; window.speechSynthesis.speak(msg);
-  }
-
-  window.previewMachine = (id) => {
-    const m = state.machineCache[id]; if (!m) return;
-    const content = `
-      <h2 style="color:#e30613">Machine Profile: ${m.name}</h2>
-      <img src="${m.image}" class="machine-img" alt="MachinetenanceTime} mins</p>
-      <p><b>Description:</b> ${m.description}</p>
-      <h4>Recent History</h4>
-      <div class="history-log">${m.history?.length ? m.history.map(h => `<div>• ${h}</div>`).join('') : 'No previous records.'}</div>
-    `;
-    document.getElementById('machineDetailContent').innerHTML = content;
-    document.getElementById('machineDetailPopup').style.display = 'block';
-  };
-
-  window.openMaintenanceGuide = async (intId, mId) => {
-    const popup = document.getElementById('machineDetailPopup');
-    const contentDiv = document.getElementById('machineDetailContent');
-    contentDiv.innerHTML = `<h2 style="color:#e30613; text-align:center;">INITIALIZING PROTOCOL...</h2>`;
-    popup.style.display = 'block';
-    try {
-      const mDoc = await getDoc(doc(db, 'machines', mId));
-      const m = mDoc.data();
-      const actualStart = Date.now();
-      const steps = m.steps || (window.M_STEPS ? window.M_STEPS['DEFAULT'] : []);
-
-      contentDiv.innerHTML = `
-        <h2 style="color:#e30613">Technical Protocol: ${m.name}</h2>
-        <div class="card" style="border:1px solid #e30613">
-          <p><b>Actual System Start:</b> ${new Date(actualStart).toLocaleString()}</p>
-          <label for="manualStartTime">Setup your Start Time (For Record):</label>
-          <input type="datetime-local" id="manualStartTime" value="${new Date().toISOString().slice(0, 16)}">
-          <label for="manualEndTime">Setup your Finish Time:</label>
-          <input type="datetime-local" id="manualEndTime" value="${new Date().toISOString().slice(0, 16)}">
-        </div>
-
-        <div id="checklist">
-          ${steps.map((step, i) => `
-            <label class="checklist-item">
-              <input type="checkbox" class="m-check"> [Step ${i+1}] <b>${step}</b>
-            </label>`).join('')
+    window.syncDatabase = async () => {
+      const fileInput = document.getElementById('jsonInput');
+      if (!fileInput.files[0]) return alert("Please select the machines.json file");
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          const machines = data.machines || data;
+          for (const m of machines) {
+            const mId = m.machineId || `M-${Math.random().toString(36).substr(2, 5)}`;
+            const type = m.name.toUpperCase().includes('ROBOT') ? "ROBOTIC" : m.name.toUpperCase().includes('PRESS') ? "PRESS" : "ASSEMBLY";
+            await setDoc(doc(db, "machines", mId), {
+              ...m,
+              status: m.status || "WORKING",
+              assignedTech: "",
+              acknowledged: true,
+              lastUpdated: serverTimestamp(),
+              history: m.history || [],
+              description: m.description || "Mercedes-Benz precision unit.",
+              image: m.image || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500",
+              targetMaintenanceTime: m.targetMaintenanceTime || 60,
+              steps: M_STEPS[type] || M_STEPS["DEFAULT"]
+            });
           }
-        </div>
-
-        <div class="card">
-          <h4>Evidence Upload</h4>
-          <label for="imgBefore">Before Repair:</label>
-          <input type="file" id="imgBefore" accept="image/*">
-          <label for="imgAfter">After Repair:</label>
-          <input type="file" id="imgAfter" accept="image/*">
-        </div>
-
-        <label class="sr-only" for="techComment">Resolution notes</label>
-        <textarea id="techComment" placeholder="Detailed resolution notes..."></textarea>
-        <button id="finalSubmitBtn" onclick="window.submitTechReport('${intId}', '${mId}', ${actualStart})" style="width:100%">SUBMIT FINAL REPORT</button>
-      `;
-    } catch (err) {
-      contentDiv.innerHTML = `<h2 style="color:red">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
-    }
-  };
-
-  window.submitTechReport = async (intId, mId, actualStart) => {
-    const checks = document.querySelectorAll('.m-check:checked').length;
-    const comment = document.getElementById('techComment').value;
-    const actualEnd = Date.now();
-    const btn = document.getElementById('finalSubmitBtn');
-
-    if (checks < 6) return alert('Security Protocol: All 6 steps must be checked.');
-    if (!comment) return alert('Please add a comment.');
-
-    btn.innerText = 'UPLOADING...'; btn.disabled = true;
-
-    const getBase64 = (file) => new Promise((res) => { if(!file) res(''); const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); });
-    const imgB = await getBase64(document.getElementById('imgBefore').files[0]);
-    const imgA = await getBase64(document.getElementById('imgAfter').files[0]);
-
-    await updateDoc(doc(db, 'interventions', intId), {
-      status: 'TECH_COMPLETED',
-      techComment: comment,
-      actualStart,
-      actualEnd,
-      manualStart: document.getElementById('manualStartTime').value,
-      manualEnd: document.getElementById('manualEndTime').value,
-      imageBefore: imgB,
-      imageAfter: imgA,
-      techCompletedTime: serverTimestamp()
-    });
-
-    document.getElementById('machineDetailPopup').style.display = 'none';
-    alert('Report sent to Director.');
-  };
-
-  window.approveAction = async (intId, mId, status) => {
-    if(status === 'PENDING_MOHAMED') {
-      // Load data to include in PDF
-      const intDocBefore = await getDoc(doc(db, 'interventions', intId));
-      const dataBefore = intDocBefore.data() || {};
-
-      const commentEl = document.getElementById(`appComment_${intId}`);
-      const comment = commentEl ? commentEl.value : 'Auto-Approved';
-
-      await updateDoc(doc(db, 'interventions', intId), {
-        status: 'APPROVED',
-        directorApprovalComment: comment,
-        approvedAt: serverTimestamp()
-      });
-
-      await updateDoc(doc(db, 'machines', mId), { status: 'BREAKDOWN', acknowledged: false });
-
-      // Generate "Ordre de Mission" PDF
-      window.generatePDF && window.generatePDF({
-        machineName: (window.machineCache?.[mId]?.name) || dataBefore.machineName || 'Unknown Machine',
-        requester: dataBefore.requester || 'Unknown',
-        issue: dataBefore.issue || comment || ''
-      }, "Ordre de Mission");
-    } else {
-      const intDoc = await getDoc(doc(db, 'interventions', intId));
-      const data = intDoc.data();
-
-      await updateDoc(doc(db, 'interventions', intId), { status: 'ARCHIVED', finalResetAt: serverTimestamp() });
-
-      await updateDoc(doc(db, 'machines', mId), {
-        status: 'WORKING',
-        acknowledged: true,
-        history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed - ${data.techComment}`)
-      });
-
-      // Generate final approval PDF (Accord/Clôture)
-      window.generatePDF && window.generatePDF({
-        machineName: (window.machineCache?.[mId]?.name) || data.machineName || 'Unknown Machine',
-        requester: data.requester || 'Unknown',
-        issue: data.techComment || ''
-      }, "Accord de Clôture");
-    }
-  };
-
-  // Director override (strong version)
-  window.forceModifyReport = window.forceModifyReport || (async (intId) => {
-    const DIRECTOR_PASS = 'MB2024_ADMIN';
-    const pass = prompt('ENTER DIRECTOR ACCESS PASSWORD:');
-    if (pass !== DIRECTOR_PASS) return alert('ACCESS DENIED.');
-    const newIssue = prompt('RECTIFY ISSUE DESCRIPTION:');
-    const newComment = prompt('RECTIFY TECHNICIAN RESOLUTION:');
-
-    if (newIssue !== null && newComment !== null) {
-      await updateDoc(doc(db, 'interventions', intId), {
-        issue: newIssue, techComment: newComment, isEdited: true,
-        editedBy: DIRECTOR, editedAt: serverTimestamp()
-      });
-      alert('REPORT OVERRIDDEN SUCCESSFULLY.');
-      const updatedDoc = await getDoc(doc(db, 'interventions', intId));
-      showHistoryDetail({id: updatedDoc.id, ...updatedDoc.data()});
-    }
-  });
-
-  window.deleteIntervention = async (intId) => {
-    if (!confirm('CRITICAL: Delete this entire maintenance record?')) return;
-    const DIRECTOR_PASS = 'MB2024_ADMIN';
-    const pass = prompt('CONFIRM PASSWORD:');
-    if (pass !== DIRECTOR_PASS) return;
-    await deleteDoc(doc(db, 'interventions', intId));
-    document.getElementById('machineDetailPopup').style.display = 'none';
-    alert('Record permanently erased.');
-  };
-
-  // Replace evidence image via local file (enhanced)
-  window.updateHistoryImage = window.updateHistoryImage || (async (intId, field) => {
-    const input = document.createElement('input');
-    input.type = 'file'; input.accept = 'image/*';
-    input.onchange = async (e) => {
-      const file = e.target.files[0]; if (!file) return;
-      const r = new FileReader();
-      r.onload = async () => {
-        await updateDoc(doc(db, 'interventions', intId), { [field]: r.result });
-        alert('Image replaced.');
-        const updated = await getDoc(doc(db, 'interventions', intId));
-        showHistoryDetail({id: updated.id, ...updated.data()});
+          alert("Sync Complete.");
+        } catch (err) { alert("Error: " + err.message); }
       };
-      r.readAsDataURL(file);
+      reader.readAsText(fileInput.files[0]);
     };
-    input.click();
-  });
 
-  window.deleteImage = window.deleteImage || (async (intId, field) => {
-    if (confirm('Delete this evidence image?')) {
-      await updateDoc(doc(db, 'interventions', intId), { [field]: '' });
-      const updated = await getDoc(doc(db, 'interventions', intId));
-      showHistoryDetail({id: updated.id, ...updated.data()});
-    }
-  });
-
-  window.filterHistory = () => {
-    const searchInput = document.getElementById('historySearch');
-    const sortInput = document.getElementById('historyDateSort');
-    if(!searchInput || !sortInput) return;
-
-    const search = searchInput.value.toLowerCase();
-    const sort = sortInput.value;
-    const container = document.getElementById('historyList');
-
-    let filtered = state.archivedInterventions.filter(i => (i.machineName || '').toLowerCase().includes(search));
-    filtered.sort((a,b) => sort === 'newest'
-      ? ((b.finalResetAt?.seconds || 0) - (a.finalResetAt?.seconds || 0))
-      : ((a.finalResetAt?.seconds || 0) - (b.finalResetAt?.seconds || 0))
-    );
-
-    container.innerHTML = '';
-    filtered.forEach(i => {
-      const card = document.createElement('div'); card.className = 'card'; card.style.cursor = 'pointer';
-      const editBadge = i.isEdited ? '<span class="edited-tag">MODIFIED BY DIRECTOR</span>' : '';
-      card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} ${editBadge} <span style="float:right; color:#e30613">Audit Logs ></span>`;
-      card.onclick = () => {
-        const email = auth.currentUser.email.toLowerCase();
-        if (email === DIRECTOR || (state.userPermissions[email] && state.userPermissions[email].view_history)) {
-          showHistoryDetail(i);
-        } else {
-          document.getElementById('accessDeniedModal').style.display = 'flex';
-        }
+    // ACCESS CONTROL SYSTEM
+    window.checkPermission = (pageId) => {
+      const email = auth.currentUser.email.toLowerCase();
+      if (email === DIRECTOR) return true;
+      const perms = userPermissions[email] || {};
+      const mapping = {
+        'mainPage': 'view_dashboard',
+        'interventionPage': 'request_intervention',
+        'missionPage': 'do_missions',
+        'historyPage': 'view_history',
+        'kpiTrackerPage': 'view_kpi',
+        'personnelPage': 'view_kpi'
       };
-      container.appendChild(card);
-    });
-  };
+      return perms[mapping[pageId]] === true;
+    };
 
-  window.toggleStatus = async (id, current) => {
-    if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-    const next = current === 'WORKING' ? 'BREAKDOWN' : 'WORKING';
-    await updateDoc(doc(db, 'machines', id), { status: next, acknowledged: (next === 'WORKING') });
-  };
+    window.togglePermission = async (email, key) => {
+      const current = userPermissions[email] || {};
+      current[key] = !current[key];
+      current.requestingAccess = false;
+      await setDoc(doc(db, "permissions", email), current, { merge: true });
+    };
 
-  window.assignTech = async (id, tech) => {
-    await updateDoc(doc(db, 'machines', id), { assignedTech: (tech || '').toLowerCase(), acknowledged: false });
-  };
+    window.requestAccess = async () => {
+      const email = auth.currentUser.email.toLowerCase();
+      const current = userPermissions[email] || {};
+      current.requestingAccess = true;
+      await setDoc(doc(db, "permissions", email), current, { merge: true });
+      alert("Your request has been broadcasted to Mohamed's command center.");
+    };
 
-  window.logout = () => signOut(auth);
+    // UI helpers
+    window.clearFocus = () => {
+      try { document.querySelectorAll('.highlight-focus').forEach(el => el.classList.remove('highlight-focus')); } catch (e) {}
+      const cm = document.getElementById('contentMain');
+      const sb = document.getElementById('mainSidebar');
+      if (cm) cm.classList.remove('blur-bg');
+      if (sb) sb.classList.remove('blur-bg');
+    };
 
-  window.submitReq = async () => {
-    const mId = document.getElementById('reqMachine').value;
-    const issue = document.getElementById('reqIssue').value;
-    if(!mId || !issue) return alert('Select machine and describe issue.');
-    const ref = await addDoc(collection(db, 'interventions'), {
-      machineId: mId,
-      machineName: (state.machineCache[mId] ? state.machineCache[mId].name : 'Unknown Machine'),
-      issue: issue,
-      status: 'PENDING_MOHAMED',
-      timestamp: serverTimestamp(),
-      requester: auth.currentUser.email
-    });
-
-    // PDF for Demande d'intervention
-    window.generatePDF && window.generatePDF({
-      machineName: state.machineCache[mId]?.name || 'Unknown Machine',
-      requester: auth.currentUser.email,
-      issue: issue
-    }, "Demande d'intervention");
-
-    alert('Request sent to Director.');
-  };
-
-  // Emergency call - worker/director
-  window.startEmergencyCall = (mName, isDirector = false) => {
-    document.getElementById('callPopup').style.display = 'block';
-    document.getElementById('callMachineName').innerText = mName;
-    document.getElementById('statusDot').classList.add('dot-active');
-
-    if (!state.jitsiApi) {
-      const domain = 'meet.jit.si';
-      const options = {
-        roomName: 'MercedesEmergency_' + mName.replace(/\s+/g, '_'),
-        width: '100%', height: '100%', parentNode: document.getElementById('videoContainer'),
-        configOverwrite: {
-          startWithAudioMuted: false,
-          startWithVideoMuted: false,
-          enableWelcomePage: false,
-          prejoinPageEnabled: false,
-          disableShortcuts: !isDirector,
-          enableClosePage: isDirector
-        },
-        interfaceConfigOverwrite: {
-          TOOLBAR_BUTTONS: isDirector ? ['microphone','camera','hangup','fittowindow','videobackgroundblur'] : []
-        }
-      };
-      state.jitsiApi = new JitsiMeetExternalAPI(domain, options);
-    }
-  };
-
-  window.endEmergencyCall = async () => {
-    if (state.jitsiApi) { state.jitsiApi.dispose(); state.jitsiApi = null; }
-    document.getElementById('callPopup').style.display = 'none';
-    document.getElementById('statusDot').classList.remove('dot-active');
-
-    if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
-      await updateDoc(doc(db, 'emergency_calls', 'active_session'), { active: false, callMachine: '' });
-    }
-  };
-
-  window.directorTriggerCall = async (mName) => {
-    await setDoc(doc(db, 'emergency_calls', 'active_session'), {
-      active: true, callMachine: mName, triggerSound: Date.now(), timestamp: serverTimestamp()
-    });
-    window.startEmergencyCall(mName, true);
-  };
-
-  /* KPI LOGIC */
-  window.calculateKPIs = () => {
-    const sections = { 'ROBOTIC': { total: 0, working: 0 }, 'PRESS': { total: 0, working: 0 }, 'ASSEMBLY': { total: 0, working: 0 } };
-    const techStats = {};
-    let totalTarget = 0, totalActual = 0, activeMissions = 0;
-
-    Object.values(state.machineCache).forEach(m => {
-      if (sections[m.section]) {
-        sections[m.section].total++;
-        if (m.status === 'WORKING') sections[m.section].working++; else activeMissions++;
+    window.showPage = (id) => {
+      if (!window.checkPermission(id)) {
+        document.getElementById('accessDeniedModal').style.display = 'flex';
+        speakNative("Warning. Access Denied. Biometric signature mismatch. Security protocol 1 0 2 is now active.");
+        return;
       }
-    });
+      // change page
+      ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(p => {
+        const el = document.getElementById(p);
+        if (el) el.style.display = (p === id ? 'block' : 'none');
+      });
+      window.clearFocus();
+      if (id === 'kpiTrackerPage') window.calculateKPIs();
+    };
 
-    state.archivedInterventions.forEach(i => {
-      const tech = i.requester || 'Unknown';
-      if (!techStats[tech]) techStats[tech] = { count: 0, totalTarget: 0, totalActual: 0 };
-      const target = state.machineCache[i.machineId]?.targetMaintenanceTime || 60;
-      const actual = Math.max(1, Math.round((i.actualEnd - i.actualStart) / 60000)); // prevent div/0
-      techStats[tech].count++;
-      techStats[tech].totalTarget += target;
-      techStats[tech].totalActual += actual;
-      totalTarget += target; totalActual += actual;
-    });
+    function speakNative(text, callback) {
+      const msg = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      msg.voice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Premium')) || voices[0];
+      msg.rate = 0.95; msg.pitch = 1.0; if (callback) msg.onend = callback; window.speechSynthesis.speak(msg);
+    }
 
-    const globalEfficiency = totalActual > 0 ? Math.min(100, Math.round((totalTarget / totalActual) * 100)) : 0;
-    const globalValEl = document.getElementById('globalKpiVal');
-    const globalFillEl = document.getElementById('globalKpiFill');
-    const activeMissionsEl = document.getElementById('activeMissionsVal');
-    if(globalValEl) globalValEl.innerText = globalEfficiency + '%';
-    if(globalFillEl) globalFillEl.style.width = globalEfficiency + '%';
-    if(activeMissionsEl) activeMissionsEl.innerText = activeMissions;
+    window.previewMachine = (id) => {
+      const m = machineCache[id]; if(!m) return;
+      const content = `
+        <h2 style="color:#e30613">Machine Profile: ${m.name}</h2>
+        <img src="${m.image}" class="machine-img">
+        <p><b>Target Maint. Time:</b> ${m.targetMaintenanceTime} mins</p>
+        <p><b>Description:</b> ${m.description}</p>
+        <h4>Recent History</h4>
+        <div class="history-log">${m.history?.length ? m.history.map(h => `<div>• ${h}</div>`).join('') : 'No previous records.'}</div>
+      `;
+      document.getElementById('machineDetailContent').innerHTML = content;
+      document.getElementById('machineDetailPopup').style.display = 'block';
+    };
 
-    let healthHtml = '';
-    for (const [name, data] of Object.entries(sections)) {
-      const percent = data.total > 0 ? Math.round((data.working / data.total) * 100) : 0;
-      healthHtml += `
+    window.openMaintenanceGuide = async (intId, mId) => {
+      const popup = document.getElementById('machineDetailPopup');
+      const contentDiv = document.getElementById('machineDetailContent');
+      contentDiv.innerHTML = `<h2 style="color:#e30613; text-align:center;">INITIALIZING PROTOCOL...</h2>`;
+      popup.style.display = 'block';
+      try {
+        const mDoc = await getDoc(doc(db, "machines", mId));
+        const m = mDoc.data();
+        const actualStart = Date.now();
+        const steps = m.steps || M_STEPS["DEFAULT"];
+        contentDiv.innerHTML = `
+          <h2 style="color:#e30613">Technical Protocol: ${m.name}</h2>
+          <div class="card" style="border:1px solid #e30613">
+            <p><b>Actual System Start:</b> ${new Date(actualStart).toLocaleString()}</p>
+            <label>Setup your Start Time (For Record):</label>
+            <input type="datetime-local" id="manualStartTime" value="${new Date().toISOString().slice(0, 16)}">
+            <label>Setup your Finish Time:</label>
+            <input type="datetime-local" id="manualEndTime" value="${new Date().toISOString().slice(0, 16)}">
+          </div>
+          <div id="checklist">
+            ${steps.map((step, i) => `
+              <label class="checklist-item">
+                <input type="checkbox" class="m-check"> [Step ${i+1}] <b>${step}</b>
+              </label>`).join('')}
+          </div>
+          <div class="card">
+            <h4>Evidence Upload</h4>
+            <label>Before Repair:</label><input type="file" id="imgBefore" accept="image/*">
+            <label>After Repair:</label><input type="file" id="imgAfter" accept="image/*">
+          </div>
+          <textarea id="techComment" placeholder="Detailed resolution notes..."></textarea>
+          <button id="finalSubmitBtn" onclick="window.submitTechReport('${intId}', '${mId}', ${actualStart})" style="width:100%">SUBMIT FINAL REPORT</button>
+        `;
+      } catch (err) {
+        contentDiv.innerHTML = `<h2 style="color:red">ERROR LOADING GUIDE</h2><p>${err.message}</p>`;
+      }
+    };
+
+    window.submitTechReport = async (intId, mId, actualStart) => {
+      const checks = document.querySelectorAll('.m-check:checked').length;
+      const comment = document.getElementById('techComment').value;
+      const actualEnd = Date.now();
+      const btn = document.getElementById('finalSubmitBtn');
+      if (checks < 6) return alert("Security Protocol: All 6 steps must be checked.");
+      if (!comment) return alert("Please add a comment.");
+      btn.innerText = "UPLOADING..."; btn.disabled = true;
+      const getBase64 = (file) => new Promise((res) => { if(!file) res(""); const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); });
+      const imgB = await getBase64(document.getElementById('imgBefore').files[0]);
+      const imgA = await getBase64(document.getElementById('imgAfter').files[0]);
+      await updateDoc(doc(db, "interventions", intId), {
+        status: "TECH_COMPLETED",
+        techComment: comment,
+        actualStart,
+        actualEnd,
+        manualStart: document.getElementById('manualStartTime').value,
+        manualEnd: document.getElementById('manualEndTime').value,
+        imageBefore: imgB,
+        imageAfter: imgA,
+        techCompletedTime: serverTimestamp()
+      });
+      document.getElementById('machineDetailPopup').style.display = 'none';
+      alert("Report sent to Director.");
+    };
+
+    window.approveAction = async (intId, mId, status) => {
+      if(status === "PENDING_MOHAMED") {
+        const commentEl = document.getElementById(`appComment_${intId}`);
+        const comment = commentEl ? commentEl.value : "Auto-Approved";
+        await updateDoc(doc(db, "interventions", intId), { status: "APPROVED", directorApprovalComment: comment, approvedAt: serverTimestamp() });
+        await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN", acknowledged: false });
+      } else {
+        const intDoc = await getDoc(doc(db, "interventions", intId));
+        const data = intDoc.data();
+        await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED", finalResetAt: serverTimestamp() });
+        await updateDoc(doc(db, "machines", mId), { status: "WORKING", acknowledged: true, history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed - ${data.techComment}`) });
+      }
+    };
+
+    window.forceModifyReport = async (intId) => {
+      const DIRECTOR_PASS = "MB2024_ADMIN";
+      const pass = prompt("ENTER DIRECTOR ACCESS PASSWORD:");
+      if (pass !== DIRECTOR_PASS) return alert("ACCESS DENIED.");
+      const newIssue = prompt("RECTIFY ISSUE DESCRIPTION:");
+      const newComment = prompt("RECTIFY TECHNICIAN RESOLUTION:");
+      if (newIssue !== null && newComment !== null) {
+        await updateDoc(doc(db, "interventions", intId), { issue: newIssue, techComment: newComment, isEdited: true, editedBy: DIRECTOR, editedAt: serverTimestamp() });
+        alert("REPORT OVERRIDDEN SUCCESSFULLY.");
+        const updatedDoc = await getDoc(doc(db, "interventions", intId));
+        showHistoryDetail({id: updatedDoc.id, ...updatedDoc.data()});
+      }
+    };
+
+    window.deleteIntervention = async (intId) => {
+      if (!confirm("CRITICAL: Delete this entire maintenance record?")) return;
+      const DIRECTOR_PASS = "MB2024_ADMIN";
+      const pass = prompt("CONFIRM PASSWORD:");
+      if (pass !== DIRECTOR_PASS) return;
+      await deleteDoc(doc(db, "interventions", intId));
+      document.getElementById('machineDetailPopup').style.display = 'none';
+      alert("Record permanently erased.");
+    };
+
+    window.updateHistoryImage = async (intId, field) => {
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = 'image/*';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        const r = new FileReader();
+        r.onload = async () => { await updateDoc(doc(db, "interventions", intId), { [field]: r.result }); alert("Image replaced."); const updated = await getDoc(doc(db, "interventions", intId)); showHistoryDetail({id: updated.id, ...updated.data()}); };
+        r.readAsDataURL(file);
+      };
+      input.click();
+    };
+
+    window.deleteImage = async (intId, field) => {
+      if (confirm("Delete this evidence image?")) {
+        await updateDoc(doc(db, "interventions", intId), { [field]: "" });
+        const updated = await getDoc(doc(db, "interventions", intId)); showHistoryDetail({id: updated.id, ...updated.data()});
+      }
+    };
+
+    window.filterHistory = () => {
+      const searchInput = document.getElementById('historySearch');
+      const sortInput = document.getElementById('historyDateSort');
+      if(!searchInput || !sortInput) return;
+      const search = searchInput.value.toLowerCase();
+      const sort = sortInput.value;
+      const container = document.getElementById('historyList');
+      let filtered = archivedInterventions.filter(i => i.machineName.toLowerCase().includes(search));
+      filtered.sort((a,b) => sort === 'newest' ? ((b.finalResetAt?.seconds || 0) - (a.finalResetAt?.seconds || 0)) : ((a.finalResetAt?.seconds || 0) - (b.finalResetAt?.seconds || 0)));
+      container.innerHTML = "";
+      filtered.forEach(i => {
+        const card = document.createElement('div'); card.className = "card"; card.style.cursor = "pointer";
+        const editBadge = i.isEdited ? '<span class="edited-tag">MODIFIED BY DIRECTOR</span>' : '';
+        card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} ${editBadge} <span style="float:right; color:#e30613">Audit Logs ></span>`;
+        card.onclick = () => {
+          const email = auth.currentUser.email.toLowerCase();
+          if (email === DIRECTOR || (userPermissions[email] && userPermissions[email].view_history)) {
+            showHistoryDetail(i);
+          } else {
+            document.getElementById('accessDeniedModal').style.display = 'flex';
+          }
+        };
+        container.appendChild(card);
+      });
+    };
+
+    window.toggleStatus = async (id, current) => {
+      if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
+      const next = current === "WORKING" ? "BREAKDOWN" : "WORKING";
+      await updateDoc(doc(db, "machines", id), { status: next, acknowledged: (next === "WORKING") });
+    };
+
+    window.assignTech = async (id, tech) => { await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false }); };
+
+    window.logout = () => signOut(auth);
+
+    window.submitReq = async () => {
+      const mId = document.getElementById('reqMachine').value; const issue = document.getElementById('reqIssue').value;
+      if(!mId || !issue) return alert("Select machine and describe issue.");
+      await addDoc(collection(db, "interventions"), {
+        machineId: mId, machineName: (machineCache[mId] ? machineCache[mId].name : "Unknown Machine"), issue: issue,
+        status: "PENDING_MOHAMED", timestamp: serverTimestamp(), requester: auth.currentUser.email
+      });
+      alert("Request sent to Director.");
+    };
+
+    window.startEmergencyCall = (mName, isDirector = false) => {
+      document.getElementById('callPopup').style.display = 'block';
+      document.getElementById('callMachineName').innerText = mName;
+      document.getElementById('statusDot').classList.add('dot-active');
+      if (!jitsiApi) {
+        const domain = "meet.jit.si";
+        const options = {
+          roomName: "MercedesEmergency_" + mName.replace(/\s+/g, '_'),
+          width: '100%', height: '100%', parentNode: document.getElementById('videoContainer'),
+          configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: false, enableWelcomePage: false, prejoinPageEnabled: false },
+          interfaceConfigOverwrite: { TOOLBAR_BUTTONS: isDirector ? ['microphone', 'camera', 'hangup', 'fittowindow', 'videobackgroundblur'] : [] }
+        };
+        jitsiApi = new JitsiMeetExternalAPI(domain, options);
+      }
+    };
+
+    window.endEmergencyCall = async () => {
+      if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
+      document.getElementById('callPopup').style.display = 'none';
+      document.getElementById('statusDot').classList.remove('dot-active');
+      if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+        await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false, callMachine: "" });
+      }
+    };
+
+    window.directorTriggerCall = async (mName) => {
+      await setDoc(doc(db, "emergency_calls", "active_session"), { active: true, callMachine: mName, triggerSound: Date.now(), timestamp: serverTimestamp() });
+      window.startEmergencyCall(mName, true);
+    };
+
+    /* KPI LOGIC */
+    window.calculateKPIs = () => {
+      const sections = { "ROBOTIC": { total: 0, working: 0 }, "PRESS": { total: 0, working: 0 }, "ASSEMBLY": { total: 0, working: 0 } };
+      const techStats = {};
+      let totalTarget = 0, totalActual = 0, activeMissions = 0;
+      Object.values(machineCache).forEach(m => { if (sections[m.section]) { sections[m.section].total++; if (m.status === "WORKING") sections[m.section].working++; else activeMissions++; } });
+      archivedInterventions.forEach(i => { const tech = i.requester || "Unknown"; if (!techStats[tech]) techStats[tech] = { count: 0, totalTarget: 0, totalActual: 0 }; const target = machineCache[i.machineId]?.targetMaintenanceTime || 60; const actual = Math.round((i.actualEnd - i.actualStart) / 60000); techStats[tech].count++; techStats[tech].totalTarget += target; techStats[tech].totalActual += actual; totalTarget += target; totalActual += actual; });
+      const globalEfficiency = totalActual > 0 ? Math.min(100, Math.round((totalTarget / totalActual) * 100)) : 0;
+      const globalValEl = document.getElementById('globalKpiVal'); const globalFillEl = document.getElementById('globalKpiFill'); const activeMissionsEl = document.getElementById('activeMissionsVal');
+      if(globalValEl) globalValEl.innerText = globalEfficiency + "%"; if(globalFillEl) globalFillEl.style.width = globalEfficiency + "%"; if(activeMissionsEl) activeMissionsEl.innerText = activeMissions;
+      let healthHtml = "";
+      for (const [name, data] of Object.entries(sections)) { const percent = data.total > 0 ? Math.round((data.working / data.total) * 100) : 0; healthHtml += `
         <div class="line-health-row">
           <div style="display:flex; justify-content:space-between; font-size:11px;">
             <span style="letter-spacing:1px;">${name} UNIT</span>
             <span style="color:#e30613; font-weight:bold;">${percent}%</span>
           </div>
           <div class="health-bar-bg"><div class="health-bar-fill" style="width:${percent}%"></div></div>
-        </div>`;
-    }
-    const lineHealthEl = document.getElementById('lineHealthContent'); if(lineHealthEl) lineHealthEl.innerHTML = healthHtml;
+        </div>`; }
+      const lineHealthEl = document.getElementById('lineHealthContent'); if(lineHealthEl) lineHealthEl.innerHTML = healthHtml;
+      const table = document.getElementById('techKpiTable'); if(table) { table.innerHTML = ""; Object.entries(techStats).sort((a,b) => b[1].count - a[1].count).forEach(([name, stats]) => { const efficiency = Math.min(100, Math.round((stats.totalTarget / stats.totalActual) * 100)); table.innerHTML += `
+        <tr>
+          <td><span style="color:#666; font-size:10px;">ID:</span> <b>${name.split('@')[0].toUpperCase()}</b></td>
+          <td style="font-family:monospace; color:#00ff00;">${efficiency}%</td>
+          <td>
+            <span style="padding:2px 8px; font-size:9px; border:1px solid ${efficiency > 80 ? '#00ff00' : '#ffcc00'}; color:${efficiency > 80 ? '#00ff00' : '#ffcc00'}">
+              ${efficiency > 80 ? 'ELITE' : 'OPERATIONAL'}
+            </span>
+          </td>
+        </tr>`; }); }
+    };
 
-    const table = document.getElementById('techKpiTable');
-    if(table) {
-      table.innerHTML = '';
-      Object.entries(techStats)
-        .sort((a,b) => b[1].count - a[1].count)
-        .forEach(([name, stats]) => {
-          const efficiency = Math.min(100, Math.round((stats.totalTarget / Math.max(1, stats.totalActual)) * 100));
-          table.innerHTML += `
-            <tr>
-              <td><span style="color:#666; font-size:10px;">ID:</span> <b>${name.split('@')[0].toUpperCase()}</b></td>
-              <td style="font-family:monospace; color:#00ff00;">${efficiency}%</td>
-              <td>
-                <span style="padding:2px 8px; font-size:9px; border:1px solid ${efficiency > 80 ? '#00ff00' : '#ffcc00'}; color:${efficiency > 80 ? '#00ff00' : '#ffcc00'}">
-                  ${efficiency > 80 ? 'ELITE' : 'OPERATIONAL'}
-                </span>
-              </td>
-            </tr>`;
+    // AUTH
+    onAuthStateChanged(auth, async user => {
+      if (!user) { window.location.href = "login.html"; return; }
+      const email = user.email.toLowerCase();
+      document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+      // Listen for global permissions
+      onSnapshot(collection(db, "permissions"), snap => {
+        snap.forEach(d => {
+          userPermissions[d.id] = d.data();
+          if (d.id === email) {
+            const hasAll = d.data().do_missions && d.data().view_history;
+            document.getElementById('reqPermissionBox').style.display = hasAll ? 'none' : 'block';
+          }
         });
-    }
-  };
+        ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(id => {
+          const btn = document.getElementById('nav_' + id);
+          if (btn) btn.style.display = (window.checkPermission(id)) ? 'block' : 'none';
+        });
+        if (email === DIRECTOR) { renderPersonnelDashboard(snap); }
+      });
 
-  // AUTH
-  onAuthStateChanged(auth, async user => {
-    if (!user) { window.location.href = 'login.html'; return; }
-    const email = user.email.toLowerCase();
-    document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
-    await primeMediaAccess();
-
-    // Permissions watcher
-    onSnapshot(collection(db, 'permissions'), snap => {
-      snap.forEach(d => {
-        state.userPermissions[d.id] = d.data();
-        if (d.id === email) {
-          const hasAll = d.data().do_missions && d.data().view_history;
-          document.getElementById('reqPermissionBox').style.display = hasAll ? 'none' : 'block';
+      if (email === DIRECTOR) {
+        document.getElementById('adminPanel').style.display = "block";
+        document.getElementById('mohamedConsole').style.display = "block";
+        document.getElementById('hangUpBtn').style.display = "inline-block";
+        onSnapshot(collection(db, "users"), snap => { techList = []; snap.forEach(d => techList.push(d.id)); });
+        loadAdminApprovals();
+      } else {
+        document.getElementById('hangUpBtn').style.display = "none";
+        // 👉 FIRST-TIME REDIRECT TO DEMO
+        const demoKey = `demoDone_${email}`;
+        if (!localStorage.getItem(demoKey)) {
+          window.location.href = 'demo.html';
+          return;
         }
-      });
-      ['mainPage','interventionPage','missionPage','historyPage','kpiTrackerPage','personnelPage'].forEach(id => {
-        const btn = document.getElementById('nav_' + id);
-        if (btn) btn.style.display = (window.checkPermission(id)) ? 'block' : 'none';
-      });
-      if (email === DIRECTOR) { renderPersonnelDashboard(snap); }
+        loadMyMissions(email);
+      }
+      loadMachinesLive(email);
+      loadHistory();
+      listenForEmergency(email);
     });
 
-    if (email === DIRECTOR) {
-      document.getElementById('adminPanel').style.display = 'block';
-      document.getElementById('mohamedConsole').style.display = 'block';
-      document.getElementById('hangUpBtn').style.display = 'inline-block';
+    // PERSONNEL DASHBOARD (ENHANCED)
+    function renderPersonnelDashboard(snap) {
+      const container = document.getElementById('userAccessList');
+      container.innerHTML = "";
+      const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
 
-      onSnapshot(collection(db, 'users'), snap => { state.techList = []; snap.forEach(d => state.techList.push(d.id)); });
-      loadAdminApprovals();
-    } else {
-      document.getElementById('hangUpBtn').style.display = 'none';
-      const demoKey = `demoDone_${email}`;
-      if (!localStorage.getItem(demoKey)) { window.location.href = 'demo.html'; return; }
-      loadMyMissions(email);
-    }
+      snap.forEach(d => {
+        const userEmail = d.id; if (userEmail === DIRECTOR) return;
+        const perms = d.data();
+        const name = userEmail.split('@')[0].toUpperCase();
 
-    loadMachinesLive(email);
-    loadHistory();
-    listenForEmergency(email);
-  });
+        // Basic (fast) placeholders — full details will appear in profile modal
+        const isOnline = Math.random() > 0.3;
+        const position = "PLANT TECHNICIAN";
+        const avatar = `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`;
+        const isRequesting = perms.requestingAccess === true;
 
-  function renderPersonnelDashboard(snap) {
-    const container = document.getElementById('userAccessList');
-    container.innerHTML = '';
-    const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
+        const div = document.createElement('div');
+        div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
+        div.onclick = () => window.openTechProfile(userEmail);
 
-    snap.forEach(d => {
-      const userEmail = d.id; if (userEmail === DIRECTOR) return;
-      const perms = d.data();
-      const name = userEmail.split('@')[0].toUpperCase();
-      const isOnline = Math.random() > 0.3; // (placeholder)
-      const position = 'PLANT TECHNICIAN';
-      const avatar = `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`;
-      const isRequesting = perms.requestingAccess === true;
-
-      const div = document.createElement('div');
-      div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
-      div.onclick = () => window.openTechProfile(userEmail);
-      div.innerHTML = `
-        <img src="${avatar}" class="tech-avatar" alt="Avatar<div style="display:flex; justify-content:space-between; align-items:center;">
-            <span class="tech-name">
-              ${name}
-              ${isRequesting ? ' <span style="color:#ffcc00; font-size:9px;">[REQUESTING ACCESS]</span>' : ''}
-            </span>
-            <div style="display:flex; gap:6px;">
-              <button onclick="event.stopPropagation(); window.directCallTech('${userEmail}')" class="btn-ghost" style="font-size:10px; padding:5px;">📞 DIRECT CALL</button>
-              <button onclick="event.stopPropagation(); window.directorTriggerCall('${name}')" class="btn-ghost" style="font-size:10px; padding:5px;">🚨 EMERGENCY</button>
+        div.innerHTML = `
+          <img src="${avatar}" class="tech-avatar">
+          <div class="tech-info">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="tech-name">
+                ${name}
+                ${isRequesting ? ' <span style="color:#ffcc00; font-size:9px;">[REQUESTING ACCESS]</span>' : ''}
+              </span>
+              <div style="display:flex; gap:6px;">
+                <button onclick="event.stopPropagation(); window.directCallTech('${userEmail}')" 
+                        class="btn-ghost" style="font-size:10px; padding:5px;">📞 DIRECT CALL</button>
+                <button onclick="event.stopPropagation(); window.directorTriggerCall('${name}')"
+                        class="btn-ghost" style="font-size:10px; padding:5px;">🚨 EMERGENCY</button>
+              </div>
+            </div>
+            <div style="font-size:10px; color:#666; margin-top:2px;">
+              ${userEmail} · ${position}
+            </div>
+            <div class="tech-status">
+              <span class="status-dot-small" style="background:${isOnline ? '#00ff00' : '#555'}"></span>
+              <span style="color:${isOnline ? '#00ff00' : '#666'}">${isOnline ? 'ACTIVE ON SITE' : 'OFFLINE'}</span>
+            </div>
+            <div class="perm-grid">
+              ${keys.map(k => `
+                <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" 
+                     onclick="event.stopPropagation(); window.togglePermission('${userEmail}', '${k}')">
+                  ${k.replace('view_', '').replace('request_', '').replace('_', ' ').toUpperCase()}
+                </div>`).join('')}
             </div>
           </div>
-          <div style="font-size:10px; color:#666; margin-top:2px;">
-            ${userEmail} · ${position}
-          </div>
-          <div class="tech-status">
-            <span class="status-dot-small" style="background:${isOnline ? '#00ff00' : '#555'}"></span>
-            <span style="color:${isOnline ? '#00ff00' : '#666'}">${isOnline ? 'ACTIVE ON SITE' : 'OFFLINE'}</span>
-          </div>
-          <div class="perm-grid">
-            ${keys.map(k => `
-              <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" onclick="event.stopPropagation(); window.togglePermission('${userEmail}', '${k}')">
-                ${k.replace('view_','').replace('request_','').replace('_',' ').toUpperCase()}
-              </div>`).join('')
-            }
-          </div>
-        </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // ========== PERSONNEL: open editable profile ==========
+    window.openTechProfile = async (email) => {
+      currentTechEmailForEdit = email;
+
+      // 1) Load user profile
+      let position = '', description = '', status = 'Active';
+      try {
+        const u = await getDoc(doc(db, "users", email));
+        if (u.exists()) {
+          const ud = u.data() || {};
+          position = ud.position || '';
+          description = ud.description || '';
+          status = ud.status || 'Active';
+        }
+      } catch (e) { /* non-fatal */ }
+
+      // 2) Load permissions to show a status badge hint (blocked flag)
+      let blockedBadge = '';
+      try {
+        const p = await getDoc(doc(db, "permissions", email));
+        if (p.exists() && p.data().blocked === true) {
+          blockedBadge = `<span class="status-badge status-blocked">BLOCKED</span>`;
+        } else if (status === 'Active') {
+          blockedBadge = `<span class="status-badge status-active">ACTIVE</span>`;
+        } else if (status === 'On Leave') {
+          blockedBadge = `<span class="status-badge status-leave">ON LEAVE</span>`;
+        } else if (status === 'Suspended') {
+          blockedBadge = `<span class="status-badge status-suspended">SUSPENDED</span>`;
+        }
+      } catch (e) { /* ignore */ }
+
+      // 3) Fill modal fields
+      document.getElementById('techIdentityLine').innerHTML = `
+        <b>${email}</b> ${blockedBadge}
       `;
-      container.appendChild(div);
-    });
-  }
+      document.getElementById('techPositionInput').value = position;
+      document.getElementById('techDescriptionInput').value = description;
+      document.getElementById('techStatusSelect').value = status;
 
-  window.openTechProfile = async (email) => {
-    state.currentTechEmailForEdit = email;
-    let position = '', description = '', status = 'Active';
-    try {
-      const u = await getDoc(doc(db, 'users', email));
-      if (u.exists()) {
-        const ud = u.data() || {};
-        position = ud.position || ''; description = ud.description || ''; status = ud.status || 'Active';
-      }
-    } catch {}
+      // 4) Show
+      document.getElementById('techProfilePopup').style.display = 'block';
+    };
 
-    let statusBadge = '';
-    try {
-      const p = await getDoc(doc(db, 'permissions', email));
-      if (p.exists() && p.data().blocked === true) {
-        statusBadge = `<span class="status-badge status-blocked">BLOCKED</span>`;
-      } else if (status === 'Active') {
-        statusBadge = `<span class="status-badge status-active">ACTIVE</span>`;
-      } else if (status === 'On Leave') {
-        statusBadge = `<span class="status-badge status-leave">ON LEAVE</span>`;
-      } else if (status === 'Suspended') {
-        statusBadge = `<span class="status-badge status-suspended">SUSPENDED</span>`;
-      }
-    } catch {}
+    // ========== PERSONNEL: save profile (position / description / status) ==========
+    window.saveTechProfile = async () => {
+      if (!currentTechEmailForEdit) return;
+      const position = document.getElementById('techPositionInput').value.trim();
+      const description = document.getElementById('techDescriptionInput').value.trim();
+      const status = document.getElementById('techStatusSelect').value;
 
-    document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> ${statusBadge}`;
-    document.getElementById('techPositionInput').value = position;
-    document.getElementById('techDescriptionInput').value = description;
-    document.getElementById('techStatusSelect').value = status;
-    document.getElementById('techProfilePopup').style.display = 'block';
-  };
+      try {
+        // Update profile doc
+        await setDoc(
+          doc(db, "users", currentTechEmailForEdit),
+          { position, description, status, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
 
-  window.saveTechProfile = async () => {
-    if (!state.currentTechEmailForEdit) return;
-    const position = document.getElementById('techPositionInput').value.trim();
-    const description = document.getElementById('techDescriptionInput').value.trim();
-    const status = document.getElementById('techStatusSelect').value;
-
-    try {
-      await setDoc(doc(db, 'users', state.currentTechEmailForEdit), { position, description, status, updatedAt: serverTimestamp() }, { merge: true });
-      if (status === 'Blocked') {
-        await window.blockAllAccess();
-      } else {
-        await setDoc(doc(db, 'permissions', state.currentTechEmailForEdit), { blocked: false }, { merge: true });
-      }
-      alert('Technician profile updated.');
-      document.getElementById('techProfilePopup').style.display = 'none';
-    } catch (e) { alert('Error saving profile: ' + e.message); }
-  };
-
-  window.blockAllAccess = async () => {
-    if (!state.currentTechEmailForEdit) return;
-    const email = state.currentTechEmailForEdit;
-    const allFalse = { view_dashboard:false, request_intervention:false, do_missions:false, view_history:false, view_kpi:false, requestingAccess:false, blocked:true };
-    try {
-      await setDoc(doc(db, 'permissions', email), allFalse, { merge: true });
-      await setDoc(doc(db, 'users', email), { status: 'Blocked', blockedAt: serverTimestamp() }, { merge: true });
-      alert('All accesses revoked and status set to Blocked.');
-      document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class="status-badge status-blocked">BLOCKED</span>`;
-    } catch (e) { alert('Error revoking access: ' + e.message); }
-  };
-
-  function listenForEmergency(email) {
-    // Machines watcher
-    onSnapshot(collection(db, 'machines'), (snap) => {
-      let dangerFound = false; let breakdownListHtml = '';
-      snap.forEach(docu => {
-        const m = docu.data();
-        state.machineCache[docu.id] = m; // keep in sync
-        if (m.status === 'BREAKDOWN' && !m.acknowledged) {
-          if ((m.assignedTech || '').toLowerCase() === email) {
-            dangerFound = true;
-            document.getElementById('dangerDescription').innerText = `FAILURE: ${m.name} [${m.section}]`;
-            document.getElementById('dangerOverlay').style.display = 'flex';
-          }
-          if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
-            breakdownListHtml += `
-              <div style="display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px; border-left: 2px solid #ff3333;">
-                <span><b>${m.name}</b><br><small style="color:#666">Tech: ${m.assignedTech || '-'}</small></span>
-                <button onclick="window.directorTriggerCall('${m.name}')" style="font-size:10px; padding:5px 10px; height:fit-content;">📞 EMERGENCY CALL</button>
-              </div>`;
-          }
+        // Enforce block/unblock synchronization with permissions
+        if (status === 'Blocked') {
+          await window.blockAllAccess();
+        } else {
+          // On restore: ensure the blocked flag is cleared immediately
+          await setDoc(doc(db, "permissions", currentTechEmailForEdit), { blocked: false }, { merge: true });
         }
-      });
-      const listEl = document.getElementById('breakdownCallList');
-      if (listEl) listEl.innerHTML = breakdownListHtml || "<p style='color:#444; font-size:12px;'>No active breakdowns requiring communication.</p>";
-      if (!dangerFound) {
-        const overlay = document.getElementById('dangerOverlay');
-        if (overlay) overlay.style.display = 'none';
-      }
 
-      // if emergency doc already active when machines load, try to auto-join now
-      if (state.lastEmergencyTarget && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
-        const emailNow = auth.currentUser.email.toLowerCase();
-        const assigned = Object.values(state.machineCache).find(m => m.name === state.lastEmergencyTarget && (m.assignedTech || '').toLowerCase() === emailNow);
-        if (assigned && !state.jitsiApi) { window.startEmergencyCall(state.lastEmergencyTarget, false); }
+        alert("Technician profile updated.");
+        document.getElementById('techProfilePopup').style.display = 'none';
+      } catch (e) {
+        alert("Error saving profile: " + e.message);
       }
-    });
+    };
 
-    // Emergency session watcher
-    onSnapshot(doc(db, 'emergency_calls', 'active_session'), (snap) => {
-      const data = snap.data(); if (!data) return;
-      const emailNow = auth.currentUser.email.toLowerCase();
-      state.lastEmergencyTarget = (data.active && data.callMachine) ? data.callMachine : null;
-
-      if (data.triggerSound && state.micReady) {
-        const audio = document.getElementById('effectAudio');
-        audio.play().catch(()=>{});
-        if (emailNow !== DIRECTOR) { speakNative('Direct line opened. Please respond to the Director immediately.'); }
+    // ========== PERSONNEL: one-click revoke (block all access) ==========
+    window.blockAllAccess = async () => {
+      if (!currentTechEmailForEdit) return;
+      const email = currentTechEmailForEdit;
+      const allFalse = {
+        view_dashboard: false,
+        request_intervention: false,
+        do_missions: false,
+        view_history: false,
+        view_kpi: false,
+        requestingAccess: false,
+        blocked: true
+      };
+      try {
+        await setDoc(doc(db, "permissions", email), allFalse, { merge: true });
+        await setDoc(doc(db, "users", email), { status: 'Blocked', blockedAt: serverTimestamp() }, { merge: true });
+        alert("All accesses revoked and status set to Blocked.");
+        document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class="status-badge status-blocked">BLOCKED</span>`;
+      } catch (e) {
+        alert("Error revoking access: " + e.message);
       }
+    };
 
-      if (data.active && data.callMachine) {
-        if (emailNow !== DIRECTOR) {
-          const assignedMachine = Object.values(state.machineCache).find(m => m.name === data.callMachine && (m.assignedTech || '').toLowerCase() === emailNow);
-          if (assignedMachine && !state.jitsiApi) { window.startEmergencyCall(data.callMachine, false); }
-        }
-      } else {
-        if (state.jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); }
-      }
-    });
-  }
+    // ========== PERSONNEL: direct (non-emergency) call from card ==========
+    window.directCallTech = async (email) => {
+      const display = email.split('@')[0].toUpperCase();
+      const roomName = "MercedesDirect_" + email.replace(/[^a-zA-Z0-9_]/g, "_");
 
-  function loadMachinesLive(userEmail) {
-    const table = document.getElementById('assetTable');
-    const select = document.getElementById('reqMachine');
-    onSnapshot(collection(db, 'machines'), (snap) => {
-      if (table) table.innerHTML = '';
-      if (select) {
-        const currentVal = select.value;
-        select.innerHTML = '<option value="">Select Machine...</option>';
-        snap.forEach(s => select.innerHTML += `<option value="${s.id}" ${currentVal===s.id?'selected':''}>${s.data().name}</option>`);
-      }
-      snap.forEach(snapshotDoc => {
-        const m = snapshotDoc.data(); const id = snapshotDoc.id;
-        state.machineCache[id] = m;
-        const isWorking = m.status === 'WORKING';
-        if (table) {
-          let row = `<tr>
-            <td><b style="cursor:pointer;text-decoration:underline" onclick="window.previewMachine('${id}')">${m.machineId || id}</b></td>
-            <td>${m.name}</td>
-            <td>${m.section}</td>
-            <td><span class="${isWorking ? 'status-working' : 'status-breakdown'}" onclick="window.toggleStatus('${id}', '${m.status}')" style="cursor:pointer">${m.status}</span></td>
-            <td>`;
-          if (userEmail === DIRECTOR) {
-            row += `<select class="tech-select" aria-label="Assign technician" onchange="window.assignTech('${id}', this.value)">
-                      <option value="">Assign...</option>
-                      ${state.techList.map(t => `<option value="${t}" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
-                    </select>`;
-          } else {
-            row += `<span>${m.assignedTech || '---'}</span>`;
+      // Open popup
+      document.getElementById('directCallTitle').innerText = `Call with ${display}`;
+      document.getElementById('directCallPopup').style.display = 'block';
+
+      // Create Jitsi instance (separate from emergency flow)
+      if (!directJitsiApi) {
+        const domain = "meet.jit.si";
+        const options = {
+          roomName,
+          width: '100%',
+          height: '100%',
+          parentNode: document.getElementById('directVideoContainer'),
+          configOverwrite: {
+            startWithAudioMuted: false,
+            startWithVideoMuted: false,
+            enableWelcomePage: false,
+            prejoinPageEnabled: false
+          },
+          interfaceConfigOverwrite: {
+            TOOLBAR_BUTTONS: ['microphone','camera','hangup','fittowindow','tileview','chat']
           }
-          row += `</td></tr>`;
-          table.innerHTML += row;
-        }
-      });
-
-      if (state.lastEmergencyTarget && auth.currentUser.email.toLowerCase() !== DIRECTOR) {
-        const emailNow = auth.currentUser.email.toLowerCase();
-        const assigned = Object.values(state.machineCache).find(m => m.name === state.lastEmergencyTarget && (m.assignedTech || '').toLowerCase() === emailNow);
-        if (assigned && !state.jitsiApi) { window.startEmergencyCall(state.lastEmergencyTarget, false); }
+        };
+        directJitsiApi = new JitsiMeetExternalAPI(domain, options);
       }
-    });
-  }
+    };
 
-  function loadMyMissions(email) {
-    const list = document.getElementById('missionList');
-    onSnapshot(query(collection(db, 'interventions'), where('status', '==', 'APPROVED')), (snap) => {
-      if (list) {
-        list.innerHTML = '';
-        snap.forEach(d => {
-          const data = d.data();
-          const assignedToMe = (data.requester || '').toLowerCase() === email || (window.machineCache?.[data.machineId]?.assignedTech || '').toLowerCase() === email;
-          if (assignedToMe) {
-            const card = document.createElement('div'); card.className = 'card';
-            card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
-              <button onclick="window.openMaintenanceGuide('${d.id}', '${data.machineId}')" style="background:#28a745">START MAINTENANCE GUIDE</button>`;
-            list.appendChild(card);
+    // ========== PERSONNEL: direct call from within profile modal ==========
+    window.directCallTechFromProfile = () => {
+      if (!currentTechEmailForEdit) return;
+      window.directCallTech(currentTechEmailForEdit);
+    };
+
+    // ========== PERSONNEL: end direct (non-emergency) call ==========
+    window.endDirectCall = () => {
+      if (directJitsiApi) {
+        try { directJitsiApi.dispose(); } catch (e) {}
+        directJitsiApi = null;
+      }
+      document.getElementById('directCallPopup').style.display = 'none';
+    };
+
+    // ========== Incoming call banner helpers (Technician) ==========
+    window.showIncomingCallBanner = (machineName) => {
+      const b = document.getElementById('incomingCallBanner');
+      document.getElementById('incomingCallContext').innerText = `· ${machineName}`;
+      b.style.display = 'block';
+    };
+    window.dismissIncomingCall = () => {
+      const b = document.getElementById('incomingCallBanner');
+      b.style.display = 'none';
+      pendingIncomingMachine = null;
+    };
+    window.joinIncomingCall = () => {
+      if (!pendingIncomingMachine) return;
+      window.startEmergencyCall(pendingIncomingMachine, false);
+      window.dismissIncomingCall();
+    };
+
+    function listenForEmergency(email) {
+      onSnapshot(collection(db, "machines"), (snap) => {
+        let dangerFound = false; let breakdownListHtml = "";
+        snap.forEach(docu => {
+          const m = docu.data();
+          if (m.status === "BREAKDOWN" && !m.acknowledged) {
+            if (m.assignedTech === email) {
+              dangerFound = true; document.getElementById('dangerDescription').innerText = `FAILURE: ${m.name} [${m.section}]`; document.getElementById('dangerOverlay').style.display = 'flex';
+            }
+            if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
+              breakdownListHtml += `
+                <div style=\"display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px; border-left: 2px solid #ff3333;\">
+                  <span><b>${m.name}</b><br><small style=\"color:#666\">Tech: ${m.assignedTech}</small></span>
+                  <button onclick=\"window.directorTriggerCall('${m.name}')\" style=\"font-size:10px; padding:5px 10px; height:fit-content;\">📞 EMERGENCY CALL</button>
+                </div>`;
+            }
           }
         });
-      }
-    });
-  }
+        const listEl = document.getElementById('breakdownCallList');
+        if (listEl) listEl.innerHTML = breakdownListHtml || "<p style='color:#444; font-size:12px;'>No active breakdowns requiring communication.</p>";
+        if (!dangerFound) { const overlay = document.getElementById('dangerOverlay'); if(overlay) overlay.style.display = 'none'; }
+      });
 
-  function loadAdminApprovals() {
-    const list = document.getElementById('adminApprovalList');
-    onSnapshot(query(collection(db, 'interventions'), where('status', 'in', ['PENDING_MOHAMED', 'TECH_COMPLETED'])), (snap) => {
-      if (list) {
-        list.innerHTML = '';
-        snap.forEach(d => {
-          const data = d.data();
-          const card = document.createElement('div'); card.className = 'card';
+      onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
+        const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
 
-          if (data.status === 'PENDING_MOHAMED') {
+        // 🔔 Play alarm for everyone; TTS only for technicians (not Director)
+        if (data.triggerSound && micReady) {
+          const audio = document.getElementById('effectAudio');
+          audio.play().catch(()=>{});
+          if (emailNow !== DIRECTOR) {
+            // Tech only: voice guidance
+            speakNative("Direct line opened. Please respond to the Director immediately.");
+          }
+        }
+
+        // 📞 If an emergency call is active
+        if (data.active && data.callMachine) {
+          if (emailNow === DIRECTOR) {
+            // Director already opened his call via directorTriggerCall -> startEmergencyCall(true)
+            // Nothing else required
+          } else {
+            // Technician side: Do NOT auto-join. Show banner to join.
+            const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
+            if (assignedMachine && micReady) {
+              pendingIncomingMachine = data.callMachine;
+              window.showIncomingCallBanner(data.callMachine);
+            }
+          }
+        } else {
+          // Call ended: ensure banner hidden and end call if previously joined
+          window.dismissIncomingCall();
+          if (jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); }
+        }
+      });
+    }
+
+    function loadMachinesLive(userEmail) {
+      const table = document.getElementById('assetTable'); const select = document.getElementById('reqMachine');
+      onSnapshot(collection(db, "machines"), (snap) => {
+        if(table) table.innerHTML = "";
+        if(select) { const currentVal = select.value; select.innerHTML = '<option value="">Select Machine...</option>'; snap.forEach(s => select.innerHTML += `<option value="${s.id}" ${currentVal===s.id?'selected':''}>${s.data().name}</option>`); }
+        snap.forEach(snapshotDoc => {
+          const m = snapshotDoc.data(); const id = snapshotDoc.id; machineCache[id] = m; const isWorking = m.status === "WORKING";
+          if(table) {
+            let row = `<tr>
+              <td><b style=\"cursor:pointer;text-decoration:underline\" onclick=\"window.previewMachine('${id}')\">${m.machineId || id}</b></td>
+              <td>${m.name}</td>
+              <td>${m.section}</td>
+              <td><span class=\"${isWorking ? 'status-working' : 'status-breakdown'}\" onclick=\"window.toggleStatus('${id}', '${m.status}')\" style=\"cursor:pointer\">${m.status}</span></td>
+              <td>`;
+            if (userEmail === DIRECTOR) {
+              row += `<select class=\"tech-select\" onchange=\"window.assignTech('${id}', this.value)\">
+                <option value=\"\">Assign...</option>
+                ${techList.map(t => `<option value=\"${t}\" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
+              </select>`;
+            } else {
+              row += `<span>${m.assignedTech || '---'}</span>`;
+            }
+            row += `</td></tr>`; table.innerHTML += row;
+          }
+        });
+      });
+    }
+
+    function loadMyMissions(email) {
+      const list = document.getElementById('missionList');
+      onSnapshot(query(collection(db, "interventions"), where("status", "==", "APPROVED")), (snap) => {
+        if(list) { list.innerHTML = ""; snap.forEach(d => { const data = d.data(); if (data.requester === email || machineCache[data.machineId]?.assignedTech === email) { const card = document.createElement('div'); card.className = "card"; card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
+          <button onclick=\"window.openMaintenanceGuide('${d.id}', '${data.machineId}')\" style=\"background:#28a745\">START MAINTENANCE GUIDE</button>`; list.appendChild(card); } }); }
+      });
+    }
+
+    function loadAdminApprovals() {
+      const list = document.getElementById('adminApprovalList');
+      onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
+        if(list) { list.innerHTML = ""; snap.forEach(d => { const data = d.data(); const card = document.createElement('div'); card.className = "card";
+          if(data.status === "PENDING_MOHAMED") {
             card.innerHTML = `<b>STEP 1: ${data.machineName} REQ</b><br><small>Issue: ${data.issue}</small><br>
-              <label for="appComment_${d.id}">Approval notes</label>
-              <textarea id="appComment_${d.id}" placeholder="Approval notes..."></textarea>
-              <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">APPROVE REPAIR</button>`;
+              <textarea id=\"appComment_${d.id}\" placeholder=\"Approval notes...\"></textarea>
+              <button onclick=\"window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')\">APPROVE REPAIR</button>`;
           } else {
             const actualDuration = Math.round((data.actualEnd - data.actualStart) / 60000);
             const manualDuration = Math.round((new Date(data.manualEnd) - new Date(data.manualStart)) / 60000);
-            const target = window.machineCache?.[data.machineId]?.targetMaintenanceTime || 60;
-            let kpiHtml = `<div style="font-size:12px; margin-top:5px;">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
-            if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class="kpi-alert">⚠️ KPI VARIANCE DETECTED</div>`;
-
+            const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
+            let kpiHtml = `<div style=\"font-size:12px; margin-top:5px;\">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
+            if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class=\"kpi-alert\">⚠️ KPI VARIANCE DETECTED</div>`;
             card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br><small>Report: ${data.techComment}</small>${kpiHtml}
-              <div style="margin-top:10px;">
-                ${data.imageBefore ? `<img src="${data.imageBefore}" class="preview-img" alt="Before `<img src="${data.imageAfter}" class="preview-img" alt="After <button onclick="window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff; width:100%; margin-top:10px;">ARCHIVE & CLOSE ASSET</button>`;
+              <div style=\"margin-top:10px;\"><img src=\"${data.imageBefore}\" class=\"preview-img\"><img src=\"${data.imageAfter}\" class=\"preview-img\"></div>
+              <button onclick=\"window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')\" style=\"background:#007bff; width:100%; margin-top:10px;\">ARCHIVE & CLOSE ASSET</button>`;
           }
           list.appendChild(card);
-        });
-      }
-    });
-  }
+        }); }
+      });
+    }
 
-  function loadHistory() {
-    onSnapshot(query(collection(db, 'interventions'), where('status', '==', 'ARCHIVED')), (snap) => {
-      state.archivedInterventions = [];
-      snap.forEach(d => state.archivedInterventions.push({id: d.id, ...d.data()}));
-      window.filterHistory();
-      const kpiPage = document.getElementById('kpiTrackerPage');
-      if (kpiPage && kpiPage.style.display === 'block') window.calculateKPIs();
-    });
-  }
+    function loadHistory() {
+      onSnapshot(query(collection(db, "interventions"), where("status", "==", "ARCHIVED")), (snap) => {
+        archivedInterventions = []; snap.forEach(d => archivedInterventions.push({id: d.id, ...d.data()}));
+        window.filterHistory(); const kpiPage = document.getElementById('kpiTrackerPage'); if(kpiPage && kpiPage.style.display === 'block') window.calculateKPIs();
+      });
+    }
 
-  function showHistoryDetail(i) {
-    const content = `
-      <div style="display:flex; justify-content:space-between;">
-        <h2 style="color:#e30613">AUDIT LOG: ${i.machineName}</h2>
-        <button onclick="window.deleteIntervention('${i.id}')" style="background:red; font-size:10px;">DELETE RECORD</button>
-      </div>
-      <div class="card">
-        <p><b>Original Issue:</b> ${i.issue}</p>
-        <p><b>Final Resolution:</b> ${i.techComment}</p>
-        <hr>
-        <div style="display:flex; gap:10px;">
-          <div>
-            <small>BEFORE</small><br>
-            ${i.imageBefore ? `<img src="${i.imageBefore}" class="preview-img" alt="Before="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
-            <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageBefore')">REPLACE</span>
-            <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageBefore')">DELETE</span>
-          </div>
-          <div>
-            <small>AFTER</small><br>
-            ${i.imageAfter ? `<img src="${i.imageAfter}" class="preview-img" alt="After="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
-            <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageAfter')">REPLACE</span>
-            <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageAfter')">DELETE</span>
-          </div>
+    function showHistoryDetail(i) {
+      const content = `
+        <div style=\"display:flex; justify-content:space-between;\">
+          <h2 style=\"color:#e30613\">AUDIT LOG: ${i.machineName}</h2>
+          <button onclick=\"window.deleteIntervention('${i.id}')\" style=\"background:red; font-size:10px;\">DELETE RECORD</button>
         </div>
-        <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; margin-top:15px; width:100%">FORCE EDIT TEXT LOGS</button>
-      </div>`;
-    document.getElementById('machineDetailContent').innerHTML = content;
-    document.getElementById('machineDetailPopup').style.display = 'block';
-  }
-  // expose for other sections
-  window.showHistoryDetail = showHistoryDetail;
-
-  // (Optional) Direct call stubs for profile modal button (if you plan to implement)
-  window.directCallTech = (email) => { document.getElementById('directCallTitle').innerText = `Calling ${email}`; document.getElementById('directCallPopup').style.display = 'block'; };
-  window.directCallTechFromProfile = () => { if (!state.currentTechEmailForEdit) return; window.directCallTech(state.currentTechEmailForEdit); };
-  window.endDirectCall = () => { document.getElementById('directCallPopup').style.display = 'none'; };
-</script>
-<!-- ============================================================
- SECTION 8 — DOC-FLOW ADD-ON (Base64 PDFs, read-only widgets)
-============================================================ -->
-<style>
-  /* Added: simple action button for viewing PDFs in the new Doc-Flow widgets */
-  .btn-pdf {
-    background: #007bff; color: #fff; font-size: 11px; width: 100%; border-radius: 4px;
-    display: inline-block; text-align: center; padding: 8px; margin-top: 5px; border: none; cursor: pointer;
-  }
-  .btn-pdf:hover { background: #fff; color: #000; }
-</style>
-
-<script type="module">
-  /* ===========================================================
-   MERCEDES-BENZ PLANT OPS — Doc-Flow (PDF Base64 pipeline)
-   - This module ONLY ADDS features. It does not modify, delete,
-     or override any logic from the original maintenance.html.
-     It auto-generates Base64 PDFs and adds read-only viewers.
-  =========================================================== */
-  import { auth, db } from './firebase.js';
-  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import {
-    collection, doc, onSnapshot, updateDoc, serverTimestamp, query, where
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-
-  async function loadSignatureByEmail(email) {
-    try {
-      if (!email) return null;
-      const fname = email.split("@")[0].toLowerCase() + ".png";
-      const url = "images/Signatures/" + fname + "?t=" + Date.now();
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-        img.src = url;
-      });
-    } catch { return null; }
-  }
-
-  async function generatePDFBase64_DF(data, title, signeeEmail) {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF();
-    const machineName = data?.machineName || 'N/A';
-    const requester = data?.requester || 'N/A';
-    const textBody = (data?.issue || data?.techComment || 'N/A').toString();
-
-    pdf.setFontSize(20); pdf.text("MERCEDES-BENZ OPERATIONS", 10, 20);
-    pdf.setFontSize(16); pdf.text(title || 'Document', 10, 35);
-    pdf.setFontSize(12);
-    pdf.text(`Machine: ${machineName}`, 10, 50);
-    pdf.text(`Date: ${new Date().toLocaleString()}`, 10, 60);
-    pdf.text(`Émis par: ${requester}`, 10, 70);
-    pdf.text("Description:", 10, 85);
-    pdf.text(pdf.splitTextToSize(textBody, 180), 10, 95);
-
-    if (signeeEmail) {
-      const sig = await loadSignatureByEmail(signeeEmail);
-      if (sig) { pdf.text("Signature:", 10, 160); pdf.addImage(sig, 'PNG', 10, 165, 50, 20); }
+        <div class=\"card\">
+          <p><b>Original Issue:</b> ${i.issue}</p>
+          <p><b>Final Resolution:</b> ${i.techComment}</p>
+          <hr>
+          <div style=\"display:flex; gap:10px;\">
+            <div>
+              <small>BEFORE</small><br>
+              ${i.imageBefore ? `<img src=\"${i.imageBefore}\" class=\"preview-img\">` : '<div class=\"preview-img\" style=\"border:1px dashed #333; display:flex; align-items:center; justify-content:center;\">No Image</div>'}
+              <span class=\"img-edit-btn\" onclick=\"window.updateHistoryImage('${i.id}', 'imageBefore')\">REPLACE</span>
+              <span class=\"img-edit-btn\" style=\"color:red;\" onclick=\"window.deleteImage('${i.id}', 'imageBefore')\">DELETE</span>
+            </div>
+            <div>
+              <small>AFTER</small><br>
+              ${i.imageAfter ? `<img src=\"${i.imageAfter}\" class=\"preview-img\">` : '<div class=\"preview-img\" style=\"border:1px dashed #333; display:flex; align-items:center; justify-content:center;\">No Image</div>'}
+              <span class=\"img-edit-btn\" onclick=\"window.updateHistoryImage('${i.id}', 'imageAfter')\">REPLACE</span>
+              <span class=\"img-edit-btn\" style=\"color:red;\" onclick=\"window.deleteImage('${i.id}', 'imageAfter')\">DELETE</span>
+            </div>
+          </div>
+          <button onclick=\"window.forceModifyReport('${i.id}')\" style=\"background:#ffcc00; color:#000; margin-top:15px; width:100%\">FORCE EDIT TEXT LOGS</button>
+        </div>`;
+      document.getElementById('machineDetailContent').innerHTML = content;
+      document.getElementById('machineDetailPopup').style.display = 'block';
     }
-    return pdf.output('datauristring'); // base64 data-uri
-  }
-
-  function openPDF_DF(base64) {
-    if (!base64) { alert("Document non disponible."); return; }
-    const win = window.open();
-    win.document.write('<iframe src="' + base64 + '" frameborder="0" style="border:0;width:100%;height:100%;" allowfullscreen></iframe>');
-  }
-  // expose viewer for inline onclick usage
-  window.openPDF_DF = window.openPDF_DF || openPDF_DF;
-
-  /* UI containers (created without changing original DOM) */
-  function ensureDocFlowContainers() {
-    // Admin panel list for Doc-Flow
-    const adminPanel = document.getElementById('adminPanel');
-    if (adminPanel && !document.getElementById('docFlowAdminList')) {
-      const h = document.createElement('h3');
-      h.textContent = 'Doc-Flow (PDF Archive & Actions)';
-      const wrap = document.createElement('div');
-      wrap.id = 'docFlowAdminList';
-      adminPanel.appendChild(h);
-      adminPanel.appendChild(wrap);
-    }
-    // Mission page extra list for orders with signed PDF
-    const missionPage = document.getElementById('missionPage');
-    if (missionPage && !document.getElementById('missionListDocFlow')) {
-      const h = document.createElement('h3');
-      h.textContent = 'Ordres de Mission (Signés)';
-      const wrap = document.createElement('div');
-      wrap.id = 'missionListDocFlow';
-      wrap.className = 'card';
-      missionPage.appendChild(h);
-      missionPage.appendChild(wrap);
-    }
-    // History page global archive
-    const historyPage = document.getElementById('historyPage');
-    if (historyPage && !document.getElementById('docArchiveList')) {
-      const h = document.createElement('h3');
-      h.textContent = 'Archives Globales des Documents (Doc-Flow)';
-      const wrap = document.createElement('div');
-      wrap.id = 'docArchiveList';
-      historyPage.appendChild(h);
-      historyPage.appendChild(wrap);
-    }
-  }
-
-  function initDocFlow(userEmail) {
-    ensureDocFlowContainers();
-    const adminList = document.getElementById('docFlowAdminList');
-    const missionDF = document.getElementById('missionListDocFlow');
-    const archiveList = document.getElementById('docArchiveList');
-
-    onSnapshot(collection(db, 'interventions'), async (snap) => {
-      // 1) Auto-generate Base64 PDFs when missing (non-destructive)
-      const tasks = [];
-      snap.forEach((d) => {
-        const data = d.data() || {};
-        const id = d.id;
-        const st = (data.status || '').toUpperCase();
-
-        // Demande d'intervention
-        if ((st === 'PENDING_MOHAMED' || st === 'ATTENTE_DIRECTEUR') && !data.pdfDemande) {
-          tasks.push((async () => {
-            const base64 = await generatePDFBase64_DF(data, "Demande d'Intervention", null);
-            await updateDoc(doc(db, 'interventions', id), { pdfDemande: base64, df_demandeAt: serverTimestamp() });
-          })());
-        }
-        // Ordre de Mission
-        if (st === 'APPROVED' && !data.pdfOrdre) {
-          tasks.push((async () => {
-            const base64 = await generatePDFBase64_DF(data, "Ordre de Mission", DIRECTOR);
-            await updateDoc(doc(db, 'interventions', id), { pdfOrdre: base64, df_ordreAt: serverTimestamp() });
-          })());
-        }
-        // Rapport d'Intervention
-        if ((st === 'TECH_COMPLETED' || st === 'TECH_TERMINE') && !data.pdfRapport) {
-          tasks.push((async () => {
-            const signer = (data.requester || '').toString();
-            const base64 = await generatePDFBase64_DF(data, "Rapport d'Intervention", signer);
-            await updateDoc(doc(db, 'interventions', id), { pdfRapport: base64, df_rapportAt: serverTimestamp() });
-          })());
-        }
-        // Accord de Clôture
-        if (st === 'ARCHIVED' && !data.pdfCloture) {
-          tasks.push((async () => {
-            const base64 = await generatePDFBase64_DF(data, "Accord de Clôture", DIRECTOR);
-            await updateDoc(doc(db, 'interventions', id), { pdfCloture: base64, df_clotureAt: serverTimestamp() });
-          })());
-        }
-      });
-      if (tasks.length) { try { await Promise.allSettled(tasks); } catch {} }
-
-      // 2) Build Doc-Flow admin list (read-only add-on)
-      if (adminList) {
-        adminList.innerHTML = '';
-        if (userEmail === DIRECTOR) {
-          snap.forEach((d) => {
-            const data = d.data() || {}; const st = (data.status || '').toUpperCase();
-            if (st === 'PENDING_MOHAMED' || st === 'ATTENTE_DIRECTEUR') {
-              const div = document.createElement('div'); div.className = 'card';
-              div.innerHTML = `
-                <b>Nouvelle Demande: ${data.machineName || ''}</b><br>
-                <button class="btn-pdf" ${data.pdfDemande ? '' : 'disabled'} onclick="openPDF_DF('${data.pdfDemande || ''}')">VOIR LA DEMANDE</button>
-                <button onclick="window.approveAction && window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')">SIGNER & APPROUVER</button>`;
-              adminList.appendChild(div);
-            } else if (st === 'TECH_COMPLETED' || st === 'TECH_TERMINE') {
-              const div = document.createElement('div'); div.className = 'card';
-              div.innerHTML = `
-                <b>Rapport Reçu: ${data.machineName || ''}</b><br>
-                <button class="btn-pdf" ${data.pdfRapport ? '' : 'disabled'} onclick="openPDF_DF('${data.pdfRapport || ''}')">VOIR LE RAPPORT</button>
-                <button onclick="window.approveAction && window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')" style="background:#007bff;">CLÔTURER & ARCHIVER</button>`;
-              adminList.appendChild(div);
-            }
-          });
-        }
-      }
-
-      // 3) Build "Ordres de Mission (Signés)" list for technicians
-      if (missionDF) {
-        missionDF.innerHTML = '';
-        snap.forEach((d) => {
-          const data = d.data() || {}; const st = (data.status || '').toUpperCase();
-          const req = (data.requester || '').toLowerCase();
-          const assigned = (data.assignedTech || '').toLowerCase();
-          if (st === 'APPROVED' && (userEmail === req || userEmail === assigned)) {
-            const card = document.createElement('div'); card.className = 'card';
-            card.innerHTML = `
-              <h3>${data.machineName || ''}</h3>
-              <p>Ordre de mission prêt.</p>
-              <button onclick="openPDF_DF('${data.pdfOrdre || ''}'); window.openMaintenanceGuide && window.openMaintenanceGuide('${d.id}', '${data.machineId}')">
-                DÉBUTER (Ouvre le PDF signé)
-              </button>`;
-            missionDF.appendChild(card);
-          }
-        });
-      }
-
-      // 4) Global doc archive
-      if (archiveList) {
-        archiveList.innerHTML = '';
-        snap.forEach((d) => {
-          const data = d.data() || {}; const st = (data.status || '').toUpperCase();
-          if (userEmail === DIRECTOR || st === 'ARCHIVED') {
-            const hCard = document.createElement('div'); hCard.className = 'card';
-            hCard.innerHTML = `
-              <b>${data.machineName || ''}</b> [Statut: ${data.status || ''}]<br>
-              <div style="display:flex; gap:5px; margin-top:10px; flex-wrap: wrap;">
-                ${data.pdfDemande ? `<button class="btn-pdf" onclick="openPDF_DF('${data.pdfDemande}')">Demande</button>` : ''}
-                ${data.pdfOrdre ? `<button class="btn-pdf" onclick="openPDF_DF('${data.pdfOrdre}')">Ordre (Signé)</button>` : ''}
-                ${data.pdfRapport ? `<button class="btn-pdf" onclick="openPDF_DF('${data.pdfRapport}')">Rapport</button>` : ''}
-                ${data.pdfCloture ? `<button class="btn-pdf" onclick="openPDF_DF('${data.pdfCloture}')">Clôture</button>` : ''}
-              </div>`;
-            archiveList.appendChild(hCard);
-          }
-        });
-      }
-    });
-
-    // parity watcher (kept no-op; main snapshot above rebuilds lists already)
-    onSnapshot(query(collection(db, 'interventions'), where('status', '==', 'APPROVED')), () => {});
-  }
-
-  // Boot the add-on after login (non-intrusive)
-  onAuthStateChanged(auth, (user) => { if (!user) return; try { initDocFlow(user.email.toLowerCase()); } catch {} });
-</script>
-
+  </script>
 </body>
 </html>
