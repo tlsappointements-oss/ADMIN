@@ -1,10 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    style.css
+    <link rel="stylesheet" href="style.css">
     <title>Admin Login</title>
-    https://www.google.com/recaptcha/api.js</script>
-   : 100%; height: 100%;    https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js</script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        /* Cinematic Pop-up Styles */
+        #biometric-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.98);
             z-index: 9999;
             flex-direction: column;
@@ -233,18 +239,8 @@
             if (isAuthorized) {
                 try {
                     await signInWithEmailAndPassword(auth, email, pass);
-
-                    // ----------------------------
-                    // DEMO first-time routing (added)
-                    // ----------------------------
-                    const demoKey = `demoDone_${email}`;
-                    if (email.endsWith('@jobson.com')) {
-                        window.location.href = localStorage.getItem(demoKey) ? "maintenance.html" : "demo.html";
-                    } else {
-                        window.location.href = email.endsWith('@alten.com') ? "prestation.html" : "admin.html";
-                    }
-                    // ----------------------------
-
+                    window.location.href = email.endsWith('@alten.com') ? "prestation.html" : 
+                                          email.endsWith('@jobson.com') ? "maintenance.html" : "admin.html";
                 } catch (e) { 
                     alert("Login Failed: " + e.message); 
                     overlay.style.display = 'none';
@@ -254,9 +250,3 @@
     </script>
 </body>
 </html>
-
-    <style>
-        /* Cinematic Pop-up Styles */
-        #biometric-overlay {
-            display: none;
-            position: fixed;
