@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Mercedes-Benz Plant Operations</title>
   <script src="https://meet.jit.si/external_api.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
     /* SIDEBAR */
@@ -143,7 +144,6 @@
 </head>
 <body>
   <audio id="effectAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
-  <!-- ACCESS DENIED MODAL (kept) -->
   <div id="accessDeniedModal">
     <div class="security-shield">
       <div class="security-scan-line"></div>
@@ -154,13 +154,11 @@
     </div>
   </div>
 
-  <!-- MACHINE DETAIL POPUP -->
   <div id="machineDetailPopup">
     <div id="machineDetailContent"></div>
     <button onclick="document.getElementById('machineDetailPopup').style.display='none'" style="width:100%; margin-top:15px; background:#444;">CLOSE</button>
   </div>
 
-  <!-- TECH PROFILE POPUP (NEW) -->
   <div id="techProfilePopup">
     <h2 class="modal-title">Technician Profile</h2>
     <div id="techIdentityLine" class="modal-subtle"></div>
@@ -192,7 +190,6 @@
     </div>
   </div>
 
-  <!-- DIRECT CALL POPUP (NEW) -->
   <div id="directCallPopup">
     <h2 class="modal-title">Direct Line</h2>
     <div id="directCallTitle" class="modal-subtle"></div>
@@ -202,7 +199,6 @@
     </div>
   </div>
 
-  <!-- EMERGENCY CALL POPUP -->
   <div id="callPopup">
     <h2 style="font-size: 1.2rem; margin: 0;">DIRECTOR EMERGENCY LINE</h2>
     <p id="callMachineName" style="color: #e30613; font-weight: bold; margin: 5px 0;"></p>
@@ -216,7 +212,6 @@
     </div>
   </div>
 
-  <!-- DANGER OVERLAY (technician assigned) -->
   <div id="dangerOverlay">
     <div class="giant-triangle">⚠️</div>
     <div style="font-size: 2.5rem; font-weight: 900;">DANGER</div>
@@ -224,7 +219,6 @@
     <div style="margin-top:10px; font-style: italic; color: #ffcc00;">Assigned to resolve - Connecting to Director...</div>
   </div>
 
-  <!-- Incoming Call Banner (Technician join button) -->
   <div id="incomingCallBanner">
     <span class="title">📞 Director is calling…</span>
     <span id="incomingCallContext"></span>
@@ -232,7 +226,6 @@
     <button class="btn-ghost" style="margin-left:6px;" onclick="window.dismissIncomingCall()">DISMISS</button>
   </div>
 
-  <!-- SIDEBAR -->
   <div class="sidebar" id="mainSidebar">
     <h2 style="color: #e30613;">MERCEDES</h2>
     <button id="audioActivator" onclick="window.activateAudioSystem()">STEP 1: ENABLE MIC</button>
@@ -250,9 +243,7 @@
     <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
   </div>
 
-  <!-- MAIN CONTENT -->
   <div class="main" id="contentMain">
-    <!-- PERSONNEL -->
     <div id="personnelPage">
       <h1 style="letter-spacing: 5px;">PERSONNEL & ACCESS CONTROL</h1>
       <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px;">
@@ -272,7 +263,6 @@
       </div>
     </div>
 
-    <!-- ADMIN -->
     <div id="adminPanel">
       <h3>DIRECTOR CONTROL</h3>
       <div id="adminApprovalList"></div>
@@ -284,7 +274,6 @@
       </div>
     </div>
 
-    <!-- DASHBOARD -->
     <div id="mainPage">
       <h1>Plant Asset Library</h1>
       <table>
@@ -293,7 +282,6 @@
       </table>
     </div>
 
-    <!-- INTERVENTION -->
     <div id="interventionPage">
       <h1>Step 1: Request Intervention</h1>
       <div class="card" id="interventionCard">
@@ -303,13 +291,11 @@
       </div>
     </div>
 
-    <!-- MISSIONS -->
     <div id="missionPage">
       <h1>Step 3: Technical Missions</h1>
       <div id="missionList"></div>
     </div>
 
-    <!-- HISTORY -->
     <div id="historyPage">
       <h1>Maintenance Archive</h1>
       <div class="card">
@@ -322,7 +308,6 @@
       <div id="historyList"></div>
     </div>
 
-    <!-- KPI -->
     <div id="kpiTrackerPage">
       <h1 style="letter-spacing: 5px; text-shadow: 0 0 20px rgba(227,6,19,0.5);">STRATEGIC MISSION CONTROL</h1>
       <div class="kpi-container">
@@ -364,105 +349,87 @@
     </div>
   </div>
 
-  <script type="module">
-  import { jsPDF } from "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.es.min.js";
+<script type="module">
     import { auth, db } from './firebase.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-window.storage = getStorage();
-window.storageRef = storageRef;
-window.uploadBytes = uploadBytes;
-window.getDownloadURL = getDownloadURL;
+    window.storage = getStorage();
+    window.storageRef = storageRef;
+    window.uploadBytes = uploadBytes;
+    window.getDownloadURL = getDownloadURL;
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-// === PDF GENERATOR: creates/updates a PDF for an intervention and stores it ===
-async function generateMaintenancePDF(intData, intId) {
-    try {
-        const pdf = new jsPDF();
 
-        // Header
-        pdf.setFontSize(18);
-        pdf.text("Maintenance Report", 14, 18);
+    // === PDF GENERATOR ===
+    async function generateMaintenancePDF(intData, intId) {
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            pdf.setFontSize(18);
+            pdf.text("Maintenance Report", 14, 18);
+            pdf.setFontSize(12);
+            const submittedAt = intData.timestamp?.toDate?.()?.toLocaleString?.() || (intData.timestamp ? new Date(intData.timestamp).toLocaleString() : "-");
+            const approvedAt = intData.approvedAt?.toDate?.()?.toLocaleString?.() || (intData.approvedAt ? new Date(intData.approvedAt).toLocaleString() : "");
+            const closedAt   = intData.finalResetAt?.toDate?.()?.toLocaleString?.() || (intData.finalResetAt ? new Date(intData.finalResetAt).toLocaleString() : "");
 
-        // Basics
-        pdf.setFontSize(12);
-        const submittedAt = intData.timestamp?.toDate?.()?.toLocaleString?.() 
-            || (intData.timestamp ? new Date(intData.timestamp).toLocaleString() : "-");
-        const approvedAt = intData.approvedAt?.toDate?.()?.toLocaleString?.() 
-            || (intData.approvedAt ? new Date(intData.approvedAt).toLocaleString() : "");
-        const closedAt   = intData.finalResetAt?.toDate?.()?.toLocaleString?.() 
-            || (intData.finalResetAt ? new Date(intData.finalResetAt).toLocaleString() : "");
+            let y = 30;
+            const addLine = (label, value) => {
+                pdf.text(`${label}: ${value ?? "-"}`, 14, y);
+                y += 8;
+            };
 
-        let y = 30;
-        const addLine = (label, value) => {
-            pdf.text(`${label}: ${value ?? "-"}`, 14, y);
-            y += 8;
-        };
+            addLine("Record ID", intId);
+            addLine("Machine", intData.machineName);
+            addLine("Issue", intData.issue);
+            addLine("Requester", intData.requester);
+            addLine("Status", intData.status);
+            addLine("Submitted", submittedAt);
+            if (approvedAt) addLine("Approved", approvedAt);
+            if (closedAt)   addLine("Closed", closedAt);
 
-        addLine("Record ID", intId);
-        addLine("Machine", intData.machineName);
-        addLine("Issue", intData.issue);
-        addLine("Requester", intData.requester);
-        addLine("Status", intData.status);
-        addLine("Submitted", submittedAt);
-        if (approvedAt) addLine("Approved", approvedAt);
-        if (closedAt)   addLine("Closed", closedAt);
-
-        // Technician section
-        if (intData.techComment) {
-            y += 4;
-            pdf.setFont(undefined, "bold");
-            pdf.text("Technician Notes:", 14, y);
-            pdf.setFont(undefined, "normal");
-            y += 6;
-
-            const notes = pdf.splitTextToSize(String(intData.techComment), 180);
-            pdf.text(notes, 14, y);
-            y += Math.max(12, notes.length * 6);
-        }
-
-        // Durations
-        if (intData.actualStart && intData.actualEnd) {
-            const actualDurationMin = Math.round((intData.actualEnd - intData.actualStart) / 60000);
-            const manualDurationMin = (intData.manualStart && intData.manualEnd)
-                ? Math.round((new Date(intData.manualEnd) - new Date(intData.manualStart)) / 60000)
-                : null;
-
-            y += 4;
-            pdf.setFont(undefined, "bold");
-            pdf.text("Durations (minutes):", 14, y);
-            pdf.setFont(undefined, "normal");
-            y += 6;
-
-            addLine("System (Actual)", isNaN(actualDurationMin) ? "-" : `${actualDurationMin}m`);
-            if (manualDurationMin !== null && !isNaN(manualDurationMin)) {
-                addLine("Manual", `${manualDurationMin}m`);
+            if (intData.techComment) {
+                y += 4;
+                pdf.setFont(undefined, "bold");
+                pdf.text("Technician Notes:", 14, y);
+                pdf.setFont(undefined, "normal");
+                y += 6;
+                const notes = pdf.splitTextToSize(String(intData.techComment), 180);
+                pdf.text(notes, 14, y);
+                y += Math.max(12, notes.length * 6);
             }
+
+            if (intData.actualStart && intData.actualEnd) {
+                const actualDurationMin = Math.round((intData.actualEnd - intData.actualStart) / 60000);
+                const manualDurationMin = (intData.manualStart && intData.manualEnd) ? Math.round((new Date(intData.manualEnd) - new Date(intData.manualStart)) / 60000) : null;
+                y += 4;
+                pdf.setFont(undefined, "bold");
+                pdf.text("Durations (minutes):", 14, y);
+                pdf.setFont(undefined, "normal");
+                y += 6;
+                addLine("System (Actual)", isNaN(actualDurationMin) ? "-" : `${actualDurationMin}m`);
+                if (manualDurationMin !== null && !isNaN(manualDurationMin)) {
+                    addLine("Manual", `${manualDurationMin}m`);
+                }
+            }
+
+            const pdfBlob = pdf.output("blob");
+            const storagePath = `reports/${intId}.pdf`;
+            const sRef = window.storageRef(window.storage, storagePath);
+            await window.uploadBytes(sRef, pdfBlob);
+            const url = await window.getDownloadURL(sRef);
+            await updateDoc(doc(db, "interventions", intId), { pdfUrl: url });
+        } catch (e) {
+            console.error("PDF generation failed:", e);
         }
-
-        // Output -> Blob
-        const pdfBlob = pdf.output("blob");
-
-        // Upload to Firebase Storage
-        const storagePath = `reports/${intId}.pdf`;
-        const sRef = window.storageRef(window.storage, storagePath);
-        await window.uploadBytes(sRef, pdfBlob);
-
-        // Get public URL and save back on the intervention
-        const url = await window.getDownloadURL(sRef);
-        await updateDoc(doc(db, "interventions", intId), { pdfUrl: url });
-    } catch (e) {
-        console.error("PDF generation failed:", e);
     }
-}
 
     let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
     let userPermissions = {};
-    let currentTechEmailForEdit = null;    // Personnel: who is being edited (NEW)
-    let directJitsiApi = null;             // Personnel: direct (non-emergency) Jitsi instance (NEW)
-    let pendingIncomingMachine = null;     // For technician banner join (NEW)
+    let currentTechEmailForEdit = null;
+    let directJitsiApi = null;
+    let pendingIncomingMachine = null;
 
     const M_STEPS = {
       "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
@@ -557,7 +524,6 @@ async function generateMaintenancePDF(intData, intId) {
         speakNative("Warning. Access Denied. Biometric signature mismatch. Security protocol 1 0 2 is now active.");
         return;
       }
-      // change page
       ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(p => {
         const el = document.getElementById(p);
         if (el) el.style.display = (p === id ? 'block' : 'none');
@@ -570,11 +536,15 @@ async function generateMaintenancePDF(intData, intId) {
       const msg = new SpeechSynthesisUtterance(text);
       const voices = window.speechSynthesis.getVoices();
       msg.voice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Premium')) || voices[0];
-      msg.rate = 0.95; msg.pitch = 1.0; if (callback) msg.onend = callback; window.speechSynthesis.speak(msg);
+      msg.rate = 0.95;
+      msg.pitch = 1.0;
+      if (callback) msg.onend = callback;
+      window.speechSynthesis.speak(msg);
     }
 
     window.previewMachine = (id) => {
-      const m = machineCache[id]; if(!m) return;
+      const m = machineCache[id];
+      if(!m) return;
       const content = `
         <h2 style="color:#e30613">Machine Profile: ${m.name}</h2>
         <img src="${m.image}" class="machine-img">
@@ -632,614 +602,395 @@ async function generateMaintenancePDF(intData, intId) {
       const btn = document.getElementById('finalSubmitBtn');
       if (checks < 6) return alert("Security Protocol: All 6 steps must be checked.");
       if (!comment) return alert("Please add a comment.");
-      btn.innerText = "UPLOADING..."; btn.disabled = true;
-      const getBase64 = (file) => new Promise((res) => { if(!file) res(""); const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); });
+      btn.innerText = "UPLOADING...";
+      btn.disabled = true;
+
+      const getBase64 = (file) => new Promise((res) => {
+        if(!file) res("");
+        const r=new FileReader();
+        r.onload=()=>res(r.result);
+        r.readAsDataURL(file);
+      });
       const imgB = await getBase64(document.getElementById('imgBefore').files[0]);
       const imgA = await getBase64(document.getElementById('imgAfter').files[0]);
-      await updateDoc(doc(db, "interventions", intId), {
-        status: "TECH_COMPLETED",
+
+      const log = `[${new Date().toLocaleDateString()}] ${comment} (Tech: ${auth.currentUser.email})`;
+      await updateDoc(doc(db, "machines", mId), {
+        status: "WORKING",
+        assignedTech: "",
+        history: arrayUnion(log)
+      });
+      const updatePayload = {
+        status: "COMPLETED",
         techComment: comment,
-        actualStart,
-        actualEnd,
-        manualStart: document.getElementById('manualStartTime').value,
-        manualEnd: document.getElementById('manualEndTime').value,
         imageBefore: imgB,
         imageAfter: imgA,
-        techCompletedTime: serverTimestamp()
+        actualStart,
+        actualEnd,
+        finalResetAt: serverTimestamp(),
+        manualStart: document.getElementById('manualStartTime').value,
+        manualEnd: document.getElementById('manualEndTime').value
+      };
+      await updateDoc(doc(db, "interventions", intId), updatePayload);
+      const finalDoc = await getDoc(doc(db, "interventions", intId));
+      await generateMaintenancePDF(finalDoc.data(), intId);
+      document.getElementById('machineDetailPopup').style.display = 'none';
+      alert("Mission Accomplished. Data transmitted.");
+    };
+
+    // HISTORY FUNCTIONS
+    window.filterHistory = () => {
+      const q = document.getElementById('historySearch').value.toLowerCase();
+      const sort = document.getElementById('historyDateSort').value;
+      let filtered = archivedInterventions.filter(i => i.machineName.toLowerCase().includes(q));
+      filtered.sort((a, b) => {
+        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
+        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+        return sort === 'newest' ? timeB - timeA : timeA - timeB;
       });
-      document.getElementById('machineDetailPopup').style.display = 'none';
-      alert("Report sent to Director.");
+      const container = document.getElementById('historyList');
+      container.innerHTML = filtered.map(i => `
+        <div class="card" style="border-left: 4px solid #00ff00; position:relative;">
+          <div style="display:flex; justify-content:space-between;">
+            <h3 style="margin:0;">${i.machineName}</h3>
+            <span style="font-size:10px; color:#666;">ID: ${i.id}</span>
+          </div>
+          <p style="font-size: 0.8rem; color: #aaa; margin: 5px 0;">Resolved by: ${i.assignedTech || 'Unknown'}</p>
+          <div style="background:#000; padding:10px; border-radius:5px; margin: 10px 0; font-size: 0.85rem;">
+            <b>Director Issue:</b> ${i.issue}<br>
+            <b style="color:#00ff00;">Tech Resolution:</b> ${i.techComment || 'N/A'}
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div>
+              <small>BEFORE</small><br>
+              ${i.imageBefore ? `<img src="${i.imageBefore}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageBefore')">REPLACE</span>
+              <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageBefore')">DELETE</span>
+            </div>
+            <div>
+              <small>AFTER</small><br>
+              ${i.imageAfter ? `<img src="${i.imageAfter}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageAfter')">REPLACE</span>
+              <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageAfter')">DELETE</span>
+            </div>
+          </div>
+          <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; margin-top:15px; width:100%">FORCE EDIT TEXT LOGS</button>
+        </div>`).join('');
     };
 
-    window.approveAction = async (intId, mId, status) => {
-      if(status === "PENDING_MOHAMED") {
-        const commentEl = document.getElementById(`appComment_${intId}`);
-        const comment = commentEl ? commentEl.value : "Auto-Approved";
-        await updateDoc(doc(db, "interventions", intId), { status: "APPROVED", directorApprovalComment: comment, approvedAt: serverTimestamp() });
-        await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN", acknowledged: false });
-try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await generateMaintenancePDF(fullDoc.data(), intId); } catch (e) { console.error(e); }
-      } else {
-        const intDoc = await getDoc(doc(db, "interventions", intId));
-        const data = intDoc.data();
-        await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED", finalResetAt: serverTimestamp() });
-        await updateDoc(doc(db, "machines", mId), { status: "WORKING", acknowledged: true, history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed - ${data.techComment}`) });
-try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await generateMaintenancePDF(fullDoc.data(), intId); } catch (e) { console.error(e); }
-      }
-    };
-
-    window.forceModifyReport = async (intId) => {
-      const DIRECTOR_PASS = "MB2024_ADMIN";
-      const pass = prompt("ENTER DIRECTOR ACCESS PASSWORD:");
-      if (pass !== DIRECTOR_PASS) return alert("ACCESS DENIED.");
-      const newIssue = prompt("RECTIFY ISSUE DESCRIPTION:");
-      const newComment = prompt("RECTIFY TECHNICIAN RESOLUTION:");
-      if (newIssue !== null && newComment !== null) {
-        await updateDoc(doc(db, "interventions", intId), { issue: newIssue, techComment: newComment, isEdited: true, editedBy: DIRECTOR, editedAt: serverTimestamp() });
-        alert("REPORT OVERRIDDEN SUCCESSFULLY.");
-        const updatedDoc = await getDoc(doc(db, "interventions", intId));
-        showHistoryDetail({id: updatedDoc.id, ...updatedDoc.data()});
-      }
-    };
-
-    window.deleteIntervention = async (intId) => {
-      if (!confirm("CRITICAL: Delete this entire maintenance record?")) return;
-      const DIRECTOR_PASS = "MB2024_ADMIN";
-      const pass = prompt("CONFIRM PASSWORD:");
-      if (pass !== DIRECTOR_PASS) return;
-      await deleteDoc(doc(db, "interventions", intId));
-      document.getElementById('machineDetailPopup').style.display = 'none';
-      alert("Record permanently erased.");
-    };
-
-    window.updateHistoryImage = async (intId, field) => {
+    window.updateHistoryImage = (id, field) => {
       const input = document.createElement('input');
-      input.type = 'file'; input.accept = 'image/*';
+      input.type = 'file';
+      input.accept = 'image/*';
       input.onchange = async (e) => {
         const file = e.target.files[0];
-        const r = new FileReader();
-        r.onload = async () => { await updateDoc(doc(db, "interventions", intId), { [field]: r.result }); alert("Image replaced."); const updated = await getDoc(doc(db, "interventions", intId)); showHistoryDetail({id: updated.id, ...updated.data()}); };
-        r.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onload = async () => {
+          await updateDoc(doc(db, "interventions", id), { [field]: reader.result });
+          alert("Image Updated.");
+        };
+        reader.readAsDataURL(file);
       };
       input.click();
     };
 
-    window.deleteImage = async (intId, field) => {
-      if (confirm("Delete this evidence image?")) {
-        await updateDoc(doc(db, "interventions", intId), { [field]: "" });
-        const updated = await getDoc(doc(db, "interventions", intId)); showHistoryDetail({id: updated.id, ...updated.data()});
+    window.deleteImage = async (id, field) => {
+      if(confirm("Permanently delete this evidence?")) {
+        await updateDoc(doc(db, "interventions", id), { [field]: "" });
       }
     };
 
-    window.filterHistory = () => {
-      const searchInput = document.getElementById('historySearch');
-      const sortInput = document.getElementById('historyDateSort');
-      if(!searchInput || !sortInput) return;
-      const search = searchInput.value.toLowerCase();
-      const sort = sortInput.value;
-      const container = document.getElementById('historyList');
-      let filtered = archivedInterventions.filter(i => i.machineName.toLowerCase().includes(search));
-      filtered.sort((a,b) => sort === 'newest' ? ((b.finalResetAt?.seconds || 0) - (a.finalResetAt?.seconds || 0)) : ((a.finalResetAt?.seconds || 0) - (b.finalResetAt?.seconds || 0)));
-      container.innerHTML = "";
-      filtered.forEach(i => {
-        const card = document.createElement('div'); card.className = "card"; card.style.cursor = "pointer";
-        const editBadge = i.isEdited ? '<span class="edited-tag">MODIFIED BY DIRECTOR</span>' : '';
-        card.innerHTML = `<b>${i.machineName}</b> - ${i.finalResetAt ? new Date(i.finalResetAt.seconds * 1000).toLocaleDateString() : 'N/A'} ${editBadge} <span style="float:right; color:#e30613">Audit Logs ></span>`;
-        card.onclick = () => {
-          const email = auth.currentUser.email.toLowerCase();
-          if (email === DIRECTOR || (userPermissions[email] && userPermissions[email].view_history)) {
-            showHistoryDetail(i);
-          } else {
-            document.getElementById('accessDeniedModal').style.display = 'flex';
-          }
-        };
-        container.appendChild(card);
-      });
+    window.forceModifyReport = async (id) => {
+      const i = archivedInterventions.find(x => x.id === id);
+      const newIssue = prompt("Force Edit - Director's Issue Description:", i.issue);
+      const newComment = prompt("Force Edit - Technician Resolution Notes:", i.techComment);
+      if(newIssue !== null && newComment !== null) {
+        await updateDoc(doc(db, "interventions", id), { issue: newIssue, techComment: newComment });
+        alert("Record Modified via Force Access.");
+      }
     };
 
-    window.toggleStatus = async (id, current) => {
-      if (auth.currentUser.email.toLowerCase() !== DIRECTOR) return;
-      const next = current === "WORKING" ? "BREAKDOWN" : "WORKING";
-      await updateDoc(doc(db, "machines", id), { status: next, acknowledged: (next === "WORKING") });
+    // MISSION DATA & KPI
+    onSnapshot(collection(db, "interventions"), (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      archivedInterventions = list.filter(i => i.status === "COMPLETED");
+      window.filterHistory();
+
+      const mList = document.getElementById('missionList');
+      const active = list.filter(i => i.status === "ASSIGNED" && i.assignedTech === auth.currentUser?.email);
+      mList.innerHTML = active.map(i => `
+        <div class="card" style="border-left:4px solid #ffcc00">
+          <h3>MISSION: ${i.machineName}</h3>
+          <p>${i.issue}</p>
+          <button onclick="window.openMaintenanceGuide('${i.id}', '${i.machineId}')" style="background:#ffcc00; color:#000;">BEGIN REPAIR PROTOCOL</button>
+        </div>`).join('') || '<p style="color:#666">No active technical missions.</p>';
+
+      const adminList = document.getElementById('adminApprovalList');
+      const pending = list.filter(i => i.status === "PENDING");
+      adminList.innerHTML = pending.map(i => `
+        <div class="card">
+          <h4>REQ: ${i.machineName}</h4>
+          <p>${i.issue}</p>
+          <p style="font-size:10px; color:#777">From: ${i.requester}</p>
+          <select id="tech_${i.id}" class="tech-select">${techList.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
+          <button onclick="window.approveReq('${i.id}', '${i.machineId}')" style="background:#28a745;">APPROVE & DEPLOY</button>
+          <button onclick="window.denyReq('${i.id}')" style="background:#444; margin-left:10px;">DENY</button>
+        </div>`).join('') || '<p style="color:#666">No pending intervention requests.</p>';
+
+      const callList = document.getElementById('breakdownCallList');
+      const callers = list.filter(i => i.status === "ASSIGNED");
+      callList.innerHTML = callers.map(i => `
+        <div class="card" style="border-color: #e30613;">
+          <b style="color:#e30613;">${i.machineName}</b><br>
+          <small>TECH: ${i.assignedTech}</small>
+          <button onclick="window.startEmergencyCall('${i.machineName}', '${i.machineId}')" style="width:100%; margin-top:10px; font-size:10px;">📞 ESTABLISH DIRECTOR LINK</button>
+        </div>`).join('') || '<p style="color:#666">No technicians currently on dangerous missions.</p>';
+    });
+
+    window.approveReq = async (id, mId) => {
+      const tech = document.getElementById(`tech_${id}`).value;
+      await updateDoc(doc(db, "interventions", id), { status: "ASSIGNED", assignedTech: tech, approvedAt: serverTimestamp() });
+      await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN", assignedTech: tech });
+      speakNative(`Mission approved for ${tech}. Deployment sequence initiated.`);
     };
 
-    window.assignTech = async (id, tech) => { await updateDoc(doc(db, "machines", id), { assignedTech: tech.toLowerCase(), acknowledged: false }); };
-
-    window.logout = () => signOut(auth);
+    window.denyReq = async (id) => {
+      await deleteDoc(doc(db, "interventions", id));
+      speakNative("Intervention request rejected.");
+    };
 
     window.submitReq = async () => {
-      const mId = document.getElementById('reqMachine').value; const issue = document.getElementById('reqIssue').value;
-      if(!mId || !issue) return alert("Select machine and describe issue.");
-      const newRef = await addDoc(collection(db, "interventions"), {
-    machineId: mId, machineName: (machineCache[mId] ? machineCache[mId].name : "Unknown Machine"), issue: issue,
-    status: "PENDING_MOHAMED", timestamp: serverTimestamp(), requester: auth.currentUser.email
-});
-await generateMaintenancePDF({
-    machineName: (machineCache[mId] ? machineCache[mId].name : "Unknown Machine"),
-    issue: issue,
-    requester: auth.currentUser.email,
-    status: "PENDING_MOHAMED",
-    timestamp: Date.now()
-}, newRef.id);
-      alert("Request sent to Director.");
+      const mId = document.getElementById('reqMachine').value;
+      const issue = document.getElementById('reqIssue').value;
+      if (!issue) return alert("Describe the issue.");
+      const m = machineCache[mId];
+      await addDoc(collection(db, "interventions"), {
+        machineId: mId, machineName: m.name, issue, requester: auth.currentUser.email,
+        status: "PENDING", timestamp: serverTimestamp()
+      });
+      document.getElementById('reqIssue').value = "";
+      speakNative("Intervention request transmitted to the Director.");
     };
 
-    window.startEmergencyCall = (mName, isDirector = false) => {
+    // EMERGENCY CALL SYSTEM
+    window.startEmergencyCall = async (machineName, mId) => {
+      if (!micReady) return alert("Run STEP 1 first.");
       document.getElementById('callPopup').style.display = 'block';
-      document.getElementById('callMachineName').innerText = mName;
-      document.getElementById('statusDot').classList.add('dot-active');
-      if (!jitsiApi) {
-        const domain = "meet.jit.si";
-        const options = {
-          roomName: "MercedesEmergency_" + mName.replace(/\s+/g, '_'),
-          width: '100%', height: '100%', parentNode: document.getElementById('videoContainer'),
-          configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: false, enableWelcomePage: false, prejoinPageEnabled: false },
-          interfaceConfigOverwrite: { TOOLBAR_BUTTONS: isDirector ? ['microphone', 'camera', 'hangup', 'fittowindow', 'videobackgroundblur'] : [] }
-        };
-        jitsiApi = new JitsiMeetExternalAPI(domain, options);
-      }
+      document.getElementById('callMachineName').innerText = machineName;
+      const isDirector = auth.currentUser.email === DIRECTOR;
+      if (isDirector) document.getElementById('mohamedConsole').style.display = 'block';
+
+      const roomName = `MB-Plant-Emergency-${mId}`;
+      const domain = "meet.jit.si";
+      const options = {
+        roomName: roomName,
+        width: '100%',
+        height: '100%',
+        parentNode: document.getElementById('videoContainer'),
+        userInfo: { displayName: isDirector ? "DIRECTOR" : "TECHNICIAN" },
+        configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: false },
+        interfaceConfigOverwrite: { TOOLBAR_BUTTONS: ['microphone', 'camera', 'hangup'] }
+      };
+      jitsiApi = new JitsiMeetExternalAPI(domain, options);
+      await setDoc(doc(db, "emergency_calls", "active_session"), {
+        room: roomName, machine: machineName, active: true, triggerSound: 0
+      });
     };
 
     window.endEmergencyCall = async () => {
-      if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
+      if (jitsiApi) jitsiApi.dispose();
       document.getElementById('callPopup').style.display = 'none';
-      document.getElementById('statusDot').classList.remove('dot-active');
-      if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
-        await updateDoc(doc(db, "emergency_calls", "active_session"), { active: false, callMachine: "" });
-      }
+      await setDoc(doc(db, "emergency_calls", "active_session"), { active: false });
     };
 
-    window.directorTriggerCall = async (mName) => {
-      await setDoc(doc(db, "emergency_calls", "active_session"), { active: true, callMachine: mName, triggerSound: Date.now(), timestamp: serverTimestamp() });
-      window.startEmergencyCall(mName, true);
-    };
-
-    /* KPI LOGIC */
-    window.calculateKPIs = () => {
-      const sections = { "ROBOTIC": { total: 0, working: 0 }, "PRESS": { total: 0, working: 0 }, "ASSEMBLY": { total: 0, working: 0 } };
-      const techStats = {};
-      let totalTarget = 0, totalActual = 0, activeMissions = 0;
-      Object.values(machineCache).forEach(m => { if (sections[m.section]) { sections[m.section].total++; if (m.status === "WORKING") sections[m.section].working++; else activeMissions++; } });
-      archivedInterventions.forEach(i => { const tech = i.requester || "Unknown"; if (!techStats[tech]) techStats[tech] = { count: 0, totalTarget: 0, totalActual: 0 }; const target = machineCache[i.machineId]?.targetMaintenanceTime || 60; const actual = Math.round((i.actualEnd - i.actualStart) / 60000); techStats[tech].count++; techStats[tech].totalTarget += target; techStats[tech].totalActual += actual; totalTarget += target; totalActual += actual; });
-      const globalEfficiency = totalActual > 0 ? Math.min(100, Math.round((totalTarget / totalActual) * 100)) : 0;
-      const globalValEl = document.getElementById('globalKpiVal'); const globalFillEl = document.getElementById('globalKpiFill'); const activeMissionsEl = document.getElementById('activeMissionsVal');
-      if(globalValEl) globalValEl.innerText = globalEfficiency + "%"; if(globalFillEl) globalFillEl.style.width = globalEfficiency + "%"; if(activeMissionsEl) activeMissionsEl.innerText = activeMissions;
-      let healthHtml = "";
-      for (const [name, data] of Object.entries(sections)) { const percent = data.total > 0 ? Math.round((data.working / data.total) * 100) : 0; healthHtml += `
-        <div class="line-health-row">
-          <div style="display:flex; justify-content:space-between; font-size:11px;">
-            <span style="letter-spacing:1px;">${name} UNIT</span>
-            <span style="color:#e30613; font-weight:bold;">${percent}%</span>
-          </div>
-          <div class="health-bar-bg"><div class="health-bar-fill" style="width:${percent}%"></div></div>
-        </div>`; }
-      const lineHealthEl = document.getElementById('lineHealthContent'); if(lineHealthEl) lineHealthEl.innerHTML = healthHtml;
-      const table = document.getElementById('techKpiTable'); if(table) { table.innerHTML = ""; Object.entries(techStats).sort((a,b) => b[1].count - a[1].count).forEach(([name, stats]) => { const efficiency = Math.min(100, Math.round((stats.totalTarget / stats.totalActual) * 100)); table.innerHTML += `
-        <tr>
-          <td><span style="color:#666; font-size:10px;">ID:</span> <b>${name.split('@')[0].toUpperCase()}</b></td>
-          <td style="font-family:monospace; color:#00ff00;">${efficiency}%</td>
-          <td>
-            <span style="padding:2px 8px; font-size:9px; border:1px solid ${efficiency > 80 ? '#00ff00' : '#ffcc00'}; color:${efficiency > 80 ? '#00ff00' : '#ffcc00'}">
-              ${efficiency > 80 ? 'ELITE' : 'OPERATIONAL'}
-            </span>
-          </td>
-        </tr>`; }); }
-    };
-
-    // AUTH
-    onAuthStateChanged(auth, async user => {
-      if (!user) { window.location.href = "login.html"; return; }
-      const email = user.email.toLowerCase();
-      document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
-      // Listen for global permissions
-      onSnapshot(collection(db, "permissions"), snap => {
-        snap.forEach(d => {
-          userPermissions[d.id] = d.data();
-          if (d.id === email) {
-            const hasAll = d.data().do_missions && d.data().view_history;
-            document.getElementById('reqPermissionBox').style.display = hasAll ? 'none' : 'block';
-          }
-        });
-        ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(id => {
-          const btn = document.getElementById('nav_' + id);
-          if (btn) btn.style.display = (window.checkPermission(id)) ? 'block' : 'none';
-        });
-        if (email === DIRECTOR) { renderPersonnelDashboard(snap); }
+    // DATA LOADING
+    onSnapshot(collection(db, "machines"), (snap) => {
+      const table = document.getElementById('assetTable');
+      const select = document.getElementById('reqMachine');
+      table.innerHTML = ""; select.innerHTML = "";
+      snap.docs.forEach(d => {
+        const m = d.data();
+        machineCache[d.id] = m;
+        const row = `<tr>
+          <td>${d.id}</td>
+          <td style="font-weight:bold; color:#e30613;">${m.name}</td>
+          <td>${m.section || 'General'}</td>
+          <td><span class="${m.status === 'WORKING' ? 'status-working' : 'status-breakdown'}">${m.status}</span></td>
+          <td><button onclick="window.previewMachine('${d.id}')" style="padding:5px 10px; font-size:10px;">VIEW PROFILE</button></td>
+        </tr>`;
+        table.innerHTML += row;
+        select.innerHTML += `<option value="${d.id}">${m.name}</option>`;
       });
-
-      if (email === DIRECTOR) {
-        document.getElementById('adminPanel').style.display = "block";
-        document.getElementById('mohamedConsole').style.display = "block";
-        document.getElementById('hangUpBtn').style.display = "inline-block";
-        onSnapshot(collection(db, "users"), snap => { techList = []; snap.forEach(d => techList.push(d.id)); });
-        loadAdminApprovals();
-      } else {
-        document.getElementById('hangUpBtn').style.display = "none";
-        // 👉 FIRST-TIME REDIRECT TO DEMO
-        const demoKey = `demoDone_${email}`;
-        if (!localStorage.getItem(demoKey)) {
-          window.location.href = 'demo.html';
-          return;
-        }
-        loadMyMissions(email);
-      }
-      loadMachinesLive(email);
-      loadHistory();
-      listenForEmergency(email);
     });
 
-    // PERSONNEL DASHBOARD (ENHANCED)
-    function renderPersonnelDashboard(snap) {
-      const container = document.getElementById('userAccessList');
-      container.innerHTML = "";
-      const keys = ['view_dashboard', 'request_intervention', 'do_missions', 'view_history', 'view_kpi'];
-
-      snap.forEach(d => {
-        const userEmail = d.id; if (userEmail === DIRECTOR) return;
-        const perms = d.data();
-        const name = userEmail.split('@')[0].toUpperCase();
-
-        // Basic (fast) placeholders — full details will appear in profile modal
-        const isOnline = Math.random() > 0.3;
-        const position = "PLANT TECHNICIAN";
-        const avatar = `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`;
-        const isRequesting = perms.requestingAccess === true;
-
-        const div = document.createElement('div');
-        div.className = `tech-profile-card ${isRequesting ? 'request-glow' : ''}`;
-        div.onclick = () => window.openTechProfile(userEmail);
-
-        div.innerHTML = `
-          <img src="${avatar}" class="tech-avatar">
-          <div class="tech-info">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span class="tech-name">
-                ${name}
-                ${isRequesting ? ' <span style="color:#ffcc00; font-size:9px;">[REQUESTING ACCESS]</span>' : ''}
-              </span>
-              <div style="display:flex; gap:6px;">
-                <button onclick="event.stopPropagation(); window.directCallTech('${userEmail}')" 
-                        class="btn-ghost" style="font-size:10px; padding:5px;">📞 DIRECT CALL</button>
-                <button onclick="event.stopPropagation(); window.directorTriggerCall('${name}')"
-                        class="btn-ghost" style="font-size:10px; padding:5px;">🚨 EMERGENCY</button>
+    onSnapshot(collection(db, "permissions"), (snap) => {
+      snap.docs.forEach(d => { userPermissions[d.id] = d.data(); });
+      const list = document.getElementById('userAccessList');
+      list.innerHTML = "";
+      Object.keys(userPermissions).forEach(email => {
+        const p = userPermissions[email];
+        const isReq = p.requestingAccess;
+        list.innerHTML += `
+          <div class="tech-profile-card ${isReq ? 'request-glow' : ''}" onclick="window.openTechProfile('${email}')">
+            <img src="${p.avatar || 'https://www.w3schools.com/howto/img_avatar.png'}" class="tech-avatar">
+            <div class="tech-info">
+              <div class="tech-name">${email} ${isReq ? '<span class="edited-tag">REQUESTING ACCESS</span>' : ''}</div>
+              <div class="tech-status">
+                <span class="status-dot-small" style="background:${p.status === 'Active' ? '#00ff00' : '#ff3333'}"></span>
+                ${p.position || 'Technician'}
+              </div>
+              <div class="perm-grid">
+                <div class="perm-chip ${p.view_dashboard ? 'perm-active' : ''}" onclick="event.stopPropagation(); window.togglePermission('${email}','view_dashboard')">Dashboard</div>
+                <div class="perm-chip ${p.request_intervention ? 'perm-active' : ''}" onclick="event.stopPropagation(); window.togglePermission('${email}','request_intervention')">Request</div>
+                <div class="perm-chip ${p.do_missions ? 'perm-active' : ''}" onclick="event.stopPropagation(); window.togglePermission('${email}','do_missions')">Missions</div>
+                <div class="perm-chip ${p.view_history ? 'perm-active' : ''}" onclick="event.stopPropagation(); window.togglePermission('${email}','view_history')">History</div>
+                <div class="perm-chip ${p.view_kpi ? 'perm-active' : ''}" onclick="event.stopPropagation(); window.togglePermission('${email}','view_kpi')">KPI Control</div>
               </div>
             </div>
-            <div style="font-size:10px; color:#666; margin-top:2px;">
-              ${userEmail} · ${position}
-            </div>
-            <div class="tech-status">
-              <span class="status-dot-small" style="background:${isOnline ? '#00ff00' : '#555'}"></span>
-              <span style="color:${isOnline ? '#00ff00' : '#666'}">${isOnline ? 'ACTIVE ON SITE' : 'OFFLINE'}</span>
-            </div>
-            <div class="perm-grid">
-              ${keys.map(k => `
-                <div class="perm-chip ${perms[k] ? 'perm-active' : ''}" 
-                     onclick="event.stopPropagation(); window.togglePermission('${userEmail}', '${k}')">
-                  ${k.replace('view_', '').replace('request_', '').replace('_', ' ').toUpperCase()}
-                </div>`).join('')}
-            </div>
-          </div>
-        `;
-        container.appendChild(div);
+          </div>`;
       });
-    }
+      techList = Object.keys(userPermissions);
+    });
 
-    // ========== PERSONNEL: open editable profile ==========
-    window.openTechProfile = async (email) => {
+    onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
+      const data = snap.data();
+      const overlay = document.getElementById('dangerOverlay');
+      const isDirector = auth.currentUser?.email === DIRECTOR;
+      if (data && data.active && !isDirector) {
+        const myAssignment = archivedInterventions.concat(Object.values(machineCache)).find(i => i.assignedTech === auth.currentUser.email && i.status === "BREAKDOWN");
+        if (myAssignment) {
+          overlay.style.display = 'flex';
+          document.getElementById('dangerDescription').innerText = `CRITICAL FAILURE: ${data.machine}`;
+        }
+      } else { overlay.style.display = 'none'; }
+      if (data && data.triggerSound > 0 && !isDirector) {
+        document.getElementById('effectAudio').play();
+      }
+    });
+
+    // PERSONNEL: New functionalities
+    window.openTechProfile = (email) => {
+      if (auth.currentUser.email !== DIRECTOR) return;
       currentTechEmailForEdit = email;
-
-      // 1) Load user profile
-      let position = '', description = '', status = 'Active';
-      try {
-        const u = await getDoc(doc(db, "users", email));
-        if (u.exists()) {
-          const ud = u.data() || {};
-          position = ud.position || '';
-          description = ud.description || '';
-          status = ud.status || 'Active';
-        }
-      } catch (e) { /* non-fatal */ }
-
-      // 2) Load permissions to show a status badge hint (blocked flag)
-      let blockedBadge = '';
-      try {
-        const p = await getDoc(doc(db, "permissions", email));
-        if (p.exists() && p.data().blocked === true) {
-          blockedBadge = `<span class="status-badge status-blocked">BLOCKED</span>`;
-        } else if (status === 'Active') {
-          blockedBadge = `<span class="status-badge status-active">ACTIVE</span>`;
-        } else if (status === 'On Leave') {
-          blockedBadge = `<span class="status-badge status-leave">ON LEAVE</span>`;
-        } else if (status === 'Suspended') {
-          blockedBadge = `<span class="status-badge status-suspended">SUSPENDED</span>`;
-        }
-      } catch (e) { /* ignore */ }
-
-      // 3) Fill modal fields
-      document.getElementById('techIdentityLine').innerHTML = `
-        <b>${email}</b> ${blockedBadge}
-      `;
-      document.getElementById('techPositionInput').value = position;
-      document.getElementById('techDescriptionInput').value = description;
-      document.getElementById('techStatusSelect').value = status;
-
-      // 4) Show
+      const p = userPermissions[email] || {};
+      document.getElementById('techIdentityLine').innerText = email;
+      document.getElementById('techPositionInput').value = p.position || "";
+      document.getElementById('techStatusSelect').value = p.status || "Active";
+      document.getElementById('techDescriptionInput').value = p.description || "";
       document.getElementById('techProfilePopup').style.display = 'block';
     };
 
-    // ========== PERSONNEL: save profile (position / description / status) ==========
     window.saveTechProfile = async () => {
-      if (!currentTechEmailForEdit) return;
-      const position = document.getElementById('techPositionInput').value.trim();
-      const description = document.getElementById('techDescriptionInput').value.trim();
-      const status = document.getElementById('techStatusSelect').value;
-
-      try {
-        // Update profile doc
-        await setDoc(
-          doc(db, "users", currentTechEmailForEdit),
-          { position, description, status, updatedAt: serverTimestamp() },
-          { merge: true }
-        );
-
-        // Enforce block/unblock synchronization with permissions
-        if (status === 'Blocked') {
-          await window.blockAllAccess();
-        } else {
-          // On restore: ensure the blocked flag is cleared immediately
-          await setDoc(doc(db, "permissions", currentTechEmailForEdit), { blocked: false }, { merge: true });
-        }
-
-        alert("Technician profile updated.");
-        document.getElementById('techProfilePopup').style.display = 'none';
-      } catch (e) {
-        alert("Error saving profile: " + e.message);
-      }
-    };
-
-    // ========== PERSONNEL: one-click revoke (block all access) ==========
-    window.blockAllAccess = async () => {
-      if (!currentTechEmailForEdit) return;
       const email = currentTechEmailForEdit;
-      const allFalse = {
-        view_dashboard: false,
-        request_intervention: false,
-        do_missions: false,
-        view_history: false,
-        view_kpi: false,
-        requestingAccess: false,
-        blocked: true
-      };
-      try {
-        await setDoc(doc(db, "permissions", email), allFalse, { merge: true });
-        await setDoc(doc(db, "users", email), { status: 'Blocked', blockedAt: serverTimestamp() }, { merge: true });
-        alert("All accesses revoked and status set to Blocked.");
-        document.getElementById('techIdentityLine').innerHTML = `<b>${email}</b> <span class="status-badge status-blocked">BLOCKED</span>`;
-      } catch (e) {
-        alert("Error revoking access: " + e.message);
-      }
+      await updateDoc(doc(db, "permissions", email), {
+        position: document.getElementById('techPositionInput').value,
+        status: document.getElementById('techStatusSelect').value,
+        description: document.getElementById('techDescriptionInput').value
+      });
+      document.getElementById('techProfilePopup').style.display = 'none';
+      alert("Technician profile synchronized.");
     };
 
-    // ========== PERSONNEL: direct (non-emergency) call from card ==========
-    window.directCallTech = async (email) => {
-      const display = email.split('@')[0].toUpperCase();
-      const roomName = "MercedesDirect_" + email.replace(/[^a-zA-Z0-9_]/g, "_");
+    window.blockAllAccess = async () => {
+      if (!confirm("EMERGENCY: Block all access for this user?")) return;
+      const email = currentTechEmailForEdit;
+      await updateDoc(doc(db, "permissions", email), {
+        view_dashboard: false, request_intervention: false, do_missions: false,
+        view_history: false, view_kpi: false, status: "Blocked"
+      });
+      alert("Access Revoked. User Blacklisted.");
+    };
 
-      // Open popup
-      document.getElementById('directCallTitle').innerText = `Call with ${display}`;
+    window.directCallTechFromProfile = async () => {
+      const targetEmail = currentTechEmailForEdit;
       document.getElementById('directCallPopup').style.display = 'block';
-
-      // Create Jitsi instance (separate from emergency flow)
-      if (!directJitsiApi) {
-        const domain = "meet.jit.si";
-        const options = {
-          roomName,
-          width: '100%',
-          height: '100%',
-          parentNode: document.getElementById('directVideoContainer'),
-          configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            enableWelcomePage: false,
-            prejoinPageEnabled: false
-          },
-          interfaceConfigOverwrite: {
-            TOOLBAR_BUTTONS: ['microphone','camera','hangup','fittowindow','tileview','chat']
-          }
-        };
-        directJitsiApi = new JitsiMeetExternalAPI(domain, options);
-      }
+      document.getElementById('directCallTitle').innerText = `Line with ${targetEmail}`;
+      const roomName = `Direct-Call-${targetEmail.replace(/[@.]/g, '-')}`;
+      const domain = "meet.jit.si";
+      const options = {
+        roomName: roomName, width: '100%', height: '100%',
+        parentNode: document.getElementById('directVideoContainer'),
+        configOverwrite: { startWithAudioMuted: false }
+      };
+      directJitsiApi = new JitsiMeetExternalAPI(domain, options);
+      await setDoc(doc(db, "direct_calls", targetEmail), { room: roomName, caller: DIRECTOR, active: true });
     };
 
-    // ========== PERSONNEL: direct call from within profile modal ==========
-    window.directCallTechFromProfile = () => {
-      if (!currentTechEmailForEdit) return;
-      window.directCallTech(currentTechEmailForEdit);
-    };
-
-    // ========== PERSONNEL: end direct (non-emergency) call ==========
-    window.endDirectCall = () => {
-      if (directJitsiApi) {
-        try { directJitsiApi.dispose(); } catch (e) {}
-        directJitsiApi = null;
-      }
+    window.endDirectCall = async () => {
+      if (directJitsiApi) directJitsiApi.dispose();
       document.getElementById('directCallPopup').style.display = 'none';
+      await deleteDoc(doc(db, "direct_calls", currentTechEmailForEdit));
     };
 
-    // ========== Incoming call banner helpers (Technician) ==========
-    window.showIncomingCallBanner = (machineName) => {
-      const b = document.getElementById('incomingCallBanner');
-      document.getElementById('incomingCallContext').innerText = `· ${machineName}`;
-      b.style.display = 'block';
-    };
-    window.dismissIncomingCall = () => {
-      const b = document.getElementById('incomingCallBanner');
-      b.style.display = 'none';
-      pendingIncomingMachine = null;
-    };
+    onSnapshot(collection(db, "direct_calls"), (snap) => {
+      const myEmail = auth.currentUser?.email;
+      const banner = document.getElementById('incomingCallBanner');
+      let incoming = null;
+      snap.docs.forEach(d => { if(d.id === myEmail) incoming = d.data(); });
+      if (incoming && incoming.active) {
+        banner.style.display = 'flex';
+        document.getElementById('incomingCallContext').innerText = `Room: ${incoming.room}`;
+        pendingIncomingMachine = incoming.room;
+      } else { banner.style.display = 'none'; }
+    });
+
     window.joinIncomingCall = () => {
-      if (!pendingIncomingMachine) return;
-      window.startEmergencyCall(pendingIncomingMachine, false);
-      window.dismissIncomingCall();
+      document.getElementById('callPopup').style.display = 'block';
+      document.getElementById('incomingCallBanner').style.display = 'none';
+      const domain = "meet.jit.si";
+      const options = {
+        roomName: pendingIncomingMachine, width: '100%', height: '100%',
+        parentNode: document.getElementById('videoContainer')
+      };
+      jitsiApi = new JitsiMeetExternalAPI(domain, options);
     };
 
-    function listenForEmergency(email) {
-      onSnapshot(collection(db, "machines"), (snap) => {
-        let dangerFound = false; let breakdownListHtml = "";
-        snap.forEach(docu => {
-          const m = docu.data();
-          if (m.status === "BREAKDOWN" && !m.acknowledged) {
-            if (m.assignedTech === email) {
-              dangerFound = true; document.getElementById('dangerDescription').innerText = `FAILURE: ${m.name} [${m.section}]`; document.getElementById('dangerOverlay').style.display = 'flex';
-            }
-            if (auth.currentUser.email.toLowerCase() === DIRECTOR) {
-              breakdownListHtml += `
-                <div style=\"display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px; border-left: 2px solid #ff3333;\">
-                  <span><b>${m.name}</b><br><small style=\"color:#666\">Tech: ${m.assignedTech}</small></span>
-                  <button onclick=\"window.directorTriggerCall('${m.name}')\" style=\"font-size:10px; padding:5px 10px; height:fit-content;\">📞 EMERGENCY CALL</button>
-                </div>`;
-            }
-          }
-        });
-        const listEl = document.getElementById('breakdownCallList');
-        if (listEl) listEl.innerHTML = breakdownListHtml || "<p style='color:#444; font-size:12px;'>No active breakdowns requiring communication.</p>";
-        if (!dangerFound) { const overlay = document.getElementById('dangerOverlay'); if(overlay) overlay.style.display = 'none'; }
+    window.dismissIncomingCall = async () => {
+      document.getElementById('incomingCallBanner').style.display = 'none';
+      await deleteDoc(doc(db, "direct_calls", auth.currentUser.email));
+    };
+
+    window.calculateKPIs = () => {
+      const total = Object.keys(machineCache).length;
+      if (total === 0) return;
+      const working = Object.values(machineCache).filter(m => m.status === 'WORKING').length;
+      const percent = Math.round((working / total) * 100);
+      document.getElementById('globalKpiVal').innerText = percent + "%";
+      document.getElementById('globalKpiFill').style.width = percent + "%";
+      document.getElementById('activeMissionsVal').innerText = archivedInterventions.filter(i => i.status === "ASSIGNED").length;
+
+      const sections = {};
+      Object.values(machineCache).forEach(m => {
+        const s = m.section || 'General';
+        if (!sections[s]) sections[s] = { total: 0, working: 0 };
+        sections[s].total++;
+        if (m.status === 'WORKING') sections[s].working++;
       });
-
-      onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
-        const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
-
-        // 🔔 Play alarm for everyone; TTS only for technicians (not Director)
-        if (data.triggerSound && micReady) {
-          const audio = document.getElementById('effectAudio');
-          audio.play().catch(()=>{});
-          if (emailNow !== DIRECTOR) {
-            // Tech only: voice guidance
-            speakNative("Direct line opened. Please respond to the Director immediately.");
-          }
-        }
-
-        // 📞 If an emergency call is active
-        if (data.active && data.callMachine) {
-          if (emailNow === DIRECTOR) {
-            // Director already opened his call via directorTriggerCall -> startEmergencyCall(true)
-            // Nothing else required
-          } else {
-            // Technician side: Do NOT auto-join. Show banner to join.
-            const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow);
-            if (assignedMachine && micReady) {
-              pendingIncomingMachine = data.callMachine;
-              window.showIncomingCallBanner(data.callMachine);
-            }
-          }
-        } else {
-          // Call ended: ensure banner hidden and end call if previously joined
-          window.dismissIncomingCall();
-          if (jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); }
-        }
-      });
-    }
-
-    function loadMachinesLive(userEmail) {
-      const table = document.getElementById('assetTable'); const select = document.getElementById('reqMachine');
-      onSnapshot(collection(db, "machines"), (snap) => {
-        if(table) table.innerHTML = "";
-        if(select) { const currentVal = select.value; select.innerHTML = '<option value="">Select Machine...</option>'; snap.forEach(s => select.innerHTML += `<option value="${s.id}" ${currentVal===s.id?'selected':''}>${s.data().name}</option>`); }
-        snap.forEach(snapshotDoc => {
-          const m = snapshotDoc.data(); const id = snapshotDoc.id; machineCache[id] = m; const isWorking = m.status === "WORKING";
-          if(table) {
-            let row = `<tr>
-              <td><b style=\"cursor:pointer;text-decoration:underline\" onclick=\"window.previewMachine('${id}')\">${m.machineId || id}</b></td>
-              <td>${m.name}</td>
-              <td>${m.section}</td>
-              <td><span class=\"${isWorking ? 'status-working' : 'status-breakdown'}\" onclick=\"window.toggleStatus('${id}', '${m.status}')\" style=\"cursor:pointer\">${m.status}</span></td>
-              <td>`;
-            if (userEmail === DIRECTOR) {
-              row += `<select class=\"tech-select\" onchange=\"window.assignTech('${id}', this.value)\">
-                <option value=\"\">Assign...</option>
-                ${techList.map(t => `<option value=\"${t}\" ${m.assignedTech === t ? 'selected' : ''}>${t}</option>`).join('')}
-              </select>`;
-            } else {
-              row += `<span>${m.assignedTech || '---'}</span>`;
-            }
-            row += `</td></tr>`; table.innerHTML += row;
-          }
-        });
-      });
-    }
-
-    function loadMyMissions(email) {
-      const list = document.getElementById('missionList');
-      onSnapshot(query(collection(db, "interventions"), where("status", "==", "APPROVED")), (snap) => {
-        if(list) { list.innerHTML = ""; snap.forEach(d => { const data = d.data(); if (data.requester === email || machineCache[data.machineId]?.assignedTech === email) { const card = document.createElement('div'); card.className = "card"; card.innerHTML = `<h3>MISSION: ${data.machineName}</h3><p>Issue: ${data.issue}</p>
-          <button onclick=\"window.openMaintenanceGuide('${d.id}', '${data.machineId}')\" style=\"background:#28a745\">START MAINTENANCE GUIDE</button>`; list.appendChild(card); } }); }
-      });
-    }
-
-    function loadAdminApprovals() {
-      const list = document.getElementById('adminApprovalList');
-      onSnapshot(query(collection(db, "interventions"), where("status", "in", ["PENDING_MOHAMED", "TECH_COMPLETED"])), (snap) => {
-        if(list) { list.innerHTML = ""; snap.forEach(d => { const data = d.data(); const card = document.createElement('div'); card.className = "card";
-          if(data.status === "PENDING_MOHAMED") {
-            card.innerHTML = `<b>STEP 1: ${data.machineName} REQ</b><br><small>Issue: ${data.issue}</small><br>
-              <textarea id=\"appComment_${d.id}\" placeholder=\"Approval notes...\"></textarea>
-              <button onclick=\"window.approveAction('${d.id}', '${data.machineId}', 'PENDING_MOHAMED')\">APPROVE REPAIR</button>`;
-          } else {
-            const actualDuration = Math.round((data.actualEnd - data.actualStart) / 60000);
-            const manualDuration = Math.round((new Date(data.manualEnd) - new Date(data.manualStart)) / 60000);
-            const target = machineCache[data.machineId]?.targetMaintenanceTime || 60;
-            let kpiHtml = `<div style=\"font-size:12px; margin-top:5px;\">• System: ${actualDuration}m · Manual: ${manualDuration}m · Target: ${target}m</div>`;
-            if (actualDuration > target || actualDuration !== manualDuration) kpiHtml += `<div class=\"kpi-alert\">⚠️ KPI VARIANCE DETECTED</div>`;
-            card.innerHTML = `<b>STEP 4: ${data.machineName} FINAL REVIEW</b><br><small>Report: ${data.techComment}</small>${kpiHtml}
-              <div style=\"margin-top:10px;\"><img src=\"${data.imageBefore}\" class=\"preview-img\"><img src=\"${data.imageAfter}\" class=\"preview-img\"></div>
-              <button onclick=\"window.approveAction('${d.id}', '${data.machineId}', 'TECH_COMPLETED')\" style=\"background:#007bff; width:100%; margin-top:10px;\">ARCHIVE & CLOSE ASSET</button>`;
-          }
-          list.appendChild(card);
-        }); }
-      });
-    }
-
-    function loadHistory() {
-      onSnapshot(query(collection(db, "interventions"), where("status", "==", "ARCHIVED")), (snap) => {
-        archivedInterventions = []; snap.forEach(d => archivedInterventions.push({id: d.id, ...d.data()}));
-        window.filterHistory(); const kpiPage = document.getElementById('kpiTrackerPage'); if(kpiPage && kpiPage.style.display === 'block') window.calculateKPIs();
-      });
-    }
-
-    function showHistoryDetail(i) {
-      const content = `
-        <div style=\"display:flex; justify-content:space-between;\">
-          <h2 style=\"color:#e30613\">AUDIT LOG: ${i.machineName}</h2>
-          <button onclick=\"window.deleteIntervention('${i.id}')\" style=\"background:red; font-size:10px;\">DELETE RECORD</button>
-        </div>
-        
-  <div style="margin:8px 0 12px 0;">
-    ${i.pdfUrl 
-      ? '<a href="+ i.pdfUrl +" target="_blank" style="color:#00ff00;font-weight:bold;text-decoration:underline;">📄 OPEN PDF REPORT</a>'
-      : '<span style="color:#555;">No PDF available yet</span>'}
-  </div>
-  <div class=\"card\">
-          <p><b>Original Issue:</b> ${i.issue}</p>
-          <p><b>Final Resolution:</b> ${i.techComment}</p>
-          <hr>
-          <div style=\"display:flex; gap:10px;\">
-            <div>
-              <small>BEFORE</small><br>
-              ${i.imageBefore ? `<img src=\"${i.imageBefore}\" class=\"preview-img\">` : '<div class=\"preview-img\" style=\"border:1px dashed #333; display:flex; align-items:center; justify-content:center;\">No Image</div>'}
-              <span class=\"img-edit-btn\" onclick=\"window.updateHistoryImage('${i.id}', 'imageBefore')\">REPLACE</span>
-              <span class=\"img-edit-btn\" style=\"color:red;\" onclick=\"window.deleteImage('${i.id}', 'imageBefore')\">DELETE</span>
+      const healthDiv = document.getElementById('lineHealthContent');
+      healthDiv.innerHTML = "";
+      Object.keys(sections).forEach(s => {
+        const p = Math.round((sections[s].working / sections[s].total) * 100);
+        healthDiv.innerHTML += `
+          <div class="line-health-row">
+            <div style="display:flex; justify-content:space-between; font-size:11px;">
+              <span>${s.toUpperCase()}</span><span>${p}%</span>
             </div>
-            <div>
-              <small>AFTER</small><br>
-              ${i.imageAfter ? `<img src=\"${i.imageAfter}\" class=\"preview-img\">` : '<div class=\"preview-img\" style=\"border:1px dashed #333; display:flex; align-items:center; justify-content:center;\">No Image</div>'}
-              <span class=\"img-edit-btn\" onclick=\"window.updateHistoryImage('${i.id}', 'imageAfter')\">REPLACE</span>
-              <span class=\"img-edit-btn\" style=\"color:red;\" onclick=\"window.deleteImage('${i.id}', 'imageAfter')\">DELETE</span>
-            </div>
-          </div>
-          <button onclick=\"window.forceModifyReport('${i.id}')\" style=\"background:#ffcc00; color:#000; margin-top:15px; width:100%\">FORCE EDIT TEXT LOGS</button>
-        </div>`;
-      document.getElementById('machineDetailContent').innerHTML = content;
-      document.getElementById('machineDetailPopup').style.display = 'block';
-    }
-  </script>
+            <div class="health-bar-bg"><div class="health-bar-fill" style="width:${p}%; background:${p < 50 ? '#ff3333' : '#e30613'}"></div></div>
+          </div>`;
+      });
+    };
+
+    // AUTH
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('userDisplay').innerText = `OPERATOR: ${user.email.toUpperCase()}`;
+        if (user.email.toLowerCase() !== DIRECTOR) document.getElementById('reqPermissionBox').style.display = 'block';
+        else document.getElementById('adminPanel').style.display = 'none'; // Director uses personnel page mostly
+      } else { window.location.href = "index.html"; }
+    });
+
+    window.logout = () => signOut(auth);
+
+</script>
 </body>
 </html>
