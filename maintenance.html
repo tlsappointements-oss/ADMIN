@@ -387,16 +387,21 @@
     /* --- PART B: PDF GENERATOR --- */
     async function generateMaintenancePDF(intData, intId) {
         try {
+            // Updated initialization for jspdf.umd.min.js
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
+            
             pdf.setFontSize(18);
             pdf.text("Maintenance Report", 14, 18);
             pdf.setFontSize(12);
+
             const submittedAt = intData.timestamp?.toDate?.()?.toLocaleString?.() || (intData.timestamp ? new Date(intData.timestamp).toLocaleString() : "-");
             const approvedAt = intData.approvedAt?.toDate?.()?.toLocaleString?.() || (intData.approvedAt ? new Date(intData.approvedAt).toLocaleString() : "");
             const closedAt = intData.finalResetAt?.toDate?.()?.toLocaleString?.() || (intData.finalResetAt ? new Date(intData.finalResetAt).toLocaleString() : "");
+
             let y = 30;
             const addLine = (label, value) => { pdf.text(`${label}: ${value ?? "-"}`, 14, y); y += 8; };
+
             addLine("Record ID", intId);
             addLine("Machine", intData.machineName);
             addLine("Issue", intData.issue);
@@ -405,15 +410,45 @@
             addLine("Submitted", submittedAt);
             if (approvedAt) addLine("Approved", approvedAt);
             if (closedAt) addLine("Closed", closedAt);
-            if (intData.techComment) { y += 4; pdf.setFont(undefined, "bold"); pdf.text("Technician Notes:", 14, y); pdf.setFont(undefined, "normal"); y += 6; const notes = pdf.splitTextToSize(String(intData.techComment), 180); pdf.text(notes, 14, y); y += Math.max(12, notes.length * 6); }
-            if (intData.actualStart && intData.actualEnd) { const actualDurationMin = Math.round((intData.actualEnd - intData.actualStart) / 60000); const manualDurationMin = (intData.manualStart && intData.manualEnd) ? Math.round((new Date(intData.manualEnd) - new Date(intData.manualStart)) / 60000) : null; y += 4; pdf.setFont(undefined, "bold"); pdf.text("Durations (minutes):", 14, y); pdf.setFont(undefined, "normal"); y += 6; addLine("System (Actual)", isNaN(actualDurationMin) ? "-" : `${actualDurationMin}m`); if (manualDurationMin !== null && !isNaN(manualDurationMin)) { addLine("Manual", `${manualDurationMin}m`); } }
+
+            if (intData.techComment) {
+                y += 4;
+                pdf.setFont(undefined, "bold");
+                pdf.text("Technician Notes:", 14, y);
+                pdf.setFont(undefined, "normal");
+                y += 6;
+                const notes = pdf.splitTextToSize(String(intData.techComment), 180);
+                pdf.text(notes, 14, y);
+                y += Math.max(12, notes.length * 6);
+            }
+
+            if (intData.actualStart && intData.actualEnd) {
+                const actualDurationMin = Math.round((intData.actualEnd - intData.actualStart) / 60000);
+                const manualDurationMin = (intData.manualStart && intData.manualEnd) ? Math.round((new Date(intData.manualEnd) - new Date(intData.manualStart)) / 60000) : null;
+                y += 4;
+                pdf.setFont(undefined, "bold");
+                pdf.text("Durations (minutes):", 14, y);
+                pdf.setFont(undefined, "normal");
+                y += 6;
+                addLine("System (Actual)", isNaN(actualDurationMin) ? "-" : `${actualDurationMin}m`);
+                if (manualDurationMin !== null && !isNaN(manualDurationMin)) {
+                    addLine("Manual", `${manualDurationMin}m`);
+                }
+            }
+
             const pdfBlob = pdf.output("blob");
             const storagePath = `reports/${intId}.pdf`;
             const sRef = window.storageRef(window.storage, storagePath);
+            
+            // Log for debugging
+            console.log("Uploading PDF for ID:", intId);
             await window.uploadBytes(sRef, pdfBlob);
             const url = await window.getDownloadURL(sRef);
+            
             await updateDoc(doc(db, "interventions", intId), { pdfUrl: url });
-        } catch (e) { console.error("PDF generation failed:", e); }
+            console.log("PDF generated and URL saved:", url);
+        } catch (e) { 
+            console.error("CRITICAL: PDF generation failed. Check Storage rules and library loading.", e); 
     }
 
     /* --- PART C: UTILITIES & SYSTEM INIT --- */
@@ -703,27 +738,42 @@
     }
 
     function showHistoryDetail(i) {
-      const content = ` <div style=\"display:flex; justify-content:space-between;\"> <h2 style=\"color:#e30613\">AUDIT LOG: ${i.machineName}</h2> <button onclick=\"window.deleteIntervention('${i.id}')\" style=\"background:red; font-size:10px;\">DELETE RECORD</button> </div> <div style="margin:8px 0 12px 0;"> ${i.pdfUrl ? '<a href="' + i.pdfUrl + '" target="_blank" style="color:#00ff00;font-weight:bold;text-decoration:underline;">📄 OPEN PDF REPORT</a>' : '<span style="color:#555;">No PDF available yet</span>'} </div> <div class=\"card\"> <p><b>Original Issue:</b> ${i.issue}</p> <p><b>Final Resolution:</b> ${i.techComment}</p> <hr> <div style=\"display:flex; gap:10px;\"> <div> <small>BEFORE</small><br> ${i.imageBefore ? `<img src=\"${i.imageBefore}\" class=\"preview-img\">` : '<div class=\"preview-img\" style=\"border:1px dashed #333; display:flex; align-items:center; justify-content:center;\">No Image</div>'} <span class=\"img-edit-btn\" onclick=\"window.updateHistoryImage('${i.id}', 'imageBefore')\">REPLACE</span> <span class=\"img-edit-btn\" style=\"color:red;\" onclick=\"window.deleteImage('${i.id}', 'imageBefore')\">DELETE</span> </div> <div> <small>AFTER</small><br> ${i.imageAfter ? `<img src=\"${i.imageAfter}\" class=\"preview-img\">` : '<div class=\"preview-img\" style=\"border:1px dashed #333; display:flex; align-items:center; justify-content:center;\">No Image</div>'} <span class=\"img-edit-btn\" onclick=\"window.updateHistoryImage('${i.id}', 'imageAfter')\">REPLACE</span> <span class=\"img-edit-btn\" style=\"color:red;\" onclick=\"window.deleteImage('${i.id}', 'imageAfter')\">DELETE</span> </div> </div> <button onclick=\"window.forceModifyReport('${i.id}')\" style=\"background:#ffcc00; color:#000; margin-top:15px; width:100%\">FORCE EDIT TEXT LOGS</button> </div>`;
-      document.getElementById('machineDetailContent').innerHTML = content; document.getElementById('machineDetailPopup').style.display = 'block';
-    }
-
-    function listenForEmergency(email) {
-      onSnapshot(collection(db, "machines"), (snap) => {
-        let dangerFound = false; let breakdownListHtml = "";
-        snap.forEach(docu => {
-          const m = docu.data(); if (m.status === "BREAKDOWN" && !m.acknowledged) {
-            if (m.assignedTech === email) { dangerFound = true; document.getElementById('dangerDescription').innerText = `FAILURE: ${m.name} [${m.section}]`; document.getElementById('dangerOverlay').style.display = 'flex'; }
-            if (auth.currentUser.email.toLowerCase() === DIRECTOR) { breakdownListHtml += ` <div style=\"display:flex; justify-content:space-between; margin-bottom:10px; padding:10px; background:#222; border-radius:5px; border-left: 2px solid #ff3333;\"> <span><b>${m.name}</b><br><small style=\"color:#666\">Tech: ${m.assignedTech}</small></span> <button onclick=\"window.directorTriggerCall('${m.name}')\" style=\"font-size:10px; padding:5px 10px; height:fit-content;\">📞 EMERGENCY CALL</button> </div>`; }
+      const content = `
+        <div style="display:flex; justify-content:space-between;">
+          <h2 style="color:#e30613">AUDIT LOG: ${i.machineName}</h2>
+          <button onclick="window.deleteIntervention('${i.id}')" style="background:red; font-size:10px;">DELETE RECORD</button>
+        </div>
+        
+        <div style="margin:8px 0 12px 0; background: #222; padding: 10px; border-radius: 5px; border: 1px solid #333;">
+          ${i.pdfUrl 
+            ? `<a href="${i.pdfUrl}" target="_blank" style="color:#00ff00;font-weight:bold;text-decoration:underline;">📄 VIEW OFFICIAL PDF REPORT</a>` 
+            : `<button onclick='window.generateMaintenancePDF(${JSON.stringify(i).replace(/'/g, "&apos;")}, "${i.id}")' style="background:#444; font-size:11px;">⚠️ PDF MISSING - REGENERATE NOW</button>`
           }
-        });
-        const listEl = document.getElementById('breakdownCallList'); if (listEl) listEl.innerHTML = breakdownListHtml || "<p style='color:#444; font-size:12px;'>No active breakdowns requiring communication.</p>";
-        if (!dangerFound) { const overlay = document.getElementById('dangerOverlay'); if(overlay) overlay.style.display = 'none'; }
-      });
-      onSnapshot(doc(db, "emergency_calls", "active_session"), (snap) => {
-        const data = snap.data(); if (!data) return; const emailNow = auth.currentUser.email.toLowerCase();
-        if (data.triggerSound && micReady) { const audio = document.getElementById('effectAudio'); audio.play().catch(()=>{}); if (emailNow !== DIRECTOR) { speakNative("Direct line opened. Please respond to the Director immediately."); } }
-        if (data.active && data.callMachine) { if (emailNow !== DIRECTOR) { const assignedMachine = Object.values(machineCache).find(m => m.name === data.callMachine && m.assignedTech === emailNow); if (assignedMachine && micReady) { pendingIncomingMachine = data.callMachine; window.showIncomingCallBanner(data.callMachine); } } } else { window.dismissIncomingCall(); if (jitsiApi && emailNow !== DIRECTOR) { window.endEmergencyCall(); } }
-      });
+        </div>
+
+        <div class="card">
+          <p><b>Original Issue:</b> ${i.issue}</p>
+          <p><b>Final Resolution:</b> ${i.techComment}</p>
+          <hr style="border-color:#333">
+          <div style="display:flex; gap:10px;">
+            <div>
+              <small>BEFORE</small><br>
+              ${i.imageBefore ? `<img src="${i.imageBefore}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageBefore')">REPLACE</span>
+              <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageBefore')">DELETE</span>
+            </div>
+            <div>
+              <small>AFTER</small><br>
+              ${i.imageAfter ? `<img src="${i.imageAfter}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
+              <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageAfter')">REPLACE</span>
+              <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageAfter')">DELETE</span>
+            </div>
+          </div>
+          <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; margin-top:15px; width:100%">FORCE EDIT TEXT LOGS</button>
+        </div>`;
+      
+      document.getElementById('machineDetailContent').innerHTML = content;
+      document.getElementById('machineDetailPopup').style.display = 'block';
     }
 
     /* --- FINAL BOOTSTRAP --- */
