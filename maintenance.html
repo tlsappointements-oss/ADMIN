@@ -440,7 +440,6 @@
             const storagePath = `reports/${intId}.pdf`;
             const sRef = window.storageRef(window.storage, storagePath);
             
-            // Log for debugging
             console.log("Uploading PDF for ID:", intId);
             await window.uploadBytes(sRef, pdfBlob);
             const url = await window.getDownloadURL(sRef);
@@ -448,7 +447,8 @@
             await updateDoc(doc(db, "interventions", intId), { pdfUrl: url });
             console.log("PDF generated and URL saved:", url);
         } catch (e) { 
-            console.error("CRITICAL: PDF generation failed. Check Storage rules and library loading.", e); 
+            console.error("CRITICAL: PDF generation failed.", e); 
+        }
     }
 
     /* --- PART C: UTILITIES & SYSTEM INIT --- */
@@ -737,7 +737,7 @@
       });
     }
 
-    function showHistoryDetail(i) {
+    window.showHistoryDetail = (i) => {
       const content = `
         <div style="display:flex; justify-content:space-between;">
           <h2 style="color:#e30613">AUDIT LOG: ${i.machineName}</h2>
@@ -759,22 +759,17 @@
             <div>
               <small>BEFORE</small><br>
               ${i.imageBefore ? `<img src="${i.imageBefore}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
-              <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageBefore')">REPLACE</span>
-              <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageBefore')">DELETE</span>
             </div>
             <div>
               <small>AFTER</small><br>
               ${i.imageAfter ? `<img src="${i.imageAfter}" class="preview-img">` : '<div class="preview-img" style="border:1px dashed #333; display:flex; align-items:center; justify-content:center;">No Image</div>'}
-              <span class="img-edit-btn" onclick="window.updateHistoryImage('${i.id}', 'imageAfter')">REPLACE</span>
-              <span class="img-edit-btn" style="color:red;" onclick="window.deleteImage('${i.id}', 'imageAfter')">DELETE</span>
             </div>
           </div>
-          <button onclick="window.forceModifyReport('${i.id}')" style="background:#ffcc00; color:#000; margin-top:15px; width:100%">FORCE EDIT TEXT LOGS</button>
         </div>`;
       
       document.getElementById('machineDetailContent').innerHTML = content;
       document.getElementById('machineDetailPopup').style.display = 'block';
-    }
+    };
 
     /* --- FINAL BOOTSTRAP --- */
     onAuthStateChanged(auth, async user => {
