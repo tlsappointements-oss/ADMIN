@@ -1610,7 +1610,7 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
       console.log("🔍 Auth state changed. User:", user);
       if (!user) { 
         console.log("⚠️ No user, redirecting to login");
-        window.location.href = "login.html"; 
+        window.location.href = "index.html"; 
         return; 
       }
       const email = user.email.toLowerCase();
@@ -1669,14 +1669,33 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
         document.getElementById('hangUpBtn').style.display = "inline-block";
         onSnapshot(collection(db, "users"), snap => { techList = []; snap.forEach(d => techList.push(d.id)); });
         loadAdminApprovals();
+        
+        // Add admin nav button to sidebar if it doesn't exist
+        const sidebar = document.getElementById('mainSidebar');
+        if (sidebar && !document.getElementById('nav_adminPanel')) {
+          const adminBtn = document.createElement('button');
+          adminBtn.id = 'nav_adminPanel';
+          adminBtn.className = 'btn-nav';
+          adminBtn.style.borderColor = '#e30613';
+          adminBtn.style.color = '#e30613';
+          adminBtn.textContent = '⚙️ Admin Control';
+          adminBtn.onclick = () => window.showPage('adminPanel');
+          // Insert after Personnel button
+          const personnelBtn = document.getElementById('nav_personnelPage');
+          if (personnelBtn && personnelBtn.nextSibling) {
+            sidebar.insertBefore(adminBtn, personnelBtn.nextSibling);
+          } else {
+            sidebar.appendChild(adminBtn);
+          }
+        }
       } else {
         document.getElementById('hangUpBtn').style.display = "none";
-        // 👉 FIRST-TIME REDIRECT TO DEMO
-        const demoKey = `demoDone_${email}`;
-        if (!localStorage.getItem(demoKey)) {
-          window.location.href = 'demo.html';
-          return;
-        }
+        // 👉 FIRST-TIME REDIRECT TO DEMO (commented out to allow normal operation)
+        // const demoKey = `demoDone_${email}`;
+        // if (!localStorage.getItem(demoKey)) {
+        //   window.location.href = 'demo.html';
+        //   return;
+        // }
         loadMyMissions(email);
       }
       console.log("🔍 Calling loadMachinesLive...");
@@ -1685,6 +1704,13 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
       loadHistory();
       console.log("🔍 Calling listenForEmergency...");
       listenForEmergency(email);
+      
+      // CRITICAL: Show the main page after all data is loaded
+      console.log("🏠 Showing mainPage...");
+      setTimeout(() => {
+        window.showPage('mainPage');
+        console.log("✅✅✅ INITIALIZATION COMPLETE ✅✅✅");
+      }, 500);
     });
 
     // PERSONNEL DASHBOARD (ENHANCED)
