@@ -600,34 +600,88 @@
 
     // === AMAZING PDF GENERATORS WITH MERCEDES DESIGN ===
 
-    // Helper: Draw professional header
+    // Helper: Draw professional header (MODERN DESIGN)
     async function drawPDFHeader(pdf, title, docNumber, qrData) {
-      // Red gradient background
+      // Modern gradient header - darker red to black
       pdf.setFillColor(227, 6, 19);
-      pdf.rect(0, 0, 210, 50, 'F');
+      pdf.rect(0, 0, 210, 25, 'F');
+      pdf.setFillColor(30, 30, 30);
+      pdf.rect(0, 25, 210, 20, 'F');
       
-      // Mercedes logo (smaller)
+      // Mercedes logo (left side with white background circle)
       try {
-        pdf.addImage(MERCEDES_LOGO, 'SVG', 15, 12, 20, 20);
+        pdf.setFillColor(255, 255, 255);
+        pdf.circle(25, 12.5, 8, 'F');
+        pdf.addImage(MERCEDES_LOGO, 'SVG', 18, 6, 14, 14);
       } catch (e) {
         console.log("Logo not added");
       }
       
-      // Company name
+      // Company name - modern typography
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(28);
+      pdf.setFontSize(22);
       pdf.setFont(undefined, 'bold');
-      pdf.text('MERCEDES-BENZ', 105, 20, { align: 'center' });
+      pdf.text('MERCEDES-BENZ', 40, 15);
       
-      // Subtitle
-      pdf.setFontSize(11);
+      // Subtitle with separator
+      pdf.setFontSize(8);
       pdf.setFont(undefined, 'normal');
-      pdf.text('Plant Operations & Maintenance', 105, 28, { align: 'center' });
+      pdf.text('PLANT OPERATIONS', 40, 20);
       
-      // Document title
-      pdf.setFontSize(18);
+      // Document title in dark section
+      pdf.setFontSize(14);
       pdf.setFont(undefined, 'bold');
-      pdf.text(title, 105, 42, { align: 'center' });
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(title, 15, 37);
+      
+      // Modern QR Code (top right with border)
+      if (qrData) {
+        const qrCode = await generateQRCode(qrData);
+        if (qrCode) {
+          try {
+            pdf.setFillColor(255, 255, 255);
+            pdf.roundedRect(183, 7, 20, 20, 2, 2, 'F');
+            pdf.addImage(qrCode, 'JPEG', 185, 9, 16, 16);
+          } catch (e) {
+            console.log("QR code not added:", e.message);
+          }
+        }
+      }
+      
+      // Modern info bar
+      pdf.setFillColor(250, 250, 250);
+      pdf.rect(0, 45, 210, 12, 'F');
+      
+      // Left side info
+      pdf.setTextColor(60, 60, 60);
+      pdf.setFontSize(7);
+      pdf.setFont(undefined, 'normal');
+      pdf.text('DOCUMENT N°', 15, 50);
+      pdf.setFontSize(8);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(docNumber.substring(0, 12) + '...', 15, 54);
+      
+      // Center info
+      pdf.setTextColor(60, 60, 60);
+      pdf.setFontSize(7);
+      pdf.setFont(undefined, 'normal');
+      pdf.text('ÉMIS LE', 105, 50, { align: 'center' });
+      pdf.setFontSize(8);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(new Date().toLocaleDateString('fr-FR') + ' à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), 105, 54, { align: 'center' });
+      
+      // Right side badge
+      pdf.setFillColor(227, 6, 19);
+      pdf.roundedRect(170, 48, 25, 6, 1, 1, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(7);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('OFFICIEL', 182.5, 52.5, { align: 'center' });
+      
+      return 62; // Return starting Y position for content
+    }
       
       // Tiny compressed QR Code (top right)
       if (qrData) {
@@ -661,71 +715,129 @@
       return 75; // Return starting Y position for content
     }
 
-    // Helper: Draw section header
+    // Helper: Draw section header (MODERN DESIGN)
     function drawSectionHeader(pdf, title, y, icon = '■') {
-      pdf.setFillColor(240, 240, 240);
-      pdf.rect(10, y - 5, 190, 10, 'F');
-      pdf.setFontSize(12);
+      // Red accent line
+      pdf.setFillColor(227, 6, 19);
+      pdf.rect(10, y - 2, 3, 8, 'F');
+      
+      // Title with better typography
+      pdf.setFontSize(11);
       pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(227, 6, 19);
-      pdf.text(`${icon} ${title}`, 15, y + 2);
+      pdf.setTextColor(30, 30, 30);
+      pdf.text(`${title}`, 18, y + 4);
+      
+      // Underline
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.3);
+      pdf.line(10, y + 7, 200, y + 7);
+      
       pdf.setTextColor(0, 0, 0);
       return y + 12;
     }
 
-    // Helper: Draw info box
+    // Helper: Draw info box (MODERN DESIGN)
     function drawInfoBox(pdf, label, value, y, x = 15) {
-      pdf.setFontSize(9);
-      pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(label + ':', x, y);
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(10);
-      const lines = pdf.splitTextToSize(value || 'N/A', 180);
-      pdf.text(lines, x, y + 5);
-      return y + 5 + (lines.length * 5) + 3;
-    }
-
-    // Helper: Draw signature block (ULTRA COMPACT)
-    function drawSignatureBlock(pdf, profile, signature, y, x = 15, label = "Signature") {
-      pdf.setDrawColor(200, 200, 200);
-      pdf.rect(x, y, 85, 25);
-      
       pdf.setFontSize(8);
       pdf.setFont(undefined, 'bold');
       pdf.setTextColor(100, 100, 100);
-      pdf.text(label, x + 3, y + 5);
+      pdf.text(label.toUpperCase(), x, y);
       
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(7);
-      pdf.text(`${profile.name} - ${profile.position}`, x + 3, y + 9);
+      pdf.setFontSize(9);
+      const lines = pdf.splitTextToSize(value || 'N/A', 175);
+      pdf.text(lines, x, y + 4);
       
-      if (signature) {
-        // Very small signature image - 25x8mm
-        pdf.addImage(signature, 'JPEG', x + 3, y + 12, 25, 8);
-      }
+      // Subtle separator line
+      pdf.setDrawColor(240, 240, 240);
+      pdf.setLineWidth(0.2);
+      pdf.line(x, y + 4 + (lines.length * 4) + 2, 195, y + 4 + (lines.length * 4) + 2);
       
-      // Date
-      pdf.setFontSize(6);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Le ${new Date().toLocaleDateString('fr-FR')}`, x + 35, y + 22);
-      
-      return y + 28;
+      return y + 4 + (lines.length * 4) + 5;
     }
 
-    // Helper: Draw footer
-    function drawPDFFooter(pdf) {
-      const pageHeight = pdf.internal.pageSize.height;
+    // Helper: Draw signature block (MODERN CARD DESIGN)
+    function drawSignatureBlock(pdf, profile, signature, y, x = 15, label = "Signature") {
+      // Card shadow effect
       pdf.setFillColor(240, 240, 240);
-      pdf.rect(0, pageHeight - 15, 210, 15, 'F');
+      pdf.roundedRect(x + 1, y + 1, 85, 28, 2, 2, 'F');
+      
+      // Main card
+      pdf.setFillColor(255, 255, 255);
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(x, y, 85, 28, 2, 2, 'FD');
+      
+      // Header with red accent
+      pdf.setFillColor(250, 250, 250);
+      pdf.roundedRect(x, y, 85, 8, 2, 2, 'F');
+      pdf.setFillColor(227, 6, 19);
+      pdf.rect(x, y, 3, 8, 'F');
       
       pdf.setFontSize(7);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text('Mercedes-Benz Plant Operations - Document Officiel et Confidentiel', 105, pageHeight - 8, { align: 'center' });
-      pdf.text('Ce document est généré électroniquement et juridiquement valable', 105, pageHeight - 4, { align: 'center' });
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(label.toUpperCase(), x + 5, y + 5);
       
+      // Profile info
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(8);
+      pdf.text(profile.name, x + 3, y + 13);
+      
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(7);
+      pdf.text(profile.position, x + 3, y + 17);
+      
+      // Signature image
+      if (signature) {
+        pdf.addImage(signature, 'JPEG', x + 50, y + 10, 30, 10);
+      }
+      
+      // Date badge
+      pdf.setFillColor(227, 6, 19);
+      pdf.roundedRect(x + 3, y + 23, 28, 4, 1, 1, 'F');
+      pdf.setFontSize(6);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(new Date().toLocaleDateString('fr-FR'), x + 17, y + 26, { align: 'center' });
+      
+      return y + 31;
+    }
+
+    // Helper: Draw footer (MODERN DESIGN)
+    function drawPDFFooter(pdf) {
+      const pageHeight = pdf.internal.pageSize.height;
+      
+      // Dark footer bar
+      pdf.setFillColor(30, 30, 30);
+      pdf.rect(0, pageHeight - 15, 210, 15, 'F');
+      
+      // Red accent line on top
+      pdf.setFillColor(227, 6, 19);
+      pdf.rect(0, pageHeight - 15, 210, 1, 'F');
+      
+      // Footer text
+      pdf.setFontSize(7);
+      pdf.setTextColor(180, 180, 180);
+      pdf.setFont(undefined, 'normal');
+      pdf.text('Mercedes-Benz Plant Operations', 15, pageHeight - 8);
+      pdf.text('Document Officiel et Confidentiel', 15, pageHeight - 4);
+      
+      // Right side
+      pdf.text('Généré électroniquement', 195, pageHeight - 8, { align: 'right' });
+      pdf.text('Juridiquement valable', 195, pageHeight - 4, { align: 'right' });
+      
+      // Page number
+      pdf.setFillColor(227, 6, 19);
+      pdf.circle(105, pageHeight - 7.5, 4, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(8);
+      pdf.text('1', 105, pageHeight - 6, { align: 'center' });
+    }
       // Page number
       pdf.text(`Page ${pdf.internal.getCurrentPageInfo().pageNumber}`, 190, pageHeight - 8, { align: 'right' });
     }
