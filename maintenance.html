@@ -429,12 +429,14 @@
         if (typeof QRCode !== 'undefined') {
           return new Promise((resolve) => {
             const canvas = document.createElement('canvas');
-            QRCode.toCanvas(canvas, text, { width: 100, margin: 1 }, (error) => {
+            // Smaller size to reduce file size
+            QRCode.toCanvas(canvas, text, { width: 60, margin: 0, errorCorrectionLevel: 'L' }, (error) => {
               if (error) {
                 console.log('QR Code generation skipped:', error.message);
                 resolve(null);
               } else {
-                resolve(canvas.toDataURL());
+                // Convert to lower quality to reduce size
+                resolve(canvas.toDataURL('image/jpeg', 0.5));
               }
             });
           });
@@ -497,7 +499,8 @@
     };
 
     window.saveSignature = async () => {
-      const signatureData = signatureCanvas.toDataURL('image/png');
+      // Save with JPEG compression to reduce file size
+      const signatureData = signatureCanvas.toDataURL('image/jpeg', 0.7);
       const email = auth.currentUser.email.toLowerCase();
       
       // Save to Firestore
@@ -607,11 +610,11 @@
       pdf.setFont(undefined, 'bold');
       pdf.text(title, 105, 42, { align: 'center' });
       
-      // QR Code (top right)
+      // QR Code (top right) - smaller size
       if (qrData) {
         const qrCode = await generateQRCode(qrData);
         if (qrCode) {
-          pdf.addImage(qrCode, 'PNG', 170, 8, 30, 30);
+          pdf.addImage(qrCode, 'JPEG', 175, 10, 20, 20);
         }
       }
       
@@ -663,7 +666,7 @@
     // Helper: Draw signature block
     function drawSignatureBlock(pdf, profile, signature, y, x = 15, label = "Signature") {
       pdf.setDrawColor(200, 200, 200);
-      pdf.rect(x, y, 85, 35);
+      pdf.rect(x, y, 85, 30);
       
       pdf.setFontSize(9);
       pdf.setFont(undefined, 'bold');
@@ -672,20 +675,21 @@
       
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(9);
-      pdf.text(`Nom: ${profile.name}`, x + 3, y + 11);
-      pdf.text(`Fonction: ${profile.position}`, x + 3, y + 16);
+      pdf.setFontSize(8);
+      pdf.text(`Nom: ${profile.name}`, x + 3, y + 10);
+      pdf.text(`Fonction: ${profile.position}`, x + 3, y + 14);
       
       if (signature) {
-        pdf.addImage(signature, 'PNG', x + 3, y + 19, 40, 13);
+        // Smaller signature image
+        pdf.addImage(signature, 'JPEG', x + 3, y + 17, 30, 10);
       }
       
       // Date and stamp
       pdf.setFontSize(7);
       pdf.setTextColor(100, 100, 100);
-      pdf.text(`Le ${new Date().toLocaleDateString('fr-FR')}`, x + 50, y + 32);
+      pdf.text(`Le ${new Date().toLocaleDateString('fr-FR')}`, x + 40, y + 27);
       
-      return y + 38;
+      return y + 33;
     }
 
     // Helper: Draw footer
@@ -762,8 +766,17 @@
         drawPDFFooter(pdf);
         console.log("✅ PDF content complete");
 
-        // Save to Firestore
-        const pdfDataUri = pdf.output('datauristring');
+        // Save to Firestore with compression
+        const pdfOutput = pdf.output('arraybuffer');
+        const pdfBlob = new Blob([pdfOutput], { type: 'application/pdf' });
+        
+        // Convert to base64 with compression
+        const pdfDataUri = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(pdfBlob);
+        });
+        
         console.log("✅ PDF converted to base64, length:", pdfDataUri.length);
         
         await updateDoc(doc(db, "interventions", intId), {
@@ -835,8 +848,15 @@
         // Footer
         drawPDFFooter(pdf);
 
-        // Save to Firestore
-        const pdfDataUri = pdf.output('datauristring');
+        // Save to Firestore with compression
+        const pdfOutput = pdf.output('arraybuffer');
+        const pdfBlob = new Blob([pdfOutput], { type: 'application/pdf' });
+        const pdfDataUri = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(pdfBlob);
+        });
+        
         await updateDoc(doc(db, "interventions", intId), {
           pdfOrdre: pdfDataUri,
           pdfOrdreGeneratedAt: serverTimestamp(),
@@ -925,8 +945,15 @@
         // Footer
         drawPDFFooter(pdf);
 
-        // Save to Firestore
-        const pdfDataUri = pdf.output('datauristring');
+        // Save to Firestore with compression
+        const pdfOutput = pdf.output('arraybuffer');
+        const pdfBlob = new Blob([pdfOutput], { type: 'application/pdf' });
+        const pdfDataUri = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(pdfBlob);
+        });
+        
         await updateDoc(doc(db, "interventions", intId), {
           pdfRapport: pdfDataUri,
           pdfRapportGeneratedAt: serverTimestamp(),
@@ -964,78 +991,43 @@
       }
     };
 
-    // === PDF EDITOR FOR DIRECTOR ===
-    let currentEditingIntervention = null;
-
-    window.openPDFEditor = async (intId, pdfType) => {
-      // Only director can edit
+    // === PDF REGENERATOR FOR DIRECTOR ===
+    window.regeneratePDF = async (intId, pdfType) => {
+      // Only director can regenerate
       if (auth.currentUser.email.toLowerCase() !== DIRECTOR) {
         alert("Accès refusé: Réservé au directeur uniquement");
         return;
       }
 
-      // Load intervention data
-      const intDoc = await getDoc(doc(db, "interventions", intId));
-      if (!intDoc.exists()) {
-        alert("Intervention introuvable");
-        return;
-      }
+      if (!confirm(`Régénérer le PDF ${pdfType.toUpperCase()} ?`)) return;
 
-      const intData = intDoc.data();
-      currentEditingIntervention = { id: intId, type: pdfType, data: intData };
+      try {
+        const intDoc = await getDoc(doc(db, "interventions", intId));
+        if (!intDoc.exists()) {
+          alert("Intervention introuvable");
+          return;
+        }
 
-      // Populate form
-      document.getElementById('pdfEditDocId').innerText = intId;
-      document.getElementById('pdfEditDocType').innerText = pdfType.toUpperCase();
-      document.getElementById('pdfEditMachine').value = intData.machineName || '';
-      document.getElementById('pdfEditMachineId').value = intData.machineId || '';
-      document.getElementById('pdfEditIssue').value = intData.issue || '';
-      document.getElementById('pdfEditDirectorComment').value = intData.directorApprovalComment || '';
-      document.getElementById('pdfEditTechComment').value = intData.techComment || '';
+        const intData = intDoc.data();
 
-      // Show modal
-      document.getElementById('pdfEditorPopup').style.display = 'block';
-    };
+        // Regenerate the appropriate PDF
+        if (pdfType === 'demande') {
+          await window.generateDemandeInterventionPDF(intData, intId);
+        } else if (pdfType === 'ordre') {
+          await window.generateOrdreMissionPDF(intData, intId);
+        } else if (pdfType === 'rapport') {
+          await window.generateRapportInterventionPDF(intData, intId);
+        }
 
-    window.savePDFEdits = async () => {
-      if (!currentEditingIntervention) return;
+        alert("✅ PDF régénéré et téléchargé!");
 
-      const { id, type, data } = currentEditingIntervention;
-
-      // Get edited values
-      const editedData = {
-        machineName: document.getElementById('pdfEditMachine').value,
-        machineId: document.getElementById('pdfEditMachineId').value,
-        issue: document.getElementById('pdfEditIssue').value,
-        directorApprovalComment: document.getElementById('pdfEditDirectorComment').value,
-        techComment: document.getElementById('pdfEditTechComment').value,
-        editedByDirector: true,
-        lastEditedAt: serverTimestamp()
-      };
-
-      // Update Firestore
-      await updateDoc(doc(db, "interventions", id), editedData);
-
-      // Regenerate the appropriate PDF
-      const updatedDoc = await getDoc(doc(db, "interventions", id));
-      const updatedData = updatedDoc.data();
-
-      if (type === 'demande') {
-        await window.generateDemandeInterventionPDF(updatedData, id);
-      } else if (type === 'ordre') {
-        await window.generateOrdreMissionPDF(updatedData, id);
-      } else if (type === 'rapport') {
-        await window.generateRapportInterventionPDF(updatedData, id);
-      }
-
-      // Close modal
-      document.getElementById('pdfEditorPopup').style.display = 'none';
-      alert("✅ Modifications sauvegardées et PDF régénéré!");
-
-      // Refresh history if open
-      const historyList = document.getElementById('historyList');
-      if (historyList && historyList.style.display !== 'none') {
-        window.filterHistory();
+        // Refresh history if open
+        const historyList = document.getElementById('historyList');
+        if (historyList && historyList.style.display !== 'none') {
+          window.filterHistory();
+        }
+      } catch (e) {
+        alert("Erreur: " + e.message);
       }
     };
 
@@ -1873,21 +1865,21 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
       ${i.pdfDemande 
         ? '<div><a href="' + i.pdfDemande + '" download="demande_' + i.id + '.pdf" style="color:#00ff00;font-weight:bold;text-decoration:underline;">📄 DEMANDE D\'INTERVENTION</a>' + 
           (auth.currentUser && auth.currentUser.email.toLowerCase() === "mohamed.aouladzerouali@jobson.com" ? 
-          '<button onclick="window.openPDFEditor(\'' + i.id + '\', \'demande\')" style="background:#ffcc00;color:#000;padding:3px 8px;font-size:10px;margin-left:10px;border:none;cursor:pointer;">✏ MODIFIER</button>' : '') + 
+          '<button onclick="window.regeneratePDF(\'' + i.id + '\', \'demande\')" style="background:#ffcc00;color:#000;padding:3px 8px;font-size:10px;margin-left:10px;border:none;cursor:pointer;">🔄 RÉGÉNÉRER</button>' : '') + 
           '</div>'
         : '<span style="color:#555;">Demande PDF non disponible</span>'}
       
       ${i.pdfOrdre 
         ? '<div><a href="' + i.pdfOrdre + '" download="ordre_' + i.id + '.pdf" style="color:#ffcc00;font-weight:bold;text-decoration:underline;">📋 ORDRE DE MISSION</a>' + 
           (auth.currentUser && auth.currentUser.email.toLowerCase() === "mohamed.aouladzerouali@jobson.com" ? 
-          '<button onclick="window.openPDFEditor(\'' + i.id + '\', \'ordre\')" style="background:#ffcc00;color:#000;padding:3px 8px;font-size:10px;margin-left:10px;border:none;cursor:pointer;">✏ MODIFIER</button>' : '') + 
+          '<button onclick="window.regeneratePDF(\'' + i.id + '\', \'ordre\')" style="background:#ffcc00;color:#000;padding:3px 8px;font-size:10px;margin-left:10px;border:none;cursor:pointer;">🔄 RÉGÉNÉRER</button>' : '') + 
           '</div>'
         : '<span style="color:#555;">Ordre PDF non disponible</span>'}
       
       ${i.pdfRapport 
         ? '<div><a href="' + i.pdfRapport + '" download="rapport_' + i.id + '.pdf" style="color:#ff9900;font-weight:bold;text-decoration:underline;">📊 RAPPORT FINAL</a>' + 
           (auth.currentUser && auth.currentUser.email.toLowerCase() === "mohamed.aouladzerouali@jobson.com" ? 
-          '<button onclick="window.openPDFEditor(\'' + i.id + '\', \'rapport\')" style="background:#ffcc00;color:#000;padding:3px 8px;font-size:10px;margin-left:10px;border:none;cursor:pointer;">✏ MODIFIER</button>' : '') + 
+          '<button onclick="window.regeneratePDF(\'' + i.id + '\', \'rapport\')" style="background:#ffcc00;color:#000;padding:3px 8px;font-size:10px;margin-left:10px;border:none;cursor:pointer;">🔄 RÉGÉNÉRER</button>' : '') + 
           '</div>'
         : '<span style="color:#555;">Rapport PDF non disponible</span>'}
     </div>
@@ -1918,3 +1910,4 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
   </script>
 </body>
 </html>
+
