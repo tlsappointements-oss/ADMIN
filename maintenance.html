@@ -1253,6 +1253,7 @@
 
     // ACCESS CONTROL SYSTEM
     window.checkPermission = (pageId) => {
+      if (!auth.currentUser) return false;
       const email = auth.currentUser.email.toLowerCase();
       
       // Personnel page is ONLY for director
@@ -1260,8 +1261,17 @@
         return email === DIRECTOR;
       }
       
+      // Director has access to everything
       if (email === DIRECTOR) return true;
-      const perms = userPermissions[email] || {};
+      
+      // If permissions haven't loaded yet, grant access (default open)
+      // This prevents blocking on initial page load
+      const perms = userPermissions[email];
+      if (!perms || Object.keys(perms).length === 0) {
+        console.log("⚠️ Permissions not loaded yet, granting default access");
+        return true;
+      }
+      
       const mapping = {
         'mainPage': 'view_dashboard',
         'interventionPage': 'request_intervention',
@@ -1616,6 +1626,16 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
       const email = user.email.toLowerCase();
       console.log("✅ User logged in:", email);
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+      
+      // CRITICAL: Initialize default permissions immediately to prevent page blocking
+      userPermissions[email] = {
+        view_dashboard: true,
+        request_intervention: true,
+        do_missions: true,
+        view_history: true,
+        view_kpi: true
+      };
+      console.log("✅ Default permissions granted, will be updated from Firestore if available");
       
       // Initialize signature canvas
       initSignatureCanvas();
