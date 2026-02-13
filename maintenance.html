@@ -422,19 +422,30 @@
     // Mercedes-Benz Logo (SVG as base64)
     const MERCEDES_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNNTAgNTBMNTAgMTBNNTAgNTBMODAgODVNNTAgNTBMMjAgODUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PC9zdmc+";
 
-    // QR Code generator using qrcode.js
+    // Simple QR code generator placeholder (since we may not have the library)
     async function generateQRCode(text) {
-      return new Promise((resolve) => {
-        const canvas = document.createElement('canvas');
-        QRCode.toCanvas(canvas, text, { width: 100, margin: 1 }, (error) => {
-          if (error) {
-            console.error('QR Code error:', error);
-            resolve(null);
-          } else {
-            resolve(canvas.toDataURL());
-          }
-        });
-      });
+      try {
+        // Try to use QRCode if available
+        if (typeof QRCode !== 'undefined') {
+          return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            QRCode.toCanvas(canvas, text, { width: 100, margin: 1 }, (error) => {
+              if (error) {
+                console.log('QR Code generation skipped:', error.message);
+                resolve(null);
+              } else {
+                resolve(canvas.toDataURL());
+              }
+            });
+          });
+        } else {
+          console.log('QRCode library not loaded, skipping QR code');
+          return null;
+        }
+      } catch (e) {
+        console.log('QR code generation failed, continuing without QR:', e.message);
+        return null;
+      }
     }
 
     // SIGNATURE MANAGEMENT SYSTEM
@@ -694,20 +705,33 @@
 
     // 1. DEMANDE D'INTERVENTION PDF - AMAZING VERSION
     window.generateDemandeInterventionPDF = async function(intData, intId) {
+      console.log("🔍 Starting Demande PDF generation for:", intId);
       try {
         const { jsPDF } = window.jspdf;
+        if (!jsPDF) {
+          console.error("❌ jsPDF not loaded!");
+          return;
+        }
         const pdf = new jsPDF();
+        console.log("✅ jsPDF initialized");
 
         // Get requester info and signature
         const requesterEmail = intData.requester;
+        console.log("🔍 Requester:", requesterEmail);
+        
         const requesterProfile = await getUserProfile(requesterEmail);
+        console.log("✅ Profile loaded:", requesterProfile);
+        
         const requesterSignature = await ensureUserSignature(requesterEmail);
+        console.log("✅ Signature loaded");
 
         // QR Code data
         const qrData = `DEMANDE-${intId}-${Date.now()}`;
+        console.log("🔍 QR Data:", qrData);
 
         // Header
         let y = await drawPDFHeader(pdf, 'DEMANDE D\'INTERVENTION', intId, qrData);
+        console.log("✅ Header drawn, y position:", y);
 
         // Machine Information Section
         y = drawSectionHeader(pdf, 'ÉQUIPEMENT CONCERNÉ', y, '🔧');
@@ -736,19 +760,25 @@
 
         // Footer
         drawPDFFooter(pdf);
+        console.log("✅ PDF content complete");
 
         // Save to Firestore
         const pdfDataUri = pdf.output('datauristring');
+        console.log("✅ PDF converted to base64, length:", pdfDataUri.length);
+        
         await updateDoc(doc(db, "interventions", intId), {
           pdfDemande: pdfDataUri,
           pdfDemandeGeneratedAt: serverTimestamp(),
           pdfDemandeQR: qrData
         });
+        console.log("✅ PDF saved to Firestore");
 
-        console.log("✅ Demande d'Intervention PDF generated for:", intId);
+        console.log("✅✅✅ Demande d'Intervention PDF generated successfully for:", intId);
         return pdfDataUri;
       } catch (e) {
-        console.error("❌ PDF Demande generation failed:", e);
+        console.error("❌❌❌ PDF Demande generation failed:", e);
+        console.error("Error details:", e.message, e.stack);
+        alert("Erreur génération PDF: " + e.message);
       }
     };
 
@@ -912,14 +942,25 @@
 
     // Legacy function - now generates all PDFs
     window.generateMaintenancePDF = async function(intData, intId) {
-      if (intData.status === "PENDING_MOHAMED" || intData.status === "APPROVED") {
-        await window.generateDemandeInterventionPDF(intData, intId);
-      }
-      if (intData.status === "APPROVED") {
-        await window.generateOrdreMissionPDF(intData, intId);
-      }
-      if (intData.status === "ARCHIVED") {
-        await window.generateRapportInterventionPDF(intData, intId);
+      console.log("🔍 generateMaintenancePDF called for:", intId, "Status:", intData.status);
+      
+      try {
+        if (intData.status === "PENDING_MOHAMED" || intData.status === "APPROVED") {
+          console.log("📄 Generating Demande PDF...");
+          await window.generateDemandeInterventionPDF(intData, intId);
+        }
+        if (intData.status === "APPROVED") {
+          console.log("📋 Generating Ordre PDF...");
+          await window.generateOrdreMissionPDF(intData, intId);
+        }
+        if (intData.status === "ARCHIVED") {
+          console.log("📊 Generating Rapport PDF...");
+          await window.generateRapportInterventionPDF(intData, intId);
+        }
+        console.log("✅ All required PDFs generated for status:", intData.status);
+      } catch (e) {
+        console.error("❌ Error in generateMaintenancePDF:", e);
+        alert("Erreur génération PDF: " + e.message);
       }
     };
 
@@ -1292,19 +1333,38 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
     window.logout = () => signOut(auth);
 
     window.submitReq = async () => {
-      const mId = document.getElementById('reqMachine').value; const issue = document.getElementById('reqIssue').value;
+      console.log("🔍 submitReq called");
+      const mId = document.getElementById('reqMachine').value; 
+      const issue = document.getElementById('reqIssue').value;
       if(!mId || !issue) return alert("Select machine and describe issue.");
+      
+      console.log("🔍 Machine ID:", mId, "Issue:", issue);
+      const machine = machineCache[mId];
+      console.log("🔍 Machine data:", machine);
+      
       const newRef = await addDoc(collection(db, "interventions"), {
-    machineId: mId, machineName: (machineCache[mId] ? machineCache[mId].name : "Unknown Machine"), issue: issue,
-    status: "PENDING_MOHAMED", timestamp: serverTimestamp(), requester: auth.currentUser.email
-});
-await window.generateMaintenancePDF({
-    machineName: (machineCache[mId] ? machineCache[mId].name : "Unknown Machine"),
-    issue: issue,
-    requester: auth.currentUser.email,
-    status: "PENDING_MOHAMED",
-    timestamp: Date.now()
-}, newRef.id);
+        machineId: mId, 
+        machineName: machine ? machine.name : "Unknown Machine",
+        section: machine ? machine.section : "N/A",
+        issue: issue,
+        status: "PENDING_MOHAMED", 
+        timestamp: serverTimestamp(), 
+        requester: auth.currentUser.email
+      });
+      
+      console.log("✅ Intervention created with ID:", newRef.id);
+      
+      // Generate PDF with complete data
+      await window.generateMaintenancePDF({
+        machineId: mId,
+        machineName: machine ? machine.name : "Unknown Machine",
+        section: machine ? machine.section : "N/A",
+        issue: issue,
+        requester: auth.currentUser.email,
+        status: "PENDING_MOHAMED",
+        timestamp: Date.now()
+      }, newRef.id);
+      
       alert("Request sent to Director.");
     };
 
