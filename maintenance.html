@@ -418,16 +418,41 @@
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
 
-    // Mercedes-Benz Logo (SVG as base64)
-    const MERCEDES_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNNTAgNTBMNTAgMTBNNTAgNTBMODAgODVNNTAgNTBMMjAgODUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PC9zdmc+";
+    // Mercedes-Benz Logo (Minimal SVG - ultra compact)
+    const MERCEDES_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MCA1MCI+PGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48cGF0aCBkPSJNMjUgMjVMMjUgNSBNMjUgMjVMNDAgNDIgTTI1IDI1TDEwIDQyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIi8+PC9zdmc+";
 
-    // Generate QR code using external API (much smaller - just a URL!)
+    // Generate TINY QR code using external API with maximum compression
     async function generateQRCode(text) {
       try {
-        // Use free QR code API service - returns a small image URL
-        // This keeps the PDF small since we're not embedding base64 image data
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(text)}`;
-        return qrUrl;
+        // Use external API with smallest possible size and format
+        // PNG format, 50x50 pixels, no margin, low error correction
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=50x50&format=png&margin=0&qzone=0&data=${encodeURIComponent(text)}`;
+        
+        // Fetch the image and convert to compressed base64
+        const response = await fetch(qrUrl);
+        const blob = await response.blob();
+        
+        // Convert to base64 with maximum compression
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64 = reader.result;
+            // Convert PNG to JPEG for additional compression
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = 50;
+              canvas.height = 50;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, 50, 50);
+              // Convert to JPEG with 30% quality (very aggressive compression)
+              const compressedQR = canvas.toDataURL('image/jpeg', 0.3);
+              resolve(compressedQR);
+            };
+            img.src = base64;
+          };
+          reader.readAsDataURL(blob);
+        });
       } catch (e) {
         console.log('QR code generation failed, continuing without QR:', e.message);
         return null;
@@ -483,8 +508,18 @@
     };
 
     window.saveSignature = async () => {
-      // Save with JPEG compression to reduce file size
-      const signatureData = signatureCanvas.toDataURL('image/jpeg', 0.7);
+      // Create a smaller canvas for the signature
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 200; // Reduced from 400
+      tempCanvas.height = 80;  // Reduced from 150
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      // Draw the signature at smaller size
+      tempCtx.drawImage(signatureCanvas, 0, 0, signatureCanvas.width, signatureCanvas.height, 
+                        0, 0, 200, 80);
+      
+      // Save with JPEG compression at 40% quality (very aggressive)
+      const signatureData = tempCanvas.toDataURL('image/jpeg', 0.4);
       const email = auth.currentUser.email.toLowerCase();
       
       // Save to Firestore
@@ -571,9 +606,9 @@
       pdf.setFillColor(227, 6, 19);
       pdf.rect(0, 0, 210, 50, 'F');
       
-      // Mercedes logo
+      // Mercedes logo (smaller)
       try {
-        pdf.addImage(MERCEDES_LOGO, 'SVG', 15, 10, 25, 25);
+        pdf.addImage(MERCEDES_LOGO, 'SVG', 15, 12, 20, 20);
       } catch (e) {
         console.log("Logo not added");
       }
@@ -594,7 +629,18 @@
       pdf.setFont(undefined, 'bold');
       pdf.text(title, 105, 42, { align: 'center' });
       
-      // NO QR CODE - removed to reduce file size
+      // Tiny compressed QR Code (top right)
+      if (qrData) {
+        const qrCode = await generateQRCode(qrData);
+        if (qrCode) {
+          try {
+            // Very small QR code - 15x15mm
+            pdf.addImage(qrCode, 'JPEG', 178, 12, 15, 15);
+          } catch (e) {
+            console.log("QR code not added:", e.message);
+          }
+        }
+      }
       
       // Gray line separator
       pdf.setDrawColor(200, 200, 200);
@@ -641,33 +687,32 @@
       return y + 5 + (lines.length * 5) + 3;
     }
 
-    // Helper: Draw signature block
+    // Helper: Draw signature block (ULTRA COMPACT)
     function drawSignatureBlock(pdf, profile, signature, y, x = 15, label = "Signature") {
       pdf.setDrawColor(200, 200, 200);
-      pdf.rect(x, y, 85, 30);
+      pdf.rect(x, y, 85, 25);
       
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
       pdf.setFont(undefined, 'bold');
       pdf.setTextColor(100, 100, 100);
       pdf.text(label, x + 3, y + 5);
       
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(8);
-      pdf.text(`Nom: ${profile.name}`, x + 3, y + 10);
-      pdf.text(`Fonction: ${profile.position}`, x + 3, y + 14);
+      pdf.setFontSize(7);
+      pdf.text(`${profile.name} - ${profile.position}`, x + 3, y + 9);
       
       if (signature) {
-        // Smaller signature image
-        pdf.addImage(signature, 'JPEG', x + 3, y + 17, 30, 10);
+        // Very small signature image - 25x8mm
+        pdf.addImage(signature, 'JPEG', x + 3, y + 12, 25, 8);
       }
       
-      // Date and stamp
-      pdf.setFontSize(7);
+      // Date
+      pdf.setFontSize(6);
       pdf.setTextColor(100, 100, 100);
-      pdf.text(`Le ${new Date().toLocaleDateString('fr-FR')}`, x + 40, y + 27);
+      pdf.text(`Le ${new Date().toLocaleDateString('fr-FR')}`, x + 35, y + 22);
       
-      return y + 33;
+      return y + 28;
     }
 
     // Helper: Draw footer
