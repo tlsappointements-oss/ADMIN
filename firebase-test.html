@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Firebase Connection Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #000;
+      color: #0f0;
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .test-section {
+      background: #111;
+      border: 2px solid #0f0;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 5px;
+    }
+    .success { color: #00ff00; }
+    .error { color: #ff0000; }
+    .warning { color: #ffcc00; }
+    .info { color: #00ccff; }
+    h1 { color: #00ff00; text-align: center; }
+    h2 { color: #00ccff; }
+    pre { 
+      background: #000; 
+      padding: 10px; 
+      border-left: 3px solid #0f0;
+      overflow-x: auto;
+    }
+    button {
+      background: #0f0;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 5px;
+      font-family: monospace;
+    }
+    button:hover { background: #0ff; }
+    .status-box {
+      padding: 10px;
+      margin: 10px 0;
+      border-left: 4px solid #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔥 FIREBASE CONNECTION DIAGNOSTIC TOOL 🔥</h1>
+  
+  <div class="test-section">
+    <h2>📋 Test Results:</h2>
+    <div id="results"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>🔧 Quick Tests:</h2>
+    <button onclick="testFirebaseConnection()">Test Firebase Connection</button>
+    <button onclick="testAuth()">Test Authentication</button>
+    <button onclick="testFirestore()">Test Firestore</button>
+    <button onclick="listAllCollections()">List All Collections</button>
+    <button onclick="checkRules()">Check Access Rules</button>
+  </div>
+
+  <div class="test-section">
+    <h2>📊 Detailed Logs:</h2>
+    <div id="logs" style="max-height: 400px; overflow-y: auto;"></div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from './firebase.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { collection, getDocs, doc, getDoc, query, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const results = document.getElementById('results');
+    const logs = document.getElementById('logs');
+
+    function log(message, type = 'info') {
+      const colors = {
+        success: '#00ff00',
+        error: '#ff0000',
+        warning: '#ffcc00',
+        info: '#00ccff'
+      };
+      const timestamp = new Date().toLocaleTimeString();
+      logs.innerHTML += `<div style="color: ${colors[type]};">[${timestamp}] ${message}</div>`;
+      logs.scrollTop = logs.scrollHeight;
+      console.log(message);
+    }
+
+    function showResult(title, status, details) {
+      const statusColor = status === 'success' ? '#00ff00' : status === 'error' ? '#ff0000' : '#ffcc00';
+      results.innerHTML += `
+        <div class="status-box" style="border-color: ${statusColor};">
+          <strong style="color: ${statusColor};">${title}:</strong> 
+          <span style="color: ${statusColor};">${status.toUpperCase()}</span>
+          <pre>${details}</pre>
+        </div>
+      `;
+    }
+
+    // Test 1: Firebase Objects
+    window.testFirebaseConnection = async () => {
+      log('Testing Firebase initialization...', 'info');
+      results.innerHTML = '';
+      
+      try {
+        if (!auth) {
+          showResult('Firebase Auth', 'error', 'Auth object is undefined. Check firebase.js import.');
+          log('❌ Auth object not found', 'error');
+          return;
+        }
+        if (!db) {
+          showResult('Firebase Firestore', 'error', 'Firestore object is undefined. Check firebase.js import.');
+          log('❌ Firestore object not found', 'error');
+          return;
+        }
+        
+        showResult('Firebase Objects', 'success', `Auth: ${typeof auth}\nFirestore: ${typeof db}\nApp: ${auth.app ? 'initialized' : 'not initialized'}`);
+        log('✅ Firebase objects loaded correctly', 'success');
+        
+        // Test auth state
+        const user = auth.currentUser;
+        if (user) {
+          showResult('Current User', 'success', `Email: ${user.email}\nUID: ${user.uid}`);
+          log(`✅ User logged in: ${user.email}`, 'success');
+        } else {
+          showResult('Current User', 'warning', 'No user currently logged in. Please login first.');
+          log('⚠️ No user logged in', 'warning');
+        }
+        
+      } catch (error) {
+        showResult('Firebase Connection', 'error', error.message);
+        log(`❌ Error: ${error.message}`, 'error');
+      }
+    };
+
+    // Test 2: Authentication
+    window.testAuth = () => {
+      log('Testing authentication...', 'info');
+      results.innerHTML = '';
+      
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          showResult('Authentication', 'success', `User: ${user.email}\nUID: ${user.uid}\nEmail Verified: ${user.emailVerified}`);
+          log(`✅ Auth working: ${user.email}`, 'success');
+        } else {
+          showResult('Authentication', 'warning', 'No user signed in. Please login to test data access.');
+          log('⚠️ Please login first', 'warning');
+        }
+      });
+    };
+
+    // Test 3: Firestore Access
+    window.testFirestore = async () => {
+      log('Testing Firestore access...', 'info');
+      results.innerHTML = '';
+      
+      try {
+        // Test machines collection
+        log('Fetching machines collection...', 'info');
+        const machinesSnapshot = await getDocs(collection(db, "machines"));
+        showResult('Machines Collection', machinesSnapshot.size > 0 ? 'success' : 'warning', 
+          `Found ${machinesSnapshot.size} documents\n\n${machinesSnapshot.size === 0 ? 'Database is empty! You need to add machines.' : 'Sample data:\n' + JSON.stringify(machinesSnapshot.docs[0]?.data(), null, 2)}`);
+        log(`✅ Machines: ${machinesSnapshot.size} documents`, machinesSnapshot.size > 0 ? 'success' : 'warning');
+        
+        // Test interventions collection
+        log('Fetching interventions collection...', 'info');
+        const interventionsSnapshot = await getDocs(collection(db, "interventions"));
+        showResult('Interventions Collection', interventionsSnapshot.size > 0 ? 'success' : 'warning', 
+          `Found ${interventionsSnapshot.size} documents`);
+        log(`✅ Interventions: ${interventionsSnapshot.size} documents`, interventionsSnapshot.size > 0 ? 'success' : 'warning');
+        
+        // Test signatures collection
+        log('Fetching signatures collection...', 'info');
+        const signaturesSnapshot = await getDocs(collection(db, "signatures"));
+        showResult('Signatures Collection', signaturesSnapshot.size > 0 ? 'success' : 'warning', 
+          `Found ${signaturesSnapshot.size} documents`);
+        log(`✅ Signatures: ${signaturesSnapshot.size} documents`, signaturesSnapshot.size > 0 ? 'success' : 'warning');
+        
+      } catch (error) {
+        showResult('Firestore Access', 'error', `Error: ${error.message}\n\nCode: ${error.code}\n\nThis usually means:\n1. Firestore rules are blocking access\n2. Wrong Firebase project\n3. Network issue`);
+        log(`❌ Firestore error: ${error.message}`, 'error');
+      }
+    };
+
+    // Test 4: List Collections
+    window.listAllCollections = async () => {
+      log('Listing all accessible collections...', 'info');
+      results.innerHTML = '';
+      
+      const collectionsToTest = ['machines', 'interventions', 'signatures', 'permissions', 'users', 'user_profiles', 'emergency_calls'];
+      
+      for (const collectionName of collectionsToTest) {
+        try {
+          log(`Testing ${collectionName}...`, 'info');
+          const snapshot = await getDocs(query(collection(db, collectionName), limit(1)));
+          showResult(`Collection: ${collectionName}`, snapshot.size > 0 ? 'success' : 'warning', 
+            `${snapshot.size > 0 ? 'Contains data' : 'Empty or no access'}`);
+          log(`  ${collectionName}: ${snapshot.size > 0 ? 'accessible' : 'empty/blocked'}`, snapshot.size > 0 ? 'success' : 'warning');
+        } catch (error) {
+          showResult(`Collection: ${collectionName}`, 'error', `Error: ${error.message}`);
+          log(`  ${collectionName}: ERROR - ${error.message}`, 'error');
+        }
+      }
+    };
+
+    // Test 5: Rules Check
+    window.checkRules = async () => {
+      log('Checking Firestore security rules...', 'info');
+      results.innerHTML = '';
+      
+      const user = auth.currentUser;
+      if (!user) {
+        showResult('Rules Check', 'warning', 'Please login first to test read/write permissions.');
+        return;
+      }
+      
+      try {
+        // Test read access
+        log('Testing READ access...', 'info');
+        const readTest = await getDocs(query(collection(db, "machines"), limit(1)));
+        showResult('Read Permission', 'success', 'Can read from Firestore');
+        log('✅ READ access granted', 'success');
+        
+        // Test write access (by trying to read a specific doc that might not exist)
+        log('Testing WRITE access...', 'info');
+        const testDocRef = doc(db, "machines", "test_access_check");
+        try {
+          const testDoc = await getDoc(testDocRef);
+          showResult('Write Permission Check', 'success', 'Rules allow document access');
+          log('✅ Document access working', 'success');
+        } catch (writeError) {
+          showResult('Write Permission', 'error', `Cannot access documents: ${writeError.message}`);
+          log(`❌ WRITE access denied: ${writeError.message}`, 'error');
+        }
+        
+      } catch (error) {
+        showResult('Rules Check', 'error', `Permission denied: ${error.message}\n\nYour Firestore rules are blocking access!\n\nGo to Firebase Console → Firestore → Rules`);
+        log(`❌ Rules blocking access: ${error.message}`, 'error');
+      }
+    };
+
+    // Auto-run basic test on page load
+    log('🔥 Firebase Diagnostic Tool Loaded', 'success');
+    log('Click buttons above to run tests', 'info');
+    setTimeout(() => {
+      log('Running automatic basic test...', 'info');
+      testFirebaseConnection();
+    }, 1000);
+  </script>
+</body>
+</html>
