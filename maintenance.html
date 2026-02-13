@@ -1561,6 +1561,19 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
     console.log("🔍 Setting up auth listener...");
     console.log("🔍 Auth object:", auth);
     console.log("🔍 DB object:", db);
+    
+    // Test Firebase connection
+    console.log("🔍 Testing Firestore connection...");
+    getDocs(collection(db, "machines")).then((snapshot) => {
+      console.log("✅ Firestore connection successful! Found", snapshot.size, "machines");
+      snapshot.forEach(doc => {
+        console.log("  - Machine:", doc.id, doc.data());
+      });
+    }).catch((error) => {
+      console.error("❌ Firestore connection failed:", error);
+      alert("FIREBASE CONNECTION ERROR: " + error.message + "\n\nPlease check:\n1. Internet connection\n2. Firebase configuration in firebase.js\n3. Firestore security rules");
+    });
+    
     onAuthStateChanged(auth, async user => {
       console.log("🔍 Auth state changed. User:", user);
       if (!user) { 
@@ -1916,10 +1929,29 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
 
     function loadMachinesLive(userEmail) {
       console.log("🔍 loadMachinesLive called for:", userEmail);
-      const table = document.getElementById('assetTable'); const select = document.getElementById('reqMachine');
+      const table = document.getElementById('assetTable'); 
+      const select = document.getElementById('reqMachine');
       console.log("🔍 Table element:", table, "Select element:", select);
+      
+      let dataReceived = false;
+      
+      // Set timeout to alert if no data received
+      setTimeout(() => {
+        if (!dataReceived) {
+          console.error("❌ No machine data received after 5 seconds");
+          alert("WARNING: No machines data loaded.\n\nPossible causes:\n1. No machines in database\n2. Firestore rules blocking access\n3. Network issue\n\nCheck browser console (F12) for details.");
+        }
+      }, 5000);
+      
       onSnapshot(collection(db, "machines"), (snap) => {
+        dataReceived = true;
         console.log("📊 Machines snapshot received, size:", snap.size);
+        
+        if (snap.size === 0) {
+          console.warn("⚠️ Database has 0 machines!");
+          if (table) table.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#ffcc00;'>NO MACHINES IN DATABASE. Please sync data or add machines.</td></tr>";
+        }
+        
         if(table) table.innerHTML = "";
         if(select) { const currentVal = select.value; select.innerHTML = '<option value="">Select Machine...</option>'; snap.forEach(s => select.innerHTML += `<option value="${s.id}" ${currentVal===s.id?'selected':''}>${s.data().name}</option>`); }
         snap.forEach(snapshotDoc => {
@@ -1944,7 +1976,7 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
         });
       }, (error) => {
         console.error("❌ Error loading machines:", error);
-        alert("ERROR LOADING MACHINES: " + error.message);
+        alert("ERROR LOADING MACHINES: " + error.message + "\n\nThis usually means:\n1. Firestore security rules are blocking access\n2. Network connection issue\n3. Firebase project configuration error");
       });
     }
 
