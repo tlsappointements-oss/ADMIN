@@ -828,12 +828,23 @@ await window.generateMaintenancePDF({
     };
 
     // AUTH
+    console.log("🔍 Setting up auth listener...");
+    console.log("🔍 Auth object:", auth);
+    console.log("🔍 DB object:", db);
     onAuthStateChanged(auth, async user => {
-      if (!user) { window.location.href = "login.html"; return; }
+      console.log("🔍 Auth state changed. User:", user);
+      if (!user) { 
+        console.log("⚠️ No user, redirecting to login");
+        window.location.href = "login.html"; 
+        return; 
+      }
       const email = user.email.toLowerCase();
+      console.log("✅ User logged in:", email);
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
       // Listen for global permissions
+      console.log("🔍 Setting up permissions listener...");
       onSnapshot(collection(db, "permissions"), snap => {
+        console.log("📊 Permissions snapshot received, size:", snap.size);
         snap.forEach(d => {
           userPermissions[d.id] = d.data();
           if (d.id === email) {
@@ -846,6 +857,9 @@ await window.generateMaintenancePDF({
           if (btn) btn.style.display = (window.checkPermission(id)) ? 'block' : 'none';
         });
         if (email === DIRECTOR) { renderPersonnelDashboard(snap); }
+      }, (error) => {
+        console.error("❌ Error loading permissions:", error);
+        alert("ERROR LOADING PERMISSIONS: " + error.message);
       });
 
       if (email === DIRECTOR) {
@@ -864,8 +878,11 @@ await window.generateMaintenancePDF({
         }
         loadMyMissions(email);
       }
+      console.log("🔍 Calling loadMachinesLive...");
       loadMachinesLive(email);
+      console.log("🔍 Calling loadHistory...");
       loadHistory();
+      console.log("🔍 Calling listenForEmergency...");
       listenForEmergency(email);
     });
 
@@ -1142,8 +1159,11 @@ await window.generateMaintenancePDF({
     }
 
     function loadMachinesLive(userEmail) {
+      console.log("🔍 loadMachinesLive called for:", userEmail);
       const table = document.getElementById('assetTable'); const select = document.getElementById('reqMachine');
+      console.log("🔍 Table element:", table, "Select element:", select);
       onSnapshot(collection(db, "machines"), (snap) => {
+        console.log("📊 Machines snapshot received, size:", snap.size);
         if(table) table.innerHTML = "";
         if(select) { const currentVal = select.value; select.innerHTML = '<option value="">Select Machine...</option>'; snap.forEach(s => select.innerHTML += `<option value="${s.id}" ${currentVal===s.id?'selected':''}>${s.data().name}</option>`); }
         snap.forEach(snapshotDoc => {
@@ -1166,6 +1186,9 @@ await window.generateMaintenancePDF({
             row += `</td></tr>`; table.innerHTML += row;
           }
         });
+      }, (error) => {
+        console.error("❌ Error loading machines:", error);
+        alert("ERROR LOADING MACHINES: " + error.message);
       });
     }
 
@@ -1201,7 +1224,9 @@ await window.generateMaintenancePDF({
     }
 
     function loadHistory() {
+      console.log("🔍 loadHistory called");
       onSnapshot(query(collection(db, "interventions"), where("status", "==", "ARCHIVED")), (snap) => {
+        console.log("📊 Archived interventions snapshot received, size:", snap.size);
         archivedInterventions = []; snap.forEach(d => archivedInterventions.push({id: d.id, ...d.data()}));
         window.filterHistory(); const kpiPage = document.getElementById('kpiTrackerPage'); if(kpiPage && kpiPage.style.display === 'block') window.calculateKPIs();
       });
