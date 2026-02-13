@@ -412,9 +412,41 @@
   </div>
 
 <script type="module">
+    // ========== STARTUP DIAGNOSTIC ==========
+    console.log("🚀 ========== SCRIPT STARTING ==========");
+    console.log("✅ JavaScript is running");
+    console.log("📍 Current page:", window.location.href);
+    console.log("⏰ Time:", new Date().toLocaleTimeString());
+    
+    // Check if all critical DOM elements exist
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log("📋 Checking DOM elements...");
+      const criticalElements = [
+        'assetTable',
+        'reqMachine', 
+        'missionList',
+        'adminApprovalList',
+        'historyList',
+        'userDisplay'
+      ];
+      
+      criticalElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          console.log(`  ✅ Found #${id}`);
+        } else {
+          console.error(`  ❌ MISSING #${id} - This will cause data loading to fail!`);
+        }
+      });
+    });
+    
     import { auth, db } from './firebase.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    console.log("✅ Firebase imports successful");
+    console.log("✅ Auth object:", auth ? "loaded" : "MISSING");
+    console.log("✅ DB object:", db ? "loaded" : "MISSING");
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
 
@@ -2077,4 +2109,3 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
   </script>
 </body>
 </html>
-
