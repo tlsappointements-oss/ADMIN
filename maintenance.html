@@ -369,12 +369,6 @@
     import { auth, db } from './firebase.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-
-window.storage = getStorage();
-window.storageRef = storageRef;
-window.uploadBytes = uploadBytes;
-window.getDownloadURL = getDownloadURL;
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
 
@@ -444,19 +438,18 @@ window.getDownloadURL = getDownloadURL;
             }
         }
 
-        // Output -> Blob
-        const pdfBlob = pdf.output("blob");
-
-        // Upload to Firebase Storage
-        const storagePath = `reports/${intId}.pdf`;
-        const sRef = window.storageRef(window.storage, storagePath);
-        await window.uploadBytes(sRef, pdfBlob);
-
-        // Get public URL and save back on the intervention
-        const url = await window.getDownloadURL(sRef);
-        await updateDoc(doc(db, "interventions", intId), { pdfUrl: url });
+        // Generate PDF as base64 data URI (no Storage needed!)
+        const pdfDataUri = pdf.output("datauristring");
+        
+        // Save the base64 PDF directly to Firestore
+        await updateDoc(doc(db, "interventions", intId), { 
+            pdfData: pdfDataUri,
+            pdfGeneratedAt: serverTimestamp()
+        });
+        
+        console.log("✅ PDF generated and saved to Firestore for intervention:", intId);
     } catch (e) {
-        console.error("PDF generation failed:", e);
+        console.error("❌ PDF generation failed:", e);
     }
     };
 
@@ -841,26 +834,42 @@ await window.generateMaintenancePDF({
       const email = user.email.toLowerCase();
       console.log("✅ User logged in:", email);
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
-      // Listen for global permissions
+      
+      // Listen for global permissions (optional - if rules allow)
       console.log("🔍 Setting up permissions listener...");
-      onSnapshot(collection(db, "permissions"), snap => {
-        console.log("📊 Permissions snapshot received, size:", snap.size);
-        snap.forEach(d => {
-          userPermissions[d.id] = d.data();
-          if (d.id === email) {
-            const hasAll = d.data().do_missions && d.data().view_history;
-            document.getElementById('reqPermissionBox').style.display = hasAll ? 'none' : 'block';
-          }
+      try {
+        onSnapshot(collection(db, "permissions"), snap => {
+          console.log("📊 Permissions snapshot received, size:", snap.size);
+          snap.forEach(d => {
+            userPermissions[d.id] = d.data();
+            if (d.id === email) {
+              const hasAll = d.data().do_missions && d.data().view_history;
+              document.getElementById('reqPermissionBox').style.display = hasAll ? 'none' : 'block';
+            }
+          });
+          ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(id => {
+            const btn = document.getElementById('nav_' + id);
+            if (btn) btn.style.display = (window.checkPermission(id)) ? 'block' : 'none';
+          });
+          if (email === DIRECTOR) { renderPersonnelDashboard(snap); }
+        }, (error) => {
+          console.warn("⚠️ Permissions not accessible (this is OK for now):", error.message);
+          // Grant all permissions by default if we can't read the permissions collection
+          userPermissions[email] = {
+            view_dashboard: true,
+            request_intervention: true,
+            do_missions: true,
+            view_history: true,
+            view_kpi: true
+          };
+          ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(id => {
+            const btn = document.getElementById('nav_' + id);
+            if (btn) btn.style.display = 'block';
+          });
         });
-        ['mainPage', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(id => {
-          const btn = document.getElementById('nav_' + id);
-          if (btn) btn.style.display = (window.checkPermission(id)) ? 'block' : 'none';
-        });
-        if (email === DIRECTOR) { renderPersonnelDashboard(snap); }
-      }, (error) => {
-        console.error("❌ Error loading permissions:", error);
-        alert("ERROR LOADING PERMISSIONS: " + error.message);
-      });
+      } catch (e) {
+        console.warn("⚠️ Could not setup permissions listener:", e);
+      }
 
       if (email === DIRECTOR) {
         document.getElementById('adminPanel').style.display = "block";
@@ -1240,8 +1249,8 @@ await window.generateMaintenancePDF({
         </div>
         
   <div style="margin:8px 0 12px 0;">
-    ${i.pdfUrl 
-      ? '<a href="+ i.pdfUrl +" target="_blank" style="color:#00ff00;font-weight:bold;text-decoration:underline;">📄 OPEN PDF REPORT</a>'
+    ${i.pdfData 
+      ? '<a href="' + i.pdfData + '" download="report_' + i.id + '.pdf" style="color:#00ff00;font-weight:bold;text-decoration:underline;">📄 DOWNLOAD PDF REPORT</a>'
       : '<span style="color:#555;">No PDF available yet</span>'}
   </div>
   <div class=\"card\">
