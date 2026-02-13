@@ -233,6 +233,19 @@
     <button class="btn-ghost" style="margin-left:6px;" onclick="window.dismissIncomingCall()">DISMISS</button>
   </div>
 
+  <!-- SIGNATURE CAPTURE POPUP -->
+  <div id="signaturePopup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:600px; background:#0b0b0b; border:2px solid #e30613; border-radius:14px; padding:24px; z-index:10015; box-shadow:0 0 50px #000;">
+    <h2 style="color:#e30613; margin:0 0 10px 0;">SIGNATURE REQUISE</h2>
+    <p style="color:#999; font-size:12px; margin-bottom:20px;">Veuillez dessiner votre signature ci-dessous. Elle sera utilisée pour tous vos documents officiels.</p>
+    <div style="background:#fff; border:2px solid #333; border-radius:8px; cursor:crosshair;">
+      <canvas id="signatureCanvas" width="552" height="200"></canvas>
+    </div>
+    <div style="margin-top:15px; display:flex; gap:10px;">
+      <button onclick="window.clearSignature()" style="background:#444; flex:1;">EFFACER</button>
+      <button onclick="window.saveSignature()" style="background:#e30613; flex:2;">ENREGISTRER LA SIGNATURE</button>
+    </div>
+  </div>
+
   <!-- SIDEBAR -->
   <div class="sidebar" id="mainSidebar">
     <h2 style="color: #e30613;">MERCEDES</h2>
@@ -372,85 +385,470 @@
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
 
-    // === PDF GENERATOR: creates/updates a PDF for an intervention and stores it ===
-    window.generateMaintenancePDF = async function generateMaintenancePDF(intData, intId) {
-    try {
+    // SIGNATURE MANAGEMENT SYSTEM
+    let signatureCanvas, signatureContext;
+    let isDrawing = false;
+    let userSignatures = {}; // Cache of user signatures
+    let currentUserProfile = {}; // Cache of user profile (name, position)
+
+    // Initialize signature canvas
+    function initSignatureCanvas() {
+      signatureCanvas = document.getElementById('signatureCanvas');
+      signatureContext = signatureCanvas.getContext('2d');
+      signatureContext.strokeStyle = '#000';
+      signatureContext.lineWidth = 2;
+      signatureContext.lineCap = 'round';
+
+      signatureCanvas.addEventListener('mousedown', startDrawing);
+      signatureCanvas.addEventListener('mousemove', draw);
+      signatureCanvas.addEventListener('mouseup', stopDrawing);
+      signatureCanvas.addEventListener('mouseout', stopDrawing);
+
+      // Touch support
+      signatureCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e.touches[0]); });
+      signatureCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+      signatureCanvas.addEventListener('touchend', stopDrawing);
+    }
+
+    function startDrawing(e) {
+      isDrawing = true;
+      const rect = signatureCanvas.getBoundingClientRect();
+      signatureContext.beginPath();
+      signatureContext.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      const rect = signatureCanvas.getBoundingClientRect();
+      signatureContext.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      signatureContext.stroke();
+    }
+
+    function stopDrawing() {
+      isDrawing = false;
+    }
+
+    window.clearSignature = () => {
+      signatureContext.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+    };
+
+    window.saveSignature = async () => {
+      const signatureData = signatureCanvas.toDataURL('image/png');
+      const email = auth.currentUser.email.toLowerCase();
+      
+      // Save to Firestore
+      await setDoc(doc(db, "signatures", email), {
+        signatureData: signatureData,
+        createdAt: serverTimestamp()
+      });
+
+      // Cache locally
+      userSignatures[email] = signatureData;
+      
+      document.getElementById('signaturePopup').style.display = 'none';
+      alert("Signature enregistrée avec succès!");
+    };
+
+    // Get or request user signature
+    async function getUserSignature(email) {
+      // Check cache first
+      if (userSignatures[email]) return userSignatures[email];
+
+      // Try to load from Firestore
+      try {
+        const sigDoc = await getDoc(doc(db, "signatures", email));
+        if (sigDoc.exists()) {
+          userSignatures[email] = sigDoc.data().signatureData;
+          return userSignatures[email];
+        }
+      } catch (e) {
+        console.log("No signature found for", email);
+      }
+
+      // No signature found - request it
+      return null;
+    }
+
+    // Get user profile (name, position)
+    async function getUserProfile(email) {
+      if (currentUserProfile[email]) return currentUserProfile[email];
+
+      try {
+        const userDoc = await getDoc(doc(db, "user_profiles", email));
+        if (userDoc.exists()) {
+          currentUserProfile[email] = userDoc.data();
+          return currentUserProfile[email];
+        }
+      } catch (e) {
+        console.log("No profile found for", email);
+      }
+
+      // Default profile from email
+      return {
+        name: email.split('@')[0].toUpperCase(),
+        position: email === DIRECTOR ? "Directeur d'Usine" : "Technicien de Maintenance"
+      };
+    }
+
+    // Request signature from user if not exists
+    async function ensureUserSignature(email) {
+      const signature = await getUserSignature(email);
+      if (signature) return signature;
+
+      // Show signature popup
+      return new Promise((resolve) => {
+        document.getElementById('signaturePopup').style.display = 'block';
+        window.clearSignature();
+
+        // Override save function to resolve promise
+        const originalSave = window.saveSignature;
+        window.saveSignature = async () => {
+          await originalSave();
+          const sig = await getUserSignature(email);
+          window.saveSignature = originalSave; // Restore
+          resolve(sig);
+        };
+      });
+    }
+
+    // === PDF GENERATORS ===
+
+    // 1. DEMANDE D'INTERVENTION PDF
+    window.generateDemandeInterventionPDF = async function(intData, intId) {
+      try {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF();
 
+        // Get requester info
+        const requesterEmail = intData.requester;
+        const requesterProfile = await getUserProfile(requesterEmail);
+        const requesterSignature = await ensureUserSignature(requesterEmail);
+
         // Header
-        pdf.setFontSize(18);
-        pdf.text("Maintenance Report", 14, 18);
+        pdf.setFillColor(227, 6, 19);
+        pdf.rect(0, 0, 210, 40, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(24);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('MERCEDES-BENZ', 105, 15, { align: 'center' });
+        pdf.setFontSize(16);
+        pdf.text('DEMANDE D\'INTERVENTION', 105, 28, { align: 'center' });
 
-        // Basics
+        // Document info
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(10);
+        pdf.text(`N° ${intId}`, 14, 50);
+        pdf.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 150, 50);
+
+        let y = 65;
+
+        // Machine info section
         pdf.setFontSize(12);
-        const submittedAt = intData.timestamp?.toDate?.()?.toLocaleString?.() 
-            || (intData.timestamp ? new Date(intData.timestamp).toLocaleString() : "-");
-        const approvedAt = intData.approvedAt?.toDate?.()?.toLocaleString?.() 
-            || (intData.approvedAt ? new Date(intData.approvedAt).toLocaleString() : "");
-        const closedAt   = intData.finalResetAt?.toDate?.()?.toLocaleString?.() 
-            || (intData.finalResetAt ? new Date(intData.finalResetAt).toLocaleString() : "");
+        pdf.setFont(undefined, 'bold');
+        pdf.text('ÉQUIPEMENT CONCERNÉ', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        pdf.text(`Machine: ${intData.machineName}`, 14, y);
+        y += 7;
+        pdf.text(`ID Machine: ${intData.machineId || 'N/A'}`, 14, y);
 
-        let y = 30;
-        const addLine = (label, value) => {
-            pdf.text(`${label}: ${value ?? "-"}`, 14, y);
-            y += 8;
-        };
+        y += 15;
 
-        addLine("Record ID", intId);
-        addLine("Machine", intData.machineName);
-        addLine("Issue", intData.issue);
-        addLine("Requester", intData.requester);
-        addLine("Status", intData.status);
-        addLine("Submitted", submittedAt);
-        if (approvedAt) addLine("Approved", approvedAt);
-        if (closedAt)   addLine("Closed", closedAt);
+        // Issue description
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('DESCRIPTION DU PROBLÈME', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        const issueLines = pdf.splitTextToSize(intData.issue, 180);
+        pdf.text(issueLines, 14, y);
+        y += issueLines.length * 7 + 10;
 
-        // Technician section
-        if (intData.techComment) {
-            y += 4;
-            pdf.setFont(undefined, "bold");
-            pdf.text("Technician Notes:", 14, y);
-            pdf.setFont(undefined, "normal");
-            y += 6;
+        // Requester section
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('DEMANDEUR', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        pdf.text(`Nom: ${requesterProfile.name}`, 14, y);
+        y += 7;
+        pdf.text(`Fonction: ${requesterProfile.position}`, 14, y);
+        y += 7;
+        pdf.text(`Email: ${requesterEmail}`, 14, y);
 
-            const notes = pdf.splitTextToSize(String(intData.techComment), 180);
-            pdf.text(notes, 14, y);
-            y += Math.max(12, notes.length * 6);
+        // Signature
+        y += 15;
+        if (requesterSignature) {
+          pdf.text('Signature:', 14, y);
+          pdf.addImage(requesterSignature, 'PNG', 14, y + 2, 50, 20);
         }
 
-        // Durations
-        if (intData.actualStart && intData.actualEnd) {
-            const actualDurationMin = Math.round((intData.actualEnd - intData.actualStart) / 60000);
-            const manualDurationMin = (intData.manualStart && intData.manualEnd)
-                ? Math.round((new Date(intData.manualEnd) - new Date(intData.manualStart)) / 60000)
-                : null;
+        // Footer
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text('Document généré automatiquement - Mercedes-Benz Plant Operations', 105, 285, { align: 'center' });
 
-            y += 4;
-            pdf.setFont(undefined, "bold");
-            pdf.text("Durations (minutes):", 14, y);
-            pdf.setFont(undefined, "normal");
-            y += 6;
-
-            addLine("System (Actual)", isNaN(actualDurationMin) ? "-" : `${actualDurationMin}m`);
-            if (manualDurationMin !== null && !isNaN(manualDurationMin)) {
-                addLine("Manual", `${manualDurationMin}m`);
-            }
-        }
-
-        // Generate PDF as base64 data URI (no Storage needed!)
-        const pdfDataUri = pdf.output("datauristring");
-        
-        // Save the base64 PDF directly to Firestore
-        await updateDoc(doc(db, "interventions", intId), { 
-            pdfData: pdfDataUri,
-            pdfGeneratedAt: serverTimestamp()
+        // Save to Firestore
+        const pdfDataUri = pdf.output('datauristring');
+        await updateDoc(doc(db, "interventions", intId), {
+          pdfDemande: pdfDataUri,
+          pdfDemandeGeneratedAt: serverTimestamp()
         });
-        
-        console.log("✅ PDF generated and saved to Firestore for intervention:", intId);
-    } catch (e) {
-        console.error("❌ PDF generation failed:", e);
-    }
+
+        console.log("✅ Demande d'Intervention PDF generated for:", intId);
+        return pdfDataUri;
+      } catch (e) {
+        console.error("❌ PDF Demande generation failed:", e);
+      }
+    };
+
+    // 2. ORDRE DE MISSION PDF
+    window.generateOrdreMissionPDF = async function(intData, intId) {
+      try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+
+        // Get director signature
+        const directorProfile = await getUserProfile(DIRECTOR);
+        const directorSignature = await getUserSignature(DIRECTOR);
+
+        // Header
+        pdf.setFillColor(227, 6, 19);
+        pdf.rect(0, 0, 210, 40, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(24);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('MERCEDES-BENZ', 105, 15, { align: 'center' });
+        pdf.setFontSize(16);
+        pdf.text('ORDRE DE MISSION', 105, 28, { align: 'center' });
+
+        // Document info
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(10);
+        pdf.text(`N° ${intId}`, 14, 50);
+        pdf.text(`Date: ${intData.approvedAt?.toDate?.()?.toLocaleDateString('fr-FR') || new Date().toLocaleDateString('fr-FR')}`, 150, 50);
+
+        let y = 65;
+
+        // Mission info
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('MISSION APPROUVÉE', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        pdf.text(`Machine: ${intData.machineName}`, 14, y);
+        y += 7;
+        pdf.text(`Technicien Assigné: ${intData.assignedTech || 'En attente'}`, 14, y);
+
+        y += 15;
+
+        // Problem description
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('PROBLÈME IDENTIFIÉ', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        const issueLines = pdf.splitTextToSize(intData.issue, 180);
+        pdf.text(issueLines, 14, y);
+        y += issueLines.length * 7 + 10;
+
+        // Director approval
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('APPROBATION DIRECTEUR', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        if (intData.directorApprovalComment) {
+          const commentLines = pdf.splitTextToSize(intData.directorApprovalComment, 180);
+          pdf.text(commentLines, 14, y);
+          y += commentLines.length * 7 + 10;
+        }
+
+        pdf.text(`Approuvé par: ${directorProfile.name}`, 14, y);
+        y += 7;
+        pdf.text(`Fonction: ${directorProfile.position}`, 14, y);
+
+        // Signature
+        y += 15;
+        if (directorSignature) {
+          pdf.text('Signature:', 14, y);
+          pdf.addImage(directorSignature, 'PNG', 14, y + 2, 50, 20);
+        }
+
+        // Footer
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text('Document officiel - Mercedes-Benz Plant Operations', 105, 285, { align: 'center' });
+
+        // Save to Firestore
+        const pdfDataUri = pdf.output('datauristring');
+        await updateDoc(doc(db, "interventions", intId), {
+          pdfOrdre: pdfDataUri,
+          pdfOrdreGeneratedAt: serverTimestamp()
+        });
+
+        console.log("✅ Ordre de Mission PDF generated for:", intId);
+        return pdfDataUri;
+      } catch (e) {
+        console.error("❌ PDF Ordre generation failed:", e);
+      }
+    };
+
+    // 3. RAPPORT D'INTERVENTION PDF (Final Report)
+    window.generateRapportInterventionPDF = async function(intData, intId) {
+      try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+
+        // Get technician info
+        const techEmail = intData.assignedTech || intData.requester;
+        const techProfile = await getUserProfile(techEmail);
+        const techSignature = await getUserSignature(techEmail);
+
+        // Get director signature
+        const directorProfile = await getUserProfile(DIRECTOR);
+        const directorSignature = await getUserSignature(DIRECTOR);
+
+        // Header
+        pdf.setFillColor(227, 6, 19);
+        pdf.rect(0, 0, 210, 40, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(24);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('MERCEDES-BENZ', 105, 15, { align: 'center' });
+        pdf.setFontSize(16);
+        pdf.text('RAPPORT D\'INTERVENTION', 105, 28, { align: 'center' });
+
+        // Document info
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(10);
+        pdf.text(`N° ${intId}`, 14, 50);
+        pdf.text(`Date: ${intData.finalResetAt?.toDate?.()?.toLocaleDateString('fr-FR') || new Date().toLocaleDateString('fr-FR')}`, 150, 50);
+
+        let y = 65;
+
+        // Machine info
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('ÉQUIPEMENT', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        pdf.text(`Machine: ${intData.machineName}`, 14, y);
+        y += 7;
+        pdf.text(`ID: ${intData.machineId || 'N/A'}`, 14, y);
+
+        y += 15;
+
+        // Problem
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('PROBLÈME INITIAL', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        const issueLines = pdf.splitTextToSize(intData.issue, 180);
+        pdf.text(issueLines, 14, y);
+        y += issueLines.length * 7 + 10;
+
+        // Resolution
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('RÉSOLUTION', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        if (intData.techComment) {
+          const resLines = pdf.splitTextToSize(intData.techComment, 180);
+          pdf.text(resLines, 14, y);
+          y += resLines.length * 7 + 10;
+        }
+
+        // Duration
+        if (intData.actualStart && intData.actualEnd) {
+          const actualDurationMin = Math.round((intData.actualEnd - intData.actualStart) / 60000);
+          pdf.text(`Durée totale: ${actualDurationMin} minutes`, 14, y);
+          y += 10;
+        }
+
+        // Add new page if needed
+        if (y > 200) {
+          pdf.addPage();
+          y = 20;
+        }
+
+        // Technician signature
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('TECHNICIEN', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        pdf.text(`Nom: ${techProfile.name}`, 14, y);
+        y += 7;
+        pdf.text(`Fonction: ${techProfile.position}`, 14, y);
+        y += 10;
+        if (techSignature) {
+          pdf.text('Signature:', 14, y);
+          pdf.addImage(techSignature, 'PNG', 14, y + 2, 50, 20);
+          y += 25;
+        }
+
+        // Director validation signature
+        y += 10;
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('VALIDATION DIRECTEUR', 14, y);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(10);
+        y += 10;
+        pdf.text(`Nom: ${directorProfile.name}`, 14, y);
+        y += 7;
+        pdf.text(`Fonction: ${directorProfile.position}`, 14, y);
+        y += 10;
+        if (directorSignature) {
+          pdf.text('Signature:', 14, y);
+          pdf.addImage(directorSignature, 'PNG', 14, y + 2, 50, 20);
+        }
+
+        // Footer
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text('Rapport Final - Mercedes-Benz Plant Operations', 105, 285, { align: 'center' });
+
+        // Save to Firestore
+        const pdfDataUri = pdf.output('datauristring');
+        await updateDoc(doc(db, "interventions", intId), {
+          pdfRapport: pdfDataUri,
+          pdfRapportGeneratedAt: serverTimestamp()
+        });
+
+        console.log("✅ Rapport d'Intervention PDF generated for:", intId);
+        return pdfDataUri;
+      } catch (e) {
+        console.error("❌ PDF Rapport generation failed:", e);
+      }
+    };
+
+    // Legacy function - now generates all PDFs
+    window.generateMaintenancePDF = async function(intData, intId) {
+      // This will be called at different stages
+      // We'll generate the appropriate PDF based on status
+      if (intData.status === "PENDING_MOHAMED" || intData.status === "APPROVED") {
+        await window.generateDemandeInterventionPDF(intData, intId);
+      }
+      if (intData.status === "APPROVED") {
+        await window.generateOrdreMissionPDF(intData, intId);
+      }
+      if (intData.status === "ARCHIVED") {
+        await window.generateRapportInterventionPDF(intData, intId);
+      }
     };
 
     let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
@@ -834,6 +1232,16 @@ await window.generateMaintenancePDF({
       const email = user.email.toLowerCase();
       console.log("✅ User logged in:", email);
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+      
+      // Initialize signature canvas
+      initSignatureCanvas();
+      
+      // Check if user has signature, request if not
+      const userSig = await getUserSignature(email);
+      if (!userSig) {
+        console.log("⚠️ No signature found for user, requesting...");
+        // Don't block - will be requested when generating first PDF
+      }
       
       // Listen for global permissions (optional - if rules allow)
       console.log("🔍 Setting up permissions listener...");
@@ -1249,9 +1657,19 @@ await window.generateMaintenancePDF({
         </div>
         
   <div style="margin:8px 0 12px 0;">
-    ${i.pdfData 
-      ? '<a href="' + i.pdfData + '" download="report_' + i.id + '.pdf" style="color:#00ff00;font-weight:bold;text-decoration:underline;">📄 DOWNLOAD PDF REPORT</a>'
-      : '<span style="color:#555;">No PDF available yet</span>'}
+    <div style="display:flex; gap:15px; flex-wrap:wrap;">
+      ${i.pdfDemande 
+        ? '<a href="' + i.pdfDemande + '" download="demande_' + i.id + '.pdf" style="color:#00ff00;font-weight:bold;text-decoration:underline;">📄 DEMANDE D\'INTERVENTION</a>'
+        : '<span style="color:#555;">Demande PDF non disponible</span>'}
+      
+      ${i.pdfOrdre 
+        ? '<a href="' + i.pdfOrdre + '" download="ordre_' + i.id + '.pdf" style="color:#ffcc00;font-weight:bold;text-decoration:underline;">📋 ORDRE DE MISSION</a>'
+        : '<span style="color:#555;">Ordre PDF non disponible</span>'}
+      
+      ${i.pdfRapport 
+        ? '<a href="' + i.pdfRapport + '" download="rapport_' + i.id + '.pdf" style="color:#ff9900;font-weight:bold;text-decoration:underline;">📊 RAPPORT FINAL</a>'
+        : '<span style="color:#555;">Rapport PDF non disponible</span>'}
+    </div>
   </div>
   <div class=\"card\">
           <p><b>Original Issue:</b> ${i.issue}</p>
