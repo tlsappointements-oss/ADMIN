@@ -377,8 +377,9 @@ window.uploadBytes = uploadBytes;
 window.getDownloadURL = getDownloadURL;
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
-// === PDF GENERATOR: creates/updates a PDF for an intervention and stores it ===
-async function generateMaintenancePDF(intData, intId) {
+
+    // === PDF GENERATOR: creates/updates a PDF for an intervention and stores it ===
+    window.generateMaintenancePDF = async function generateMaintenancePDF(intData, intId) {
     try {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF();
@@ -457,7 +458,7 @@ async function generateMaintenancePDF(intData, intId) {
     } catch (e) {
         console.error("PDF generation failed:", e);
     }
-}
+    };
 
     let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
     let userPermissions = {};
@@ -658,13 +659,13 @@ window.requestAccess = async () => {
         const comment = commentEl ? commentEl.value : "Auto-Approved";
         await updateDoc(doc(db, "interventions", intId), { status: "APPROVED", directorApprovalComment: comment, approvedAt: serverTimestamp() });
         await updateDoc(doc(db, "machines", mId), { status: "BREAKDOWN", acknowledged: false });
-try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await generateMaintenancePDF(fullDoc.data(), intId); } catch (e) { console.error(e); }
+try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await window.generateMaintenancePDF(fullDoc.data(), intId); } catch (e) { console.error(e); }
       } else {
         const intDoc = await getDoc(doc(db, "interventions", intId));
         const data = intDoc.data();
         await updateDoc(doc(db, "interventions", intId), { status: "ARCHIVED", finalResetAt: serverTimestamp() });
         await updateDoc(doc(db, "machines", mId), { status: "WORKING", acknowledged: true, history: arrayUnion(`${new Date().toLocaleDateString()}: Fixed - ${data.techComment}`) });
-try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await generateMaintenancePDF(fullDoc.data(), intId); } catch (e) { console.error(e); }
+try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await window.generateMaintenancePDF(fullDoc.data(), intId); } catch (e) { console.error(e); }
       }
     };
 
@@ -754,7 +755,7 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await gener
     machineId: mId, machineName: (machineCache[mId] ? machineCache[mId].name : "Unknown Machine"), issue: issue,
     status: "PENDING_MOHAMED", timestamp: serverTimestamp(), requester: auth.currentUser.email
 });
-await generateMaintenancePDF({
+await window.generateMaintenancePDF({
     machineName: (machineCache[mId] ? machineCache[mId].name : "Unknown Machine"),
     issue: issue,
     requester: auth.currentUser.email,
