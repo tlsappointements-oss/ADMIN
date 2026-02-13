@@ -220,3 +220,318 @@
     <button class="join-btn" onclick="window.joinIncomingCall()">JOIN CALL</button>
     <button class="btn-ghost" style="margin-left:6px;" onclick="window.dismissIncomingCall()">DISMISS</button>
   </div>
+  <div class="sidebar" id="mainSidebar">
+    <h2 style="color: #e30613;">MERCEDES</h2>
+    <button id="audioActivator" onclick="window.activateAudioSystem()">STEP 1: ENABLE MIC</button>
+    <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
+    <div id="reqPermissionBox" style="display:none; margin-bottom: 10px;">
+      <button onclick="window.requestAccess()" style="background:#444; font-size: 10px; width: 100%; padding: 5px;">PROMPT MOHAMED FOR ACCESS</button>
+    </div>
+    <hr style="border:0; border-top:1px solid #333;">
+    <button class="btn-nav" id="nav_mainPage" onclick="window.showPage('mainPage')">🏠 Dashboard</button>
+    <button class="btn-nav" id="nav_interventionPage" onclick="window.showPage('interventionPage')">📝 Interventions</button>
+    <button class="btn-nav" id="nav_missionPage" onclick="window.showPage('missionPage')">🛠️ Missions</button>
+    <button class="btn-nav" id="nav_historyPage" onclick="window.showPage('historyPage')">📚 History</button>
+    <button class="btn-nav" id="nav_kpiTrackerPage" onclick="window.showPage('kpiTrackerPage')">📊 KPI Command</button>
+    <button class="btn-nav" id="nav_personnelPage" onclick="window.showPage('personnelPage')" style="border: 1px solid #e30613; color: #e30613;">👥 Personnel</button>
+    <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
+  </div>
+
+  <div class="main" id="contentMain">
+    <div id="personnelPage">
+      <h1 style="letter-spacing: 5px;">PERSONNEL & ACCESS CONTROL</h1>
+      <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px;">
+        <div>
+          <div class="card" id="securityMatrixCard" style="border-top: 4px solid #e30613;">
+            <h3 style="margin-top:0;">SECURITY & ACCESS MATRIX</h3>
+            <p style="font-size: 12px; color: #666;">Select a technician to manage permissions and initiate calls.</p>
+            <div id="userAccessList"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="border: 2px solid #ffcc00;">
+            <h3 style="color:#ffcc00; margin-top:0;">ACTIVE BREAKDOWNS (CALLS)</h3>
+            <div id="breakdownCallList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="adminPanel">
+      <h3>DIRECTOR CONTROL</h3>
+      <div id="adminApprovalList"></div>
+      <hr style="border-color: #333; margin: 20px 0;">
+      <div class="card">
+        <h4>DATA SYNCHRONIZATION</h4>
+        <input type="file" id="jsonInput" accept=".json">
+        <button onclick="window.syncDatabase()" style="width: 100%; background: #28a745;">PUSH 105 MACHINES</button>
+      </div>
+    </div>
+
+    <div id="mainPage">
+      <h1>Plant Asset Library</h1>
+      <table>
+        <thead><tr><th>ID</th><th>NAME</th><th>SECTION</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+        <tbody id="assetTable"></tbody>
+      </table>
+    </div>
+
+    <div id="interventionPage">
+      <h1>Step 1: Request Intervention</h1>
+      <div class="card" id="interventionCard">
+        <select id="reqMachine" onchange="window.previewMachine(this.value)"></select>
+        <textarea id="reqIssue" placeholder="Describe the failure..."></textarea>
+        <button id="submitReqBtn" onclick="window.submitReq()">SUBMIT TO DIRECTOR</button>
+      </div>
+    </div>
+
+    <div id="missionPage">
+      <h1>Step 3: Technical Missions</h1>
+      <div id="missionList"></div>
+    </div>
+
+    <div id="historyPage">
+      <h1>Maintenance Archive</h1>
+      <div class="card">
+        <input type="text" id="historySearch" placeholder="Search by Machine Name..." onkeyup="window.filterHistory()">
+        <select id="historyDateSort" onchange="window.filterHistory()">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+        </select>
+      </div>
+      <div id="historyList"></div>
+    </div>
+
+    <div id="kpiTrackerPage">
+      <h1 style="letter-spacing: 5px; text-shadow: 0 0 20px rgba(227,6,19,0.5);">STRATEGIC MISSION CONTROL</h1>
+      <div class="kpi-container">
+        <div class="kpi-hero-card">
+          <span class="kpi-sub-label">Global Plant Efficiency</span>
+          <span id="globalKpiVal" class="kpi-main-val">0%</span>
+          <div class="health-bar-bg"><div id="globalKpiFill" class="health-bar-fill" style="width:0%"></div></div>
+        </div>
+        <div class="kpi-hero-card">
+          <span class="kpi-sub-label">Active Deployments</span>
+          <span id="activeMissionsVal" class="kpi-main-val" style="color:#ffcc00;">0</span>
+          <p style="font-size:10px; color:#555;">Live technical interventions</p>
+        </div>
+        <div class="kpi-hero-card">
+          <span class="kpi-sub-label">System Integrity</span>
+          <span class="kpi-main-val" style="color:#00ff00;">STABLE</span>
+          <div style="font-size:11px;"><span class="pulse-ring"></span> Real-time Telemetry</div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-top:20px;">
+        <div class="card">
+          <h3>LINE TELEMETRY</h3>
+          <div id="lineHealthContent"></div>
+        </div>
+        <div class="card">
+          <h3>ELITE TECHNICIAN PERFORMANCE</h3>
+          <table style="margin-top:0">
+            <thead>
+              <tr>
+                <th>IDENTIFIER</th>
+                <th>MTTR ACCURACY</th>
+                <th>RATING</th>
+              </tr>
+            </thead>
+            <tbody id="techKpiTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { auth, db } from './firebase.js';
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+    window.storage = getStorage();
+    window.storageRef = storageRef;
+    window.uploadBytes = uploadBytes;
+    window.getDownloadURL = getDownloadURL;
+
+    const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
+
+    // PDF GENERATOR
+    async function generateMaintenancePDF(intData, intId) {
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            pdf.setFontSize(18);
+            pdf.text("Maintenance Report", 14, 18);
+            pdf.setFontSize(12);
+            
+            const submittedAt = intData.timestamp?.toDate?.()?.toLocaleString?.() || (intData.timestamp ? new Date(intData.timestamp).toLocaleString() : "-");
+            const approvedAt = intData.approvedAt?.toDate?.()?.toLocaleString?.() || (intData.approvedAt ? new Date(intData.approvedAt).toLocaleString() : "");
+            const closedAt = intData.finalResetAt?.toDate?.()?.toLocaleString?.() || (intData.finalResetAt ? new Date(intData.finalResetAt).toLocaleString() : "");
+
+            let y = 30;
+            const addLine = (label, value) => {
+                pdf.text(`${label}: ${value ?? "-"}`, 14, y);
+                y += 8;
+            };
+
+            addLine("Record ID", intId);
+            addLine("Machine", intData.machineName);
+            addLine("Issue", intData.issue);
+            addLine("Requester", intData.requester);
+            addLine("Status", intData.status);
+            addLine("Submitted", submittedAt);
+            if (approvedAt) addLine("Approved", approvedAt);
+            if (closedAt) addLine("Closed", closedAt);
+
+            if (intData.techComment) {
+                y += 4;
+                pdf.setFont(undefined, "bold");
+                pdf.text("Technician Notes:", 14, y);
+                pdf.setFont(undefined, "normal");
+                y += 6;
+                const notes = pdf.splitTextToSize(String(intData.techComment), 180);
+                pdf.text(notes, 14, y);
+                y += Math.max(12, notes.length * 6);
+            }
+
+            const pdfBlob = pdf.output("blob");
+            const storagePath = `reports/${intId}.pdf`;
+            const sRef = window.storageRef(window.storage, storagePath);
+            await window.uploadBytes(sRef, pdfBlob);
+            const url = await window.getDownloadURL(sRef);
+            await updateDoc(doc(db, "interventions", intId), { pdfUrl: url });
+        } catch (e) {
+            console.error("PDF generation failed:", e);
+        }
+    }
+
+    let techList = [], micReady = false, machineCache = {}, archivedInterventions = [], jitsiApi = null;
+    let userPermissions = {};
+    let currentTechEmailForEdit = null;
+    let directJitsiApi = null;
+    let pendingIncomingMachine = null;
+
+    const M_STEPS = {
+      "ROBOTIC": ["Check axis calibration", "Inspect hydraulic lines", "Verify servo motor temperature", "Software diagnostic run", "End-effector alignment", "Safety barrier test"],
+      "PRESS": ["Oil pressure check", "Die alignment inspection", "Lubrication cycle test", "Safety light curtain check", "Ram stroke measurement", "Plate cleaning"],
+      "ASSEMBLY": ["Conveyor belt tension", "Sensor debris cleaning", "Pneumatic valve check", "Fastener torque audit", "Control panel inspection", "Emergency stop test"],
+      "DEFAULT": ["General visual inspection", "Power supply check", "Input/Output verification", "Component cleaning", "Operational test", "Safety check"]
+    };
+
+    window.activateAudioSystem = async () => {
+      micReady = true;
+      document.getElementById('audioActivator').style.background = "#00ff00";
+      document.getElementById('audioActivator').innerText = "✅ SYSTEM READY";
+    };
+
+    window.triggerRemoteAudio = async () => {
+      await updateDoc(doc(db, "emergency_calls", "active_session"), { triggerSound: Date.now() });
+    };
+
+    window.syncDatabase = async () => {
+      const fileInput = document.getElementById('jsonInput');
+      if (!fileInput.files[0]) return alert("Please select the machines.json file");
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          const machines = data.machines || data;
+          for (const m of machines) {
+            const mId = m.machineId || `M-${Math.random().toString(36).substr(2, 5)}`;
+            const type = m.name.toUpperCase().includes('ROBOT') ? "ROBOTIC" : m.name.toUpperCase().includes('PRESS') ? "PRESS" : "ASSEMBLY";
+            await setDoc(doc(db, "machines", mId), {
+              ...m,
+              status: m.status || "WORKING",
+              assignedTech: "",
+              acknowledged: true,
+              lastUpdated: serverTimestamp(),
+              history: m.history || [],
+              description: m.description || "Mercedes-Benz precision unit.",
+              image: m.image || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500",
+              targetMaintenanceTime: m.targetMaintenanceTime || 60,
+              steps: M_STEPS[type] || M_STEPS["DEFAULT"]
+            });
+          }
+          alert("Sync Complete.");
+        } catch (err) { alert("Error: " + err.message); }
+      };
+      reader.readAsText(fileInput.files[0]);
+    };
+
+    window.checkPermission = (pageId) => {
+      const email = auth.currentUser.email.toLowerCase();
+      if (email === DIRECTOR) return true;
+      const perms = userPermissions[email] || {};
+      const mapping = {
+        'mainPage': 'view_dashboard',
+        'interventionPage': 'request_intervention',
+        'missionPage': 'do_missions',
+        'historyPage': 'view_history',
+        'kpiTrackerPage': 'view_kpi',
+        'personnelPage': 'view_kpi'
+      };
+      return perms[mapping[pageId]] === true;
+    };
+
+    window.togglePermission = async (email, key) => {
+      const current = userPermissions[email] || {};
+      current[key] = !current[key];
+      current.requestingAccess = false;
+      await setDoc(doc(db, "permissions", email), current, { merge: true });
+    };
+
+    window.requestAccess = async () => {
+      const email = auth.currentUser.email.toLowerCase();
+      const current = userPermissions[email] || {};
+      current.requestingAccess = true;
+      await setDoc(doc(db, "permissions", email), current, { merge: true });
+      alert("Your request has been broadcasted to Mohamed's command center.");
+    };
+
+    window.clearFocus = () => {
+      try { document.querySelectorAll('.highlight-focus').forEach(el => el.classList.remove('highlight-focus')); } catch (e) {}
+      const cm = document.getElementById('contentMain');
+      const sb = document.getElementById('mainSidebar');
+      if (cm) cm.classList.remove('blur-bg');
+      if (sb) sb.classList.remove('blur-bg');
+    };
+
+    window.showPage = (id) => {
+      if (!window.checkPermission(id)) {
+        document.getElementById('accessDeniedModal').style.display = 'flex';
+        speakNative("Warning. Access Denied. Biometric signature mismatch. Security protocol 1 0 2 is now active.");
+        return;
+      }
+      ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage'].forEach(p => {
+        const el = document.getElementById(p);
+        if (el) el.style.display = (p === id ? 'block' : 'none');
+      });
+      window.clearFocus();
+      if (id === 'kpiTrackerPage') window.calculateKPIs();
+    };
+
+    function speakNative(text, callback) {
+      const msg = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      msg.voice = voices.find(v => v.name.includes('Google US English')) || voices[0];
+      msg.rate = 0.95; if (callback) msg.onend = callback; window.speechSynthesis.speak(msg);
+    }
+
+    window.previewMachine = (id) => {
+      const m = machineCache[id]; if(!m) return;
+      const content = `
+        <h2 style="color:#e30613">Machine Profile: ${m.name}</h2>
+        <img src="${m.image}" class="machine-img">
+        <p><b>Target Maint. Time:</b> ${m.targetMaintenanceTime} mins</p>
+        <p><b>Description:</b> ${m.description}</p>
+        <h4>Recent History</h4>
+        <div class="history-log">${m.history?.length ? m.history.map(h => `<div>• ${h}</div>`).join('') : 'No previous records.'}</div>
+      `;
+      document.getElementById('machineDetailContent').innerHTML = content;
+      document.getElementById('machineDetailPopup').style.display = 'block';
+    };
+
+    window.logout = () => signOut(auth);
+</script>
+</body>
+</html>
