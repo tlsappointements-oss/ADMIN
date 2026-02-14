@@ -412,79 +412,22 @@
   </div>
 
 <script type="module">
-    // ========== STARTUP DIAGNOSTIC ==========
-    console.log("🚀 ========== SCRIPT STARTING ==========");
-    console.log("✅ JavaScript is running");
-    console.log("📍 Current page:", window.location.href);
-    console.log("⏰ Time:", new Date().toLocaleTimeString());
-    
-    // Check if all critical DOM elements exist
-    window.addEventListener('DOMContentLoaded', () => {
-      console.log("📋 Checking DOM elements...");
-      const criticalElements = [
-        'assetTable',
-        'reqMachine', 
-        'missionList',
-        'adminApprovalList',
-        'historyList',
-        'userDisplay'
-      ];
-      
-      criticalElements.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          console.log(`  ✅ Found #${id}`);
-        } else {
-          console.error(`  ❌ MISSING #${id} - This will cause data loading to fail!`);
-        }
-      });
-    });
-    
     import { auth, db } from './firebase.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    console.log("✅ Firebase imports successful");
-    console.log("✅ Auth object:", auth ? "loaded" : "MISSING");
-    console.log("✅ DB object:", db ? "loaded" : "MISSING");
-
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
 
-    // Mercedes-Benz Logo (Minimal SVG - ultra compact)
-    const MERCEDES_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MCA1MCI+PGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48cGF0aCBkPSJNMjUgMjVMMjUgNSBNMjUgMjVMNDAgNDIgTTI1IDI1TDEwIDQyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIi8+PC9zdmc+";
+    // Mercedes-Benz Logo (SVG as base64)
+    const MERCEDES_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNNTAgNTBMNTAgMTBNNTAgNTBMODAgODVNNTAgNTBMMjAgODUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PC9zdmc+";
 
-    // Generate TINY QR code using external API with maximum compression
+    // Generate QR code using external API (much smaller - just a URL!)
     async function generateQRCode(text) {
       try {
-        // Use external API with smallest possible size and format
-        // PNG format, 50x50 pixels, no margin, low error correction
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=50x50&format=png&margin=0&qzone=0&data=${encodeURIComponent(text)}`;
-        
-        // Fetch the image and convert to compressed base64
-        const response = await fetch(qrUrl);
-        const blob = await response.blob();
-        
-        // Convert to base64 with maximum compression
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const base64 = reader.result;
-            // Convert PNG to JPEG for additional compression
-            const img = new Image();
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              canvas.width = 50;
-              canvas.height = 50;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, 50, 50);
-              // Convert to JPEG with 30% quality (very aggressive compression)
-              const compressedQR = canvas.toDataURL('image/jpeg', 0.3);
-              resolve(compressedQR);
-            };
-            img.src = base64;
-          };
-          reader.readAsDataURL(blob);
-        });
+        // Use free QR code API service - returns a small image URL
+        // This keeps the PDF small since we're not embedding base64 image data
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(text)}`;
+        return qrUrl;
       } catch (e) {
         console.log('QR code generation failed, continuing without QR:', e.message);
         return null;
@@ -540,18 +483,8 @@
     };
 
     window.saveSignature = async () => {
-      // Create a smaller canvas for the signature
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = 200; // Reduced from 400
-      tempCanvas.height = 80;  // Reduced from 150
-      const tempCtx = tempCanvas.getContext('2d');
-      
-      // Draw the signature at smaller size
-      tempCtx.drawImage(signatureCanvas, 0, 0, signatureCanvas.width, signatureCanvas.height, 
-                        0, 0, 200, 80);
-      
-      // Save with JPEG compression at 40% quality (very aggressive)
-      const signatureData = tempCanvas.toDataURL('image/jpeg', 0.4);
+      // Save with JPEG compression to reduce file size
+      const signatureData = signatureCanvas.toDataURL('image/jpeg', 0.7);
       const email = auth.currentUser.email.toLowerCase();
       
       // Save to Firestore
@@ -632,101 +565,36 @@
 
     // === AMAZING PDF GENERATORS WITH MERCEDES DESIGN ===
 
-    // Helper: Draw professional header (MODERN DESIGN)
+    // Helper: Draw professional header
     async function drawPDFHeader(pdf, title, docNumber, qrData) {
-      // Modern gradient header - darker red to black
+      // Red gradient background
       pdf.setFillColor(227, 6, 19);
-      pdf.rect(0, 0, 210, 25, 'F');
-      pdf.setFillColor(30, 30, 30);
-      pdf.rect(0, 25, 210, 20, 'F');
+      pdf.rect(0, 0, 210, 50, 'F');
       
-      // Mercedes logo (left side with white background circle)
+      // Mercedes logo
       try {
-        pdf.setFillColor(255, 255, 255);
-        pdf.ellipse(25, 12.5, 8, 8, 'F');
-        pdf.addImage(MERCEDES_LOGO, 'SVG', 18, 6, 14, 14);
+        pdf.addImage(MERCEDES_LOGO, 'SVG', 15, 10, 25, 25);
       } catch (e) {
         console.log("Logo not added");
       }
       
-      // Company name - modern typography
+      // Company name
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(22);
+      pdf.setFontSize(28);
       pdf.setFont(undefined, 'bold');
-      pdf.text('MERCEDES-BENZ', 40, 15);
+      pdf.text('MERCEDES-BENZ', 105, 20, { align: 'center' });
       
-      // Subtitle with separator
-      pdf.setFontSize(8);
+      // Subtitle
+      pdf.setFontSize(11);
       pdf.setFont(undefined, 'normal');
-      pdf.text('PLANT OPERATIONS', 40, 20);
+      pdf.text('Plant Operations & Maintenance', 105, 28, { align: 'center' });
       
-      // Document title in dark section
-      pdf.setFontSize(14);
+      // Document title
+      pdf.setFontSize(18);
       pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(255, 255, 255);
-      pdf.text(title, 15, 37);
+      pdf.text(title, 105, 42, { align: 'center' });
       
-      // Modern QR Code (top right with border)
-      if (qrData) {
-        const qrCode = await generateQRCode(qrData);
-        if (qrCode) {
-          try {
-            pdf.setFillColor(255, 255, 255);
-            pdf.roundedRect(183, 7, 20, 20, 2, 2, 'F');
-            pdf.addImage(qrCode, 'JPEG', 185, 9, 16, 16);
-          } catch (e) {
-            console.log("QR code not added:", e.message);
-          }
-        }
-      }
-      
-      // Modern info bar
-      pdf.setFillColor(250, 250, 250);
-      pdf.rect(0, 45, 210, 12, 'F');
-      
-      // Left side info
-      pdf.setTextColor(60, 60, 60);
-      pdf.setFontSize(7);
-      pdf.setFont(undefined, 'normal');
-      pdf.text('DOCUMENT N°', 15, 50);
-      pdf.setFontSize(8);
-      pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(docNumber.substring(0, 12) + '...', 15, 54);
-      
-      // Center info
-      pdf.setTextColor(60, 60, 60);
-      pdf.setFontSize(7);
-      pdf.setFont(undefined, 'normal');
-      pdf.text('ÉMIS LE', 105, 50, { align: 'center' });
-      pdf.setFontSize(8);
-      pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(new Date().toLocaleDateString('fr-FR') + ' à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), 105, 54, { align: 'center' });
-      
-      // Right side badge
-      pdf.setFillColor(227, 6, 19);
-      pdf.roundedRect(170, 48, 25, 6, 1, 1, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(7);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('OFFICIEL', 182.5, 52.5, { align: 'center' });
-      
-      return 62; // Return starting Y position for content
-    }
-      
-      // Tiny compressed QR Code (top right)
-      if (qrData) {
-        const qrCode = await generateQRCode(qrData);
-        if (qrCode) {
-          try {
-            // Very small QR code - 15x15mm
-            pdf.addImage(qrCode, 'JPEG', 178, 12, 15, 15);
-          } catch (e) {
-            console.log("QR code not added:", e.message);
-          }
-        }
-      }
+      // NO QR CODE - removed to reduce file size
       
       // Gray line separator
       pdf.setDrawColor(200, 200, 200);
@@ -747,129 +615,72 @@
       return 75; // Return starting Y position for content
     }
 
-    // Helper: Draw section header (MODERN DESIGN)
+    // Helper: Draw section header
     function drawSectionHeader(pdf, title, y, icon = '■') {
-      // Red accent line
-      pdf.setFillColor(227, 6, 19);
-      pdf.rect(10, y - 2, 3, 8, 'F');
-      
-      // Title with better typography
-      pdf.setFontSize(11);
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(10, y - 5, 190, 10, 'F');
+      pdf.setFontSize(12);
       pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(30, 30, 30);
-      pdf.text(`${title}`, 18, y + 4);
-      
-      // Underline
-      pdf.setDrawColor(220, 220, 220);
-      pdf.setLineWidth(0.3);
-      pdf.line(10, y + 7, 200, y + 7);
-      
+      pdf.setTextColor(227, 6, 19);
+      pdf.text(`${icon} ${title}`, 15, y + 2);
       pdf.setTextColor(0, 0, 0);
       return y + 12;
     }
 
-    // Helper: Draw info box (MODERN DESIGN)
+    // Helper: Draw info box
     function drawInfoBox(pdf, label, value, y, x = 15) {
-      pdf.setFontSize(8);
+      pdf.setFontSize(9);
       pdf.setFont(undefined, 'bold');
       pdf.setTextColor(100, 100, 100);
-      pdf.text(label.toUpperCase(), x, y);
-      
+      pdf.text(label + ':', x, y);
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(9);
-      const lines = pdf.splitTextToSize(value || 'N/A', 175);
-      pdf.text(lines, x, y + 4);
-      
-      // Subtle separator line
-      pdf.setDrawColor(240, 240, 240);
-      pdf.setLineWidth(0.2);
-      pdf.line(x, y + 4 + (lines.length * 4) + 2, 195, y + 4 + (lines.length * 4) + 2);
-      
-      return y + 4 + (lines.length * 4) + 5;
+      pdf.setFontSize(10);
+      const lines = pdf.splitTextToSize(value || 'N/A', 180);
+      pdf.text(lines, x, y + 5);
+      return y + 5 + (lines.length * 5) + 3;
     }
 
-    // Helper: Draw signature block (MODERN CARD DESIGN)
+    // Helper: Draw signature block
     function drawSignatureBlock(pdf, profile, signature, y, x = 15, label = "Signature") {
-      // Card shadow effect
-      pdf.setFillColor(240, 240, 240);
-      pdf.roundedRect(x + 1, y + 1, 85, 28, 2, 2, 'F');
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(x, y, 85, 30);
       
-      // Main card
-      pdf.setFillColor(255, 255, 255);
-      pdf.setDrawColor(220, 220, 220);
-      pdf.setLineWidth(0.3);
-      pdf.roundedRect(x, y, 85, 28, 2, 2, 'FD');
-      
-      // Header with red accent
-      pdf.setFillColor(250, 250, 250);
-      pdf.roundedRect(x, y, 85, 8, 2, 2, 'F');
-      pdf.setFillColor(227, 6, 19);
-      pdf.rect(x, y, 3, 8, 'F');
-      
-      pdf.setFontSize(7);
+      pdf.setFontSize(9);
       pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(60, 60, 60);
-      pdf.text(label.toUpperCase(), x + 5, y + 5);
-      
-      // Profile info
-      pdf.setFont(undefined, 'bold');
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(8);
-      pdf.text(profile.name, x + 3, y + 13);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(label, x + 3, y + 5);
       
       pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(7);
-      pdf.text(profile.position, x + 3, y + 17);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(8);
+      pdf.text(`Nom: ${profile.name}`, x + 3, y + 10);
+      pdf.text(`Fonction: ${profile.position}`, x + 3, y + 14);
       
-      // Signature image
       if (signature) {
-        pdf.addImage(signature, 'JPEG', x + 50, y + 10, 30, 10);
+        // Smaller signature image
+        pdf.addImage(signature, 'JPEG', x + 3, y + 17, 30, 10);
       }
       
-      // Date badge
-      pdf.setFillColor(227, 6, 19);
-      pdf.roundedRect(x + 3, y + 23, 28, 4, 1, 1, 'F');
-      pdf.setFontSize(6);
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont(undefined, 'bold');
-      pdf.text(new Date().toLocaleDateString('fr-FR'), x + 17, y + 26, { align: 'center' });
+      // Date and stamp
+      pdf.setFontSize(7);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Le ${new Date().toLocaleDateString('fr-FR')}`, x + 40, y + 27);
       
-      return y + 31;
+      return y + 33;
     }
 
-    // Helper: Draw footer (MODERN DESIGN)
+    // Helper: Draw footer
     function drawPDFFooter(pdf) {
       const pageHeight = pdf.internal.pageSize.height;
-      
-      // Dark footer bar
-      pdf.setFillColor(30, 30, 30);
+      pdf.setFillColor(240, 240, 240);
       pdf.rect(0, pageHeight - 15, 210, 15, 'F');
       
-      // Red accent line on top
-      pdf.setFillColor(227, 6, 19);
-      pdf.rect(0, pageHeight - 15, 210, 1, 'F');
-      
-      // Footer text
       pdf.setFontSize(7);
-      pdf.setTextColor(180, 180, 180);
-      pdf.setFont(undefined, 'normal');
-      pdf.text('Mercedes-Benz Plant Operations', 15, pageHeight - 8);
-      pdf.text('Document Officiel et Confidentiel', 15, pageHeight - 4);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Mercedes-Benz Plant Operations - Document Officiel et Confidentiel', 105, pageHeight - 8, { align: 'center' });
+      pdf.text('Ce document est généré électroniquement et juridiquement valable', 105, pageHeight - 4, { align: 'center' });
       
-      // Right side
-      pdf.text('Généré électroniquement', 195, pageHeight - 8, { align: 'right' });
-      pdf.text('Juridiquement valable', 195, pageHeight - 4, { align: 'right' });
-      
-      // Page number
-      pdf.setFillColor(227, 6, 19);
-      pdf.ellipse(105, pageHeight - 7.5, 4, 4, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(8);
-      pdf.text('1', 105, pageHeight - 6, { align: 'center' });
-    }
       // Page number
       pdf.text(`Page ${pdf.internal.getCurrentPageInfo().pageNumber}`, 190, pageHeight - 8, { align: 'right' });
     }
@@ -1261,14 +1072,12 @@
         return email === DIRECTOR;
       }
       
-      // Director has access to everything
       if (email === DIRECTOR) return true;
+      const perms = userPermissions[email] || {};
       
-      // If permissions haven't loaded yet, grant access (default open)
-      // This prevents blocking on initial page load
-      const perms = userPermissions[email];
-      if (!perms || Object.keys(perms).length === 0) {
-        console.log("⚠️ Permissions not loaded yet, granting default access");
+      // If permissions haven't loaded yet (empty object), default to allowing access
+      // This prevents blocking the page on initial load
+      if (Object.keys(perms).length === 0) {
         return true;
       }
       
@@ -1603,39 +1412,16 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
     console.log("🔍 Setting up auth listener...");
     console.log("🔍 Auth object:", auth);
     console.log("🔍 DB object:", db);
-    
-    // Test Firebase connection
-    console.log("🔍 Testing Firestore connection...");
-    getDocs(collection(db, "machines")).then((snapshot) => {
-      console.log("✅ Firestore connection successful! Found", snapshot.size, "machines");
-      snapshot.forEach(doc => {
-        console.log("  - Machine:", doc.id, doc.data());
-      });
-    }).catch((error) => {
-      console.error("❌ Firestore connection failed:", error);
-      alert("FIREBASE CONNECTION ERROR: " + error.message + "\n\nPlease check:\n1. Internet connection\n2. Firebase configuration in firebase.js\n3. Firestore security rules");
-    });
-    
     onAuthStateChanged(auth, async user => {
       console.log("🔍 Auth state changed. User:", user);
       if (!user) { 
         console.log("⚠️ No user, redirecting to login");
-        window.location.href = "index.html"; 
+        window.location.href = "login.html"; 
         return; 
       }
       const email = user.email.toLowerCase();
       console.log("✅ User logged in:", email);
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
-      
-      // CRITICAL: Initialize default permissions immediately to prevent page blocking
-      userPermissions[email] = {
-        view_dashboard: true,
-        request_intervention: true,
-        do_missions: true,
-        view_history: true,
-        view_kpi: true
-      };
-      console.log("✅ Default permissions granted, will be updated from Firestore if available");
       
       // Initialize signature canvas
       initSignatureCanvas();
@@ -1689,25 +1475,6 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
         document.getElementById('hangUpBtn').style.display = "inline-block";
         onSnapshot(collection(db, "users"), snap => { techList = []; snap.forEach(d => techList.push(d.id)); });
         loadAdminApprovals();
-        
-        // Add admin nav button to sidebar if it doesn't exist
-        const sidebar = document.getElementById('mainSidebar');
-        if (sidebar && !document.getElementById('nav_adminPanel')) {
-          const adminBtn = document.createElement('button');
-          adminBtn.id = 'nav_adminPanel';
-          adminBtn.className = 'btn-nav';
-          adminBtn.style.borderColor = '#e30613';
-          adminBtn.style.color = '#e30613';
-          adminBtn.textContent = '⚙️ Admin Control';
-          adminBtn.onclick = () => window.showPage('adminPanel');
-          // Insert after Personnel button
-          const personnelBtn = document.getElementById('nav_personnelPage');
-          if (personnelBtn && personnelBtn.nextSibling) {
-            sidebar.insertBefore(adminBtn, personnelBtn.nextSibling);
-          } else {
-            sidebar.appendChild(adminBtn);
-          }
-        }
       } else {
         document.getElementById('hangUpBtn').style.display = "none";
         // 👉 FIRST-TIME REDIRECT TO DEMO
@@ -2000,29 +1767,10 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
 
     function loadMachinesLive(userEmail) {
       console.log("🔍 loadMachinesLive called for:", userEmail);
-      const table = document.getElementById('assetTable'); 
-      const select = document.getElementById('reqMachine');
+      const table = document.getElementById('assetTable'); const select = document.getElementById('reqMachine');
       console.log("🔍 Table element:", table, "Select element:", select);
-      
-      let dataReceived = false;
-      
-      // Set timeout to alert if no data received
-      setTimeout(() => {
-        if (!dataReceived) {
-          console.error("❌ No machine data received after 5 seconds");
-          alert("WARNING: No machines data loaded.\n\nPossible causes:\n1. No machines in database\n2. Firestore rules blocking access\n3. Network issue\n\nCheck browser console (F12) for details.");
-        }
-      }, 5000);
-      
       onSnapshot(collection(db, "machines"), (snap) => {
-        dataReceived = true;
         console.log("📊 Machines snapshot received, size:", snap.size);
-        
-        if (snap.size === 0) {
-          console.warn("⚠️ Database has 0 machines!");
-          if (table) table.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#ffcc00;'>NO MACHINES IN DATABASE. Please sync data or add machines.</td></tr>";
-        }
-        
         if(table) table.innerHTML = "";
         if(select) { const currentVal = select.value; select.innerHTML = '<option value="">Select Machine...</option>'; snap.forEach(s => select.innerHTML += `<option value="${s.id}" ${currentVal===s.id?'selected':''}>${s.data().name}</option>`); }
         snap.forEach(snapshotDoc => {
@@ -2047,7 +1795,7 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
         });
       }, (error) => {
         console.error("❌ Error loading machines:", error);
-        alert("ERROR LOADING MACHINES: " + error.message + "\n\nThis usually means:\n1. Firestore security rules are blocking access\n2. Network connection issue\n3. Firebase project configuration error");
+        alert("ERROR LOADING MACHINES: " + error.message);
       });
     }
 
