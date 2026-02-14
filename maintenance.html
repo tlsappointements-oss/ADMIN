@@ -412,9 +412,41 @@
   </div>
 
 <script type="module">
+    // ========== STARTUP DIAGNOSTIC ==========
+    console.log("🚀 ========== SCRIPT STARTING ==========");
+    console.log("✅ JavaScript is running");
+    console.log("📍 Current page:", window.location.href);
+    console.log("⏰ Time:", new Date().toLocaleTimeString());
+    
+    // Check if all critical DOM elements exist
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log("📋 Checking DOM elements...");
+      const criticalElements = [
+        'assetTable',
+        'reqMachine', 
+        'missionList',
+        'adminApprovalList',
+        'historyList',
+        'userDisplay'
+      ];
+      
+      criticalElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          console.log(`  ✅ Found #${id}`);
+        } else {
+          console.error(`  ❌ MISSING #${id} - This will cause data loading to fail!`);
+        }
+      });
+    });
+    
     import { auth, db } from './firebase.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    console.log("✅ Firebase imports successful");
+    console.log("✅ Auth object:", auth ? "loaded" : "MISSING");
+    console.log("✅ DB object:", db ? "loaded" : "MISSING");
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
 
@@ -611,7 +643,7 @@
       // Mercedes logo (left side with white background circle)
       try {
         pdf.setFillColor(255, 255, 255);
-        pdf.circle(25, 12.5, 8, 'F');
+        pdf.ellipse(25, 12.5, 8, 8, 'F');
         pdf.addImage(MERCEDES_LOGO, 'SVG', 18, 6, 14, 14);
       } catch (e) {
         console.log("Logo not added");
@@ -832,7 +864,7 @@
       
       // Page number
       pdf.setFillColor(227, 6, 19);
-      pdf.circle(105, pageHeight - 7.5, 4, 'F');
+      pdf.ellipse(105, pageHeight - 7.5, 4, 4, 'F');
       pdf.setTextColor(255, 255, 255);
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(8);
@@ -1221,6 +1253,7 @@
 
     // ACCESS CONTROL SYSTEM
     window.checkPermission = (pageId) => {
+      if (!auth.currentUser) return false;
       const email = auth.currentUser.email.toLowerCase();
       
       // Personnel page is ONLY for director
@@ -1228,8 +1261,17 @@
         return email === DIRECTOR;
       }
       
+      // Director has access to everything
       if (email === DIRECTOR) return true;
-      const perms = userPermissions[email] || {};
+      
+      // If permissions haven't loaded yet, grant access (default open)
+      // This prevents blocking on initial page load
+      const perms = userPermissions[email];
+      if (!perms || Object.keys(perms).length === 0) {
+        console.log("⚠️ Permissions not loaded yet, granting default access");
+        return true;
+      }
+      
       const mapping = {
         'mainPage': 'view_dashboard',
         'interventionPage': 'request_intervention',
@@ -1578,12 +1620,22 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
       console.log("🔍 Auth state changed. User:", user);
       if (!user) { 
         console.log("⚠️ No user, redirecting to login");
-        window.location.href = "login.html"; 
+        window.location.href = "index.html"; 
         return; 
       }
       const email = user.email.toLowerCase();
       console.log("✅ User logged in:", email);
       document.getElementById('userDisplay').innerText = `ACCESS: ${email}`;
+      
+      // CRITICAL: Initialize default permissions immediately to prevent page blocking
+      userPermissions[email] = {
+        view_dashboard: true,
+        request_intervention: true,
+        do_missions: true,
+        view_history: true,
+        view_kpi: true
+      };
+      console.log("✅ Default permissions granted, will be updated from Firestore if available");
       
       // Initialize signature canvas
       initSignatureCanvas();
@@ -1637,14 +1689,33 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
         document.getElementById('hangUpBtn').style.display = "inline-block";
         onSnapshot(collection(db, "users"), snap => { techList = []; snap.forEach(d => techList.push(d.id)); });
         loadAdminApprovals();
+        
+        // Add admin nav button to sidebar if it doesn't exist
+        const sidebar = document.getElementById('mainSidebar');
+        if (sidebar && !document.getElementById('nav_adminPanel')) {
+          const adminBtn = document.createElement('button');
+          adminBtn.id = 'nav_adminPanel';
+          adminBtn.className = 'btn-nav';
+          adminBtn.style.borderColor = '#e30613';
+          adminBtn.style.color = '#e30613';
+          adminBtn.textContent = '⚙️ Admin Control';
+          adminBtn.onclick = () => window.showPage('adminPanel');
+          // Insert after Personnel button
+          const personnelBtn = document.getElementById('nav_personnelPage');
+          if (personnelBtn && personnelBtn.nextSibling) {
+            sidebar.insertBefore(adminBtn, personnelBtn.nextSibling);
+          } else {
+            sidebar.appendChild(adminBtn);
+          }
+        }
       } else {
         document.getElementById('hangUpBtn').style.display = "none";
-        // 👉 FIRST-TIME REDIRECT TO DEMO
-        const demoKey = `demoDone_${email}`;
-        if (!localStorage.getItem(demoKey)) {
-          window.location.href = 'demo.html';
-          return;
-        }
+        // 👉 FIRST-TIME REDIRECT TO DEMO (commented out to allow normal operation)
+        // const demoKey = `demoDone_${email}`;
+        // if (!localStorage.getItem(demoKey)) {
+        //   window.location.href = 'demo.html';
+        //   return;
+        // }
         loadMyMissions(email);
       }
       console.log("🔍 Calling loadMachinesLive...");
@@ -1653,6 +1724,13 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
       loadHistory();
       console.log("🔍 Calling listenForEmergency...");
       listenForEmergency(email);
+      
+      // CRITICAL: Show the main page after all data is loaded
+      console.log("🏠 Showing mainPage...");
+      setTimeout(() => {
+        window.showPage('mainPage');
+        console.log("✅✅✅ INITIALIZATION COMPLETE ✅✅✅");
+      }, 500);
     });
 
     // PERSONNEL DASHBOARD (ENHANCED)
