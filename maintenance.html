@@ -577,134 +577,134 @@
 
     // === PREMIUM MERCEDES-BENZ PDF DESIGN ===
 
-    // Helper: Draw premium header with modern gradient
+    // Helper: Draw premium header with modern gradient (compact version)
     async function drawPDFHeader(pdf, title, docNumber, qrData) {
       // Dark gradient background (top)
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 18; i++) {
         const shade = 15 + (i * 0.5);
         pdf.setFillColor(shade, shade, shade);
         pdf.rect(0, i, 210, 1, 'F');
       }
       
       // Mercedes red gradient (middle)
-      for (let i = 0; i < 22; i++) {
+      for (let i = 0; i < 20; i++) {
         const redIntensity = 227 - (i * 3);
         pdf.setFillColor(redIntensity, 6, 19);
-        pdf.rect(0, 20 + i, 210, 1, 'F');
+        pdf.rect(0, 18 + i, 210, 1, 'F');
       }
       
       // White accent line
       pdf.setFillColor(255, 255, 255);
-      pdf.rect(0, 42, 210, 0.5, 'F');
+      pdf.rect(0, 38, 210, 0.5, 'F');
       
-      // Premium Mercedes star logo
-      const starX = 20, starY = 16;
+      // Premium Mercedes star logo - better positioned
+      const starX = 18, starY = 14;
       
       // Outer circle
       pdf.setDrawColor(255, 255, 255);
-      pdf.setLineWidth(2);
-      pdf.circle(starX, starY, 9, 'S');
+      pdf.setLineWidth(1.8);
+      pdf.circle(starX, starY, 8, 'S');
       
       // Inner circle
-      pdf.setLineWidth(0.8);
-      pdf.circle(starX, starY, 7.5, 'S');
+      pdf.setLineWidth(0.7);
+      pdf.circle(starX, starY, 6.8, 'S');
       
       // Three-pointed star
-      pdf.setLineWidth(1.8);
-      pdf.line(starX, starY - 6, starX, starY);     // Top point
-      pdf.line(starX, starY, starX - 5.2, starY + 4.5);  // Bottom-left
-      pdf.line(starX, starY, starX + 5.2, starY + 4.5);  // Bottom-right
+      pdf.setLineWidth(1.6);
+      pdf.line(starX, starY - 5.5, starX, starY);     // Top point
+      pdf.line(starX, starY, starX - 4.8, starY + 4.2);  // Bottom-left
+      pdf.line(starX, starY, starX + 4.8, starY + 4.2);  // Bottom-right
       
       // Small dots at star points
       pdf.setFillColor(255, 255, 255);
-      pdf.circle(starX, starY - 6, 0.8, 'F');
-      pdf.circle(starX - 5.2, starY + 4.5, 0.8, 'F');
-      pdf.circle(starX + 5.2, starY + 4.5, 0.8, 'F');
+      pdf.circle(starX, starY - 5.5, 0.7, 'F');
+      pdf.circle(starX - 4.8, starY + 4.2, 0.7, 'F');
+      pdf.circle(starX + 4.8, starY + 4.2, 0.7, 'F');
       
       // Company name with modern typography
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(24);
+      pdf.setFontSize(22);
       pdf.setFont(undefined, 'bold');
-      pdf.text('MERCEDES-BENZ', 35, 14);
+      pdf.text('MERCEDES-BENZ', 32, 12);
       
       // Subtitle with letter spacing
-      pdf.setFontSize(7);
+      pdf.setFontSize(6.5);
       pdf.setFont(undefined, 'normal');
-      pdf.text('P L A N T   O P E R A T I O N S   &   M A I N T E N A N C E', 35, 19);
+      pdf.text('P L A N T   O P E R A T I O N S   &   M A I N T E N A N C E', 32, 17);
       
       // Document title on red background
-      pdf.setFontSize(20);
+      pdf.setFontSize(18);
       pdf.setFont(undefined, 'bold');
-      pdf.text(title, 105, 35, { align: 'center' });
+      pdf.text(title, 105, 31, { align: 'center' });
       
-      // Premium info panel
+      // Premium info panel (more compact)
       pdf.setFillColor(248, 248, 248);
-      pdf.rect(0, 43, 210, 20, 'F');
+      pdf.rect(0, 39, 210, 18, 'F');
       
       // Red vertical accent
       pdf.setFillColor(227, 6, 19);
-      pdf.rect(0, 43, 4, 20, 'F');
+      pdf.rect(0, 39, 4, 18, 'F');
       
       // Diagonal pattern
       pdf.setDrawColor(235, 235, 235);
       pdf.setLineWidth(0.3);
       for (let i = 0; i < 210; i += 8) {
-        pdf.line(i, 43, i + 20, 63);
+        pdf.line(i, 39, i + 18, 57);
       }
       
       // Info labels
       pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(7);
+      pdf.setFontSize(6.5);
       pdf.setFont(undefined, 'bold');
-      pdf.text('DOCUMENT ID', 10, 49);
-      pdf.text('DATE', 75, 49);
-      pdf.text('HEURE', 130, 49);
-      pdf.text('CLASSIFICATION', 10, 57);
+      pdf.text('DOCUMENT ID', 10, 44);
+      pdf.text('DATE', 75, 44);
+      pdf.text('HEURE', 130, 44);
+      pdf.text('CLASSIFICATION', 10, 52);
       
       // Info values
       pdf.setTextColor(30, 30, 30);
-      pdf.setFontSize(9);
+      pdf.setFontSize(8.5);
       pdf.setFont(undefined, 'bold');
-      pdf.text(docNumber, 10, 53);
-      pdf.text(new Date().toLocaleDateString('fr-FR'), 75, 53);
-      pdf.text(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), 130, 53);
+      pdf.text(docNumber, 10, 48);
+      pdf.text(new Date().toLocaleDateString('fr-FR'), 75, 48);
+      pdf.text(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), 130, 48);
       
       // Classification badge
       pdf.setFillColor(0, 120, 0);
-      pdf.roundedRect(10, 59, 45, 5, 1, 1, 'F');
+      pdf.roundedRect(10, 54, 40, 4.5, 1, 1, 'F');
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(7);
+      pdf.setFontSize(6.5);
       pdf.setFont(undefined, 'bold');
-      pdf.text('✓ DOCUMENT OFFICIEL', 32.5, 62.2, { align: 'center' });
+      pdf.text('✓ DOCUMENT OFFICIEL', 30, 57, { align: 'center' });
       
-      // Right side - Mercedes emblem
+      // Right side - Mercedes emblem (better aligned)
       pdf.setDrawColor(200, 200, 200);
       pdf.setLineWidth(0.5);
-      pdf.circle(195, 53, 6, 'S');
+      pdf.circle(190, 48, 5.5, 'S');
       pdf.setLineWidth(0.3);
-      pdf.line(195, 47.5, 195, 53);
-      pdf.line(195, 53, 189.8, 58);
-      pdf.line(195, 53, 200.2, 58);
+      pdf.line(190, 42.8, 190, 48);
+      pdf.line(190, 48, 185.2, 52.8);
+      pdf.line(190, 48, 194.8, 52.8);
       
-      return 68;
+      return 62;
     }
 
-    // Helper: Draw premium section header with gradient
+    // Helper: Draw premium section header with gradient (compact version)
     function drawSectionHeader(pdf, title, y, icon = '■') {
-      if (y > 245) {
+      if (y > 250) {
         pdf.addPage();
         y = 20;
       }
       
       // Gradient background
-      for (let i = 0; i < 11; i++) {
+      for (let i = 0; i < 9; i++) {
         const shade = 248 - (i * 1);
         pdf.setFillColor(shade, shade, shade);
         pdf.rect(10, y + i, 190, 1, 'F');
       }
       
       // Red accent stripe with gradient
-      for (let i = 0; i < 11; i++) {
+      for (let i = 0; i < 9; i++) {
         const alpha = 227 - (i * 5);
         pdf.setFillColor(alpha, 6, 19);
         pdf.rect(10, y + i, 5, 1, 'F');
@@ -712,132 +712,132 @@
       
       // Icon circle
       pdf.setFillColor(227, 6, 19);
-      pdf.circle(18, y + 5.5, 2.5, 'F');
+      pdf.circle(17, y + 4.5, 2, 'F');
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(9);
-      pdf.text(icon, 18, y + 6.5, { align: 'center' });
+      pdf.setFontSize(8);
+      pdf.text(icon, 17, y + 5.5, { align: 'center' });
       
       // Title
       pdf.setTextColor(30, 30, 30);
-      pdf.setFontSize(11);
+      pdf.setFontSize(10);
       pdf.setFont(undefined, 'bold');
-      pdf.text(title, 24, y + 7);
+      pdf.text(title, 23, y + 6);
       
       // Bottom border
       pdf.setDrawColor(227, 6, 19);
       pdf.setLineWidth(0.8);
-      pdf.line(10, y + 11, 200, y + 11);
+      pdf.line(10, y + 9, 200, y + 9);
       
-      return y + 16;
+      return y + 13;
     }
 
-    // Helper: Draw modern info box with styling
+    // Helper: Draw modern info box with styling (compact version)
     function drawInfoBox(pdf, label, value, y, x = 15) {
-      if (y > 255) {
+      if (y > 260) {
         pdf.addPage();
         y = 20;
       }
       
       // Label with background
       pdf.setFillColor(245, 245, 245);
-      pdf.rect(x, y - 2, 40, 5, 'F');
+      pdf.rect(x, y - 2, 40, 4, 'F');
       
-      pdf.setFontSize(7);
+      pdf.setFontSize(6.5);
       pdf.setTextColor(100, 100, 100);
       pdf.setFont(undefined, 'bold');
-      pdf.text(label.toUpperCase(), x + 1, y + 1.5);
+      pdf.text(label.toUpperCase(), x + 1, y + 1);
       
       // Value with wrapping
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(30, 30, 30);
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
       const maxWidth = 180;
       const lines = pdf.splitTextToSize(String(value || 'N/A'), maxWidth);
-      pdf.text(lines, x, y + 7);
+      pdf.text(lines, x, y + 5.5);
       
       // Subtle bottom line
-      const lineY = y + 8 + (lines.length * 4.5);
+      const lineY = y + 6.5 + (lines.length * 4);
       pdf.setDrawColor(235, 235, 235);
       pdf.setLineWidth(0.3);
       pdf.line(x, lineY, 195, lineY);
       
-      return y + 10 + (lines.length * 4.5);
+      return y + 8 + (lines.length * 4);
     }
 
-    // Helper: Draw premium signature card
-    function drawSignatureBlock(pdf, profile, signature, y, x = 15, label = "Signature") {
-      if (y > 225) {
+    // Helper: Draw premium signature card (compact version)
+    function drawSignatureBlock(pdf, profile, signature, y, x = 15, label = "Signature", width = 85) {
+      if (y > 230) {
         pdf.addPage();
         y = 20;
       }
       
       // Card with subtle shadow effect
       pdf.setFillColor(240, 240, 240);
-      pdf.roundedRect(x + 1, y + 1, 85, 40, 2, 2, 'F');
+      pdf.roundedRect(x + 1, y + 1, width, 35, 2, 2, 'F');
       
       pdf.setFillColor(255, 255, 255);
-      pdf.roundedRect(x, y, 85, 40, 2, 2, 'F');
+      pdf.roundedRect(x, y, width, 35, 2, 2, 'F');
       
       // Card border
       pdf.setDrawColor(220, 220, 220);
       pdf.setLineWidth(0.5);
-      pdf.roundedRect(x, y, 85, 40, 2, 2, 'S');
+      pdf.roundedRect(x, y, width, 35, 2, 2, 'S');
       
       // Header stripe
       pdf.setFillColor(250, 250, 250);
-      pdf.rect(x + 1, y + 1, 83, 7, 'F');
+      pdf.rect(x + 1, y + 1, width - 2, 6, 'F');
       
       // Label
-      pdf.setFontSize(7);
+      pdf.setFontSize(6.5);
       pdf.setTextColor(100, 100, 100);
       pdf.setFont(undefined, 'bold');
-      pdf.text(label.toUpperCase(), x + 42.5, y + 5, { align: 'center' });
+      pdf.text(label.toUpperCase(), x + width/2, y + 4.5, { align: 'center' });
       
       // Signature area
       if (signature) {
         try {
           // Signature box background
           pdf.setFillColor(252, 252, 252);
-          pdf.rect(x + 10, y + 10, 65, 16, 'F');
+          pdf.rect(x + 5, y + 8, width - 10, 13, 'F');
           pdf.setDrawColor(240, 240, 240);
-          pdf.rect(x + 10, y + 10, 65, 16, 'S');
+          pdf.rect(x + 5, y + 8, width - 10, 13, 'S');
           
-          pdf.addImage(signature, 'JPEG', x + 20, y + 12, 45, 12);
+          pdf.addImage(signature, 'JPEG', x + 10, y + 10, width - 20, 9);
         } catch (e) {
-          pdf.setFontSize(7);
+          pdf.setFontSize(6);
           pdf.setTextColor(180, 180, 180);
-          pdf.text('[Signature numérique]', x + 42.5, y + 18, { align: 'center' });
+          pdf.text('[Signature numérique]', x + width/2, y + 15, { align: 'center' });
         }
       } else {
-        pdf.setFontSize(7);
+        pdf.setFontSize(6);
         pdf.setTextColor(180, 180, 180);
-        pdf.text('[Non signé]', x + 42.5, y + 18, { align: 'center' });
+        pdf.text('[Non signé]', x + width/2, y + 15, { align: 'center' });
       }
       
       // Divider line
       pdf.setDrawColor(230, 230, 230);
       pdf.setLineWidth(0.3);
-      pdf.line(x + 5, y + 27, x + 80, y + 27);
+      pdf.line(x + 3, y + 22, x + width - 3, y + 22);
       
       // Profile info
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
       pdf.setTextColor(30, 30, 30);
       pdf.setFont(undefined, 'bold');
-      pdf.text(profile.name || 'N/A', x + 42.5, y + 32, { align: 'center' });
+      pdf.text(profile.name || 'N/A', x + width/2, y + 26, { align: 'center' });
       
-      pdf.setFontSize(7);
+      pdf.setFontSize(6);
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(120, 120, 120);
-      pdf.text(profile.position || '', x + 42.5, y + 36, { align: 'center' });
+      pdf.text(profile.position || '', x + width/2, y + 30, { align: 'center' });
       
       // Date badge
       pdf.setFillColor(245, 245, 245);
-      pdf.roundedRect(x + 27, y + 37.5, 31, 4, 1, 1, 'F');
-      pdf.setFontSize(6);
+      pdf.roundedRect(x + (width - 26)/2, y + 32, 26, 3.5, 1, 1, 'F');
+      pdf.setFontSize(5.5);
       pdf.setTextColor(100, 100, 100);
-      pdf.text(new Date().toLocaleDateString('fr-FR'), x + 42.5, y + 40, { align: 'center' });
+      pdf.text(new Date().toLocaleDateString('fr-FR'), x + width/2, y + 34.5, { align: 'center' });
       
-      return y + 44;
+      return y + 38;
     }
 
     // Helper: Draw premium footer
@@ -926,13 +926,13 @@
         y = drawInfoBox(pdf, 'Désignation', intData.machineName, y);
         y = drawInfoBox(pdf, 'Identification Machine', intData.machineId || 'N/A', y);
         y = drawInfoBox(pdf, 'Section', intData.section || 'N/A', y);
-        y += 5;
+        y += 3;
 
         // Problem Description Section
         y = drawSectionHeader(pdf, 'DESCRIPTION DU PROBLÈME', y, '⚠');
         y = drawInfoBox(pdf, 'Nature du problème', intData.issue, y);
         y = drawInfoBox(pdf, 'Priorité', intData.priority || 'NORMALE', y);
-        y += 5;
+        y += 3;
 
         // Requester Information Section
         y = drawSectionHeader(pdf, 'INFORMATIONS DU DEMANDEUR', y, '👤');
@@ -940,11 +940,11 @@
         y = drawInfoBox(pdf, 'Fonction', requesterProfile.position, y);
         y = drawInfoBox(pdf, 'Département', requesterProfile.department || 'Operations', y);
         y = drawInfoBox(pdf, 'Email', requesterEmail, y);
-        y += 10;
+        y += 5;
 
         // Signature Section
         y = drawSectionHeader(pdf, 'VALIDATION DU DEMANDEUR', y, '✍');
-        y = drawSignatureBlock(pdf, requesterProfile, requesterSignature, y, 15, "Signature du Demandeur");
+        y = drawSignatureBlock(pdf, requesterProfile, requesterSignature, y, 15, "Signature du Demandeur", 85);
 
         // Footer
         drawPDFFooter(pdf);
@@ -1012,27 +1012,26 @@
         y = drawInfoBox(pdf, 'Machine', intData.machineName, y);
         y = drawInfoBox(pdf, 'Technicien Assigné', techProfile.name, y);
         y = drawInfoBox(pdf, 'Date d\'Approbation', intData.approvedAt?.toDate?.()?.toLocaleDateString('fr-FR') || new Date().toLocaleDateString('fr-FR'), y);
-        y += 5;
+        y += 3;
 
         // Problem Description
         y = drawSectionHeader(pdf, 'PROBLÈME IDENTIFIÉ', y, '⚠');
         y = drawInfoBox(pdf, 'Description', intData.issue, y);
-        y += 5;
+        y += 3;
 
         // Director Approval
         y = drawSectionHeader(pdf, 'APPROBATION ET INSTRUCTIONS', y, '✓');
         y = drawInfoBox(pdf, 'Commentaires du Directeur', intData.directorApprovalComment || 'Approuvé pour intervention immédiate', y);
         y = drawInfoBox(pdf, 'Durée Estimée', (intData.targetMaintenanceTime || 60) + ' minutes', y);
-        y += 10;
+        y += 5;
 
-        // Signatures Section
+        // Signatures Section - Side by Side
         y = drawSectionHeader(pdf, 'SIGNATURES ET VALIDATIONS', y, '✍');
         
-        // Requester signature (left)
-        drawSignatureBlock(pdf, requesterProfile, requesterSignature, y, 15, "Demandeur");
-        
-        // Director signature (right)
-        drawSignatureBlock(pdf, directorProfile, directorSignature, y, 110, "Approbation Directeur");
+        // Both signatures on same line
+        const sigY = y;
+        drawSignatureBlock(pdf, requesterProfile, requesterSignature, sigY, 15, "Demandeur", 85);
+        drawSignatureBlock(pdf, directorProfile, directorSignature, sigY, 110, "Approbation Directeur", 85);
 
         // Footer
         drawPDFFooter(pdf);
@@ -1101,7 +1100,7 @@
         y = drawInfoBox(pdf, 'Machine', intData.machineName, y);
         y = drawInfoBox(pdf, 'ID Machine', intData.machineId || 'N/A', y);
         y = drawInfoBox(pdf, 'Section', intData.section || 'N/A', y);
-        y += 5;
+        y += 3;
 
         // Timeline
         y = drawSectionHeader(pdf, 'CHRONOLOGIE', y, '📅');
@@ -1113,34 +1112,34 @@
           const durationMin = Math.round((intData.actualEnd - intData.actualStart) / 60000);
           y = drawInfoBox(pdf, 'Durée d\'Intervention', durationMin + ' minutes', y);
         }
-        y += 5;
+        y += 3;
 
         // Problem and Resolution
         y = drawSectionHeader(pdf, 'PROBLÈME INITIAL', y, '⚠');
         y = drawInfoBox(pdf, 'Description', intData.issue, y);
-        y += 5;
+        y += 3;
 
         y = drawSectionHeader(pdf, 'RÉSOLUTION ET ACTIONS', y, '🔨');
         y = drawInfoBox(pdf, 'Travaux Effectués', intData.techComment || 'Voir détails ci-dessous', y);
-        y += 5;
+        y += 3;
 
-        // Check if we need a new page
-        if (y > 200) {
+        // Check if we need a new page for signatures
+        if (y > 180) {
           pdf.addPage();
           y = 20;
         }
 
-        // Signatures Section - 3 signatures
+        // Signatures Section - 3 signatures in compact layout
         y = drawSectionHeader(pdf, 'SIGNATURES ET VALIDATIONS', y, '✍');
         
-        // Requester signature
-        y = drawSignatureBlock(pdf, requesterProfile, requesterSignature, y, 15, "Demandeur Initial");
+        // First row: Requester and Technician side by side
+        const sig1Y = y;
+        drawSignatureBlock(pdf, requesterProfile, requesterSignature, sig1Y, 15, "Demandeur Initial", 85);
+        drawSignatureBlock(pdf, techProfile, techSignature, sig1Y, 110, "Technicien Intervenant", 85);
         
-        // Technician signature
-        y = drawSignatureBlock(pdf, techProfile, techSignature, y, 15, "Technicien Intervenant");
-        
-        // Director validation signature
-        drawSignatureBlock(pdf, directorProfile, directorSignature, y, 15, "Validation Directeur");
+        // Second row: Director centered
+        const sig2Y = sig1Y + 40;
+        drawSignatureBlock(pdf, directorProfile, directorSignature, sig2Y, 62.5, "Validation Directeur", 85);
 
         // Footer
         drawPDFFooter(pdf);
