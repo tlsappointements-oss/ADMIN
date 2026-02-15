@@ -1660,7 +1660,7 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
       console.log("🔍 Auth state changed. User:", user);
       if (!user) { 
         console.log("⚠️ No user, redirecting to login");
-        window.location.href = "login.html"; 
+        window.location.href = "index.html"; 
         return; 
       }
       const email = user.email.toLowerCase();
@@ -1721,12 +1721,8 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
         loadAdminApprovals();
       } else {
         document.getElementById('hangUpBtn').style.display = "none";
-        // 👉 FIRST-TIME REDIRECT TO DEMO
-        const demoKey = `demoDone_${email}`;
-        if (!localStorage.getItem(demoKey)) {
-          window.location.href = 'demo.html';
-          return;
-        }
+        // Skip demo redirect - allow direct access
+        console.log("✅ Non-director user, loading missions...");
         loadMyMissions(email);
       }
       console.log("🔍 Calling loadMachinesLive...");
@@ -2140,4 +2136,5 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
   </script>
 </body>
 </html>
+
 
