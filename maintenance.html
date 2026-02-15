@@ -483,19 +483,31 @@
     };
 
     window.saveSignature = async () => {
-      // Save with JPEG compression to reduce file size
-      const signatureData = signatureCanvas.toDataURL('image/jpeg', 0.7);
+      // Create a tiny canvas for maximum compression
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 120; // Very small
+      tempCanvas.height = 40;  // Very small
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      // White background
+      tempCtx.fillStyle = '#FFFFFF';
+      tempCtx.fillRect(0, 0, 120, 40);
+      
+      // Draw signature
+      tempCtx.drawImage(signatureCanvas, 0, 0, signatureCanvas.width, signatureCanvas.height, 0, 0, 120, 40);
+      
+      // EXTREME compression - 20% quality
+      const signatureData = tempCanvas.toDataURL('image/jpeg', 0.2);
       const email = auth.currentUser.email.toLowerCase();
       
-      // Save to Firestore
+      console.log("💾 Signature compressed to:", (signatureData.length / 1024).toFixed(1), "KB");
+      
       await setDoc(doc(db, "signatures", email), {
         signatureData: signatureData,
         createdAt: serverTimestamp()
       });
 
-      // Cache locally
       userSignatures[email] = signatureData;
-      
       document.getElementById('signaturePopup').style.display = 'none';
       alert("Signature enregistrée avec succès!");
     };
@@ -704,12 +716,12 @@
       
       // Card background
       pdf.setFillColor(252, 252, 252);
-      pdf.roundedRect(x, y, 85, 42, 2, 2, 'F');
+      pdf.roundedRect(x, y, 85, 38, 2, 2, 'F');
       
       // Card border
       pdf.setDrawColor(200, 200, 200);
       pdf.setLineWidth(0.5);
-      pdf.roundedRect(x, y, 85, 42, 2, 2, 'S');
+      pdf.roundedRect(x, y, 85, 38, 2, 2, 'S');
       
       // Label header
       pdf.setFontSize(7);
@@ -717,44 +729,45 @@
       pdf.setFont(undefined, 'bold');
       pdf.text(label.toUpperCase(), x + 42.5, y + 4, { align: 'center' });
       
-      // Signature image area
+      // Signature image area - MUCH SMALLER
       if (signature) {
         try {
-          pdf.addImage(signature, 'JPEG', x + 10, y + 8, 65, 18);
+          // Reduced from 65x18 to 45x12
+          pdf.addImage(signature, 'JPEG', x + 20, y + 8, 45, 12);
         } catch (e) {
           console.log("Signature image error:", e);
-          pdf.setFontSize(8);
+          pdf.setFontSize(7);
           pdf.setTextColor(150, 150, 150);
-          pdf.text('[Signature électronique]', x + 42.5, y + 17, { align: 'center' });
+          pdf.text('[Signature électronique]', x + 42.5, y + 14, { align: 'center' });
         }
       } else {
-        pdf.setFontSize(8);
+        pdf.setFontSize(7);
         pdf.setTextColor(150, 150, 150);
-        pdf.text('[Non signé]', x + 42.5, y + 17, { align: 'center' });
+        pdf.text('[Non signé]', x + 42.5, y + 14, { align: 'center' });
       }
       
       // Signature line
       pdf.setDrawColor(180, 180, 180);
       pdf.setLineWidth(0.3);
-      pdf.line(x + 10, y + 28, x + 75, y + 28);
+      pdf.line(x + 10, y + 23, x + 75, y + 23);
       
       // Name
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
       pdf.setTextColor(30, 30, 30);
       pdf.setFont(undefined, 'bold');
-      pdf.text(profile.name || 'N/A', x + 42.5, y + 33, { align: 'center' });
+      pdf.text(profile.name || 'N/A', x + 42.5, y + 28, { align: 'center' });
       
       // Position
-      pdf.setFontSize(7);
+      pdf.setFontSize(6);
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(100, 100, 100);
-      pdf.text(profile.position || '', x + 42.5, y + 37, { align: 'center' });
+      pdf.text(profile.position || '', x + 42.5, y + 32, { align: 'center' });
       
       // Date stamp
       pdf.setFontSize(6);
-      pdf.text(new Date().toLocaleDateString('fr-FR'), x + 42.5, y + 40, { align: 'center' });
+      pdf.text(new Date().toLocaleDateString('fr-FR'), x + 42.5, y + 35, { align: 'center' });
       
-      return y + 47;
+      return y + 42;
     }
 
     // Helper: Draw modern footer
@@ -935,23 +948,30 @@
         // Footer
         drawPDFFooter(pdf);
 
-        // Save to Firestore with compression
-        const pdfOutput = pdf.output('arraybuffer');
-        const pdfBlob = new Blob([pdfOutput], { type: 'application/pdf' });
-        const pdfDataUri = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(pdfBlob);
-        });
+        // Generate PDF and trigger download
+        const pdfBlob = pdf.output('blob');
+        const pdfSize = (pdfBlob.size / 1024).toFixed(1);
+        console.log("✅ PDF generated, size:", pdfSize, "KB");
         
+        // Create download URL
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        // Auto-download
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.download = `Ordre_Mission_${intId}_${Date.now()}.pdf`;
+        link.click();
+        
+        // Store only metadata in Firestore (not the full PDF)
         await updateDoc(doc(db, "interventions", intId), {
-          pdfOrdre: pdfDataUri,
           pdfOrdreGeneratedAt: serverTimestamp(),
-          pdfOrdreQR: qrData
+          pdfOrdreQR: qrData,
+          pdfOrdreGenerated: true
         });
 
-        console.log("✅ Ordre de Mission PDF generated for:", intId);
-        return pdfDataUri;
+        console.log("✅ Ordre de Mission PDF downloaded for:", intId);
+        alert("✅ Ordre de Mission PDF téléchargé avec succès!");
+        return pdfUrl;
       } catch (e) {
         console.error("❌ PDF Ordre generation failed:", e);
         alert("Erreur génération Ordre de Mission PDF: " + e.message);
@@ -1036,23 +1056,30 @@
         // Footer
         drawPDFFooter(pdf);
 
-        // Save to Firestore with compression
-        const pdfOutput = pdf.output('arraybuffer');
-        const pdfBlob = new Blob([pdfOutput], { type: 'application/pdf' });
-        const pdfDataUri = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(pdfBlob);
-        });
+        // Generate PDF and trigger download
+        const pdfBlob = pdf.output('blob');
+        const pdfSize = (pdfBlob.size / 1024).toFixed(1);
+        console.log("✅ PDF generated, size:", pdfSize, "KB");
         
+        // Create download URL
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        // Auto-download
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.download = `Rapport_Intervention_${intId}_${Date.now()}.pdf`;
+        link.click();
+        
+        // Store only metadata in Firestore
         await updateDoc(doc(db, "interventions", intId), {
-          pdfRapport: pdfDataUri,
           pdfRapportGeneratedAt: serverTimestamp(),
-          pdfRapportQR: qrData
+          pdfRapportQR: qrData,
+          pdfRapportGenerated: true
         });
 
-        console.log("✅ Rapport d'Intervention PDF generated for:", intId);
-        return pdfDataUri;
+        console.log("✅ Rapport d'Intervention PDF downloaded for:", intId);
+        alert("✅ Rapport d'Intervention PDF téléchargé avec succès!");
+        return pdfUrl;
       } catch (e) {
         console.error("❌ PDF Rapport generation failed:", e);
         alert("Erreur génération Rapport PDF: " + e.message);
