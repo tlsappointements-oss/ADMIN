@@ -563,212 +563,61 @@
       });
     }
 
-    // === MODERN PROFESSIONAL PDF GENERATORS WITH MERCEDES DESIGN ===
+    // === AMAZING PDF GENERATORS WITH MERCEDES DESIGN ===
 
-    // Helper: Draw modern professional header with gradient
+    // Helper: Draw professional header
     async function drawPDFHeader(pdf, title, docNumber, qrData) {
-      // Modern gradient background (dark to red)
-      pdf.setFillColor(20, 20, 20);
-      pdf.rect(0, 0, 210, 25, 'F');
-      
+      // Red gradient background
       pdf.setFillColor(227, 6, 19);
-      pdf.rect(0, 25, 210, 30, 'F');
+      pdf.rect(0, 0, 210, 50, 'F');
       
-      // White accent line
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(0, 24, 210, 1, 'F');
+      // Mercedes logo
+      try {
+        pdf.addImage(MERCEDES_LOGO, 'SVG', 15, 10, 25, 25);
+      } catch (e) {
+        console.log("Logo not added");
+      }
       
-      // Mercedes logo placeholder (three-pointed star)
-      pdf.setDrawColor(255, 255, 255);
-      pdf.setLineWidth(2);
-      pdf.circle(25, 40, 8, 'S');
-      pdf.setLineWidth(1.5);
-      pdf.line(25, 32, 25, 40);
-      pdf.line(25, 40, 18, 47);
-      pdf.line(25, 40, 32, 47);
-      
-      // Company name - modern typography
+      // Company name
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(24);
+      pdf.setFontSize(28);
       pdf.setFont(undefined, 'bold');
-      pdf.text('MERCEDES-BENZ', 40, 15, { align: 'left' });
+      pdf.text('MERCEDES-BENZ', 105, 20, { align: 'center' });
       
       // Subtitle
-      pdf.setFontSize(8);
+      pdf.setFontSize(11);
       pdf.setFont(undefined, 'normal');
-      pdf.text('PLANT OPERATIONS & MAINTENANCE SYSTEM', 40, 20, { align: 'left' });
+      pdf.text('Plant Operations & Maintenance', 105, 28, { align: 'center' });
       
-      // Document title - centered on red background
-      pdf.setFontSize(20);
+      // Document title
+      pdf.setFontSize(18);
       pdf.setFont(undefined, 'bold');
       pdf.text(title, 105, 42, { align: 'center' });
       
-      // Modern info bar
-      pdf.setFillColor(250, 250, 250);
-      pdf.rect(0, 55, 210, 18, 'F');
+      // NO QR CODE - removed to reduce file size
       
-      // Left border accent
-      pdf.setFillColor(227, 6, 19);
-      pdf.rect(0, 55, 3, 18, 'F');
-      
-      pdf.setTextColor(60, 60, 60);
-      pdf.setFontSize(9);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('Doc ID:', 10, 61);
-      pdf.text('Date:', 70, 61);
-      pdf.text('Time:', 130, 61);
-      pdf.text('Status:', 10, 68);
-      
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(20, 20, 20);
-      pdf.text(docNumber, 28, 61);
-      pdf.text(new Date().toLocaleDateString('fr-FR'), 85, 61);
-      pdf.text(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), 147, 61);
-      
-      pdf.setTextColor(0, 150, 0);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('OFFICIAL DOCUMENT', 28, 68);
-      
-      return 78; // Return starting Y position for content
-    }
-
-    // Helper: Draw modern section header with icon
-    function drawSectionHeader(pdf, title, y, icon = '■') {
-      // Check if we need a new page
-      if (y > 250) {
-        pdf.addPage();
-        y = 20;
-      }
-      
-      // Red accent bar
-      pdf.setFillColor(227, 6, 19);
-      pdf.rect(10, y, 4, 8, 'F');
-      
-      // Light background
-      pdf.setFillColor(248, 248, 248);
-      pdf.rect(14, y, 186, 8, 'F');
-      
-      pdf.setTextColor(20, 20, 20);
-      pdf.setFontSize(11);
-      pdf.setFont(undefined, 'bold');
-      pdf.text(`${icon} ${title}`, 18, y + 5.5);
-      
-      return y + 12;
-    }
-
-    // Helper: Draw info box with modern styling
-    function drawInfoBox(pdf, label, value, y) {
-      if (y > 260) {
-        pdf.addPage();
-        y = 20;
-      }
-      
-      pdf.setFontSize(8);
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFont(undefined, 'bold');
-      pdf.text(label + ':', 15, y);
-      
-      pdf.setFontSize(10);
-      pdf.setTextColor(20, 20, 20);
-      pdf.setFont(undefined, 'normal');
-      
-      // Handle long text with wrapping
-      const maxWidth = 170;
-      const lines = pdf.splitTextToSize(String(value || 'N/A'), maxWidth);
-      pdf.text(lines, 15, y + 5);
-      
-      // Subtle separator line
-      pdf.setDrawColor(230, 230, 230);
-      pdf.setLineWidth(0.3);
-      pdf.line(15, y + 5 + (lines.length * 4), 195, y + 5 + (lines.length * 4));
-      
-      return y + 8 + (lines.length * 4);
-    }
-
-    // Helper: Draw signature block with modern card design
-    function drawSignatureBlock(pdf, profile, signatureData, y, x, label) {
-      if (y > 230) {
-        pdf.addPage();
-        y = 20;
-      }
-      
-      // Card background
-      pdf.setFillColor(252, 252, 252);
-      pdf.roundedRect(x, y, 80, 45, 2, 2, 'F');
-      
-      // Card border
+      // Gray line separator
       pdf.setDrawColor(200, 200, 200);
       pdf.setLineWidth(0.5);
-      pdf.roundedRect(x, y, 80, 45, 2, 2, 'S');
+      pdf.line(10, 52, 200, 52);
       
-      // Label
-      pdf.setFontSize(7);
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFont(undefined, 'bold');
-      pdf.text(label.toUpperCase(), x + 40, y + 4, { align: 'center' });
-      
-      // Signature image
-      if (signatureData) {
-        try {
-          pdf.addImage(signatureData, 'JPEG', x + 10, y + 8, 60, 20);
-        } catch (e) {
-          console.log("Signature image not added:", e);
-          pdf.setFontSize(8);
-          pdf.setTextColor(150, 150, 150);
-          pdf.text('[Signature électronique]', x + 40, y + 18, { align: 'center' });
-        }
-      }
-      
-      // Horizontal line for signature
-      pdf.setDrawColor(180, 180, 180);
-      pdf.setLineWidth(0.3);
-      pdf.line(x + 10, y + 30, x + 70, y + 30);
-      
-      // Name and position
+      // Document metadata box
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(10, 56, 190, 14, 'F');
+      pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(9);
-      pdf.setTextColor(20, 20, 20);
-      pdf.setFont(undefined, 'bold');
-      pdf.text(profile.name || 'N/A', x + 40, y + 35, { align: 'center' });
+      pdf.text(`N° Document: ${docNumber}`, 15, 62);
+      pdf.text(`Date: ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`, 105, 62, { align: 'center' });
+      pdf.text(`Heure: ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, 190, 62, { align: 'right' });
+      pdf.text(`Statut: OFFICIEL`, 15, 67);
+      pdf.text(`Version: 1.0`, 190, 67, { align: 'right' });
       
-      pdf.setFontSize(7);
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(profile.position || '', x + 40, y + 39, { align: 'center' });
-      
-      return y + 50;
+      return 75; // Return starting Y position for content
     }
 
-    // Helper: Draw modern footer
-    function drawPDFFooter(pdf) {
-      const pageHeight = pdf.internal.pageSize.height;
-      
-      // Dark footer bar
-      pdf.setFillColor(20, 20, 20);
-      pdf.rect(0, pageHeight - 15, 210, 15, 'F');
-      
-      // Red accent line
-      pdf.setFillColor(227, 6, 19);
-      pdf.rect(0, pageHeight - 15, 210, 2, 'F');
-      
-      // Footer text
-      pdf.setFontSize(7);
-      pdf.setTextColor(180, 180, 180);
-      pdf.setFont(undefined, 'normal');
-      pdf.text('Mercedes-Benz Plant Operations', 10, pageHeight - 8);
-      pdf.text('Confidential Internal Document', 10, pageHeight - 4);
-      
-      pdf.text('Electronically Generated', 200, pageHeight - 8, { align: 'right' });
-      pdf.text('Legally Valid', 200, pageHeight - 4, { align: 'right' });
-      
-      // Page number circle
-      pdf.setFillColor(227, 6, 19);
-      pdf.circle(105, pageHeight - 7, 4, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(8);
-      const pageNum = pdf.internal.getCurrentPageInfo().pageNumber;
-      pdf.text(String(pageNum), 105, pageHeight - 5, { align: 'center' });
-    }
+    // Helper: Draw section header
+    function drawSectionHeader(pdf, title, y, icon = '■') {
+      pdf.setFillColor(240, 240, 240);
       pdf.rect(10, y - 5, 190, 10, 'F');
       pdf.setFontSize(12);
       pdf.setFont(undefined, 'bold');
@@ -778,14 +627,71 @@
       return y + 12;
     }
 
-    // 1. DEMANDE D'INTERVENTION PDF - MODERN VERSION
+    // Helper: Draw info box
+    function drawInfoBox(pdf, label, value, y, x = 15) {
+      pdf.setFontSize(9);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(label + ':', x, y);
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(10);
+      const lines = pdf.splitTextToSize(value || 'N/A', 180);
+      pdf.text(lines, x, y + 5);
+      return y + 5 + (lines.length * 5) + 3;
+    }
+
+    // Helper: Draw signature block
+    function drawSignatureBlock(pdf, profile, signature, y, x = 15, label = "Signature") {
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(x, y, 85, 30);
+      
+      pdf.setFontSize(9);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(label, x + 3, y + 5);
+      
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(8);
+      pdf.text(`Nom: ${profile.name}`, x + 3, y + 10);
+      pdf.text(`Fonction: ${profile.position}`, x + 3, y + 14);
+      
+      if (signature) {
+        // Smaller signature image
+        pdf.addImage(signature, 'JPEG', x + 3, y + 17, 30, 10);
+      }
+      
+      // Date and stamp
+      pdf.setFontSize(7);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Le ${new Date().toLocaleDateString('fr-FR')}`, x + 40, y + 27);
+      
+      return y + 33;
+    }
+
+    // Helper: Draw footer
+    function drawPDFFooter(pdf) {
+      const pageHeight = pdf.internal.pageSize.height;
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(0, pageHeight - 15, 210, 15, 'F');
+      
+      pdf.setFontSize(7);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Mercedes-Benz Plant Operations - Document Officiel et Confidentiel', 105, pageHeight - 8, { align: 'center' });
+      pdf.text('Ce document est généré électroniquement et juridiquement valable', 105, pageHeight - 4, { align: 'center' });
+      
+      // Page number
+      pdf.text(`Page ${pdf.internal.getCurrentPageInfo().pageNumber}`, 190, pageHeight - 8, { align: 'right' });
+    }
+
+    // 1. DEMANDE D'INTERVENTION PDF - AMAZING VERSION
     window.generateDemandeInterventionPDF = async function(intData, intId) {
       console.log("🔍 Starting Demande PDF generation for:", intId);
       try {
         const { jsPDF } = window.jspdf;
         if (!jsPDF) {
           console.error("❌ jsPDF not loaded!");
-          alert("Erreur: Bibliothèque PDF non chargée");
           return;
         }
         const pdf = new jsPDF();
@@ -867,14 +773,10 @@
       }
     };
 
-    // 2. ORDRE DE MISSION PDF - MODERN VERSION
+    // 2. ORDRE DE MISSION PDF - AMAZING VERSION
     window.generateOrdreMissionPDF = async function(intData, intId) {
-      console.log("🔍 Starting Ordre PDF generation for:", intId);
       try {
         const { jsPDF } = window.jspdf;
-        if (!jsPDF) {
-          throw new Error("jsPDF library not loaded");
-        }
         const pdf = new jsPDF();
 
         // Get profiles and signatures
@@ -919,7 +821,7 @@
         drawSignatureBlock(pdf, requesterProfile, requesterSignature, y, 15, "Demandeur");
         
         // Director signature (right)
-        drawSignatureBlock(pdf, directorProfile, directorSignature, y, 115, "Approbation Directeur");
+        drawSignatureBlock(pdf, directorProfile, directorSignature, y, 110, "Approbation Directeur");
 
         // Footer
         drawPDFFooter(pdf);
@@ -943,19 +845,13 @@
         return pdfDataUri;
       } catch (e) {
         console.error("❌ PDF Ordre generation failed:", e);
-        alert("Erreur génération Ordre de Mission PDF: " + e.message);
-        throw e;
       }
     };
 
-    // 3. RAPPORT D'INTERVENTION PDF - MODERN VERSION
+    // 3. RAPPORT D'INTERVENTION PDF - AMAZING VERSION
     window.generateRapportInterventionPDF = async function(intData, intId) {
-      console.log("🔍 Starting Rapport PDF generation for:", intId);
       try {
         const { jsPDF } = window.jspdf;
-        if (!jsPDF) {
-          throw new Error("jsPDF library not loaded");
-        }
         const pdf = new jsPDF();
 
         // Get all profiles and signatures
@@ -1011,16 +907,18 @@
         }
 
         // Signatures Section - 3 signatures
-        y = drawSectionHeader(pdf, 'SIGNATURES ET VALIDATIONS', y, '✍');
+        y = drawSectionHeader(pdf, 'SIGNATURES ET VALIDATIONS OFFICIELLES', y, '✍');
         
         // Requester signature
         y = drawSignatureBlock(pdf, requesterProfile, requesterSignature, y, 15, "Demandeur Initial");
+        y += 5;
         
-        // Technician signature  
+        // Technician signature
         y = drawSignatureBlock(pdf, techProfile, techSignature, y, 15, "Technicien Intervenant");
+        y += 5;
         
         // Director validation signature
-        drawSignatureBlock(pdf, directorProfile, directorSignature, y, 15, "Validation Directeur");
+        y = drawSignatureBlock(pdf, directorProfile, directorSignature, y, 15, "Validation Directeur");
 
         // Footer
         drawPDFFooter(pdf);
@@ -1044,8 +942,6 @@
         return pdfDataUri;
       } catch (e) {
         console.error("❌ PDF Rapport generation failed:", e);
-        alert("Erreur génération Rapport PDF: " + e.message);
-        throw e;
       }
     };
 
