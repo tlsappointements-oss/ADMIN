@@ -483,36 +483,21 @@
     };
 
     window.saveSignature = async () => {
-      // Create professional quality signature
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = 200; // Professional size
-      tempCanvas.height = 60;  // Good aspect ratio
-      const tempCtx = tempCanvas.getContext('2d');
-      
-      // Clean white background
-      tempCtx.fillStyle = '#FFFFFF';
-      tempCtx.fillRect(0, 0, 200, 60);
-      
-      // Draw signature with anti-aliasing
-      tempCtx.imageSmoothingEnabled = true;
-      tempCtx.imageSmoothingQuality = 'high';
-      tempCtx.drawImage(signatureCanvas, 0, 0, signatureCanvas.width, signatureCanvas.height, 0, 0, 200, 60);
-      
-      // Better compression - 40% quality for professional look
-      const signatureData = tempCanvas.toDataURL('image/jpeg', 0.4);
+      // Save with JPEG compression to reduce file size
+      const signatureData = signatureCanvas.toDataURL('image/jpeg', 0.7);
       const email = auth.currentUser.email.toLowerCase();
       
-      const sizeKB = (signatureData.length / 1024).toFixed(1);
-      console.log("💾 Signature saved:", sizeKB, "KB");
-      
+      // Save to Firestore
       await setDoc(doc(db, "signatures", email), {
         signatureData: signatureData,
         createdAt: serverTimestamp()
       });
 
+      // Cache locally
       userSignatures[email] = signatureData;
+      
       document.getElementById('signaturePopup').style.display = 'none';
-      alert("✓ Signature enregistrée avec succès!");
+      alert("Signature enregistrée avec succès!");
     };
 
     // Get or request user signature
@@ -578,330 +563,126 @@
       });
     }
 
-    // === ULTIMATE PROFESSIONAL MERCEDES-BENZ PDF DESIGN ===
+    // === AMAZING PDF GENERATORS WITH MERCEDES DESIGN ===
 
-    // Helper: Draw premium Mercedes-Benz header with perfect logo
+    // Helper: Draw professional header
     async function drawPDFHeader(pdf, title, docNumber, qrData) {
-      const pageWidth = 210;
+      // Red gradient background
+      pdf.setFillColor(227, 6, 19);
+      pdf.rect(0, 0, 210, 50, 'F');
       
-      // Premium white background
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(0, 0, pageWidth, 297, 'F');
+      // Mercedes logo
+      try {
+        pdf.addImage(MERCEDES_LOGO, 'SVG', 15, 10, 25, 25);
+      } catch (e) {
+        console.log("Logo not added");
+      }
       
-      // Top border - Mercedes silver
-      pdf.setFillColor(140, 140, 140);
-      pdf.rect(0, 0, pageWidth, 0.8, 'F');
-      
-      // ==================== PERFECT MERCEDES-BENZ LOGO ====================
-      const logoX = 20;
-      const logoY = 18;
-      const logoRadius = 10;
-      
-      // Outer ring - silver gradient effect
-      pdf.setFillColor(200, 200, 200);
-      pdf.circle(logoX, logoY, logoRadius + 0.3, 'F');
-      
-      pdf.setFillColor(160, 160, 160);
-      pdf.circle(logoX, logoY, logoRadius, 'F');
-      
-      // Main circle background - silver
-      pdf.setFillColor(220, 220, 220);
-      pdf.circle(logoX, logoY, logoRadius - 0.8, 'F');
-      
-      // Inner white background for star
-      pdf.setFillColor(255, 255, 255);
-      pdf.circle(logoX, logoY, logoRadius - 1.5, 'F');
-      
-      // Perfect three-pointed Mercedes star
-      pdf.setDrawColor(0, 0, 0);
-      pdf.setLineWidth(1.6);
-      
-      const starRadius = logoRadius - 2.5;
-      
-      // Top point (12 o'clock position)
-      const topX = logoX;
-      const topY = logoY - starRadius;
-      
-      // Bottom-left point (4 o'clock / 240 degrees)
-      const angle1 = (240 * Math.PI) / 180;
-      const leftX = logoX + starRadius * Math.cos(angle1);
-      const leftY = logoY + starRadius * Math.sin(angle1);
-      
-      // Bottom-right point (8 o'clock / 120 degrees)  
-      const angle2 = (120 * Math.PI) / 180;
-      const rightX = logoX + starRadius * Math.cos(angle2);
-      const rightY = logoY + starRadius * Math.sin(angle2);
-      
-      // Draw the three lines of the star
-      pdf.line(logoX, logoY, topX, topY);      // Center to top
-      pdf.line(logoX, logoY, leftX, leftY);    // Center to bottom-left
-      pdf.line(logoX, logoY, rightX, rightY);  // Center to bottom-right
-      
-      // Outer circle border - dark
-      pdf.setDrawColor(100, 100, 100);
-      pdf.setLineWidth(1.4);
-      pdf.circle(logoX, logoY, logoRadius, 'S');
-      
-      // Inner circle border
-      pdf.setLineWidth(0.6);
-      pdf.circle(logoX, logoY, logoRadius - 1.5, 'S');
-      
-      // ==================== END LOGO ====================
-      
-      // Company name - authentic Mercedes typography
+      // Company name
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(28);
       pdf.setFont(undefined, 'bold');
+      pdf.text('MERCEDES-BENZ', 105, 20, { align: 'center' });
+      
+      // Subtitle
+      pdf.setFontSize(11);
+      pdf.setFont(undefined, 'normal');
+      pdf.text('Plant Operations & Maintenance', 105, 28, { align: 'center' });
+      
+      // Document title
       pdf.setFontSize(18);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('Mercedes-Benz', 40, 15);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(title, 105, 42, { align: 'center' });
       
-      // Division name
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(9);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text('Daimler AG', 40, 20);
+      // NO QR CODE - removed to reduce file size
       
-      pdf.setFontSize(8);
-      pdf.text('Plant Operations & Maintenance Division', 40, 24);
-      
-      // Document reference - right aligned
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(8);
-      pdf.setTextColor(80, 80, 80);
-      
-      const rightX = pageWidth - 15;
-      pdf.text('Référence: ' + docNumber, rightX, 14, { align: 'right' });
-      pdf.text('Date: ' + new Date().toLocaleDateString('fr-FR', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-      }), rightX, 18, { align: 'right' });
-      pdf.text('Heure: ' + new Date().toLocaleTimeString('fr-FR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }), rightX, 22, { align: 'right' });
-      
-      // Horizontal separator
-      pdf.setDrawColor(180, 180, 180);
+      // Gray line separator
+      pdf.setDrawColor(200, 200, 200);
       pdf.setLineWidth(0.5);
-      pdf.line(15, 32, pageWidth - 15, 32);
+      pdf.line(10, 52, 200, 52);
       
-      // Document title - bold and centered
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(20);
+      // Document metadata box
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(10, 56, 190, 14, 'F');
       pdf.setTextColor(0, 0, 0);
-      pdf.text(title, pageWidth / 2, 45, { align: 'center' });
+      pdf.setFontSize(9);
+      pdf.text(`N° Document: ${docNumber}`, 15, 62);
+      pdf.text(`Date: ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`, 105, 62, { align: 'center' });
+      pdf.text(`Heure: ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, 190, 62, { align: 'right' });
+      pdf.text(`Statut: OFFICIEL`, 15, 67);
+      pdf.text(`Version: 1.0`, 190, 67, { align: 'right' });
       
-      // Title underline
-      pdf.setDrawColor(0, 0, 0);
-      pdf.setLineWidth(0.8);
-      pdf.line(55, 48, pageWidth - 55, 48);
-      
-      // Classification badge
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(8);
-      pdf.setTextColor(120, 120, 120);
-      pdf.text('[ DOCUMENT CONFIDENTIEL - USAGE INTERNE ]', pageWidth / 2, 54, { align: 'center' });
-      
-      return 62;
+      return 75; // Return starting Y position for content
     }
 
-    // Helper: Draw professional section header
-    function drawSectionHeader(pdf, title, y, icon = '') {
-      if (y > 248) {
-        pdf.addPage();
-        y = 25;
-      }
-      
-      const pageWidth = 210;
-      
-      // Section background
-      pdf.setFillColor(248, 248, 248);
-      pdf.rect(15, y - 1, pageWidth - 30, 10, 'F');
-      
-      // Left accent border
-      pdf.setFillColor(0, 0, 0);
-      pdf.rect(15, y - 1, 2, 10, 'F');
-      
-      // Section number/icon
-      if (icon) {
-        pdf.setFont(undefined, 'bold');
-        pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(icon, 20, y + 5);
-      }
-      
-      // Section title
-      pdf.setFont(undefined, 'bold');
+    // Helper: Draw section header
+    function drawSectionHeader(pdf, title, y, icon = '■') {
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(10, y - 5, 190, 10, 'F');
       pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(227, 6, 19);
+      pdf.text(`${icon} ${title}`, 15, y + 2);
       pdf.setTextColor(0, 0, 0);
-      pdf.text(title, icon ? 26 : 20, y + 5);
-      
-      // Bottom border
-      pdf.setDrawColor(200, 200, 200);
-      pdf.setLineWidth(0.3);
-      pdf.line(15, y + 9, pageWidth - 15, y + 9);
-      
-      return y + 14;
+      return y + 12;
     }
 
-    // Helper: Draw professional info field with perfect alignment
-    function drawInfoBox(pdf, label, value, y, x = 20) {
-      if (y > 258) {
-        pdf.addPage();
-        y = 25;
-      }
-      
-      const pageWidth = 210;
-      const labelWidth = 60;
-      
-      // Label - bold
-      pdf.setFont(undefined, 'bold');
+    // Helper: Draw info box
+    function drawInfoBox(pdf, label, value, y, x = 15) {
       pdf.setFontSize(9);
-      pdf.setTextColor(60, 60, 60);
-      pdf.text(label + ' :', x, y);
-      
-      // Value - normal with wrapping
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(9);
-      pdf.setTextColor(0, 0, 0);
-      
-      const maxWidth = pageWidth - x - labelWidth - 15;
-      const lines = pdf.splitTextToSize(String(value || 'N/A'), maxWidth);
-      pdf.text(lines, x + labelWidth, y);
-      
-      // Subtle dotted separator
-      const lineY = y + 2 + (lines.length * 4);
-      pdf.setDrawColor(230, 230, 230);
-      pdf.setLineWidth(0.2);
-      pdf.setLineDash([0.5, 1]);
-      pdf.line(x, lineY, pageWidth - 20, lineY);
-      pdf.setLineDash([]);
-      
-      return y + 4 + (lines.length * 4);
-    }
-
-    // Helper: Draw premium signature block
-    function drawSignatureBlock(pdf, profile, signature, y, x = 20, label = "Signature") {
-      if (y > 215) {
-        pdf.addPage();
-        y = 25;
-      }
-      
-      const boxWidth = 85;
-      const boxHeight = 55;
-      
-      // Outer box - professional gray border
-      pdf.setDrawColor(160, 160, 160);
-      pdf.setLineWidth(0.6);
-      pdf.rect(x, y, boxWidth, boxHeight, 'S');
-      
-      // Header section with light background
-      pdf.setFillColor(250, 250, 250);
-      pdf.rect(x + 0.3, y + 0.3, boxWidth - 0.6, 9, 'F');
-      
-      // Header line
-      pdf.setDrawColor(200, 200, 200);
-      pdf.setLineWidth(0.3);
-      pdf.line(x, y + 9, x + boxWidth, y + 9);
-      
-      // Label text
       pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(8);
-      pdf.setTextColor(80, 80, 80);
-      pdf.text(label, x + boxWidth/2, y + 6, { align: 'center' });
-      
-      // Signature area
-      if (signature) {
-        try {
-          // White background for signature
-          pdf.setFillColor(255, 255, 255);
-          pdf.rect(x + 3, y + 12, boxWidth - 6, 24, 'F');
-          
-          // Signature image - high quality placement
-          pdf.addImage(signature, 'JPEG', x + 10, y + 16, 65, 16);
-        } catch (e) {
-          pdf.setFont(undefined, 'italic');
-          pdf.setFontSize(8);
-          pdf.setTextColor(160, 160, 160);
-          pdf.text('[Signature électronique]', x + boxWidth/2, y + 24, { align: 'center' });
-        }
-      } else {
-        pdf.setFont(undefined, 'italic');
-        pdf.setFontSize(8);
-        pdf.setTextColor(160, 160, 160);
-        pdf.text('[Non signé]', x + boxWidth/2, y + 24, { align: 'center' });
-      }
-      
-      // Signature line
-      pdf.setDrawColor(160, 160, 160);
-      pdf.setLineWidth(0.4);
-      pdf.line(x + 8, y + 37, x + boxWidth - 8, y + 37);
-      
-      // Name
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(9);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(profile.name || 'N/A', x + boxWidth/2, y + 43, { align: 'center' });
-      
-      // Position
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(8);
       pdf.setTextColor(100, 100, 100);
-      pdf.text(profile.position || '', x + boxWidth/2, y + 48, { align: 'center' });
-      
-      // Date with proper format
+      pdf.text(label + ':', x, y);
       pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(7);
-      pdf.setTextColor(120, 120, 120);
-      const dateStr = new Date().toLocaleDateString('fr-FR', { 
-        day: '2-digit', 
-        month: 'long', 
-        year: 'numeric' 
-      });
-      pdf.text('Signé le ' + dateStr, x + boxWidth/2, y + 52, { align: 'center' });
-      
-      return y + 59;
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(10);
+      const lines = pdf.splitTextToSize(value || 'N/A', 180);
+      pdf.text(lines, x, y + 5);
+      return y + 5 + (lines.length * 5) + 3;
     }
 
-    // Helper: Draw corporate footer
+    // Helper: Draw signature block
+    function drawSignatureBlock(pdf, profile, signature, y, x = 15, label = "Signature") {
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(x, y, 85, 30);
+      
+      pdf.setFontSize(9);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(label, x + 3, y + 5);
+      
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(8);
+      pdf.text(`Nom: ${profile.name}`, x + 3, y + 10);
+      pdf.text(`Fonction: ${profile.position}`, x + 3, y + 14);
+      
+      if (signature) {
+        // Smaller signature image
+        pdf.addImage(signature, 'JPEG', x + 3, y + 17, 30, 10);
+      }
+      
+      // Date and stamp
+      pdf.setFontSize(7);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Le ${new Date().toLocaleDateString('fr-FR')}`, x + 40, y + 27);
+      
+      return y + 33;
+    }
+
+    // Helper: Draw footer
     function drawPDFFooter(pdf) {
       const pageHeight = pdf.internal.pageSize.height;
-      const pageWidth = 210;
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(0, pageHeight - 15, 210, 15, 'F');
       
-      // Footer separator line
-      pdf.setDrawColor(180, 180, 180);
-      pdf.setLineWidth(0.5);
-      pdf.line(15, pageHeight - 22, pageWidth - 15, pageHeight - 22);
-      
-      // Footer content - three columns
-      pdf.setFont(undefined, 'normal');
       pdf.setFontSize(7);
       pdf.setTextColor(100, 100, 100);
+      pdf.text('Mercedes-Benz Plant Operations - Document Officiel et Confidentiel', 105, pageHeight - 8, { align: 'center' });
+      pdf.text('Ce document est généré électroniquement et juridiquement valable', 105, pageHeight - 4, { align: 'center' });
       
-      // Left column - company info
-      pdf.text('Mercedes-Benz AG', 15, pageHeight - 17);
-      pdf.text('Mercedesstraße 120', 15, pageHeight - 13);
-      pdf.text('70372 Stuttgart, Deutschland', 15, pageHeight - 9);
-      
-      // Center column - document info
-      const centerX = pageWidth / 2;
-      pdf.text('Document généré électroniquement', centerX, pageHeight - 17, { align: 'center' });
-      pdf.text('Confidentiel - Usage interne uniquement', centerX, pageHeight - 13, { align: 'center' });
-      
-      // Right column - date & validity
-      pdf.text('Date: ' + new Date().toLocaleDateString('fr-FR'), pageWidth - 15, pageHeight - 17, { align: 'right' });
-      pdf.text('Juridiquement valable', pageWidth - 15, pageHeight - 13, { align: 'right' });
-      
-      // Page number with professional styling
-      const pageNum = pdf.internal.getCurrentPageInfo().pageNumber;
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(9);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('- ' + pageNum + ' -', centerX, pageHeight - 6, { align: 'center' });
-      
-      // Bottom border
-      pdf.setFillColor(140, 140, 140);
-      pdf.rect(0, pageHeight - 2, pageWidth, 2, 'F');
+      // Page number
+      pdf.text(`Page ${pdf.internal.getCurrentPageInfo().pageNumber}`, 190, pageHeight - 8, { align: 'right' });
     }
 
     // 1. DEMANDE D'INTERVENTION PDF - AMAZING VERSION
@@ -993,14 +774,9 @@
     };
 
     // 2. ORDRE DE MISSION PDF - AMAZING VERSION
-    // 2. ORDRE DE MISSION PDF - MODERN VERSION
     window.generateOrdreMissionPDF = async function(intData, intId) {
-      console.log("🔍 Starting Ordre de Mission PDF generation for:", intId);
       try {
         const { jsPDF } = window.jspdf;
-        if (!jsPDF) {
-          throw new Error("jsPDF library not loaded");
-        }
         const pdf = new jsPDF();
 
         // Get profiles and signatures
@@ -1050,45 +826,32 @@
         // Footer
         drawPDFFooter(pdf);
 
-        // Generate PDF and trigger download
-        const pdfBlob = pdf.output('blob');
-        const pdfSize = (pdfBlob.size / 1024).toFixed(1);
-        console.log("✅ PDF generated, size:", pdfSize, "KB");
+        // Save to Firestore with compression
+        const pdfOutput = pdf.output('arraybuffer');
+        const pdfBlob = new Blob([pdfOutput], { type: 'application/pdf' });
+        const pdfDataUri = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(pdfBlob);
+        });
         
-        // Create download URL
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        
-        // Auto-download
-        const link = document.createElement('a');
-        link.href = pdfUrl;
-        link.download = `Ordre_Mission_${intId}_${Date.now()}.pdf`;
-        link.click();
-        
-        // Store only metadata in Firestore (not the full PDF)
         await updateDoc(doc(db, "interventions", intId), {
+          pdfOrdre: pdfDataUri,
           pdfOrdreGeneratedAt: serverTimestamp(),
-          pdfOrdreQR: qrData,
-          pdfOrdreGenerated: true
+          pdfOrdreQR: qrData
         });
 
-        console.log("✅ Ordre de Mission PDF downloaded for:", intId);
-        alert("✅ Ordre de Mission PDF téléchargé avec succès!");
-        return pdfUrl;
+        console.log("✅ Ordre de Mission PDF generated for:", intId);
+        return pdfDataUri;
       } catch (e) {
         console.error("❌ PDF Ordre generation failed:", e);
-        alert("Erreur génération Ordre de Mission PDF: " + e.message);
-        throw e;
       }
     };
 
-    // 3. RAPPORT D'INTERVENTION PDF - MODERN VERSION
+    // 3. RAPPORT D'INTERVENTION PDF - AMAZING VERSION
     window.generateRapportInterventionPDF = async function(intData, intId) {
-      console.log("🔍 Starting Rapport PDF generation for:", intId);
       try {
         const { jsPDF } = window.jspdf;
-        if (!jsPDF) {
-          throw new Error("jsPDF library not loaded");
-        }
         const pdf = new jsPDF();
 
         // Get all profiles and signatures
@@ -1144,48 +907,41 @@
         }
 
         // Signatures Section - 3 signatures
-        y = drawSectionHeader(pdf, 'SIGNATURES ET VALIDATIONS', y, '✍');
+        y = drawSectionHeader(pdf, 'SIGNATURES ET VALIDATIONS OFFICIELLES', y, '✍');
         
         // Requester signature
         y = drawSignatureBlock(pdf, requesterProfile, requesterSignature, y, 15, "Demandeur Initial");
+        y += 5;
         
         // Technician signature
         y = drawSignatureBlock(pdf, techProfile, techSignature, y, 15, "Technicien Intervenant");
+        y += 5;
         
         // Director validation signature
-        drawSignatureBlock(pdf, directorProfile, directorSignature, y, 15, "Validation Directeur");
+        y = drawSignatureBlock(pdf, directorProfile, directorSignature, y, 15, "Validation Directeur");
 
         // Footer
         drawPDFFooter(pdf);
 
-        // Generate PDF and trigger download
-        const pdfBlob = pdf.output('blob');
-        const pdfSize = (pdfBlob.size / 1024).toFixed(1);
-        console.log("✅ PDF generated, size:", pdfSize, "KB");
+        // Save to Firestore with compression
+        const pdfOutput = pdf.output('arraybuffer');
+        const pdfBlob = new Blob([pdfOutput], { type: 'application/pdf' });
+        const pdfDataUri = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(pdfBlob);
+        });
         
-        // Create download URL
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        
-        // Auto-download
-        const link = document.createElement('a');
-        link.href = pdfUrl;
-        link.download = `Rapport_Intervention_${intId}_${Date.now()}.pdf`;
-        link.click();
-        
-        // Store only metadata in Firestore
         await updateDoc(doc(db, "interventions", intId), {
+          pdfRapport: pdfDataUri,
           pdfRapportGeneratedAt: serverTimestamp(),
-          pdfRapportQR: qrData,
-          pdfRapportGenerated: true
+          pdfRapportQR: qrData
         });
 
-        console.log("✅ Rapport d'Intervention PDF downloaded for:", intId);
-        alert("✅ Rapport d'Intervention PDF téléchargé avec succès!");
-        return pdfUrl;
+        console.log("✅ Rapport d'Intervention PDF generated for:", intId);
+        return pdfDataUri;
       } catch (e) {
         console.error("❌ PDF Rapport generation failed:", e);
-        alert("Erreur génération Rapport PDF: " + e.message);
-        throw e;
       }
     };
 
@@ -1319,8 +1075,7 @@
       if (email === DIRECTOR) return true;
       const perms = userPermissions[email] || {};
       
-      // If permissions haven't loaded yet (empty object), default to allowing access
-      // This prevents blocking the page on initial load
+      // Safety: If permissions haven't loaded yet, allow access
       if (Object.keys(perms).length === 0) {
         return true;
       }
@@ -1660,7 +1415,7 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
       console.log("🔍 Auth state changed. User:", user);
       if (!user) { 
         console.log("⚠️ No user, redirecting to login");
-        window.location.href = "index.html"; 
+        window.location.href = "login.html"; 
         return; 
       }
       const email = user.email.toLowerCase();
@@ -1721,8 +1476,12 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
         loadAdminApprovals();
       } else {
         document.getElementById('hangUpBtn').style.display = "none";
-        // Skip demo redirect - allow direct access
-        console.log("✅ Non-director user, loading missions...");
+        // 👉 FIRST-TIME REDIRECT TO DEMO
+        const demoKey = `demoDone_${email}`;
+        if (!localStorage.getItem(demoKey)) {
+          window.location.href = 'demo.html';
+          return;
+        }
         loadMyMissions(email);
       }
       console.log("🔍 Calling loadMachinesLive...");
