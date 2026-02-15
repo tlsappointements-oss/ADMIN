@@ -483,24 +483,27 @@
     };
 
     window.saveSignature = async () => {
-      // Create a tiny canvas for maximum compression
+      // Create professional quality signature
       const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = 120; // Very small
-      tempCanvas.height = 40;  // Very small
+      tempCanvas.width = 200; // Professional size
+      tempCanvas.height = 60;  // Good aspect ratio
       const tempCtx = tempCanvas.getContext('2d');
       
-      // White background
+      // Clean white background
       tempCtx.fillStyle = '#FFFFFF';
-      tempCtx.fillRect(0, 0, 120, 40);
+      tempCtx.fillRect(0, 0, 200, 60);
       
-      // Draw signature
-      tempCtx.drawImage(signatureCanvas, 0, 0, signatureCanvas.width, signatureCanvas.height, 0, 0, 120, 40);
+      // Draw signature with anti-aliasing
+      tempCtx.imageSmoothingEnabled = true;
+      tempCtx.imageSmoothingQuality = 'high';
+      tempCtx.drawImage(signatureCanvas, 0, 0, signatureCanvas.width, signatureCanvas.height, 0, 0, 200, 60);
       
-      // EXTREME compression - 20% quality
-      const signatureData = tempCanvas.toDataURL('image/jpeg', 0.2);
+      // Better compression - 40% quality for professional look
+      const signatureData = tempCanvas.toDataURL('image/jpeg', 0.4);
       const email = auth.currentUser.email.toLowerCase();
       
-      console.log("💾 Signature compressed to:", (signatureData.length / 1024).toFixed(1), "KB");
+      const sizeKB = (signatureData.length / 1024).toFixed(1);
+      console.log("💾 Signature saved:", sizeKB, "KB");
       
       await setDoc(doc(db, "signatures", email), {
         signatureData: signatureData,
@@ -509,7 +512,7 @@
 
       userSignatures[email] = signatureData;
       document.getElementById('signaturePopup').style.display = 'none';
-      alert("Signature enregistrée avec succès!");
+      alert("✓ Signature enregistrée avec succès!");
     };
 
     // Get or request user signature
@@ -575,320 +578,275 @@
       });
     }
 
-    // === PREMIUM MERCEDES-BENZ PDF DESIGN ===
+    // === AUTHENTIC MERCEDES-BENZ CORPORATE PDF DESIGN ===
 
-    // Helper: Draw premium header with modern gradient
+    // Helper: Draw authentic Mercedes-Benz header
     async function drawPDFHeader(pdf, title, docNumber, qrData) {
-      // Dark gradient background (top)
-      for (let i = 0; i < 20; i++) {
-        const shade = 15 + (i * 0.5);
-        pdf.setFillColor(shade, shade, shade);
-        pdf.rect(0, i, 210, 1, 'F');
-      }
+      const pageWidth = 210;
       
-      // Mercedes red gradient (middle)
-      for (let i = 0; i < 22; i++) {
-        const redIntensity = 227 - (i * 3);
-        pdf.setFillColor(redIntensity, 6, 19);
-        pdf.rect(0, 20 + i, 210, 1, 'F');
-      }
-      
-      // White accent line
+      // Clean white background
       pdf.setFillColor(255, 255, 255);
-      pdf.rect(0, 42, 210, 0.5, 'F');
+      pdf.rect(0, 0, pageWidth, 297, 'F');
       
-      // Premium Mercedes star logo
-      const starX = 20, starY = 16;
+      // Top silver stripe
+      pdf.setFillColor(180, 180, 180);
+      pdf.rect(0, 0, pageWidth, 1, 'F');
       
-      // Outer circle
-      pdf.setDrawColor(255, 255, 255);
-      pdf.setLineWidth(2);
-      pdf.circle(starX, starY, 9, 'S');
+      // AUTHENTIC MERCEDES-BENZ LOGO
+      const logoX = 15;
+      const logoY = 15;
+      const logoSize = 18;
+      
+      // Outer circle - silver
+      pdf.setDrawColor(140, 140, 140);
+      pdf.setLineWidth(1.2);
+      pdf.circle(logoX, logoY, logoSize/2, 'S');
       
       // Inner circle
-      pdf.setLineWidth(0.8);
-      pdf.circle(starX, starY, 7.5, 'S');
+      pdf.setLineWidth(0.6);
+      pdf.circle(logoX, logoY, logoSize/2 - 1.5, 'S');
       
-      // Three-pointed star
-      pdf.setLineWidth(1.8);
-      pdf.line(starX, starY - 6, starX, starY);     // Top point
-      pdf.line(starX, starY, starX - 5.2, starY + 4.5);  // Bottom-left
-      pdf.line(starX, starY, starX + 5.2, starY + 4.5);  // Bottom-right
+      // Three-pointed star - precise Mercedes star
+      pdf.setLineWidth(1.4);
+      const starRadius = logoSize/2 - 2.5;
       
-      // Small dots at star points
-      pdf.setFillColor(255, 255, 255);
-      pdf.circle(starX, starY - 6, 0.8, 'F');
-      pdf.circle(starX - 5.2, starY + 4.5, 0.8, 'F');
-      pdf.circle(starX + 5.2, starY + 4.5, 0.8, 'F');
+      // Top point to center
+      pdf.line(logoX, logoY - starRadius, logoX, logoY);
       
-      // Company name with modern typography
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(24);
+      // Center to bottom-left (120 degrees)
+      const angle1 = (120 * Math.PI) / 180;
+      const x1 = logoX + starRadius * Math.sin(angle1);
+      const y1 = logoY - starRadius * Math.cos(angle1);
+      pdf.line(logoX, logoY, x1, y1);
+      
+      // Center to bottom-right (240 degrees)
+      const angle2 = (240 * Math.PI) / 180;
+      const x2 = logoX + starRadius * Math.sin(angle2);
+      const y2 = logoY - starRadius * Math.cos(angle2);
+      pdf.line(logoX, logoY, x2, y2);
+      
+      // Company name - authentic Mercedes-Benz typography
       pdf.setFont(undefined, 'bold');
-      pdf.text('MERCEDES-BENZ', 35, 14);
+      pdf.setFontSize(16);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('Mercedes-Benz', 38, 13);
       
-      // Subtitle with letter spacing
-      pdf.setFontSize(7);
       pdf.setFont(undefined, 'normal');
-      pdf.text('P L A N T   O P E R A T I O N S   &   M A I N T E N A N C E', 35, 19);
+      pdf.setFontSize(8);
+      pdf.setTextColor(80, 80, 80);
+      pdf.text('Plant Operations', 38, 18);
+      pdf.text('Maintenance Division', 38, 22);
       
-      // Document title on red background
-      pdf.setFontSize(20);
-      pdf.setFont(undefined, 'bold');
-      pdf.text(title, 105, 35, { align: 'center' });
-      
-      // Premium info panel
-      pdf.setFillColor(248, 248, 248);
-      pdf.rect(0, 43, 210, 20, 'F');
-      
-      // Red vertical accent
-      pdf.setFillColor(227, 6, 19);
-      pdf.rect(0, 43, 4, 20, 'F');
-      
-      // Diagonal pattern
-      pdf.setDrawColor(235, 235, 235);
-      pdf.setLineWidth(0.3);
-      for (let i = 0; i < 210; i += 8) {
-        pdf.line(i, 43, i + 20, 63);
-      }
-      
-      // Info labels
+      // Right side - Document info
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(8);
       pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(7);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('DOCUMENT ID', 10, 49);
-      pdf.text('DATE', 75, 49);
-      pdf.text('HEURE', 130, 49);
-      pdf.text('CLASSIFICATION', 10, 57);
+      pdf.text('Ref: ' + docNumber, pageWidth - 15, 13, { align: 'right' });
+      pdf.text('Date: ' + new Date().toLocaleDateString('fr-FR'), pageWidth - 15, 17, { align: 'right' });
+      pdf.text('Page 1', pageWidth - 15, 21, { align: 'right' });
       
-      // Info values
-      pdf.setTextColor(30, 30, 30);
-      pdf.setFontSize(9);
-      pdf.setFont(undefined, 'bold');
-      pdf.text(docNumber, 10, 53);
-      pdf.text(new Date().toLocaleDateString('fr-FR'), 75, 53);
-      pdf.text(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), 130, 53);
-      
-      // Classification badge
-      pdf.setFillColor(0, 120, 0);
-      pdf.roundedRect(10, 59, 45, 5, 1, 1, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(7);
-      pdf.setFont(undefined, 'bold');
-      pdf.text('✓ DOCUMENT OFFICIEL', 32.5, 62.2, { align: 'center' });
-      
-      // Right side - Mercedes emblem
-      pdf.setDrawColor(200, 200, 200);
+      // Separator line - Mercedes silver
+      pdf.setDrawColor(180, 180, 180);
       pdf.setLineWidth(0.5);
-      pdf.circle(195, 53, 6, 'S');
+      pdf.line(15, 30, pageWidth - 15, 30);
+      
+      // Document title - centered, professional
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(18);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(title, pageWidth / 2, 42, { align: 'center' });
+      
+      // Subtitle line
+      pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.3);
-      pdf.line(195, 47.5, 195, 53);
-      pdf.line(195, 53, 189.8, 58);
-      pdf.line(195, 53, 200.2, 58);
+      pdf.line(60, 45, pageWidth - 60, 45);
       
-      return 68;
-    }
-
-    // Helper: Draw premium section header with gradient
-    function drawSectionHeader(pdf, title, y, icon = '■') {
-      if (y > 245) {
-        pdf.addPage();
-        y = 20;
-      }
-      
-      // Gradient background
-      for (let i = 0; i < 11; i++) {
-        const shade = 248 - (i * 1);
-        pdf.setFillColor(shade, shade, shade);
-        pdf.rect(10, y + i, 190, 1, 'F');
-      }
-      
-      // Red accent stripe with gradient
-      for (let i = 0; i < 11; i++) {
-        const alpha = 227 - (i * 5);
-        pdf.setFillColor(alpha, 6, 19);
-        pdf.rect(10, y + i, 5, 1, 'F');
-      }
-      
-      // Icon circle
-      pdf.setFillColor(227, 6, 19);
-      pdf.circle(18, y + 5.5, 2.5, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(9);
-      pdf.text(icon, 18, y + 6.5, { align: 'center' });
-      
-      // Title
-      pdf.setTextColor(30, 30, 30);
-      pdf.setFontSize(11);
-      pdf.setFont(undefined, 'bold');
-      pdf.text(title, 24, y + 7);
-      
-      // Bottom border
-      pdf.setDrawColor(227, 6, 19);
-      pdf.setLineWidth(0.8);
-      pdf.line(10, y + 11, 200, y + 11);
-      
-      return y + 16;
-    }
-
-    // Helper: Draw modern info box with styling
-    function drawInfoBox(pdf, label, value, y, x = 15) {
-      if (y > 255) {
-        pdf.addPage();
-        y = 20;
-      }
-      
-      // Label with background
-      pdf.setFillColor(245, 245, 245);
-      pdf.rect(x, y - 2, 40, 5, 'F');
-      
-      pdf.setFontSize(7);
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFont(undefined, 'bold');
-      pdf.text(label.toUpperCase(), x + 1, y + 1.5);
-      
-      // Value with wrapping
+      // Classification
       pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(30, 30, 30);
-      pdf.setFontSize(10);
-      const maxWidth = 180;
-      const lines = pdf.splitTextToSize(String(value || 'N/A'), maxWidth);
-      pdf.text(lines, x, y + 7);
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('DOCUMENT CONFIDENTIEL', pageWidth / 2, 50, { align: 'center' });
       
-      // Subtle bottom line
-      const lineY = y + 8 + (lines.length * 4.5);
-      pdf.setDrawColor(235, 235, 235);
-      pdf.setLineWidth(0.3);
-      pdf.line(x, lineY, 195, lineY);
-      
-      return y + 10 + (lines.length * 4.5);
+      return 58;
     }
 
-    // Helper: Draw premium signature card
-    function drawSignatureBlock(pdf, profile, signature, y, x = 15, label = "Signature") {
-      if (y > 225) {
+    // Helper: Draw professional section header
+    function drawSectionHeader(pdf, title, y, icon = '') {
+      if (y > 250) {
         pdf.addPage();
         y = 20;
       }
       
-      // Card with subtle shadow effect
+      const pageWidth = 210;
+      
+      // Section number box
       pdf.setFillColor(240, 240, 240);
-      pdf.roundedRect(x + 1, y + 1, 85, 40, 2, 2, 'F');
+      pdf.rect(15, y, 8, 8, 'F');
       
-      pdf.setFillColor(255, 255, 255);
-      pdf.roundedRect(x, y, 85, 40, 2, 2, 'F');
-      
-      // Card border
-      pdf.setDrawColor(220, 220, 220);
-      pdf.setLineWidth(0.5);
-      pdf.roundedRect(x, y, 85, 40, 2, 2, 'S');
-      
-      // Header stripe
-      pdf.setFillColor(250, 250, 250);
-      pdf.rect(x + 1, y + 1, 83, 7, 'F');
-      
-      // Label
-      pdf.setFontSize(7);
-      pdf.setTextColor(100, 100, 100);
       pdf.setFont(undefined, 'bold');
-      pdf.text(label.toUpperCase(), x + 42.5, y + 5, { align: 'center' });
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(icon, 19, y + 5.5, { align: 'center' });
       
-      // Signature area
+      // Section title
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(11);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(title, 26, y + 5.5);
+      
+      // Underline
+      pdf.setDrawColor(200, 200, 200);
+      pdf.setLineWidth(0.3);
+      pdf.line(15, y + 10, pageWidth - 15, y + 10);
+      
+      return y + 14;
+    }
+
+    // Helper: Draw professional info field
+    function drawInfoBox(pdf, label, value, y, x = 20) {
+      if (y > 260) {
+        pdf.addPage();
+        y = 20;
+      }
+      
+      const pageWidth = 210;
+      const labelWidth = 55;
+      
+      // Label column
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(label + ':', x, y);
+      
+      // Value column with proper wrapping
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(9);
+      pdf.setTextColor(0, 0, 0);
+      
+      const maxWidth = pageWidth - x - labelWidth - 20;
+      const lines = pdf.splitTextToSize(String(value || 'N/A'), maxWidth);
+      pdf.text(lines, x + labelWidth, y);
+      
+      // Dotted line for visual separation
+      const lineY = y + 1 + (lines.length * 4);
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.2);
+      pdf.setLineDash([1, 1]);
+      pdf.line(x, lineY, pageWidth - 20, lineY);
+      pdf.setLineDash([]);
+      
+      return y + 3 + (lines.length * 4);
+    }
+
+    // Helper: Draw authentic signature block
+    function drawSignatureBlock(pdf, profile, signature, y, x = 20, label = "Signature") {
+      if (y > 220) {
+        pdf.addPage();
+        y = 20;
+      }
+      
+      const boxWidth = 85;
+      const boxHeight = 50;
+      
+      // Outer border - professional
+      pdf.setDrawColor(180, 180, 180);
+      pdf.setLineWidth(0.5);
+      pdf.rect(x, y, boxWidth, boxHeight, 'S');
+      
+      // Header section
+      pdf.setFillColor(250, 250, 250);
+      pdf.rect(x, y, boxWidth, 8, 'F');
+      
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(8);
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(label, x + boxWidth/2, y + 5, { align: 'center' });
+      
+      // Signature area background
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(x + 2, y + 10, boxWidth - 4, 22, 'F');
+      
+      // Signature image
       if (signature) {
         try {
-          // Signature box background
-          pdf.setFillColor(252, 252, 252);
-          pdf.rect(x + 10, y + 10, 65, 16, 'F');
-          pdf.setDrawColor(240, 240, 240);
-          pdf.rect(x + 10, y + 10, 65, 16, 'S');
-          
-          pdf.addImage(signature, 'JPEG', x + 20, y + 12, 45, 12);
+          // High quality signature placement
+          pdf.addImage(signature, 'JPEG', x + 10, y + 14, 65, 14);
         } catch (e) {
-          pdf.setFontSize(7);
-          pdf.setTextColor(180, 180, 180);
-          pdf.text('[Signature numérique]', x + 42.5, y + 18, { align: 'center' });
+          pdf.setFont(undefined, 'italic');
+          pdf.setFontSize(8);
+          pdf.setTextColor(150, 150, 150);
+          pdf.text('[Signature électronique]', x + boxWidth/2, y + 21, { align: 'center' });
         }
       } else {
-        pdf.setFontSize(7);
-        pdf.setTextColor(180, 180, 180);
-        pdf.text('[Non signé]', x + 42.5, y + 18, { align: 'center' });
+        pdf.setFont(undefined, 'italic');
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text('[Non signé]', x + boxWidth/2, y + 21, { align: 'center' });
       }
       
-      // Divider line
-      pdf.setDrawColor(230, 230, 230);
+      // Signature line
+      pdf.setDrawColor(180, 180, 180);
       pdf.setLineWidth(0.3);
-      pdf.line(x + 5, y + 27, x + 80, y + 27);
+      pdf.line(x + 5, y + 33, x + boxWidth - 5, y + 33);
       
-      // Profile info
-      pdf.setFontSize(9);
-      pdf.setTextColor(30, 30, 30);
+      // Name and position
       pdf.setFont(undefined, 'bold');
-      pdf.text(profile.name || 'N/A', x + 42.5, y + 32, { align: 'center' });
+      pdf.setFontSize(9);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(profile.name || 'N/A', x + boxWidth/2, y + 38, { align: 'center' });
       
-      pdf.setFontSize(7);
       pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(120, 120, 120);
-      pdf.text(profile.position || '', x + 42.5, y + 36, { align: 'center' });
-      
-      // Date badge
-      pdf.setFillColor(245, 245, 245);
-      pdf.roundedRect(x + 27, y + 37.5, 31, 4, 1, 1, 'F');
-      pdf.setFontSize(6);
+      pdf.setFontSize(7);
       pdf.setTextColor(100, 100, 100);
-      pdf.text(new Date().toLocaleDateString('fr-FR'), x + 42.5, y + 40, { align: 'center' });
+      pdf.text(profile.position || '', x + boxWidth/2, y + 42, { align: 'center' });
       
-      return y + 44;
+      // Date stamp
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(120, 120, 120);
+      const dateStr = new Date().toLocaleDateString('fr-FR', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+      pdf.text('Le ' + dateStr, x + boxWidth/2, y + 47, { align: 'center' });
+      
+      return y + 54;
     }
 
-    // Helper: Draw premium footer
+    // Helper: Draw professional footer
     function drawPDFFooter(pdf) {
       const pageHeight = pdf.internal.pageSize.height;
+      const pageWidth = 210;
       
-      // Gradient footer
-      for (let i = 0; i < 18; i++) {
-        const shade = 30 + (i * 0.8);
-        pdf.setFillColor(shade, shade, shade);
-        pdf.rect(0, pageHeight - 18 + i, 210, 1, 'F');
-      }
+      // Footer separator
+      pdf.setDrawColor(180, 180, 180);
+      pdf.setLineWidth(0.5);
+      pdf.line(15, pageHeight - 20, pageWidth - 15, pageHeight - 20);
       
-      // Red accent stripe
-      pdf.setFillColor(227, 6, 19);
-      pdf.rect(0, pageHeight - 18, 210, 2, 'F');
-      
-      // Diagonal pattern
-      pdf.setDrawColor(45, 45, 45);
-      pdf.setLineWidth(0.2);
-      for (let i = 0; i < 210; i += 6) {
-        pdf.line(i, pageHeight - 16, i + 10, pageHeight);
-      }
-      
-      // Footer content
-      pdf.setFontSize(7);
-      pdf.setTextColor(180, 180, 180);
+      // Footer text - left side
       pdf.setFont(undefined, 'normal');
-      pdf.text('Mercedes-Benz Plant Operations', 10, pageHeight - 10);
-      pdf.text('Document Confidentiel et Sécurisé', 10, pageHeight - 6);
+      pdf.setFontSize(7);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Mercedes-Benz AG', 15, pageHeight - 15);
+      pdf.text('Plant Operations & Maintenance Division', 15, pageHeight - 11);
+      pdf.text('Document confidentiel - Usage interne uniquement', 15, pageHeight - 7);
       
-      pdf.text('Généré Électroniquement', 200, pageHeight - 10, { align: 'right' });
-      pdf.text('Juridiquement Valable', 200, pageHeight - 6, { align: 'right' });
-      
-      // Premium page number badge
-      const pageNum = pdf.internal.getCurrentPageInfo().pageNumber;
-      
-      // Badge background
-      pdf.setFillColor(227, 6, 19);
-      pdf.circle(105, pageHeight - 8, 5, 'F');
-      
-      // Badge border
-      pdf.setDrawColor(255, 255, 255);
-      pdf.setLineWidth(0.8);
-      pdf.circle(105, pageHeight - 8, 4.2, 'S');
+      // Footer text - right side
+      pdf.text('Généré le ' + new Date().toLocaleDateString('fr-FR'), pageWidth - 15, pageHeight - 15, { align: 'right' });
+      pdf.text('Document électronique', pageWidth - 15, pageHeight - 11, { align: 'right' });
+      pdf.text('Juridiquement valable', pageWidth - 15, pageHeight - 7, { align: 'right' });
       
       // Page number
-      pdf.setTextColor(255, 255, 255);
+      const pageNum = pdf.internal.getCurrentPageInfo().pageNumber;
       pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(9);
-      pdf.text(String(pageNum), 105, pageHeight - 6, { align: 'center' });
+      pdf.setFontSize(8);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('Page ' + pageNum, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      
+      // Bottom stripe
+      pdf.setFillColor(180, 180, 180);
+      pdf.rect(0, pageHeight - 3, pageWidth, 3, 'F');
     }
 
     // 1. DEMANDE D'INTERVENTION PDF - AMAZING VERSION
@@ -2127,3 +2085,4 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
   </script>
 </body>
 </html>
+
