@@ -9,6 +9,17 @@
     body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; overflow-x: hidden; }
     /* SIDEBAR */
     .sidebar { width: 260px; border-right: 1px solid #333; height: 100vh; padding: 25px; position: fixed; background: #050505; z-index: 10005; overflow-y: auto; }
+    
+    /* Mercedes Logo Animation */
+    .mercedes-logo-svg {
+      filter: drop-shadow(0 0 8px rgba(227, 6, 19, 0.6));
+      animation: logoGlow 3s ease-in-out infinite;
+    }
+    @keyframes logoGlow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(227, 6, 19, 0.6)); }
+      50% { filter: drop-shadow(0 0 15px rgba(227, 6, 19, 0.9)); }
+    }
+    
     .main { margin-left: 285px; padding: 40px; flex: 1; transition: filter 0.5s ease; }
     #mainPage, #adminPanel, #interventionPage, #missionPage, #historyPage, #kpiTrackerPage, #personnelPage { display: none; background: #111; border-left: 4px solid #e30613; padding: 25px; margin-bottom: 30px; }
     /* Show Dashboard by default */
@@ -281,7 +292,26 @@
 
   <!-- SIDEBAR -->
   <div class="sidebar" id="mainSidebar">
-    <h2 style="color: #e30613;">MERCEDES</h2>
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+      <svg class="mercedes-logo-svg" width="50" height="50" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer Circle -->
+        <circle cx="50" cy="50" r="48" fill="none" stroke="#e30613" stroke-width="2.5"/>
+        <!-- Inner Circle -->
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#e30613" stroke-width="1.5"/>
+        <!-- Three-pointed star -->
+        <line x1="50" y1="10" x2="50" y2="50" stroke="#e30613" stroke-width="3" stroke-linecap="round"/>
+        <line x1="50" y1="50" x2="15" y2="82" stroke="#e30613" stroke-width="3" stroke-linecap="round"/>
+        <line x1="50" y1="50" x2="85" y2="82" stroke="#e30613" stroke-width="3" stroke-linecap="round"/>
+        <!-- Star point dots -->
+        <circle cx="50" cy="10" r="3" fill="#e30613"/>
+        <circle cx="15" cy="82" r="3" fill="#e30613"/>
+        <circle cx="85" cy="82" r="3" fill="#e30613"/>
+      </svg>
+      <div>
+        <h2 style="color: #e30613; margin: 0; font-size: 28px; letter-spacing: 2px; font-weight: 900;">MERCEDES</h2>
+        <div style="color: #999; font-size: 9px; letter-spacing: 3px; margin-top: 2px; font-weight: 600;">PLANT OPERATIONS</div>
+      </div>
+    </div>
     <button id="audioActivator" onclick="window.activateAudioSystem()">STEP 1: ENABLE MIC</button>
     <p id="userDisplay" style="font-size: 11px; color: #666;"></p>
     <div id="reqPermissionBox" style="display:none; margin-bottom: 10px;">
@@ -294,6 +324,9 @@
     <button class="btn-nav" id="nav_historyPage" onclick="window.showPage('historyPage')">📚 History</button>
     <button class="btn-nav" id="nav_kpiTrackerPage" onclick="window.showPage('kpiTrackerPage')">📊 KPI Command</button>
     <button class="btn-nav" id="nav_personnelPage" onclick="window.showPage('personnelPage')" style="border: 1px solid #e30613; color: #e30613;">👥 Personnel</button>
+    <button class="btn-nav" id="nav_messagingBtn" onclick="window.toggleMessaging()">💬 Messages <span id="msgBadge" style="display:none; background:#ff0000; color:#fff; padding:2px 6px; border-radius:10px; font-size:10px; margin-left:5px;">0</span></button>
+    <button class="btn-nav" id="nav_profileBtn" onclick="window.openProfileEditor()">👤 My Profile</button>
+    <button class="btn-nav" id="nav_userManagementPage" onclick="window.showPage('userManagementPage')" style="display:none; border: 1px solid #ffcc00; color: #ffcc00;">⚙️ User Management</button>
     <button onclick="window.logout()" style="width: 100%; margin-top: 20px;">SIGN OUT</button>
   </div>
 
@@ -406,6 +439,62 @@
             </thead>
             <tbody id="techKpiTable"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- USER MANAGEMENT (Director Only) -->
+    <div id="userManagementPage">
+      <h1 style="letter-spacing: 3px;">USER MANAGEMENT & PERMISSIONS</h1>
+      
+      <div class="card" style="background:#1a1a1a; border:2px solid #e30613; margin-bottom:30px;">
+        <h3 style="color:#e30613; margin-top:0;">CREATE NEW USER</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+          <div>
+            <label style="font-size:11px; color:#999; display:block; margin-bottom:5px;">EMAIL *</label>
+            <input type="email" id="newUserEmail" placeholder="user@jobson.com" style="margin:0;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#999; display:block; margin-bottom:5px;">FULL NAME *</label>
+            <input type="text" id="newUserName" placeholder="John Doe" style="margin:0;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#999; display:block; margin-bottom:5px;">POSITION</label>
+            <input type="text" id="newUserPosition" placeholder="e.g., Technician" style="margin:0;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#999; display:block; margin-bottom:5px;">DEPARTMENT</label>
+            <input type="text" id="newUserDepartment" placeholder="e.g., Operations" style="margin:0;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#999; display:block; margin-bottom:5px;">PHONE</label>
+            <input type="text" id="newUserPhone" placeholder="+212 XXX XXX XXX" style="margin:0;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#999; display:block; margin-bottom:5px;">ROLE</label>
+            <select id="newUserRole" style="margin:0;">
+              <option value="technician">Technician</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="manager">Manager</option>
+              <option value="director">Director</option>
+            </select>
+          </div>
+          <div style="grid-column:span 2;">
+            <label style="font-size:11px; color:#999; display:block; margin-bottom:5px;">FACIAL RECOGNITION IMAGE (for login)</label>
+            <input type="file" id="newUserFaceImage" accept="image/*" style="margin:0;">
+            <small style="color:#666; display:block; margin-top:5px;">Upload a clear face photo for facial verification at login</small>
+          </div>
+        </div>
+        <button onclick="window.createNewUser()" style="width:100%; margin-top:20px; background:#28a745; padding:15px; font-size:14px; font-weight:bold;">✓ CREATE USER ACCOUNT</button>
+      </div>
+      
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 style="margin:0;">ALL USERS</h3>
+          <input type="text" id="userSearchInput" placeholder="Search users..." onkeyup="window.filterUsersList()" style="width:250px; margin:0;">
+        </div>
+        <div id="allUsersList">
+          <div style="text-align:center; padding:40px; color:#666;">Loading users...</div>
         </div>
       </div>
     </div>
@@ -2230,7 +2319,877 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
         alert("Erreur téléchargement PDF: " + e.message);
       }
     };
+
+    // ==================== MESSAGING SYSTEM ====================
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+    const storage = getStorage();
+
+    let currentConversation = null;
+    let activeConversationListener = null;
+    let unreadCount = 0;
+
+    window.toggleMessaging = function() {
+      const panel = document.getElementById('messagingPanel');
+      if (panel.style.display === 'none' || panel.style.display === '') {
+        panel.style.display = 'flex';
+        loadConversations();
+      } else {
+        panel.style.display = 'none';
+      }
+    };
+
+    window.closeMessaging = function() {
+      document.getElementById('messagingPanel').style.display = 'none';
+    };
+
+    async function loadConversations() {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      
+      const conversationsList = document.getElementById('conversationsList');
+      conversationsList.innerHTML = '<div style="text-align:center; padding:20px; color:#666; font-size:12px;">Loading...</div>';
+      
+      const usersSnap = await getDocs(collection(db, 'users'));
+      conversationsList.innerHTML = '';
+      
+      usersSnap.forEach(userDoc => {
+        const userData = userDoc.data();
+        if (userDoc.id === currentUser.email) return;
+        
+        const convItem = document.createElement('div');
+        convItem.className = 'conversation-item';
+        convItem.setAttribute('data-user-id', userDoc.id);
+        convItem.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px;">
+            <img src="${userData.profilePicture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userData.name || userDoc.id) + '&background=e30613&color=fff'}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #333;">
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:bold; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${userData.name || userDoc.id}</div>
+              <div style="font-size:11px; color:#999; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${userData.position || 'User'}</div>
+            </div>
+            ${userData.status === 'available' ? '<div style="width:10px; height:10px; background:#00ff00; border-radius:50%; box-shadow:0 0 10px #00ff00;"></div>' : ''}
+          </div>
+        `;
+        convItem.onclick = () => openConversation(userDoc.id, userData);
+        conversationsList.appendChild(convItem);
+      });
+    }
+
+    async function openConversation(userId, userData) {
+      currentConversation = userId;
+      
+      document.querySelectorAll('.conversation-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      event.currentTarget.classList.add('active');
+      
+      document.getElementById('activeChatHeader').innerHTML = `
+        <div style="display:flex; align-items:center; gap:12px;">
+          <img src="${userData.profilePicture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userData.name || userId) + '&background=e30613&color=fff'}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #e30613;">
+          <div style="flex:1;">
+            <div style="font-weight:bold; font-size:14px;">${userData.name || userId}</div>
+            <div style="font-size:11px; color:#999;">${userData.status || 'offline'}</div>
+          </div>
+          <button onclick="window.initiateDirectCall('${userId}', 'Chat Call')" style="background:#28a745; padding:8px 12px; font-size:20px; border-radius:5px;">📞</button>
+        </div>
+      `;
+      
+      loadMessages(userId);
+    }
+
+    function loadMessages(otherUserId) {
+      const messagesContainer = document.getElementById('messagesContainer');
+      const currentUser = auth.currentUser.email;
+      
+      const convId = [currentUser, otherUserId].sort().join('_');
+      
+      if (activeConversationListener) {
+        activeConversationListener();
+      }
+      
+      const messagesRef = collection(db, 'conversations', convId, 'messages');
+      const q = query(messagesRef, orderBy('timestamp', 'asc'));
+      
+      activeConversationListener = onSnapshot(q, (snapshot) => {
+        messagesContainer.innerHTML = '';
+        snapshot.forEach(msgDoc => {
+          const msg = msgDoc.data();
+          const isSent = msg.sender === currentUser;
+          
+          const bubble = document.createElement('div');
+          bubble.className = `message-bubble ${isSent ? 'sent' : ''}`;
+          bubble.style.display = 'block';
+          
+          let content = '';
+          if (msg.type === 'text') {
+            content = msg.content.replace(/\n/g, '<br>');
+          } else if (msg.type === 'image') {
+            content = `<img src="${msg.imageUrl}" alt="Image" onclick="window.open('${msg.imageUrl}', '_blank')">`;
+          }
+          
+          bubble.innerHTML = `
+            ${content}
+            <div style="font-size:10px; color:${isSent ? 'rgba(255,255,255,0.7)' : '#999'}; margin-top:8px;">
+              ${msg.timestamp?.toDate().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'}) || 'sending...'}
+            </div>
+          `;
+          
+          messagesContainer.appendChild(bubble);
+        });
+        
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      });
+    }
+
+    window.sendMessage = async function() {
+      if (!currentConversation) {
+        alert('Please select a conversation first');
+        return;
+      }
+      
+      const input = document.getElementById('messageInput');
+      const content = input.value.trim();
+      if (!content) return;
+      
+      const currentUser = auth.currentUser.email;
+      const convId = [currentUser, currentConversation].sort().join('_');
+      
+      try {
+        await addDoc(collection(db, 'conversations', convId, 'messages'), {
+          sender: currentUser,
+          type: 'text',
+          content: content,
+          timestamp: serverTimestamp(),
+          read: false
+        });
+        
+        input.value = '';
+      } catch (error) {
+        console.error('Error sending message:', error);
+        alert('Failed to send message');
+      }
+    };
+
+    document.getElementById('msgImageInput')?.addEventListener('change', async function(e) {
+      if (!currentConversation) {
+        alert('Please select a conversation first');
+        return;
+      }
+      
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const currentUser = auth.currentUser.email;
+      const convId = [currentUser, currentConversation].sort().join('_');
+      
+      try {
+        const imageReference = storageRef(storage, `messages/${convId}/${Date.now()}_${file.name}`);
+        await uploadBytes(imageReference, file);
+        const imageUrl = await getDownloadURL(imageReference);
+        
+        await addDoc(collection(db, 'conversations', convId, 'messages'), {
+          sender: currentUser,
+          type: 'image',
+          imageUrl: imageUrl,
+          timestamp: serverTimestamp(),
+          read: false
+        });
+        
+        e.target.value = '';
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        alert('Failed to upload image');
+      }
+    });
+
+    window.showEmojiPicker = function() {
+      const picker = document.getElementById('emojiPicker');
+      picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+    };
+
+    document.querySelectorAll('.emoji-btn').forEach(btn => {
+      btn.onclick = function() {
+        const input = document.getElementById('messageInput');
+        input.value += this.textContent;
+        document.getElementById('emojiPicker').style.display = 'none';
+        input.focus();
+      };
+    });
+
+    // Close emoji picker when clicking outside
+    document.addEventListener('click', function(e) {
+      const picker = document.getElementById('emojiPicker');
+      const emojiBtn = e.target.closest('button[onclick*="showEmojiPicker"]');
+      if (!picker.contains(e.target) && !emojiBtn) {
+        picker.style.display = 'none';
+      }
+    });
+
+    // ==================== PROFILE MANAGEMENT ====================
+
+    window.openProfileEditor = async function() {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.email));
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        
+        document.getElementById('editName').value = userData.name || '';
+        document.getElementById('editPosition').value = userData.position || '';
+        document.getElementById('editBio').value = userData.bio || '';
+        document.getElementById('editStatus').value = userData.status || 'available';
+        document.getElementById('profilePicPreview').src = userData.profilePicture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userData.name || currentUser.email) + '&background=e30613&color=fff&size=120';
+        
+        document.getElementById('profileEditor').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        alert('Failed to load profile');
+      }
+    };
+
+    document.getElementById('profilePicInput')?.addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('profilePicPreview').src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    window.saveProfile = async function() {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      
+      try {
+        const updateData = {
+          name: document.getElementById('editName').value,
+          position: document.getElementById('editPosition').value,
+          bio: document.getElementById('editBio').value,
+          status: document.getElementById('editStatus').value,
+          lastUpdated: serverTimestamp()
+        };
+        
+        const fileInput = document.getElementById('profilePicInput');
+        if (fileInput.files[0]) {
+          const file = fileInput.files[0];
+          const imageReference = storageRef(storage, `profile_pictures/${currentUser.email}_${Date.now()}`);
+          await uploadBytes(imageReference, file);
+          updateData.profilePicture = await getDownloadURL(imageReference);
+        }
+        
+        await setDoc(doc(db, 'users', currentUser.email), updateData, { merge: true });
+        
+        alert('✓ Profile updated successfully!');
+        document.getElementById('profileEditor').style.display = 'none';
+        
+        // Refresh UI
+        loadUserDisplay();
+      } catch (error) {
+        console.error('Error saving profile:', error);
+        alert('Failed to save profile: ' + error.message);
+      }
+    };
+
+    // ==================== CALL SYSTEM (FIXED) ====================
+
+    window.initiateDirectCall = async function(targetEmail, reason = 'General Call') {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      
+      try {
+        const callId = `${currentUser.email}_${targetEmail}_${Date.now()}`;
+        await setDoc(doc(db, 'callRequests', callId), {
+          caller: currentUser.email,
+          callee: targetEmail,
+          reason: reason,
+          status: 'ringing',
+          timestamp: serverTimestamp(),
+          type: 'direct'
+        });
+        
+        alert(`📞 Calling ${targetEmail.split('@')[0]}...`);
+      } catch (error) {
+        console.error('Error initiating call:', error);
+        alert('Failed to initiate call');
+      }
+    };
+
+    function listenForIncomingCalls() {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      
+      const q = query(
+        collection(db, 'callRequests'),
+        where('callee', '==', currentUser.email),
+        where('status', '==', 'ringing')
+      );
+      
+      onSnapshot(q, async (snapshot) => {
+        for (const callDoc of snapshot.docs) {
+          const callData = callDoc.data();
+          
+          try {
+            const callerDoc = await getDoc(doc(db, 'users', callData.caller));
+            const callerData = callerDoc.exists() ? callerDoc.data() : {};
+            
+            document.getElementById('callerName').textContent = callerData.name || callData.caller.split('@')[0];
+            document.getElementById('callReason').textContent = callData.reason;
+            document.getElementById('incomingCallNotification').style.display = 'block';
+            document.getElementById('incomingCallNotification').dataset.callId = callDoc.id;
+            
+            // Play ringtone
+            try {
+              const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE');
+              audio.loop = true;
+              audio.play();
+              document.getElementById('incomingCallNotification').dataset.audioElement = 'playing';
+            } catch (e) {
+              console.log('Could not play ringtone');
+            }
+          } catch (error) {
+            console.error('Error getting caller info:', error);
+          }
+        }
+      });
+    }
+
+    window.acceptIncomingCall = async function() {
+      const callId = document.getElementById('incomingCallNotification').dataset.callId;
+      if (!callId) return;
+      
+      try {
+        await updateDoc(doc(db, 'callRequests', callId), {
+          status: 'accepted',
+          acceptedAt: serverTimestamp()
+        });
+        
+        document.getElementById('incomingCallNotification').style.display = 'none';
+        
+        alert('Call accepted! Video call feature will connect...');
+      } catch (error) {
+        console.error('Error accepting call:', error);
+      }
+    };
+
+    window.declineIncomingCall = async function() {
+      const callId = document.getElementById('incomingCallNotification').dataset.callId;
+      if (!callId) return;
+      
+      try {
+        await updateDoc(doc(db, 'callRequests', callId), {
+          status: 'declined',
+          declinedAt: serverTimestamp()
+        });
+        
+        document.getElementById('incomingCallNotification').style.display = 'none';
+      } catch (error) {
+        console.error('Error declining call:', error);
+      }
+    };
+
+    // ==================== USER MANAGEMENT (DIRECTOR) ====================
+
+    window.createNewUser = async function() {
+      const email = document.getElementById('newUserEmail').value.trim();
+      const name = document.getElementById('newUserName').value.trim();
+      const position = document.getElementById('newUserPosition').value.trim();
+      const department = document.getElementById('newUserDepartment').value.trim();
+      const phone = document.getElementById('newUserPhone').value.trim();
+      const role = document.getElementById('newUserRole').value;
+      
+      if (!email || !name) {
+        alert('⚠️ Email and name are required');
+        return;
+      }
+      
+      if (!email.includes('@')) {
+        alert('⚠️ Please enter a valid email address');
+        return;
+      }
+      
+      try {
+        const userData = {
+          email: email,
+          name: name,
+          position: position || 'Team Member',
+          department: department || 'Operations',
+          phone: phone || '',
+          role: role,
+          status: 'offline',
+          createdAt: serverTimestamp(),
+          createdBy: auth.currentUser.email,
+          permissions: {
+            canMessage: true,
+            canCall: true,
+            canUploadImages: true,
+            canModifyMachines: role !== 'technician',
+            canViewReports: true,
+            canApprove: role !== 'technician'
+          }
+        };
+        
+        const faceImageInput = document.getElementById('newUserFaceImage');
+        if (faceImageInput.files[0]) {
+          const file = faceImageInput.files[0];
+          const imageReference = storageRef(storage, `facial_recognition/${email}_${Date.now()}`);
+          await uploadBytes(imageReference, file);
+          userData.faceImageUrl = await getDownloadURL(imageReference);
+        }
+        
+        await setDoc(doc(db, 'users', email), userData);
+        
+        alert(`✓ User ${name} created successfully!`);
+        
+        document.getElementById('newUserEmail').value = '';
+        document.getElementById('newUserName').value = '';
+        document.getElementById('newUserPosition').value = '';
+        document.getElementById('newUserDepartment').value = '';
+        document.getElementById('newUserPhone').value = '';
+        document.getElementById('newUserFaceImage').value = '';
+        
+        loadAllUsers();
+      } catch (error) {
+        console.error('Error creating user:', error);
+        alert('Failed to create user: ' + error.message);
+      }
+    };
+
+    async function loadAllUsers() {
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const container = document.getElementById('allUsersList');
+        container.innerHTML = '';
+        
+        if (usersSnap.empty) {
+          container.innerHTML = '<div style="text-align:center; padding:40px; color:#666;">No users found</div>';
+          return;
+        }
+        
+        usersSnap.forEach(userDoc => {
+          const user = userDoc.data();
+          
+          const statusColors = {
+            'available': '#28a745',
+            'busy': '#ff3333',
+            'away': '#ffaa00',
+            'offline': '#666'
+          };
+          
+          const card = document.createElement('div');
+          card.className = 'user-card';
+          card.innerHTML = `
+            <img src="${user.profilePicture || user.faceImageUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name || userDoc.id) + '&background=random'}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:3px solid #e30613;">
+            <div style="flex:1;">
+              <h4 style="margin:0 0 5px 0; font-size:18px;">${user.name}</h4>
+              <div style="font-size:13px; color:#999; margin-bottom:3px;">${user.position} · ${user.department}</div>
+              <div style="font-size:11px; color:#666;">${userDoc.id}</div>
+            </div>
+            <div style="text-align:right;">
+              <span style="padding:6px 12px; background:${statusColors[user.status] || '#666'}; border-radius:15px; font-size:11px; display:inline-block; margin-bottom:8px; font-weight:bold;">${(user.status || 'offline').toUpperCase()}</span>
+              <br>
+              <button onclick="window.viewUserDetails('${userDoc.id.replace(/'/g, "\\'")}')  " style="background:#444; padding:10px 20px; font-size:12px; font-weight:bold;">VIEW DETAILS</button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (error) {
+        console.error('Error loading users:', error);
+        document.getElementById('allUsersList').innerHTML = '<div style="text-align:center; padding:40px; color:#ff3333;">Error loading users</div>';
+      }
+    }
+
+    window.filterUsersList = function() {
+      const searchTerm = document.getElementById('userSearchInput').value.toLowerCase();
+      const cards = document.querySelectorAll('.user-card');
+      
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+      });
+    };
+
+    window.viewUserDetails = async function(email) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', email));
+        if (!userDoc.exists()) {
+          alert('User not found');
+          return;
+        }
+        
+        const user = userDoc.data();
+        const perms = user.permissions || {};
+        
+        const content = document.getElementById('userDetailContent');
+        content.innerHTML = `
+          <div style="display:grid; grid-template-columns:250px 1fr; gap:30px;">
+            <div>
+              <img src="${user.profilePicture || user.faceImageUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name) + '&size=250'}" style="width:100%; border-radius:15px; margin-bottom:20px; border:3px solid #e30613;">
+              <button onclick="window.initiateDirectCall('${email}', 'Admin Call')" style="width:100%; background:#28a745; margin-bottom:10px; padding:12px; font-weight:bold;">📞 CALL USER</button>
+              <button onclick="alert('Block feature - will restrict all access')" style="width:100%; background:#ff3333; padding:12px; font-weight:bold;">🚫 BLOCK USER</button>
+            </div>
+            <div>
+              <h3 style="font-size:24px; margin:0 0 10px 0;">${user.name}</h3>
+              <p style="color:#999; font-size:14px; margin:0 0 5px 0;">${user.position} · ${user.department}</p>
+              <p style="color:#666; font-size:13px; margin:0 0 5px 0;">📧 ${email}</p>
+              <p style="color:#666; font-size:13px; margin:0 0 20px 0;">📱 ${user.phone || 'No phone'}</p>
+              <p style="color:#ccc; font-size:14px; line-height:1.6; background:#1a1a1a; padding:15px; border-radius:8px; margin-bottom:25px;">${user.bio || 'No bio provided'}</p>
+              
+              <h4 style="margin:25px 0 15px 0; color:#e30613; font-size:18px;">🔐 PERMISSIONS</h4>
+              <div style="background:#0f0f0f; padding:20px; border-radius:10px; border:1px solid #333;">
+                ${generatePermissionsHTML(email, perms)}
+              </div>
+              
+              <h4 style="margin:25px 0 15px 0; color:#e30613; font-size:18px;">💬 RECENT ACTIVITY</h4>
+              <div style="background:#0f0f0f; padding:15px; border-radius:10px; border:1px solid #333;">
+                <p style="color:#999; font-size:13px;">Last seen: ${user.lastUpdated ? new Date(user.lastUpdated.seconds * 1000).toLocaleString() : 'Never'}</p>
+                <p style="color:#999; font-size:13px;">Created: ${user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'Unknown'}</p>
+                <p style="color:#999; font-size:13px;">Role: ${user.role || 'technician'}</p>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        document.getElementById('userDetailPanel').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading user details:', error);
+        alert('Failed to load user details');
+      }
+    };
+
+    function generatePermissionsHTML(email, permissions) {
+      const perms = [
+        { key: 'canMessage', label: '💬 Send Messages', icon: '💬' },
+        { key: 'canCall', label: '📞 Make Video Calls', icon: '📞' },
+        { key: 'canUploadImages', label: '📷 Upload Images', icon: '📷' },
+        { key: 'canModifyMachines', label: '🔧 Modify Machine Data', icon: '🔧' },
+        { key: 'canViewReports', label: '📊 View Reports', icon: '📊' },
+        { key: 'canApprove', label: '✅ Approve Interventions', icon: '✅' }
+      ];
+      
+      let html = '';
+      perms.forEach(perm => {
+        const isActive = permissions[perm.key] !== false;
+        html += `
+          <div class="permission-toggle">
+            <span style="font-size:14px;"><span style="font-size:18px; margin-right:8px;">${perm.icon}</span>${perm.label}</span>
+            <div class="toggle-switch ${isActive ? 'active' : ''}" onclick="window.togglePermission('${email.replace(/'/g, "\\'")}', '${perm.key}')"></div>
+          </div>
+        `;
+      });
+      
+      return html;
+    }
+
+    window.togglePermission = async function(email, permKey) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', email));
+        const user = userDoc.data();
+        const currentValue = user.permissions?.[permKey] !== false;
+        
+        await updateDoc(doc(db, 'users', email), {
+          [`permissions.${permKey}`]: !currentValue
+        });
+        
+        window.viewUserDetails(email);
+      } catch (error) {
+        console.error('Error toggling permission:', error);
+        alert('Failed to update permission');
+      }
+    };
+
+    // ==================== INITIALIZATION ====================
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Initialize all systems
+        listenForIncomingCalls();
+        
+        // Show user management button for director
+        if (user.email.toLowerCase() === DIRECTOR.toLowerCase()) {
+          document.getElementById('nav_userManagementPage').style.display = 'block';
+        }
+        
+        // Initialize user profile if doesn't exist
+        const userDoc = await getDoc(doc(db, 'users', user.email));
+        if (!userDoc.exists()) {
+          await setDoc(doc(db, 'users', user.email), {
+            email: user.email,
+            name: user.email.split('@')[0],
+            status: 'available',
+            createdAt: serverTimestamp(),
+            permissions: {
+              canMessage: true,
+              canCall: true,
+              canUploadImages: true,
+              canModifyMachines: false,
+              canViewReports: true,
+              canApprove: false
+            }
+          }, { merge: true });
+        }
+        
+        // Update online status
+        await updateDoc(doc(db, 'users', user.email), {
+          status: 'available',
+          lastSeen: serverTimestamp()
+        });
+      }
+    });
+
+    // Update page navigation to include userManagementPage
+    const originalShowPage = window.showPage;
+    window.showPage = function(pageId) {
+      const pages = ['mainPage', 'adminPanel', 'interventionPage', 'missionPage', 'historyPage', 'kpiTrackerPage', 'personnelPage', 'userManagementPage'];
+      pages.forEach(p => {
+        const page = document.getElementById(p);
+        if (page) page.style.display = 'none';
+      });
+      const targetPage = document.getElementById(pageId);
+      if (targetPage) {
+        targetPage.style.display = 'block';
+        
+        // Load users if opening user management
+        if (pageId === 'userManagementPage') {
+          loadAllUsers();
+        }
+      }
+      
+      // Update nav buttons
+      pages.forEach(p => {
+        const btn = document.getElementById('nav_' + p);
+        if (btn) {
+          btn.style.background = pageId === p ? '#e30613' : 'transparent';
+        }
+      });
+    };
   </script>
+
+  <!-- ========== MESSAGING SYSTEM ========== -->
+  <div id="messagingPanel" style="display:none; position:fixed; right:20px; bottom:20px; width:450px; height:650px; background:#0a0a0a; border:3px solid #e30613; border-radius:15px; z-index:10020; box-shadow:0 0 50px rgba(227,6,19,0.7); display:flex; flex-direction:column;">
+    <div style="background:#e30613; padding:15px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; color:#fff; font-size:16px;">💬 MESSAGES</h3>
+      <button onclick="window.closeMessaging()" style="background:transparent; border:none; color:#fff; font-size:24px; cursor:pointer; padding:0 10px; line-height:1;">×</button>
+    </div>
+    
+    <div style="display:flex; flex:1; overflow:hidden;">
+      <div id="conversationsList" style="width:40%; background:#050505; border-right:1px solid #333; overflow-y:auto; padding:0;">
+        <div style="text-align:center; padding:20px; color:#666; font-size:12px;">Loading...</div>
+      </div>
+      
+      <div style="width:60%; display:flex; flex-direction:column;">
+        <div id="activeChatHeader" style="padding:15px; background:#1a1a1a; border-bottom:1px solid #333; font-weight:bold; font-size:13px; min-height:60px;">
+          Select a conversation
+        </div>
+        <div id="messagesContainer" style="flex:1; overflow-y:auto; padding:15px; background:#0f0f0f;">
+          <div style="text-align:center; color:#666; padding:40px 20px; font-size:12px;">
+            👈 Select a user to start chatting
+          </div>
+        </div>
+        <div style="padding:10px; background:#1a1a1a; border-top:1px solid #333; display:flex; gap:5px; align-items:center;">
+          <input type="file" id="msgImageInput" accept="image/*" style="display:none;">
+          <button onclick="document.getElementById('msgImageInput').click()" title="Send Image" style="background:#444; padding:10px 12px; font-size:18px; border-radius:5px; min-width:auto;">📷</button>
+          <button onclick="window.showEmojiPicker()" title="Add Emoji" style="background:#444; padding:10px 12px; font-size:18px; border-radius:5px; min-width:auto;">😊</button>
+          <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') window.sendMessage()" style="flex:1; margin:0; padding:12px; background:#222; border:1px solid #444; color:#fff; border-radius:5px; font-size:14px;">
+          <button onclick="window.sendMessage()" style="background:#e30613; padding:10px 20px; border-radius:5px; font-weight:bold; font-size:13px;">SEND</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Emoji Picker -->
+  <div id="emojiPicker" style="display:none; position:fixed; right:180px; bottom:80px; background:#1a1a1a; border:2px solid #444; border-radius:10px; padding:15px; z-index:10025; max-width:320px; box-shadow:0 0 30px rgba(0,0,0,0.8);">
+    <div style="display:grid; grid-template-columns:repeat(8, 1fr); gap:8px;">
+      <span class="emoji-btn">😀</span><span class="emoji-btn">😂</span><span class="emoji-btn">😍</span><span class="emoji-btn">😎</span>
+      <span class="emoji-btn">❤️</span><span class="emoji-btn">👍</span><span class="emoji-btn">👎</span><span class="emoji-btn">🎉</span>
+      <span class="emoji-btn">🔥</span><span class="emoji-btn">✅</span><span class="emoji-btn">⚠️</span><span class="emoji-btn">🚨</span>
+      <span class="emoji-btn">💪</span><span class="emoji-btn">🙏</span><span class="emoji-btn">👌</span><span class="emoji-btn">✨</span>
+      <span class="emoji-btn">🔧</span><span class="emoji-btn">🛠️</span><span class="emoji-btn">⚙️</span><span class="emoji-btn">📊</span>
+      <span class="emoji-btn">📝</span><span class="emoji-btn">📞</span><span class="emoji-btn">💬</span><span class="emoji-btn">🎯</span>
+    </div>
+  </div>
+
+  <!-- Profile Editor -->
+  <div id="profileEditor" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:520px; background:#0a0a0a; border:3px solid #e30613; border-radius:15px; padding:30px; z-index:10030; box-shadow:0 0 80px rgba(0,0,0,0.9);">
+    <h2 style="color:#e30613; margin-top:0; font-size:24px;">✏️ EDIT PROFILE</h2>
+    
+    <div style="text-align:center; margin-bottom:25px;">
+      <div style="position:relative; display:inline-block;">
+        <img id="profilePicPreview" src="https://via.placeholder.com/120" style="width:120px; height:120px; border-radius:50%; border:4px solid #e30613; object-fit:cover; margin-bottom:10px; box-shadow:0 0 20px rgba(227,6,19,0.5);">
+        <div style="position:absolute; bottom:10px; right:0; background:#e30613; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; border:3px solid #0a0a0a;" onclick="document.getElementById('profilePicInput').click()">
+          📷
+        </div>
+      </div>
+      <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
+    </div>
+    
+    <label style="display:block; margin-top:15px; font-size:11px; color:#999; font-weight:bold; letter-spacing:1px;">NAME</label>
+    <input type="text" id="editName" style="width:100%; box-sizing:border-box; margin:5px 0;">
+    
+    <label style="display:block; margin-top:15px; font-size:11px; color:#999; font-weight:bold; letter-spacing:1px;">POSITION</label>
+    <input type="text" id="editPosition" style="width:100%; box-sizing:border-box; margin:5px 0;">
+    
+    <label style="display:block; margin-top:15px; font-size:11px; color:#999; font-weight:bold; letter-spacing:1px;">BIO</label>
+    <textarea id="editBio" rows="3" style="width:100%; box-sizing:border-box; margin:5px 0;" placeholder="Tell us about yourself..."></textarea>
+    
+    <label style="display:block; margin-top:15px; font-size:11px; color:#999; font-weight:bold; letter-spacing:1px;">STATUS</label>
+    <select id="editStatus" style="width:100%; box-sizing:border-box; margin:5px 0;">
+      <option value="available">🟢 Available</option>
+      <option value="busy">🔴 Busy</option>
+      <option value="away">🟡 Away</option>
+      <option value="offline">⚫ Offline</option>
+    </select>
+    
+    <div style="display:flex; gap:10px; margin-top:25px;">
+      <button onclick="window.saveProfile()" style="flex:1; background:#28a745; padding:12px; font-weight:bold;">💾 SAVE CHANGES</button>
+      <button onclick="document.getElementById('profileEditor').style.display='none'" style="flex:1; background:#444; padding:12px;">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- User Detail Panel (Director) -->
+  <div id="userDetailPanel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:900px; max-width:95vw; max-height:90vh; overflow-y:auto; background:#0a0a0a; border:3px solid #e30613; border-radius:15px; padding:30px; z-index:10035; box-shadow:0 0 100px rgba(0,0,0,0.95);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+      <h2 style="color:#e30613; margin:0; font-size:24px;">👤 USER DETAILS</h2>
+      <button onclick="document.getElementById('userDetailPanel').style.display='none'" style="background:transparent; border:none; color:#fff; font-size:28px; cursor:pointer; padding:0;">×</button>
+    </div>
+    
+    <div id="userDetailContent">
+      <div style="text-align:center; padding:40px; color:#666;">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Call Notification -->
+  <div id="incomingCallNotification" style="display:none; position:fixed; top:20px; right:20px; background:linear-gradient(135deg, #1a1a1a, #0a0a0a); border:3px solid #00ff00; border-radius:15px; padding:25px; z-index:10040; box-shadow:0 0 40px rgba(0,255,0,0.5); min-width:320px; animation:slideInRight 0.4s;">
+    <div style="text-align:center;">
+      <div style="font-size:56px; margin-bottom:10px; animation:bounce 1s infinite;">📞</div>
+      <h3 style="color:#00ff00; margin:10px 0; font-size:18px; text-shadow:0 0 10px rgba(0,255,0,0.5);">INCOMING CALL</h3>
+      <p id="callerName" style="font-size:20px; margin:10px 0; font-weight:bold;"></p>
+      <p id="callReason" style="color:#999; font-size:13px; margin:10px 0;"></p>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button onclick="window.acceptIncomingCall()" style="flex:1; background:#28a745; padding:14px; font-weight:bold; font-size:14px; border-radius:8px;">✓ ACCEPT</button>
+        <button onclick="window.declineIncomingCall()" style="flex:1; background:#ff3333; padding:14px; font-weight:bold; font-size:14px; border-radius:8px;">✗ DECLINE</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+  @keyframes slideInRight {
+    from { transform:translateX(400px); opacity:0; }
+    to { transform:translateX(0); opacity:1; }
+  }
+  @keyframes bounce {
+    0%, 100% { transform:translateY(0); }
+    50% { transform:translateY(-10px); }
+  }
+  .emoji-btn {
+    cursor: pointer;
+    font-size: 26px;
+    padding: 8px;
+    border-radius: 5px;
+    transition: 0.2s;
+    text-align: center;
+  }
+  .emoji-btn:hover {
+    background: #333;
+    transform: scale(1.3);
+  }
+  .message-bubble {
+    background: #1a1a1a;
+    padding: 12px 16px;
+    border-radius: 15px;
+    margin-bottom: 12px;
+    max-width: 80%;
+    word-wrap: break-word;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .message-bubble.sent {
+    background: linear-gradient(135deg, #e30613, #c10512);
+    margin-left: auto;
+    text-align: right;
+    color: #fff;
+  }
+  .message-bubble img {
+    max-width: 100%;
+    border-radius: 10px;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+  .conversation-item {
+    padding: 14px;
+    border-bottom: 1px solid #222;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .conversation-item:hover {
+    background: #1a1a1a;
+  }
+  .conversation-item.active {
+    background: #e30613;
+  }
+  .user-card {
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid #333;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: 0.3s;
+  }
+  .user-card:hover {
+    border-color: #e30613;
+    box-shadow: 0 0 25px rgba(227,6,19,0.4);
+    transform: translateY(-2px);
+  }
+  .permission-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    background: #0f0f0f;
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: 0.2s;
+  }
+  .permission-toggle:hover {
+    border-color: #444;
+    background: #1a1a1a;
+  }
+  .toggle-switch {
+    position: relative;
+    width: 54px;
+    height: 28px;
+    background: #444;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .toggle-switch.active {
+    background: #28a745;
+    box-shadow: 0 0 15px rgba(40,167,69,0.5);
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    top: 3px;
+    left: 3px;
+    transition: 0.3s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .toggle-switch.active::after {
+    left: 29px;
+  }
+  </style>
 </body>
 </html>
 
