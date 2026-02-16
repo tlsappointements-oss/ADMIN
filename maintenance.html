@@ -447,6 +447,23 @@
     <div id="userManagementPage">
       <h1 style="letter-spacing: 3px;">USER MANAGEMENT & PERMISSIONS</h1>
       
+      <div style="background:#1a1a1a; border:2px solid #28a745; border-radius:10px; padding:20px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:15px;">
+          <div style="font-size:40px;">✓</div>
+          <div style="flex:1;">
+            <h3 style="color:#28a745; margin:0 0 8px 0;">AUTO-SYNC ENABLED</h3>
+            <p style="margin:0; color:#999; font-size:13px; line-height:1.6;">
+              All users from Firebase Authentication are automatically added to this system when they login. 
+              Any user you add to Firebase Authentication will appear here once they sign in. 
+              Users created below are instantly added to Authentication and ready to login.
+            </p>
+          </div>
+          <button onclick="window.refreshUsersList()" style="background:#28a745; padding:12px 20px; white-space:nowrap;">
+            🔄 REFRESH LIST
+          </button>
+        </div>
+      </div>
+      
       <div class="card" style="background:#1a1a1a; border:2px solid #e30613; margin-bottom:30px;">
         <h3 style="color:#e30613; margin-top:0;">CREATE NEW USER</h3>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
@@ -2758,33 +2775,57 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
 
     async function loadAllUsers() {
       try {
-        const usersSnap = await getDocs(collection(db, 'users'));
         const container = document.getElementById('allUsersList');
+        container.innerHTML = '<div style="text-align:center; padding:40px; color:#666;">Loading users from Firestore...</div>';
+        
+        const usersSnap = await getDocs(collection(db, 'users'));
         container.innerHTML = '';
         
         if (usersSnap.empty) {
-          container.innerHTML = '<div style="text-align:center; padding:40px; color:#666;">No users found</div>';
+          container.innerHTML = `
+            <div style="text-align:center; padding:40px;">
+              <div style="font-size:60px; margin-bottom:20px;">👥</div>
+              <p style="color:#999; font-size:16px; margin-bottom:10px;">No users found in Firestore</p>
+              <p style="color:#666; font-size:13px;">Users will appear here automatically when they login</p>
+            </div>
+          `;
           return;
         }
         
+        // Add count banner
+        const countBanner = document.createElement('div');
+        countBanner.style.cssText = 'background:#0f0f0f; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid #333; display:flex; justify-content:space-between; align-items:center;';
+        countBanner.innerHTML = `
+          <div>
+            <span style="font-size:24px; font-weight:bold; color:#e30613;">${usersSnap.size}</span>
+            <span style="color:#999; margin-left:10px;">Total Users in System</span>
+          </div>
+          <div style="font-size:11px; color:#666;">
+            Updated: ${new Date().toLocaleTimeString()}
+          </div>
+        `;
+        container.appendChild(countBanner);
+        
+        const statusColors = {
+          'available': '#28a745',
+          'busy': '#ff3333',
+          'away': '#ffaa00',
+          'offline': '#666'
+        };
+        
         usersSnap.forEach(userDoc => {
           const user = userDoc.data();
-          
-          const statusColors = {
-            'available': '#28a745',
-            'busy': '#ff3333',
-            'away': '#ffaa00',
-            'offline': '#666'
-          };
           
           const card = document.createElement('div');
           card.className = 'user-card';
           card.innerHTML = `
             <img src="${user.profilePicture || user.faceImageUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name || userDoc.id) + '&background=random'}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:3px solid #e30613;">
             <div style="flex:1;">
-              <h4 style="margin:0 0 5px 0; font-size:18px;">${user.name}</h4>
-              <div style="font-size:13px; color:#999; margin-bottom:3px;">${user.position} · ${user.department}</div>
+              <h4 style="margin:0 0 5px 0; font-size:18px;">${user.name || 'No Name'}</h4>
+              <div style="font-size:13px; color:#999; margin-bottom:3px;">${user.position || 'No Position'} · ${user.department || 'No Department'}</div>
               <div style="font-size:11px; color:#666;">${userDoc.id}</div>
+              ${user.createdBy === 'auto-login' ? '<div style="font-size:10px; color:#28a745; margin-top:3px;">✓ Auto-synced from Authentication</div>' : ''}
+              ${user.createdBy && user.createdBy.includes('@') ? '<div style="font-size:10px; color:#ffaa00; margin-top:3px;">Created by: ' + user.createdBy.split('@')[0] + '</div>' : ''}
             </div>
             <div style="text-align:right;">
               <span style="padding:6px 12px; background:${statusColors[user.status] || '#666'}; border-radius:15px; font-size:11px; display:inline-block; margin-bottom:8px; font-weight:bold;">${(user.status || 'offline').toUpperCase()}</span>
@@ -2796,9 +2837,13 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
         });
       } catch (error) {
         console.error('Error loading users:', error);
-        document.getElementById('allUsersList').innerHTML = '<div style="text-align:center; padding:40px; color:#ff3333;">Error loading users</div>';
+        document.getElementById('allUsersList').innerHTML = '<div style="text-align:center; padding:40px; color:#ff3333;">Error loading users: ' + error.message + '</div>';
       }
     }
+
+    window.refreshUsersList = function() {
+      loadAllUsers();
+    };
 
     window.filterUsersList = function() {
       const searchTerm = document.getElementById('userSearchInput').value.toLowerCase();
@@ -2899,10 +2944,70 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
       }
     };
 
+    // ==================== SYNC WITH FIREBASE AUTHENTICATION ====================
+
+    async function syncAllAuthUsers() {
+      // This function syncs all Firebase Auth users to Firestore users collection
+      // Note: Firebase Auth Admin SDK is needed to list all users server-side
+      // For client-side, we'll create profiles as users login
+      console.log('User sync: Profiles created on login');
+    }
+
+    async function ensureUserProfile(user) {
+      // Create or update user profile in Firestore
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.email));
+        
+        const userData = {
+          email: user.email,
+          lastSeen: serverTimestamp(),
+          status: 'available'
+        };
+
+        if (!userDoc.exists()) {
+          // New user - create full profile
+          console.log('Creating new user profile for:', user.email);
+          userData.name = user.displayName || user.email.split('@')[0];
+          userData.position = 'Team Member';
+          userData.department = 'Operations';
+          userData.role = 'technician';
+          userData.createdAt = serverTimestamp();
+          userData.createdBy = 'auto-login';
+          userData.profilePicture = user.photoURL || '';
+          userData.permissions = {
+            canMessage: true,
+            canCall: true,
+            canUploadImages: true,
+            canModifyMachines: false,
+            canViewReports: true,
+            canApprove: false
+          };
+          
+          await setDoc(doc(db, 'users', user.email), userData);
+        } else {
+          // Existing user - update last seen and status
+          await updateDoc(doc(db, 'users', user.email), {
+            lastSeen: serverTimestamp(),
+            status: 'available'
+          });
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Error ensuring user profile:', error);
+        return false;
+      }
+    }
+
     // ==================== INITIALIZATION ====================
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
+        console.log('User authenticated:', user.email);
+        
+        // CRITICAL: Ensure user profile exists in Firestore
+        await ensureUserProfile(user);
+        
         // Initialize all systems
         listenForIncomingCalls();
         
@@ -2910,31 +3015,8 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
         if (user.email.toLowerCase() === DIRECTOR.toLowerCase()) {
           document.getElementById('nav_userManagementPage').style.display = 'block';
         }
-        
-        // Initialize user profile if doesn't exist
-        const userDoc = await getDoc(doc(db, 'users', user.email));
-        if (!userDoc.exists()) {
-          await setDoc(doc(db, 'users', user.email), {
-            email: user.email,
-            name: user.email.split('@')[0],
-            status: 'available',
-            createdAt: serverTimestamp(),
-            permissions: {
-              canMessage: true,
-              canCall: true,
-              canUploadImages: true,
-              canModifyMachines: false,
-              canViewReports: true,
-              canApprove: false
-            }
-          }, { merge: true });
-        }
-        
-        // Update online status
-        await updateDoc(doc(db, 'users', user.email), {
-          status: 'available',
-          lastSeen: serverTimestamp()
-        });
+      } else {
+        console.log('User logged out');
       }
     });
 
