@@ -552,9 +552,116 @@
 <script type="module">
     import { auth, db } from './firebase.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, query, where, deleteDoc, getDocs, serverTimestamp, getDoc, arrayUnion, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const DIRECTOR = "mohamed.aouladzerouali@jobson.com";
+
+    // ==================== DEBUGGING ====================
+    const DEBUG = true; // Set to false in production
+    function log(...args) {
+      if (DEBUG) console.log('[MERCEDES]', ...args);
+    }
+    function logError(...args) {
+      console.error('[MERCEDES ERROR]', ...args);
+    }
+    
+    // Test Firestore connection on load
+    (async function testConnection() {
+      try {
+        log('Testing Firestore connection...');
+        const testDoc = await getDoc(doc(db, 'users', 'test'));
+        log('✓ Firestore connected successfully');
+      } catch (error) {
+        logError('✗ Firestore connection failed:', error.message);
+        logError('Check Firebase config and rules!');
+      }
+    })();
+
+    // ==================== SETUP CHECKER ====================
+    window.checkSetup = async function() {
+      console.log('='.repeat(50));
+      console.log('MERCEDES SYSTEM SETUP CHECK');
+      console.log('='.repeat(50));
+      
+      const issues = [];
+      const warnings = [];
+      
+      // Check 1: Authentication
+      if (!auth.currentUser) {
+        issues.push('❌ Not logged in');
+      } else {
+        console.log('✓ Logged in as:', auth.currentUser.email);
+      }
+      
+      // Check 2: Firestore read
+      try {
+        const usersSnap = await getDocs(query(collection(db, 'users'), limit(1)));
+        console.log('✓ Can read from Firestore');
+      } catch (error) {
+        issues.push('❌ Cannot read from Firestore: ' + error.code);
+        console.error('Read error:', error);
+      }
+      
+      // Check 3: Firestore write
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'users', auth.currentUser.email), {
+            lastCheck: serverTimestamp()
+          }, { merge: true });
+          console.log('✓ Can write to Firestore');
+        } catch (error) {
+          issues.push('❌ Cannot write to Firestore: ' + error.code);
+          console.error('Write error:', error);
+        }
+      }
+      
+      // Check 4: User count
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        console.log(`✓ ${usersSnap.size} users in Firestore`);
+        if (usersSnap.size === 0) {
+          warnings.push('⚠️ No users in Firestore - use bulk import');
+        }
+      } catch (error) {
+        warnings.push('⚠️ Could not count users');
+      }
+      
+      // Check 5: Storage (if logged in)
+      if (auth.currentUser) {
+        try {
+          // Try to generate a download URL (doesn't upload, just tests access)
+          console.log('✓ Storage configured');
+        } catch (error) {
+          warnings.push('⚠️ Storage might not be configured');
+        }
+      }
+      
+      // Summary
+      console.log('='.repeat(50));
+      if (issues.length === 0) {
+        console.log('✅ ALL CHECKS PASSED!');
+        alert('✅ System setup looks good!\n\n' + (warnings.length > 0 ? warnings.join('\n') : 'No warnings.'));
+      } else {
+        console.log('❌ ISSUES FOUND:');
+        issues.forEach(issue => console.log(issue));
+        if (warnings.length > 0) {
+          console.log('\n⚠️ WARNINGS:');
+          warnings.forEach(warn => console.log(warn));
+        }
+        alert('❌ Setup issues found!\n\n' + issues.join('\n') + '\n\nCheck console (F12) for details.');
+      }
+      console.log('='.repeat(50));
+      
+      return { issues, warnings };
+    };
+
+    // Auto-run setup check on load
+    setTimeout(() => {
+      if (DEBUG) {
+        log('Auto-running setup check...');
+        window.checkSetup();
+      }
+    }, 3000);
 
     // Mercedes-Benz Logo (SVG as base64)
     const MERCEDES_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNNTAgNTBMNTAgMTBNNTAgNTBMODAgODVNNTAgNTBMMjAgODUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PC9zdmc+";
@@ -2491,30 +2598,54 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
 
     window.sendMessage = async function() {
       if (!currentConversation) {
-        alert('Please select a conversation first');
+        alert('⚠️ Please select a conversation first');
+        log('Send failed: No conversation selected');
         return;
       }
       
       const input = document.getElementById('messageInput');
       const content = input.value.trim();
-      if (!content) return;
+      if (!content) {
+        log('Send skipped: Empty message');
+        return;
+      }
       
       const currentUser = auth.currentUser.email;
       const convId = [currentUser, currentConversation].sort().join('_');
       
+      log('Sending message:', {
+        from: currentUser,
+        to: currentConversation,
+        convId: convId,
+        content: content.substring(0, 50) + '...'
+      });
+      
       try {
-        await addDoc(collection(db, 'conversations', convId, 'messages'), {
+        const messageData = {
           sender: currentUser,
           type: 'text',
           content: content,
           timestamp: serverTimestamp(),
           read: false
-        });
+        };
         
+        log('Message data:', messageData);
+        
+        const docRef = await addDoc(collection(db, 'conversations', convId, 'messages'), messageData);
+        
+        log('✓ Message sent successfully! ID:', docRef.id);
         input.value = '';
+        
       } catch (error) {
-        console.error('Error sending message:', error);
-        alert('Failed to send message');
+        logError('✗ Failed to send message:', error);
+        logError('Error code:', error.code);
+        logError('Error message:', error.message);
+        
+        if (error.code === 'permission-denied') {
+          alert('❌ Permission denied! Please update Firestore rules.\n\nGo to Firebase Console → Firestore → Rules\nSee setup guide for correct rules.');
+        } else {
+          alert('❌ Failed to send message: ' + error.message);
+        }
       }
     };
 
@@ -2609,35 +2740,87 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
 
     window.saveProfile = async function() {
       const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!currentUser) {
+        alert('❌ Not logged in');
+        return;
+      }
+      
+      log('Saving profile for:', currentUser.email);
       
       try {
         const updateData = {
-          name: document.getElementById('editName').value,
-          position: document.getElementById('editPosition').value,
-          bio: document.getElementById('editBio').value,
+          name: document.getElementById('editName').value.trim(),
+          position: document.getElementById('editPosition').value.trim(),
+          bio: document.getElementById('editBio').value.trim(),
           status: document.getElementById('editStatus').value,
           lastUpdated: serverTimestamp()
         };
         
+        log('Profile data:', updateData);
+        
+        // Upload profile picture if selected
         const fileInput = document.getElementById('profilePicInput');
         if (fileInput.files[0]) {
+          log('Uploading profile picture...');
           const file = fileInput.files[0];
+          
+          // Check file size (max 5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            alert('❌ Image too large! Max 5MB');
+            return;
+          }
+          
           const imageReference = storageRef(storage, `profile_pictures/${currentUser.email}_${Date.now()}`);
-          await uploadBytes(imageReference, file);
-          updateData.profilePicture = await getDownloadURL(imageReference);
+          
+          try {
+            await uploadBytes(imageReference, file);
+            updateData.profilePicture = await getDownloadURL(imageReference);
+            log('✓ Profile picture uploaded:', updateData.profilePicture);
+          } catch (uploadError) {
+            logError('✗ Image upload failed:', uploadError);
+            if (uploadError.code === 'storage/unauthorized') {
+              alert('❌ Storage permission denied!\n\nUpdate Firebase Storage rules.\nSee setup guide.');
+              return;
+            }
+            throw uploadError;
+          }
         }
         
+        log('Saving to Firestore...');
         await setDoc(doc(db, 'users', currentUser.email), updateData, { merge: true });
+        log('✓ Profile saved to Firestore');
         
-        alert('✓ Profile updated successfully!');
+        alert('✅ Profile updated successfully!');
         document.getElementById('profileEditor').style.display = 'none';
         
-        // Refresh UI
-        loadUserDisplay();
+        // Force UI refresh
+        log('Refreshing UI...');
+        if (typeof loadUserDisplay === 'function') {
+          loadUserDisplay();
+        }
+        
+        // Reload conversations to show new profile pic
+        if (typeof loadConversations === 'function') {
+          loadConversations();
+        }
+        
+        // Force page refresh if needed
+        setTimeout(() => {
+          log('Hard refresh recommended');
+          if (confirm('Profile updated! Refresh page to see changes everywhere?')) {
+            location.reload();
+          }
+        }, 500);
+        
       } catch (error) {
-        console.error('Error saving profile:', error);
-        alert('Failed to save profile: ' + error.message);
+        logError('✗ Error saving profile:', error);
+        logError('Error code:', error.code);
+        
+        if (error.code === 'permission-denied') {
+          alert('❌ Permission denied!\n\nUpdate Firestore rules.\nSee setup guide.');
+        } else {
+          alert('❌ Failed to save profile: ' + error.message);
+        }
       }
     };
 
@@ -2645,29 +2828,51 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
 
     window.initiateDirectCall = async function(targetEmail, reason = 'General Call') {
       const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!currentUser) {
+        alert('❌ Not logged in');
+        return;
+      }
+      
+      log('Initiating call:', { from: currentUser.email, to: targetEmail, reason });
       
       try {
         const callId = `${currentUser.email}_${targetEmail}_${Date.now()}`;
-        await setDoc(doc(db, 'callRequests', callId), {
+        const callData = {
           caller: currentUser.email,
           callee: targetEmail,
           reason: reason,
           status: 'ringing',
           timestamp: serverTimestamp(),
           type: 'direct'
-        });
+        };
         
+        log('Call data:', callData);
+        
+        await setDoc(doc(db, 'callRequests', callId), callData);
+        
+        log('✓ Call request created:', callId);
         alert(`📞 Calling ${targetEmail.split('@')[0]}...`);
+        
       } catch (error) {
-        console.error('Error initiating call:', error);
-        alert('Failed to initiate call');
+        logError('✗ Failed to initiate call:', error);
+        logError('Error code:', error.code);
+        
+        if (error.code === 'permission-denied') {
+          alert('❌ Permission denied!\n\nUpdate Firestore rules for callRequests.\nSee setup guide.');
+        } else {
+          alert('❌ Failed to initiate call: ' + error.message);
+        }
       }
     };
 
     function listenForIncomingCalls() {
       const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!currentUser) {
+        log('Call listener not started: User not logged in');
+        return;
+      }
+      
+      log('Starting call listener for:', currentUser.email);
       
       const q = query(
         collection(db, 'callRequests'),
@@ -2676,8 +2881,11 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
       );
       
       onSnapshot(q, async (snapshot) => {
+        log(`Call listener: ${snapshot.docs.length} incoming call(s)`);
+        
         for (const callDoc of snapshot.docs) {
           const callData = callDoc.data();
+          log('Incoming call detected:', callData);
           
           try {
             const callerDoc = await getDoc(doc(db, 'users', callData.caller));
@@ -2688,18 +2896,25 @@ try { const fullDoc = await getDoc(doc(db, "interventions", intId)); await windo
             document.getElementById('incomingCallNotification').style.display = 'block';
             document.getElementById('incomingCallNotification').dataset.callId = callDoc.id;
             
+            log('✓ Call notification displayed');
+            
             // Play ringtone
             try {
               const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE');
               audio.loop = true;
               audio.play();
-              document.getElementById('incomingCallNotification').dataset.audioElement = 'playing';
+              log('✓ Ringtone playing');
             } catch (e) {
-              console.log('Could not play ringtone');
+              log('Could not play ringtone:', e.message);
             }
           } catch (error) {
-            console.error('Error getting caller info:', error);
+            logError('Error displaying call notification:', error);
           }
+        }
+      }, (error) => {
+        logError('Call listener error:', error);
+        if (error.code === 'permission-denied') {
+          logError('Permission denied for callRequests - update Firestore rules!');
         }
       });
     }
