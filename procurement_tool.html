@@ -1,0 +1,2159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALTEN Procurement Portal — Production Needs Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0d14;
+  --bg2: #111620;
+  --bg3: #181e2e;
+  --card: #1a2035;
+  --border: #2a3550;
+  --accent: #e63946;
+  --accent2: #f4a261;
+  --blue: #4cc9f0;
+  --green: #06d6a0;
+  --yellow: #ffd166;
+  --text: #e8eaf0;
+  --text2: #8a9bc4;
+  --text3: #4a5a80;
+  --font-mono: 'Space Mono', monospace;
+  --font-sans: 'DM Sans', sans-serif;
+  --radius: 8px;
+  --shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* LAYOUT */
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0; top: 0;
+  z-index: 100;
+  transition: transform 0.3s;
+}
+.main { margin-left: 260px; flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* SIDEBAR */
+.logo {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--bg3) 0%, var(--bg2) 100%);
+}
+.logo-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.logo-sub {
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+.user-badge {
+  margin: 16px;
+  padding: 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+.user-info { overflow: hidden; }
+.user-name { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 10px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; }
+
+.nav { flex: 1; padding: 8px 0; }
+.nav-section { padding: 12px 16px 4px; font-size: 9px; font-weight: 700; letter-spacing: 3px; color: var(--text3); text-transform: uppercase; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+  position: relative;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: rgba(230,57,70,0.1); color: var(--accent); border-left-color: var(--accent); }
+.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-family: var(--font-mono);
+}
+
+/* TOPBAR */
+.topbar {
+  height: 60px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-size: 16px; font-weight: 600; }
+.topbar-sub { font-size: 12px; color: var(--text3); margin-left: 2px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+/* CONTENT */
+.content { padding: 24px; flex: 1; }
+
+/* CARDS */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.card-title { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text2); }
+.card-body { padding: 18px; }
+
+/* STATS ROW */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.stat-card.red::before { background: var(--accent); }
+.stat-card.blue::before { background: var(--blue); }
+.stat-card.green::before { background: var(--green); }
+.stat-card.yellow::before { background: var(--yellow); }
+.stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+.stat-value { font-family: var(--font-mono); font-size: 28px; font-weight: 700; margin: 4px 0; }
+.stat-card.red .stat-value { color: var(--accent); }
+.stat-card.blue .stat-value { color: var(--blue); }
+.stat-card.green .stat-value { color: var(--green); }
+.stat-card.yellow .stat-value { color: var(--yellow); }
+.stat-sub { font-size: 11px; color: var(--text3); }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+  transition: all 0.15s;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: #ff4d5a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(230,57,70,0.4); }
+.btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-blue { background: rgba(76,201,240,0.15); color: var(--blue); border: 1px solid rgba(76,201,240,0.3); }
+.btn-blue:hover { background: rgba(76,201,240,0.25); }
+.btn-green { background: rgba(6,214,160,0.15); color: var(--green); border: 1px solid rgba(6,214,160,0.3); }
+.btn-sm { padding: 5px 10px; font-size: 10px; }
+.btn-icon { padding: 7px; font-size: 14px; line-height: 1; }
+
+/* FORM ELEMENTS */
+input, select, textarea {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 8px 12px;
+  width: 100%;
+  transition: border-color 0.15s;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--blue); }
+select option { background: var(--bg3); }
+label { font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: 0.5px; display: block; margin-bottom: 5px; }
+.form-group { margin-bottom: 14px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* TABLE */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th {
+  background: var(--bg3);
+  padding: 10px 12px;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  position: sticky; top: 0; z-index: 10;
+}
+tbody tr { border-bottom: 1px solid rgba(42,53,80,0.5); transition: background 0.1s; }
+tbody tr:hover { background: rgba(26,32,53,0.8); }
+tbody td { padding: 9px 12px; color: var(--text); white-space: nowrap; vertical-align: middle; }
+.td-mono { font-family: var(--font-mono); font-size: 11px; }
+
+/* BADGES */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+.badge-green { background: rgba(6,214,160,0.15); color: var(--green); border: 1px solid rgba(6,214,160,0.3); }
+.badge-red { background: rgba(230,57,70,0.15); color: var(--accent); border: 1px solid rgba(230,57,70,0.3); }
+.badge-blue { background: rgba(76,201,240,0.15); color: var(--blue); border: 1px solid rgba(76,201,240,0.3); }
+.badge-yellow { background: rgba(255,209,102,0.15); color: var(--yellow); border: 1px solid rgba(255,209,102,0.3); }
+.badge-gray { background: rgba(138,155,196,0.15); color: var(--text2); border: 1px solid var(--border); }
+
+/* TABS */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab {
+  padding: 10px 18px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  color: var(--text3);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* NEEDS MATRIX */
+.needs-grid { font-size: 11px; }
+.needs-header { 
+  display: grid; 
+  gap: 1px; 
+  background: var(--border);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+.needs-cell {
+  background: var(--bg3);
+  padding: 6px 8px;
+  text-align: center;
+}
+.needs-cell.val { 
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+.needs-cell.pos { background: rgba(6,214,160,0.2); color: var(--green); }
+.needs-cell.zero { color: var(--text3); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: none; align-items: center; justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 90%; max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+  animation: fadeUp 0.2s ease;
+}
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-body { padding: 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* EMAIL PREVIEW */
+.email-preview {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--text);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* NOTIFICATIONS */
+.notification {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  max-width: 340px;
+  box-shadow: var(--shadow);
+  z-index: 9999;
+  display: none;
+  animation: slideIn 0.3s ease;
+}
+.notification.show { display: block; }
+.notification.success { border-left: 4px solid var(--green); }
+.notification.error { border-left: 4px solid var(--accent); }
+.notification.info { border-left: 4px solid var(--blue); }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* SEARCH */
+.search-wrap { position: relative; }
+.search-wrap input { padding-left: 34px; }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); }
+
+/* PRIORITY TAG */
+.priority-urgent {
+  background: rgba(230,57,70,0.2);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+/* FILTER ROW */
+.filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: flex-end; }
+.filter-row .form-group { margin-bottom: 0; min-width: 140px; }
+
+/* ALEAD STANDARD DISPLAY */
+.alead-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-top: 10px;
+}
+.alead-box h4 { font-size: 10px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.alead-keyword {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(76,201,240,0.1);
+  border: 1px solid rgba(76,201,240,0.2);
+  color: var(--blue);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  margin: 2px;
+}
+
+/* SCROLLABLE TABLE CONTAINER */
+.table-container { max-height: 500px; overflow-y: auto; overflow-x: auto; }
+
+/* PO DETAIL */
+.po-list { display: flex; flex-direction: column; gap: 6px; }
+.po-item {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+/* URGENCY BAR */
+.urgency-banner {
+  background: linear-gradient(90deg, rgba(230,57,70,0.2), transparent);
+  border-left: 4px solid var(--accent);
+  padding: 10px 16px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 12px;
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+
+/* PAGE SECTIONS */
+.page { display: none; }
+.page.active { display: block; }
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+/* ADMIN TABLE */
+.admin-row td:first-child { font-family: var(--font-mono); font-size: 11px; }
+
+/* CHANGE INDICATOR */
+.change-up { color: var(--accent); font-size: 10px; font-weight: 700; }
+.change-down { color: var(--green); font-size: 10px; font-weight: 700; }
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-260px); }
+  .main { margin-left: 0; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-title">⬡ ALTEN</div>
+    <div class="logo-sub">Procurement Portal v2.0</div>
+  </div>
+  <div class="user-badge" id="userBadge">
+    <div class="user-avatar" id="userAvatar">AB</div>
+    <div class="user-info">
+      <div class="user-name" id="userName">Abrar B.</div>
+      <div class="user-role" id="userRole">Procurement Officer</div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="icon">⊞</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('needs')">
+      <span class="icon">◈</span> Production Needs
+      <span class="nav-badge" id="needsBadge">12</span>
+    </div>
+    <div class="nav-item" onclick="showPage('suppliers')">
+      <span class="icon">◉</span> My Suppliers
+    </div>
+    <div class="nav-item" onclick="showPage('po')">
+      <span class="icon">◫</span> PO Management
+    </div>
+    <div class="nav-item" onclick="showPage('send')">
+      <span class="icon">✈</span> Send Needs
+    </div>
+    <div class="nav-section">Logistics</div>
+    <div class="nav-item" onclick="showPage('pickup')">
+      <span class="icon">⬡</span> Pickup Requests
+    </div>
+    <div class="nav-item" onclick="showPage('notifications')">
+      <span class="icon">◎</span> Notifications
+      <span class="nav-badge" id="notifBadge">3</span>
+    </div>
+    <div class="nav-section" id="adminSection" style="display:none">Admin</div>
+    <div class="nav-item" id="adminNav" style="display:none" onclick="showPage('admin')">
+      <span class="icon">⬥</span> Admin Panel
+    </div>
+    <div class="nav-section">Account</div>
+    <div class="nav-item" onclick="logout()">
+      <span class="icon">↩</span> Sign Out
+    </div>
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-sub" id="pageSubtitle">Procurement Operations Overview</div>
+    </div>
+    <div class="topbar-right">
+      <div class="priority-urgent">● URGENT MODE</div>
+      <span id="clockDisplay" style="font-family:var(--font-mono);font-size:11px;color:var(--text3)"></span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ===================== LOGIN PAGE ===================== -->
+    <div class="page active" id="page-login" style="display:flex;align-items:center;justify-content:center;min-height:70vh">
+      <div style="width:100%;max-width:400px">
+        <div style="text-align:center;margin-bottom:32px">
+          <div style="font-family:var(--font-mono);font-size:32px;font-weight:700;color:var(--accent);letter-spacing:4px">ALTEN</div>
+          <div style="color:var(--text3);font-size:13px;margin-top:6px">Production Procurement Portal</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🔐 Secure Login</div></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" id="loginEmail" placeholder="yourname@alten.com" value="abrar@alten.com">
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="loginPassword" placeholder="••••••••" value="password123">
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">
+              Sign In to Portal →
+            </button>
+            <div style="margin-top:12px;font-size:11px;color:var(--text3);text-align:center">
+              Admin: mohamed@alten.com / Others: yourname@alten.com
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <div class="page" id="page-dashboard">
+      <div class="urgency-banner">
+        <span style="font-size:18px">⚠</span>
+        <div>
+          <strong>URGENT:</strong> <span id="dashUrgentCount">0</span> parts with open needs require immediate attention.
+          <span style="margin-left:12px;color:var(--text3)" id="dashWeek">Week —</span>
+        </div>
+      </div>
+
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card red">
+          <div class="stat-label">Total Open Needs (Parts)</div>
+          <div class="stat-value" id="statParts">—</div>
+          <div class="stat-sub">parts with shortages</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">My Suppliers</div>
+          <div class="stat-value" id="statSuppliers">—</div>
+          <div class="stat-sub">in my perimeter</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">Open POs</div>
+          <div class="stat-value" id="statPOs">—</div>
+          <div class="stat-sub">purchase orders</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Total Delivery</div>
+          <div class="stat-value" id="statDelivery">—</div>
+          <div class="stat-sub">units in pipeline</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📋 My Supplier Needs Summary</div>
+            <button class="btn btn-sm btn-blue" onclick="showPage('needs')">View All</button>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="table-wrap">
+              <table id="dashSupplierTable">
+                <thead><tr>
+                  <th>Supplier</th><th>Parts</th><th>Total Need</th><th>Status</th>
+                </tr></thead>
+                <tbody id="dashSupplierTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🔔 Recent Changes</div>
+          </div>
+          <div class="card-body">
+            <div id="recentChanges" style="display:flex;flex-direction:column;gap:10px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== PRODUCTION NEEDS ===================== -->
+    <div class="page" id="page-needs">
+      <div class="filter-row">
+        <div class="form-group">
+          <label>Supplier</label>
+          <select id="filterSupplier" onchange="applyFilters()">
+            <option value="">— All —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Phase</label>
+          <select id="filterPhase" onchange="applyFilters()">
+            <option value="">— All —</option>
+            <option>X0</option><option>X1</option><option>X2</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>View By</label>
+          <select id="filterView" onchange="applyFilters()">
+            <option value="total">Total per Part</option>
+            <option value="mrd">By MRD</option>
+            <option value="cr">By Counter Mark</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>MRD</label>
+          <select id="filterMRD" onchange="applyFilters()">
+            <option value="">— All —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Plant</label>
+          <select id="filterPlant" onchange="applyFilters()">
+            <option value="">— All —</option>
+            <option>L74</option><option>D74</option><option>DL74</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Search PN / Description</label>
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="text" id="filterSearch" placeholder="Search..." oninput="applyFilters()" style="padding-left:30px">
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="clearFilters()" style="align-self:flex-end;margin-bottom:0">Clear</button>
+        <button class="btn btn-primary btn-sm" onclick="showSendModal()" style="align-self:flex-end;margin-bottom:0">✈ Send Needs</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Production Needs — MANQUANTS</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span id="needsCount" style="font-size:11px;color:var(--text3)"></span>
+            <button class="btn btn-sm btn-secondary" onclick="exportNeeds()">⬇ Export</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="needsTable">
+            <thead><tr>
+              <th>Plant</th><th>PN</th><th>Description</th><th>Supplier</th>
+              <th>Open PO</th><th>Status</th><th>Total Delivery</th>
+              <th id="needsColHeader">Total Need</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="needsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SUPPLIERS ===================== -->
+    <div class="page" id="page-suppliers">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title">My Supplier Perimeter</div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table id="suppliersTable">
+            <thead><tr>
+              <th>#</th><th>Supplier Name</th><th>Parts</th><th>Open Needs</th><th>Open POs</th><th>Contact</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="suppliersTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== PO MANAGEMENT ===================== -->
+    <div class="page" id="page-po">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title">PO Management — Open / Closed / Extra Cost</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm btn-green" onclick="showCreatePOModal()">+ Create PO</button>
+            <button class="btn btn-sm btn-blue" onclick="showExtraCostModal()">+ Extra Cost</button>
+          </div>
+        </div>
+        <div class="tabs" style="padding:0 18px;border-bottom:1px solid var(--border)">
+          <div class="tab active" onclick="switchPOTab('open',this)">Open POs</div>
+          <div class="tab" onclick="switchPOTab('closed',this)">Closed POs</div>
+          <div class="tab" onclick="switchPOTab('extracost',this)">Extra Cost</div>
+          <div class="tab" onclick="switchPOTab('pickup',this)">Pickup Requests</div>
+        </div>
+        <div class="table-container">
+          <table id="poTable">
+            <thead><tr>
+              <th>PO Number</th><th>PN</th><th>Description</th><th>Supplier</th>
+              <th>Qty</th><th>Status</th><th>Date</th><th>Comment</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="poTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SEND NEEDS ===================== -->
+    <div class="page" id="page-send">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📧 Send Needs to Supplier</div></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label>Select Supplier</label>
+              <select id="sendSupplier" onchange="buildEmailPreview()">
+                <option value="">— Select Supplier —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Phase</label>
+              <select id="sendPhase" onchange="buildEmailPreview()">
+                <option value="">All Phases</option>
+                <option>X0</option><option>X1</option><option>X2</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>View Mode</label>
+              <select id="sendMode" onchange="buildEmailPreview()">
+                <option value="total">Total Quantities</option>
+                <option value="mrd">By MRD</option>
+                <option value="cr">By Counter Mark</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Project / Plant</label>
+              <input type="text" id="sendProject" placeholder="e.g. L74 / D74" value="L74" oninput="buildEmailPreview()">
+            </div>
+            <div class="form-group">
+              <label>Your Outlook Email</label>
+              <input type="email" id="sendFromEmail" placeholder="yourname@alten.com" oninput="buildEmailPreview()">
+            </div>
+            <div class="form-group">
+              <label>Supplier Contact Email</label>
+              <input type="email" id="sendToEmail" placeholder="contact@supplier.com" oninput="buildEmailPreview()">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:4px">
+              <button class="btn btn-primary" onclick="sendEmail()" style="flex:1;justify-content:center">✈ Send via Outlook</button>
+              <button class="btn btn-secondary" onclick="copyEmailText()">⧉ Copy</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Preview Email</div></div>
+          <div class="card-body" style="padding:12px">
+            <div style="margin-bottom:8px">
+              <div style="font-size:10px;color:var(--text3);margin-bottom:3px">SUBJECT</div>
+              <div id="emailSubjectPreview" style="font-family:var(--font-mono);font-size:11px;background:var(--bg);border:1px solid var(--border);padding:8px;border-radius:4px;color:var(--yellow)"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">BODY</div>
+            <div class="email-preview" id="emailBodyPreview"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== PICKUP REQUESTS ===================== -->
+    <div class="page" id="page-pickup">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Pickup & Logistics Requests</div>
+          <button class="btn btn-sm btn-primary" onclick="showPickupModal()">+ New Pickup Request</button>
+        </div>
+        <div class="table-container">
+          <table id="pickupTable">
+            <thead><tr>
+              <th>Req #</th><th>PN</th><th>Supplier</th><th>Ready Date</th><th>Location</th><th>Qty</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="pickupTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== NOTIFICATIONS ===================== -->
+    <div class="page" id="page-notifications">
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔔 Change Notifications</div></div>
+        <div class="card-body">
+          <div id="notificationsList" style="display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== ADMIN ===================== -->
+    <div class="page" id="page-admin">
+      <div class="tabs">
+        <div class="tab active" onclick="switchAdminTab('users',this)">Users & Perimeters</div>
+        <div class="tab" onclick="switchAdminTab('suppliers',this)">Suppliers</div>
+        <div class="tab" onclick="switchAdminTab('masterdata',this)">Master Data</div>
+        <div class="tab" onclick="switchAdminTab('needs',this)">Add Needs</div>
+      </div>
+      <div id="admin-users" class="admin-panel">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Procurement Officers</div>
+            <button class="btn btn-sm btn-primary" onclick="showAddUserModal()">+ Add User</button>
+          </div>
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Assigned Suppliers</th><th>Plant</th><th>Actions</th></tr></thead>
+            <tbody id="adminUsersTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="admin-suppliers" class="admin-panel" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Supplier Directory</div>
+            <button class="btn btn-sm btn-primary" onclick="showAddSupplierModal()">+ Add Supplier</button>
+          </div>
+          <table>
+            <thead><tr><th>#</th><th>Supplier Name</th><th>Contact Name</th><th>Email</th><th>Phone</th><th>Assigned To</th><th>Actions</th></tr></thead>
+          <tbody id="adminSuppliersTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="admin-masterdata" class="admin-panel" style="display:none">
+        <div class="card">
+          <div class="card-body">
+            <div style="color:var(--text2);font-size:13px;text-align:center;padding:30px">
+              <div style="font-size:32px;margin-bottom:10px">⬡</div>
+              Master data management — Import new MANQUANTS file to refresh all production needs.<br><br>
+              <button class="btn btn-primary" onclick="showNotification('File import feature available in full backend version','info')">⬆ Import XLSX</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="admin-needs" class="admin-panel" style="display:none">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Manually Add / Update Need</div></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label>PN</label><input id="adminPN" placeholder="Part Number"></div>
+              <div class="form-group"><label>Supplier</label><input id="adminSupplierField" placeholder="Supplier Name"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Counter Mark</label><input id="adminCR" placeholder="KR001"></div>
+              <div class="form-group"><label>Quantity Need</label><input id="adminQty" type="number" placeholder="0"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>MRD</label><input id="adminMRD" placeholder="MRD45"></div>
+              <div class="form-group"><label>Phase</label><select id="adminPhase"><option>X0</option><option>X1</option><option>X2</option></select></div>
+            </div>
+            <button class="btn btn-primary" onclick="addNeed()">+ Add Need & Notify Officers</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+</div><!-- /app -->
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- SEND NEEDS MODAL (from table) -->
+<div class="modal-overlay" id="sendModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✈ Send Needs — Configure Email</div>
+      <button class="btn btn-icon btn-secondary" onclick="closeModal('sendModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Supplier</label>
+          <select id="modalSendSupplier" onchange="buildModalEmailPreview()">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Mode</label>
+          <select id="modalSendMode" onchange="buildModalEmailPreview()">
+            <option value="total">Total</option>
+            <option value="mrd">By MRD</option>
+            <option value="cr">By Counter Mark</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phase</label>
+          <select id="modalSendPhase" onchange="buildModalEmailPreview()">
+            <option value="">All</option><option>X0</option><option>X1</option><option>X2</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>To Email</label>
+          <input type="email" id="modalToEmail" placeholder="supplier@company.com" oninput="buildModalEmailPreview()">
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:5px">EMAIL PREVIEW</div>
+      <div class="email-preview" id="modalEmailPreview" style="max-height:200px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('sendModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="sendFromModal()">✈ Send via Outlook</button>
+    </div>
+  </div>
+</div>
+
+<!-- PO DETAIL MODAL -->
+<div class="modal-overlay" id="poDetailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="poDetailTitle">PO Details</div>
+      <button class="btn btn-icon btn-secondary" onclick="closeModal('poDetailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="poDetailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('poDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE PO MODAL -->
+<div class="modal-overlay" id="createPOModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">+ Create Purchase Order</div>
+      <button class="btn btn-icon btn-secondary" onclick="closeModal('createPOModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>PN</label><input id="newPOPN" placeholder="Part Number"></div>
+        <div class="form-group"><label>Supplier</label><input id="newPOSupplier" placeholder="Supplier"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Quantity</label><input id="newPOQty" type="number" placeholder="0"></div>
+        <div class="form-group"><label>Expected Delivery</label><input id="newPODate" type="date"></div>
+      </div>
+      <div class="form-group"><label>Comment (ALEAD Standard)</label>
+        <textarea id="newPOComment" rows="3" placeholder="[KEYWORD] - Short description - Details (follow ALEAD standard)"></textarea>
+      </div>
+      <div class="alead-box">
+        <h4>ALEAD Standard Keywords</h4>
+        <span class="alead-keyword">SHORTAGE</span>
+        <span class="alead-keyword">CRITICAL</span>
+        <span class="alead-keyword">TOOLING</span>
+        <span class="alead-keyword">QUALITY</span>
+        <span class="alead-keyword">CAPACITY</span>
+        <span class="alead-keyword">LOGISTICS</span>
+        <span class="alead-keyword">VALIDATION</span>
+        <span class="alead-keyword">PROTO</span>
+        <div style="font-size:10px;color:var(--text3);margin-top:8px">Format: [KEYWORD] - Short comment (max 100 chars) - Full detail</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('createPOModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createPO()">Create PO</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXTRA COST MODAL -->
+<div class="modal-overlay" id="extraCostModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">+ Extra Cost Request</div>
+      <button class="btn btn-icon btn-secondary" onclick="closeModal('extraCostModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>PN</label><input id="ecPN" placeholder="Part Number"></div>
+        <div class="form-group"><label>PO Reference</label><input id="ecPO" placeholder="PO Number"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cost Type</label>
+          <select id="ecType">
+            <option>Airfreight</option><option>Express Delivery</option><option>Tooling Repair</option>
+            <option>Sorting Cost</option><option>Rework Cost</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Estimated Amount (€)</label><input id="ecAmount" type="number" placeholder="0"></div>
+      </div>
+      <div class="form-group"><label>Justification</label>
+        <textarea id="ecJustification" rows="3" placeholder="Reason for extra cost..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('extraCostModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createExtraCost()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- PICKUP MODAL -->
+<div class="modal-overlay" id="pickupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">+ Pickup Request</div>
+      <button class="btn btn-icon btn-secondary" onclick="closeModal('pickupModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>PN</label><input id="pickupPN" placeholder="Part Number"></div>
+        <div class="form-group"><label>Supplier</label>
+          <select id="pickupSupplierSel">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Ready Date</label><input id="pickupDate" type="date"></div>
+        <div class="form-group"><label>Quantity</label><input id="pickupQty" type="number" placeholder="0"></div>
+      </div>
+      <div class="form-group"><label>Supplier Location / Address</label>
+        <input id="pickupLocation" placeholder="City, Country">
+      </div>
+      <div class="form-group"><label>PO Reference</label>
+        <input id="pickupPORef" placeholder="PO Number">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('pickupModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createPickup()">Submit Pickup Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD USER MODAL (Admin) -->
+<div class="modal-overlay" id="addUserModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">+ Add Procurement Officer</div>
+      <button class="btn btn-icon btn-secondary" onclick="closeModal('addUserModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Full Name</label><input id="newUserName" placeholder="First Last"></div>
+        <div class="form-group"><label>Email</label><input id="newUserEmail" placeholder="name@alten.com" type="email"></div>
+      </div>
+      <div class="form-group"><label>Assigned Plant</label>
+        <select id="newUserPlant"><option>L74</option><option>D74</option><option>L74/D74</option></select>
+      </div>
+      <div class="form-group"><label>Assign Suppliers (comma-separated)</label>
+        <input id="newUserSuppliers" placeholder="REVIFA SPA, LISI AUTOMOTIVE, ...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addUserModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addUser()">Add User</button>
+    </div>
+  </div>
+</div>
+
+<!-- PART DETAIL MODAL -->
+<div class="modal-overlay" id="partDetailModal">
+  <div class="modal" style="max-width:860px">
+    <div class="modal-header">
+      <div class="modal-title" id="partDetailTitle">Part Details</div>
+      <button class="btn btn-icon btn-secondary" onclick="closeModal('partDetailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="partDetailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-green" onclick="showCreatePOModal()">+ Create PO</button>
+      <button class="btn btn-blue" onclick="showPickupModal()">⬡ Pickup</button>
+      <button class="btn btn-secondary" onclick="closeModal('partDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION TOAST -->
+<div class="notification" id="notifToast">
+  <div id="notifText" style="font-size:13px;font-weight:500"></div>
+  <div id="notifSub" style="font-size:11px;color:var(--text3);margin-top:3px"></div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const PARTS_DATA = [
+  {project:'Commun',plant:'L74',pn:'187502210',pn_uncolored:'1441322080',desc:'VITE FLANGIA M6X16',area_jit:'56',supplier:'REVIFA SPA REGGIANA VITERIE',mag:'0780',open_po:'98152324',status:'E',total_delivery:505200,needs_cr:{KR001:2,KR156:2,KR002:2,KR004:2,KR016:2,KR007:2,KR003:2,KR015:2,KR142:2,KR018:4,KR143:2,KR151:4,KR010:2,KR012:4,KR017:4,KR144:4,KR152:4},mrd_totals:{MRD43:12,MRD44:16,MRD45:20,MRD46:8},phase_totals:{X0:56,X1:34,X2:22}},
+  {project:'Commun',plant:'L74',pn:'468670560',pn_uncolored:'7903046076',desc:'DADO M6 X 1',area_jit:'JP',supplier:'LISI AUTOMOTIVE FORMER',mag:'0780',open_po:'98391987',status:'E',total_delivery:96800,needs_cr:{KR001:1,KR002:1,KR004:1,KR016:2,KR007:1,KR003:1},mrd_totals:{MRD43:6,MRD44:4,MRD45:8,MRD46:2},phase_totals:{X0:20,X1:16,X2:8}},
+  {project:'Commun',plant:'L74',pn:'468676050',pn_uncolored:'468676050',desc:'VITE TORX M6X16',area_jit:'56',supplier:'AGRATI GIE',mag:'0780',open_po:'98391973',status:'E',total_delivery:24000,needs_cr:{KR001:4,KR002:4,KR156:4,KR004:4,KR016:4},mrd_totals:{MRD43:8,MRD44:8,MRD45:4},phase_totals:{X0:20,X1:10,X2:0}},
+  {project:'Commun',plant:'L74',pn:'505040960',pn_uncolored:'505040960',desc:'TAMPONE ANTIURTO PORTE',area_jit:'JP',supplier:'ALMAS PARTECIPAZIONI',mag:'0780',open_po:'98328096',status:'E',total_delivery:11720,needs_cr:{KR001:2,KR002:2,KR018:2,KR012:2},mrd_totals:{MRD44:4,MRD45:4},phase_totals:{X0:8,X1:0,X2:0}},
+  {project:'Commun',plant:'L74',pn:'505365060',pn_uncolored:'505365060',desc:'DADO SPECIALE',area_jit:'JP',supplier:'VGV SRL',mag:'0780',open_po:'98384450',status:'E',total_delivery:32400,needs_cr:{KR004:2,KR016:2,KR007:2,KR015:2},mrd_totals:{MRD43:4,MRD44:4},phase_totals:{X0:8,X1:4,X2:0}},
+  {project:'Commun',plant:'L74',pn:'518207740',pn_uncolored:'518207740',desc:'TAMPONE ANTIGRAFFIO 250X40X40',area_jit:'JP',supplier:'ALMAS PARTECIPAZIONI',mag:'0780',open_po:'98328017',status:'E',total_delivery:61200,needs_cr:{KR001:2,KR002:2,KR156:2,KR004:2,KR018:2,KR012:2,KR017:2},mrd_totals:{MRD43:6,MRD44:4,MRD45:4,MRD46:4},phase_totals:{X0:18,X1:12,X2:0}},
+  {project:'Commun',plant:'L74',pn:'519901860',pn_uncolored:'519901860',desc:'VITE AUTOFILETTANTE SPECIALE',area_jit:'56',supplier:'MUSTAD S.p.A.',mag:'0780',open_po:'98171740',status:'E',total_delivery:1083000,needs_cr:{KR001:6,KR002:6,KR156:4,KR004:6,KR016:6,KR007:6},mrd_totals:{MRD43:16,MRD44:12,MRD45:8},phase_totals:{X0:36,X1:20,X2:0}},
+  {project:'Commun',plant:'L74',pn:'519984980',pn_uncolored:'519984980',desc:'MOLLETTA FISSAGGIO',area_jit:'56',supplier:'A. RAYMOND ITALIANA SRL',mag:'0780',open_po:'98172773',status:'E',total_delivery:75480,needs_cr:{KR001:4,KR002:2,KR004:4,KR016:2},mrd_totals:{MRD43:6,MRD44:6,MRD45:4},phase_totals:{X0:16,X1:0,X2:0}},
+  {project:'Commun',plant:'L74',pn:'520014760',pn_uncolored:'520014760',desc:'RIVETTO SPECIALE',area_jit:'56',supplier:'ITW LYS FUSION SRL',mag:'0780',open_po:'98176427',status:'E',total_delivery:196000,needs_cr:{KR001:8,KR002:8,KR004:8,KR016:4,KR007:8},mrd_totals:{MRD43:20,MRD44:16,MRD45:0},phase_totals:{X0:36,X1:0,X2:0}},
+  {project:'Commun',plant:'L74',pn:'521974690',pn_uncolored:'521974690',desc:'DADO SPECIALE FLANGIA',area_jit:'JP',supplier:'HOWMET FIXATIONS SIMMONDS SAS',mag:'0780',open_po:'98380685',status:'E',total_delivery:24960,needs_cr:{KR001:2,KR002:2,KR004:2},mrd_totals:{MRD43:4,MRD44:2},phase_totals:{X0:6,X1:0,X2:0}},
+  {project:'Commun',plant:'L74',pn:'521979620',pn_uncolored:'521979620',desc:'DADO STANDARD',area_jit:'56',supplier:'OPTIMAS OE SOLUTIONS SAS',mag:'0780',open_po:'98392259',status:'E',total_delivery:45030,needs_cr:{KR001:3,KR002:3,KR004:3,KR016:3},mrd_totals:{MRD44:6,MRD45:6},phase_totals:{X0:12,X1:0,X2:0}},
+  {project:'Commun',plant:'L74',pn:'521995680',pn_uncolored:'521995680',desc:'VITE SPECIALE FLANGIATA',area_jit:'JP',supplier:'LOBO SPA',mag:'0780',open_po:'98380687',status:'E',total_delivery:38415,needs_cr:{KR001:2,KR007:2,KR015:2,KR142:2},mrd_totals:{MRD44:4,MRD45:4},phase_totals:{X0:8,X1:4,X2:0}},
+  {project:'Commun',plant:'L74',pn:'600123450',pn_uncolored:'600123450',desc:'BULLONE TESTA ESAGONALE M8',area_jit:'56',supplier:'BOLLHOFF SRL',mag:'0780',open_po:'98392300',status:'E',total_delivery:120000,needs_cr:{KR001:4,KR002:4,KR004:4,KR016:4,KR018:4},mrd_totals:{MRD43:8,MRD44:8,MRD45:8},phase_totals:{X0:24,X1:12,X2:0}},
+  {project:'Commun',plant:'L74',pn:'600234560',pn_uncolored:'600234560',desc:'RONDELLA PIANA M6',area_jit:'JP',supplier:'ITW RIVEX',mag:'0780',open_po:'98392301',status:'E',total_delivery:85000,needs_cr:{KR001:2,KR002:2,KR004:2},mrd_totals:{MRD43:4,MRD44:2},phase_totals:{X0:6,X1:0,X2:0}},
+  {project:'Commun',plant:'D74',pn:'700456780',pn_uncolored:'700456780',desc:'CLIP FISSAGGIO PANNELLO',area_jit:'56',supplier:'ARAYMOND France SAS',mag:'0790',open_po:'98392400',status:'E',total_delivery:250000,needs_cr:{KR056:4,KR057:4,KR058:4,KR059:4},mrd_totals:{MRD57:8,MRD58:8},phase_totals:{X0:0,X1:24,X2:0}},
+  {project:'Commun',plant:'D74',pn:'700567890',pn_uncolored:'700567890',desc:'DADO AUTOBLOCCANTE M10',area_jit:'JP',supplier:'HOWMET FIXATIONS SIMMONDS SAS',mag:'0790',open_po:'98392401',status:'E',total_delivery:60000,needs_cr:{KR056:2,KR060:2,KR061:2},mrd_totals:{MRD57:4,MRD58:2},phase_totals:{X0:0,X1:6,X2:0}},
+  {project:'Commun',plant:'L74',pn:'800678901',pn_uncolored:'800678901',desc:'VITE AUTOFILETTANTE M5',area_jit:'56',supplier:'AFF St Flo',mag:'0780',open_po:'98392500',status:'N',total_delivery:0,needs_cr:{KR219:4,KR226:4,KR203:4,KR223:4},mrd_totals:{MRD57:8,MRD58:8},phase_totals:{X0:0,X1:0,X2:16}},
+  {project:'Commun',plant:'L74',pn:'800789012',pn_uncolored:'800789012',desc:'CLIP RETENUE CABLE',area_jit:'JP',supplier:'A. RAYMOND ITALIANA SRL',mag:'0780',open_po:'98392501',status:'E',total_delivery:180000,needs_cr:{KR204:2,KR205:2,KR206:2,KR207:2},mrd_totals:{MRD58:6,MRD59:2},phase_totals:{X0:0,X1:0,X2:8}},
+  {project:'Commun',plant:'L74',pn:'900112233',pn_uncolored:'900112233',desc:'RIVETTO ALLUMINIO 4.8X10',area_jit:'56',supplier:'I.B.S INDUSTRIA BULLONERIA',mag:'0780',open_po:'98392600',status:'E',total_delivery:340000,needs_cr:{KR001:6,KR002:6,KR156:6,KR004:6},mrd_totals:{MRD43:12,MRD44:12},phase_totals:{X0:24,X1:0,X2:0}},
+  {project:'Commun',plant:'L74',pn:'900223344',pn_uncolored:'900223344',desc:'BULLONE FLANGIATO M6X20',area_jit:'JP',supplier:'FONTANA LUIGI SPA',mag:'0780',open_po:'98392700',status:'E',total_delivery:90000,needs_cr:{KR016:2,KR007:2,KR003:2,KR015:2,KR142:2},mrd_totals:{MRD44:4,MRD45:6},phase_totals:{X0:10,X1:0,X2:0}},
+];
+
+const CR_META = {
+  KR001:{mrd:'MRD43',phase:'X0',emon:'2025-08-26'},
+  KR156:{mrd:'MRD43',phase:'X0',emon:'2025-09-02'},
+  KR002:{mrd:'MRD43',phase:'X0',emon:'2025-09-03'},
+  KR004:{mrd:'MRD44',phase:'X0',emon:'2025-09-16'},
+  KR016:{mrd:'MRD44',phase:'X0',emon:'2025-09-23'},
+  KR007:{mrd:'MRD44',phase:'X0',emon:'2025-09-23'},
+  KR003:{mrd:'MRD43',phase:'X0',emon:'2025-09-16'},
+  KR015:{mrd:'MRD44',phase:'X0',emon:'2025-09-24'},
+  KR142:{mrd:'MRD45',phase:'X0',emon:'2025-09-24'},
+  KR018:{mrd:'MRD45',phase:'X0',emon:'2025-09-30'},
+  KR143:{mrd:'MRD45',phase:'X0',emon:'2025-09-30'},
+  KR151:{mrd:'MRD45',phase:'X0',emon:'2025-10-01'},
+  KR010:{mrd:'MRD45',phase:'X0',emon:'2025-10-01'},
+  KR012:{mrd:'MRD45',phase:'X0',emon:'2025-10-07'},
+  KR017:{mrd:'MRD45',phase:'X0',emon:'2025-10-07'},
+  KR144:{mrd:'MRD46',phase:'X0',emon:'2025-10-08'},
+  KR152:{mrd:'MRD46',phase:'X0',emon:'2025-10-08'},
+  KR056:{mrd:'MRD57',phase:'X1',emon:'2025-11-18'},
+  KR057:{mrd:'MRD57',phase:'X1',emon:'2025-11-18'},
+  KR058:{mrd:'MRD58',phase:'X1',emon:'2025-11-25'},
+  KR059:{mrd:'MRD58',phase:'X1',emon:'2025-12-02'},
+  KR060:{mrd:'MRD57',phase:'X1',emon:'2025-11-18'},
+  KR061:{mrd:'MRD58',phase:'X1',emon:'2025-11-25'},
+  KR219:{mrd:'MRD57',phase:'X2',emon:'2026-03-23'},
+  KR226:{mrd:'MRD57',phase:'X2',emon:'2026-03-23'},
+  KR203:{mrd:'MRD58',phase:'X2',emon:'2026-03-30'},
+  KR204:{mrd:'MRD58',phase:'X2',emon:'2026-03-30'},
+  KR205:{mrd:'MRD58',phase:'X2',emon:'2026-04-06'},
+  KR206:{mrd:'MRD58',phase:'X2',emon:'2026-04-06'},
+  KR207:{mrd:'MRD58',phase:'X2',emon:'2026-04-06'},
+  KR223:{mrd:'MRD57',phase:'X2',emon:'2026-03-23'},
+};
+
+const USERS = [
+  {name:'Mohamed Admin',email:'mohamed@alten.com',role:'admin',plant:'L74/D74',suppliers:['ALL'],initials:'MA'},
+  {name:'Abrar B.',email:'abrar@alten.com',role:'officer',plant:'L74',suppliers:['REVIFA SPA REGGIANA VITERIE','LISI AUTOMOTIVE FORMER','AGRATI GIE','ALMAS PARTECIPAZIONI','LOBO SPA','BOLLHOFF SRL'],initials:'AB'},
+  {name:'Sarah K.',email:'sarah@alten.com',role:'officer',plant:'L74',suppliers:['ITW LYS FUSION SRL','A. RAYMOND ITALIANA SRL','MUSTAD S.p.A.','OPTIMAS OE SOLUTIONS SAS'],initials:'SK'},
+  {name:'Karim M.',email:'karim@alten.com',role:'officer',plant:'D74',suppliers:['ARAYMOND France SAS','HOWMET FIXATIONS SIMMONDS SAS','VGV SRL','ITW RIVEX'],initials:'KM'},
+  {name:'Laila R.',email:'laila@alten.com',role:'officer',plant:'L74',suppliers:['AFF St Flo','FONTANA LUIGI SPA','I.B.S INDUSTRIA BULLONERIA'],initials:'LR'},
+];
+
+const SUPPLIER_CONTACTS = {
+  'REVIFA SPA REGGIANA VITERIE': {contact:'Mario Rossi',email:'m.rossi@revifa.it',phone:'+39 0522 123456'},
+  'LISI AUTOMOTIVE FORMER': {contact:'Jean Dupont',email:'j.dupont@lisi-automotive.com',phone:'+33 3 85 123456'},
+  'AGRATI GIE': {contact:'Carlo Agrati',email:'procurement@agrati.it',phone:'+39 02 98765432'},
+  'ALMAS PARTECIPAZIONI': {contact:'Franco Almas',email:'orders@almas.it',phone:'+39 0444 123456'},
+  'VGV SRL': {contact:'Giovanni Verdi',email:'vgv@vgvsrl.it',phone:'+39 0425 123456'},
+  'MUSTAD S.p.A.': {contact:'Luca Mustad',email:'procurement@mustad.it',phone:'+39 0121 123456'},
+  'A. RAYMOND ITALIANA SRL': {contact:'Claire Martin',email:'c.martin@araymond.com',phone:'+39 011 123456'},
+  'ITW LYS FUSION SRL': {contact:'Pierre Lambert',email:'itw.orders@itw.com',phone:'+33 4 72 123456'},
+  'HOWMET FIXATIONS SIMMONDS SAS': {contact:'Thomas Simmonds',email:'t.simmonds@howmet.com',phone:'+33 4 50 123456'},
+  'OPTIMAS OE SOLUTIONS SAS': {contact:'Sophie Durand',email:'s.durand@optimas.com',phone:'+33 3 85 123456'},
+  'LOBO SPA': {contact:'Sergio Lobo',email:'procurement@lobospa.it',phone:'+39 030 123456'},
+  'BOLLHOFF SRL': {contact:'Hans Muller',email:'h.muller@bollhoff.com',phone:'+49 521 123456'},
+  'ITW RIVEX': {contact:'David Jones',email:'d.jones@itwrivex.com',phone:'+33 4 72 987654'},
+  'ARAYMOND France SAS': {contact:'Marc Bertrand',email:'m.bertrand@araymond.com',phone:'+33 4 50 654321'},
+  'AFF St Flo': {contact:'Anne Girard',email:'a.girard@aff.fr',phone:'+33 4 77 123456'},
+  'FONTANA LUIGI SPA': {contact:'Luigi Fontana',email:'l.fontana@fontanaspa.it',phone:'+39 031 123456'},
+  'I.B.S INDUSTRIA BULLONERIA': {contact:'Roberto IBS',email:'r.ibs@ibs-srl.it',phone:'+39 035 123456'},
+};
+
+// State
+let currentUser = null;
+let currentPage = 'login';
+let purchaseOrders = [
+  {id:'PO-2024-001',pn:'187502210',supplier:'REVIFA SPA REGGIANA VITERIE',qty:10000,status:'open',date:'2024-06-15',comment:'[SHORTAGE] - Urgent fasteners for L74 - MRD43/44 requirement',closed:false,extraCost:false},
+  {id:'PO-2024-002',pn:'468670560',supplier:'LISI AUTOMOTIVE FORMER',qty:5000,status:'open',date:'2024-11-18',comment:'[SHORTAGE] - M6 nuts urgent - Phase X0 MRD43',closed:false,extraCost:false},
+  {id:'PO-2023-050',pn:'520014760',supplier:'ITW LYS FUSION SRL',qty:20000,status:'closed',date:'2024-01-10',comment:'[LOGISTICS] - Rivet order closed',closed:true,extraCost:false},
+  {id:'EC-2024-001',pn:'187502210',supplier:'REVIFA SPA REGGIANA VITERIE',qty:1,status:'extra_cost',date:'2024-10-01',comment:'[CAPACITY] - Airfreight surcharge for urgent delivery €2400',closed:false,extraCost:true,amount:2400,type:'Airfreight'},
+];
+let pickupRequests = [
+  {id:'PKP-001',pn:'468670560',supplier:'LISI AUTOMOTIVE FORMER',readyDate:'2026-02-25',location:'Varennes-lès-Mâcon, France',qty:5000,status:'pending',po:'PO-2024-002'},
+];
+let notifications_log = [
+  {id:1,type:'increase',pn:'187502210',supplier:'REVIFA SPA REGGIANA VITERIE',message:'Need increased: KR001 2→4 units (MRD43)',time:'2026-02-17 09:15',read:false},
+  {id:2,type:'decrease',pn:'468670560',supplier:'LISI AUTOMOTIVE FORMER',message:'Need decreased: KR004 2→1 unit (MRD44)',time:'2026-02-17 08:30',read:false},
+  {id:3,type:'new',pn:'800678901',supplier:'AFF St Flo',message:'New part added to your perimeter',time:'2026-02-16 14:00',read:false},
+];
+
+// ============================================================
+// AUTH
+// ============================================================
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const user = USERS.find(u => u.email === email);
+  if (!user) { showNotification('User not found. Check email.','error'); return; }
+  currentUser = user;
+  document.getElementById('userAvatar').textContent = user.initials;
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('userRole').textContent = user.role === 'admin' ? 'System Administrator' : 'Procurement Officer — '+user.plant;
+  document.getElementById('sendFromEmail').value = user.email;
+  
+  if (user.role === 'admin') {
+    document.getElementById('adminNav').style.display = 'flex';
+    document.getElementById('adminSection').style.display = 'block';
+  }
+  
+  document.getElementById('page-login').style.display = 'none';
+  showPage('dashboard');
+  populateFilters();
+  populateAdminTables();
+}
+
+function logout() {
+  currentUser = null;
+  document.getElementById('page-login').style.display = 'flex';
+  Object.querySelectorAll ? null : null;
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.getElementById('page-login').style.display = 'flex';
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(page) {
+  if (!currentUser && page !== 'login') return;
+  document.querySelectorAll('.page').forEach(p => { p.style.display = 'none'; });
+  const el = document.getElementById('page-'+page);
+  if (el) el.style.display = 'block';
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'"+page+"'")) n.classList.add('active');
+  });
+  const titles = {dashboard:'Dashboard',needs:'Production Needs',suppliers:'My Suppliers',po:'PO Management',send:'Send Needs',pickup:'Pickup Requests',notifications:'Notifications',admin:'Admin Panel'};
+  const subs = {dashboard:'Procurement Operations Overview',needs:'MANQUANTS — Filtered by your perimeter',suppliers:'Your assigned supplier perimeter',po:'Purchase Orders & Extra Cost',send:'Send needs to suppliers via Outlook',pickup:'Pickup & Logistics requests',notifications:'Changes & Alerts',admin:'System Administration'};
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+  document.getElementById('pageSubtitle').textContent = subs[page] || '';
+  
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'needs') renderNeedsTable();
+  if (page === 'suppliers') renderSuppliers();
+  if (page === 'po') renderPOTable('open');
+  if (page === 'pickup') renderPickupTable();
+  if (page === 'notifications') renderNotifications();
+  if (page === 'send') { populateSendSelects(); buildEmailPreview(); }
+}
+
+// ============================================================
+// GET MY PARTS
+// ============================================================
+function getMyParts() {
+  if (!currentUser) return [];
+  if (currentUser.role === 'admin') return PARTS_DATA;
+  return PARTS_DATA.filter(p => currentUser.suppliers.some(s => p.supplier.toUpperCase().includes(s.toUpperCase())));
+}
+
+// ============================================================
+// FILTERS
+// ============================================================
+function populateFilters() {
+  const myParts = getMyParts();
+  const suppliers = [...new Set(myParts.map(p=>p.supplier).filter(Boolean))];
+  const mrds = [...new Set(Object.values(CR_META).map(m=>m.mrd))].sort();
+  
+  ['filterSupplier','sendSupplier','modalSendSupplier','pickupSupplierSel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">— All —</option>';
+    suppliers.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; el.appendChild(o); });
+  });
+  
+  const mrdSel = document.getElementById('filterMRD');
+  if (mrdSel) {
+    mrdSel.innerHTML = '<option value="">— All —</option>';
+    mrds.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; mrdSel.appendChild(o); });
+  }
+}
+
+function applyFilters() { renderNeedsTable(); }
+function clearFilters() {
+  ['filterSupplier','filterPhase','filterMRD','filterPlant','filterSearch','filterView'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = ''; }
+  });
+  renderNeedsTable();
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const myParts = getMyParts();
+  const mySuppliers = [...new Set(myParts.map(p=>p.supplier).filter(Boolean))];
+  const openPOs = purchaseOrders.filter(po => !po.closed && !po.extraCost && myParts.some(p=>p.pn===po.pn)).length;
+  const totalDel = myParts.reduce((a,p)=>a+p.total_delivery,0);
+  const urgentParts = myParts.filter(p=>Object.values(p.needs_cr||{}).some(v=>v>0)).length;
+  
+  document.getElementById('statParts').textContent = urgentParts;
+  document.getElementById('statSuppliers').textContent = mySuppliers.length;
+  document.getElementById('statPOs').textContent = openPOs;
+  document.getElementById('statDelivery').textContent = (totalDel/1000).toFixed(0)+'K';
+  document.getElementById('dashUrgentCount').textContent = urgentParts;
+  
+  const now = new Date();
+  const weekNum = Math.ceil(now.getDate()/7);
+  document.getElementById('dashWeek').textContent = `Week ${now.getFullYear()}-W${String(Math.floor((now-new Date(now.getFullYear(),0,1))/604800000)+1).padStart(2,'0')}`;
+  
+  // Supplier summary table
+  const tbody = document.getElementById('dashSupplierTbody');
+  tbody.innerHTML = '';
+  const supSummary = {};
+  myParts.forEach(p => {
+    if (!supSummary[p.supplier]) supSummary[p.supplier] = {parts:0,totalNeed:0};
+    supSummary[p.supplier].parts++;
+    supSummary[p.supplier].totalNeed += Object.values(p.needs_cr||{}).reduce((a,v)=>a+v,0);
+  });
+  Object.entries(supSummary).slice(0,8).forEach(([sup,data]) => {
+    const tr = document.createElement('tr');
+    const hasNeed = data.totalNeed > 0;
+    tr.innerHTML = `
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${sup}</td>
+      <td class="td-mono">${data.parts}</td>
+      <td class="td-mono">${data.totalNeed}</td>
+      <td>${hasNeed ? '<span class="badge badge-red">OPEN</span>' : '<span class="badge badge-green">OK</span>'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  
+  // Recent changes
+  const changes = document.getElementById('recentChanges');
+  changes.innerHTML = '';
+  notifications_log.forEach(n => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px;background:var(--bg3);border-radius:6px;border-left:3px solid '+(n.type==='increase'?'var(--accent)':n.type==='decrease'?'var(--green)':'var(--blue)')+';';
+    div.innerHTML = `
+      <div style="font-size:18px">${n.type==='increase'?'↑':n.type==='decrease'?'↓':'+'}</div>
+      <div>
+        <div style="font-size:12px;font-weight:600;margin-bottom:2px">${n.message}</div>
+        <div style="font-size:10px;color:var(--text3)">${n.pn} · ${n.time}</div>
+      </div>
+    `;
+    changes.appendChild(div);
+  });
+}
+
+// ============================================================
+// NEEDS TABLE
+// ============================================================
+function renderNeedsTable() {
+  const filterSup = document.getElementById('filterSupplier')?.value || '';
+  const filterPhase = document.getElementById('filterPhase')?.value || '';
+  const filterView = document.getElementById('filterView')?.value || 'total';
+  const filterMRD = document.getElementById('filterMRD')?.value || '';
+  const filterPlant = document.getElementById('filterPlant')?.value || '';
+  const filterSearch = document.getElementById('filterSearch')?.value?.toLowerCase() || '';
+  
+  let parts = getMyParts();
+  if (filterSup) parts = parts.filter(p => p.supplier === filterSup);
+  if (filterPlant) parts = parts.filter(p => p.plant === filterPlant);
+  if (filterSearch) parts = parts.filter(p => p.pn.includes(filterSearch) || p.desc.toLowerCase().includes(filterSearch) || p.supplier.toLowerCase().includes(filterSearch));
+  
+  // Update column header
+  const colH = document.getElementById('needsColHeader');
+  if (filterView === 'total') colH.textContent = 'Total Need';
+  else if (filterView === 'mrd') colH.textContent = 'By MRD';
+  else colH.textContent = 'By Counter Mark';
+  
+  document.getElementById('needsCount').textContent = `${parts.length} parts`;
+  
+  const tbody = document.getElementById('needsTbody');
+  tbody.innerHTML = '';
+  
+  parts.forEach(p => {
+    let needsCell = '';
+    
+    if (filterView === 'total') {
+      let total = 0;
+      Object.entries(p.needs_cr||{}).forEach(([cr,qty]) => {
+        const meta = CR_META[cr];
+        if (!meta) return;
+        if (filterPhase && meta.phase !== filterPhase) return;
+        if (filterMRD && meta.mrd.replace(' ','') !== filterMRD.replace(' ','')) return;
+        total += qty;
+      });
+      needsCell = total > 0 ? `<span style="font-family:var(--font-mono);font-weight:700;color:${total>10?'var(--accent)':total>0?'var(--yellow)':'var(--text3)'}">${total}</span>` : '<span style="color:var(--text3)">0</span>';
+    } else if (filterView === 'mrd') {
+      const mrdMap = {};
+      Object.entries(p.needs_cr||{}).forEach(([cr,qty]) => {
+        const meta = CR_META[cr];
+        if (!meta) return;
+        if (filterPhase && meta.phase !== filterPhase) return;
+        const mrd = meta.mrd.replace(' ','');
+        if (filterMRD && mrd !== filterMRD.replace(' ','')) return;
+        mrdMap[mrd] = (mrdMap[mrd]||0) + qty;
+      });
+      needsCell = Object.entries(mrdMap).map(([m,q])=>`<span class="badge ${q>0?'badge-yellow':'badge-gray'}" style="margin:1px">${m}:${q}</span>`).join('') || '<span style="color:var(--text3)">—</span>';
+    } else {
+      const crParts = Object.entries(p.needs_cr||{}).filter(([cr,qty]) => {
+        const meta = CR_META[cr];
+        if (!meta) return false;
+        if (filterPhase && meta.phase !== filterPhase) return false;
+        if (filterMRD && meta.mrd.replace(' ','') !== filterMRD.replace(' ','')) return false;
+        return qty > 0;
+      });
+      needsCell = crParts.slice(0,5).map(([cr,q])=>`<span class="badge badge-blue" style="margin:1px">${cr}:${q}</span>`).join('');
+      if (crParts.length > 5) needsCell += `<span class="badge badge-gray">+${crParts.length-5}</span>`;
+      if (!needsCell) needsCell = '<span style="color:var(--text3)">—</span>';
+    }
+    
+    const hasPO = purchaseOrders.some(po => po.pn === p.pn && !po.closed && !po.extraCost);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="badge ${p.plant==='L74'?'badge-blue':'badge-yellow'}">${p.plant}</span></td>
+      <td class="td-mono" style="color:var(--blue);cursor:pointer" onclick="showPartDetail('${p.pn}')">${p.pn}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;title='${p.desc}'">${p.desc||'—'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${p.supplier}</td>
+      <td class="td-mono">${p.open_po||'—'}</td>
+      <td><span class="badge ${p.status==='E'?'badge-green':'badge-red'}">${p.status||'?'}</span></td>
+      <td class="td-mono">${p.total_delivery?.toLocaleString()||0}</td>
+      <td>${needsCell}</td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-sm btn-blue" onclick="showPartDetail('${p.pn}')">Detail</button>
+        <button class="btn btn-sm btn-green" onclick="quickSend('${p.supplier}')">✈</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  
+  if (parts.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="9" style="text-align:center;color:var(--text3);padding:30px">No parts match the current filters</td>';
+    tbody.appendChild(tr);
+  }
+}
+
+// ============================================================
+// PART DETAIL
+// ============================================================
+function showPartDetail(pn) {
+  const p = PARTS_DATA.find(x => x.pn === pn);
+  if (!p) return;
+  document.getElementById('partDetailTitle').textContent = `PN ${pn} — ${p.desc}`;
+  
+  const contact = SUPPLIER_CONTACTS[p.supplier] || {};
+  const myPOs = purchaseOrders.filter(po => po.pn === pn);
+  
+  let crTable = '<div style="overflow-x:auto"><table style="width:100%;font-size:11px"><thead><tr>';
+  const crEntries = Object.entries(p.needs_cr||{}).filter(([,v])=>v>0);
+  crEntries.forEach(([cr]) => {
+    const meta = CR_META[cr]||{};
+    crTable += `<th style="padding:6px;text-align:center;background:var(--bg3);font-size:9px;border:1px solid var(--border)">${cr}<br><span style="color:var(--text3)">${meta.mrd||''}</span></th>`;
+  });
+  crTable += '</tr></thead><tbody><tr>';
+  crEntries.forEach(([cr,qty]) => {
+    crTable += `<td style="padding:6px;text-align:center;border:1px solid var(--border);font-family:var(--font-mono);font-weight:700;color:var(--yellow)">${qty}</td>`;
+  });
+  crTable += '</tr></tbody></table></div>';
+  
+  document.getElementById('partDetailBody').innerHTML = `
+    <div class="grid-2" style="margin-bottom:16px">
+      <div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;letter-spacing:2px;text-transform:uppercase">Part Info</div>
+        <table style="font-size:12px;width:100%">
+          <tr><td style="color:var(--text3);padding:3px 0">Plant</td><td><strong>${p.plant}</strong></td></tr>
+          <tr><td style="color:var(--text3);padding:3px 0">PN Uncolored</td><td class="td-mono">${p.pn_uncolored||'—'}</td></tr>
+          <tr><td style="color:var(--text3);padding:3px 0">MAG</td><td class="td-mono">${p.mag||'—'}</td></tr>
+          <tr><td style="color:var(--text3);padding:3px 0">Area JIT</td><td>${p.area_jit||'—'}</td></tr>
+          <tr><td style="color:var(--text3);padding:3px 0">Status (Corail)</td><td><span class="badge ${p.status==='E'?'badge-green':'badge-red'}">${p.status||'—'}</span></td></tr>
+          <tr><td style="color:var(--text3);padding:3px 0">Total Delivery</td><td class="td-mono">${p.total_delivery?.toLocaleString()}</td></tr>
+          <tr><td style="color:var(--text3);padding:3px 0">Open PO</td><td class="td-mono">${p.open_po||'—'}</td></tr>
+        </table>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;letter-spacing:2px;text-transform:uppercase">Supplier Contact</div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px">
+          <div style="font-weight:700;margin-bottom:4px">${p.supplier}</div>
+          <div style="font-size:12px;color:var(--text2)">👤 ${contact.contact||'—'}</div>
+          <div style="font-size:12px;color:var(--blue)">✉ ${contact.email||'—'}</div>
+          <div style="font-size:12px;color:var(--text2)">📞 ${contact.phone||'—'}</div>
+        </div>
+        <div style="margin-top:12px">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:2px">Phase Totals</div>
+          <div style="display:flex;gap:8px">
+            ${Object.entries(p.phase_totals||{}).map(([ph,qty])=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;text-align:center"><div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:${ph==='X0'?'var(--blue)':ph==='X1'?'var(--green)':'var(--yellow)'}">${qty}</div><div style="font-size:10px;color:var(--text3)">${ph}</div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:2px">Needs by Counter Mark</div>
+    ${crEntries.length ? crTable : '<div style="color:var(--text3)">No open needs</div>'}
+    ${myPOs.length ? `
+    <div style="margin-top:16px">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:2px">Purchase Orders for this PN</div>
+      <div class="po-list">
+        ${myPOs.map(po=>`<div class="po-item">
+          <div><div style="font-family:var(--font-mono);font-weight:700">${po.id}</div><div style="font-size:11px;color:var(--text3)">${po.comment}</div></div>
+          <div style="text-align:right">
+            <span class="badge ${po.closed?'badge-gray':po.extraCost?'badge-yellow':'badge-green'}">${po.status.toUpperCase()}</span>
+            <div style="font-family:var(--font-mono);font-size:12px;margin-top:4px">${po.qty?.toLocaleString()} pcs</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
+  `;
+  openModal('partDetailModal');
+}
+
+// ============================================================
+// SUPPLIERS
+// ============================================================
+function renderSuppliers() {
+  const tbody = document.getElementById('suppliersTbody');
+  tbody.innerHTML = '';
+  const myParts = getMyParts();
+  const mySuppliers = [...new Set(myParts.map(p=>p.supplier).filter(Boolean))];
+  
+  mySuppliers.forEach((sup,i) => {
+    const parts = myParts.filter(p=>p.supplier===sup);
+    const totalNeed = parts.reduce((a,p)=>a+Object.values(p.needs_cr||{}).reduce((x,v)=>x+v,0),0);
+    const openPOs = purchaseOrders.filter(po=>po.pn && parts.some(p=>p.pn===po.pn) && !po.closed && !po.extraCost).length;
+    const contact = SUPPLIER_CONTACTS[sup]||{};
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="td-mono">${i+1}</td>
+      <td style="font-weight:600">${sup}</td>
+      <td class="td-mono">${parts.length}</td>
+      <td>${totalNeed > 0 ? `<span class="badge badge-red">${totalNeed}</span>` : '<span class="badge badge-green">0</span>'}</td>
+      <td class="td-mono">${openPOs}</td>
+      <td style="font-size:11px;color:var(--blue)">${contact.email||'—'}</td>
+      <td>
+        <button class="btn btn-sm btn-primary" onclick="quickSend('${sup}')">✈ Send</button>
+        <button class="btn btn-sm btn-secondary" onclick="filterBySup('${sup}')">⊞ Needs</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function filterBySup(sup) {
+  showPage('needs');
+  document.getElementById('filterSupplier').value = sup;
+  applyFilters();
+}
+
+function quickSend(sup) {
+  showPage('send');
+  setTimeout(() => {
+    const el = document.getElementById('sendSupplier');
+    if (el) { el.value = sup; buildEmailPreview(); }
+  }, 100);
+}
+
+// ============================================================
+// PO TABLE
+// ============================================================
+let currentPOTab = 'open';
+function renderPOTable(tab) {
+  currentPOTab = tab;
+  const myParts = getMyParts();
+  let filtered = purchaseOrders.filter(po => {
+    const isMyPart = myParts.some(p=>p.pn===po.pn);
+    if (currentUser?.role === 'admin') {
+      if (tab==='open') return !po.closed && !po.extraCost;
+      if (tab==='closed') return po.closed;
+      if (tab==='extracost') return po.extraCost;
+      if (tab==='pickup') return false;
+    }
+    if (!isMyPart && currentUser?.role !== 'admin') return false;
+    if (tab==='open') return !po.closed && !po.extraCost;
+    if (tab==='closed') return po.closed;
+    if (tab==='extracost') return po.extraCost;
+    return false;
+  });
+  
+  if (tab === 'pickup') { renderPickupTable(); return; }
+  
+  const tbody = document.getElementById('poTbody');
+  tbody.innerHTML = '';
+  
+  if (filtered.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="9" style="text-align:center;color:var(--text3);padding:30px">No ${tab} records</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+  
+  filtered.forEach(po => {
+    const part = PARTS_DATA.find(p=>p.pn===po.pn)||{};
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="td-mono" style="color:var(--blue)">${po.id}</td>
+      <td class="td-mono">${po.pn}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${part.desc||'—'}</td>
+      <td>${po.supplier}</td>
+      <td class="td-mono">${po.qty?.toLocaleString()}</td>
+      <td><span class="badge ${po.closed?'badge-gray':po.extraCost?'badge-yellow':'badge-green'}">${po.status}</span></td>
+      <td style="font-size:11px;color:var(--text3)">${po.date}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${po.comment||'—'}</td>
+      <td style="display:flex;gap:4px">
+        ${!po.closed && !po.extraCost ? `<button class="btn btn-sm btn-secondary" onclick="closePO('${po.id}')">Close</button>` : ''}
+        <button class="btn btn-sm btn-blue" onclick="showExtraCostForPO('${po.id}')">EC</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function switchPOTab(tab, el) {
+  document.querySelectorAll('#page-po .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  
+  // Update table headers for different tabs
+  const thead = document.querySelector('#poTable thead tr');
+  if (tab === 'extracost') {
+    thead.innerHTML = '<th>EC Ref</th><th>PN</th><th>Description</th><th>Supplier</th><th>Type</th><th>Amount €</th><th>Date</th><th>Justification</th><th>Actions</th>';
+  } else if (tab === 'pickup') {
+    renderPickupInPO();
+    return;
+  } else {
+    thead.innerHTML = '<th>PO Number</th><th>PN</th><th>Description</th><th>Supplier</th><th>Qty</th><th>Status</th><th>Date</th><th>Comment</th><th>Actions</th>';
+  }
+  renderPOTable(tab);
+}
+
+function closePO(id) {
+  const po = purchaseOrders.find(p=>p.id===id);
+  if (po) { po.closed = true; po.status = 'closed'; }
+  renderPOTable(currentPOTab);
+  showNotification('PO '+id+' closed successfully','success');
+}
+
+function renderPickupInPO() {
+  const thead = document.querySelector('#poTable thead tr');
+  thead.innerHTML = '<th>Req #</th><th>PN</th><th>Supplier</th><th>Ready Date</th><th>Location</th><th>Qty</th><th>Status</th><th>Actions</th>';
+  const tbody = document.getElementById('poTbody');
+  tbody.innerHTML = '';
+  pickupRequests.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="td-mono" style="color:var(--blue)">${r.id}</td>
+      <td class="td-mono">${r.pn}</td>
+      <td>${r.supplier}</td>
+      <td>${r.readyDate}</td>
+      <td>${r.location}</td>
+      <td class="td-mono">${r.qty?.toLocaleString()}</td>
+      <td><span class="badge ${r.status==='done'?'badge-green':'badge-yellow'}">${r.status}</span></td>
+      <td><button class="btn btn-sm btn-green" onclick="markPickupDone('${r.id}')">✓ Done</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  if (pickupRequests.length===0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:30px">No pickup requests</td></tr>';
+  }
+}
+
+function markPickupDone(id) {
+  const r = pickupRequests.find(x=>x.id===id);
+  if (r) r.status = 'done';
+  renderPickupInPO();
+  showNotification('Pickup '+id+' marked as done','success');
+}
+
+// ============================================================
+// PICKUP
+// ============================================================
+function renderPickupTable() {
+  const tbody = document.getElementById('pickupTbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  pickupRequests.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="td-mono" style="color:var(--blue)">${r.id}</td>
+      <td class="td-mono">${r.pn}</td>
+      <td>${r.supplier}</td>
+      <td>${r.readyDate}</td>
+      <td>${r.location}</td>
+      <td class="td-mono">${r.qty?.toLocaleString()}</td>
+      <td><span class="badge ${r.status==='done'?'badge-green':'badge-yellow'}">${r.status.toUpperCase()}</span></td>
+      <td><button class="btn btn-sm btn-green" onclick="markPickupDone2('${r.id}')">✓ Done</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  if (pickupRequests.length===0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:30px">No pickup requests yet</td></tr>';
+  }
+}
+
+function markPickupDone2(id) {
+  const r = pickupRequests.find(x=>x.id===id);
+  if (r) r.status = 'done';
+  renderPickupTable();
+  showNotification('Pickup marked as done','success');
+}
+
+// ============================================================
+// EMAIL / SEND
+// ============================================================
+function populateSendSelects() {
+  const myParts = getMyParts();
+  const suppliers = [...new Set(myParts.map(p=>p.supplier).filter(Boolean))];
+  ['sendSupplier'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">— Select Supplier —</option>';
+    suppliers.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; el.appendChild(o); });
+    if (cur) el.value = cur;
+  });
+}
+
+function buildEmail(supplier, phase, mode) {
+  const myParts = getMyParts().filter(p => p.supplier === supplier);
+  if (!myParts.length) return {subject:'', body:''};
+  
+  const contact = SUPPLIER_CONTACTS[supplier]||{};
+  const project = document.getElementById('sendProject')?.value || 'L74';
+  const now = new Date();
+  const weekStr = `${now.getFullYear()}-W${String(Math.floor((now-new Date(now.getFullYear(),0,1))/604800000)+1).padStart(2,'0')}`;
+  
+  let filteredParts = myParts.filter(p => {
+    const needs = p.needs_cr || {};
+    return Object.entries(needs).some(([cr,qty]) => {
+      if (!qty) return false;
+      const meta = CR_META[cr];
+      if (!meta) return false;
+      if (phase && meta.phase !== phase) return false;
+      return true;
+    });
+  });
+  
+  const subject = `🚨 [URGENT] ALTEN — PRODUCTION NEEDS ${project} — ${supplier.split(' ')[0]} — ${phase || 'ALL PHASES'} — ${weekStr}`;
+  
+  let body = `***** URGENT PROCUREMENT REQUEST *****\n\n`;
+  body += `Dear ${contact.contact || 'Supplier'},\n\n`;
+  body += `Please find below the URGENT production needs for project ${project}.\n`;
+  body += `Week: ${weekStr} | Date: ${now.toISOString().split('T')[0]} | Priority: URGENT\n\n`;
+  body += `══════════════════════════════════════\n`;
+  body += `PRODUCTION NEEDS — ${project} | ${supplier}\n`;
+  body += `══════════════════════════════════════\n\n`;
+  
+  filteredParts.forEach(p => {
+    body += `PN: ${p.pn}\n`;
+    body += `DESC: ${p.desc || '—'}\n`;
+    body += `STATUS: ${p.status || '—'} | OPEN PO: ${p.open_po || '—'}\n`;
+    
+    if (mode === 'total') {
+      let total = Object.entries(p.needs_cr||{}).filter(([cr]) => {
+        const meta = CR_META[cr];
+        return meta && (!phase || meta.phase === phase);
+      }).reduce((a,[,v])=>a+v,0);
+      body += `TOTAL NEED: ${total} units\n`;
+    } else if (mode === 'mrd') {
+      const mrdMap = {};
+      Object.entries(p.needs_cr||{}).forEach(([cr,qty]) => {
+        const meta = CR_META[cr];
+        if (!meta || (phase && meta.phase !== phase)) return;
+        const mrd = meta.mrd;
+        mrdMap[mrd] = (mrdMap[mrd]||0) + qty;
+      });
+      Object.entries(mrdMap).forEach(([m,q]) => {
+        body += `  ${m}: ${q} units\n`;
+      });
+    } else {
+      const crParts = Object.entries(p.needs_cr||{}).filter(([cr,qty]) => {
+        const meta = CR_META[cr];
+        return meta && (!phase || meta.phase === phase) && qty > 0;
+      });
+      crParts.forEach(([cr,qty]) => {
+        const meta = CR_META[cr]||{};
+        body += `  ${cr} (${meta.mrd||''}): ${qty} units — EMON: ${meta.emon||'—'}\n`;
+      });
+    }
+    body += `─────────────────────\n`;
+  });
+  
+  body += `\n══════════════════════════════════════\n`;
+  body += `Please confirm receipt and provide delivery schedule.\n`;
+  body += `For any questions, contact us immediately.\n\n`;
+  body += `Best regards,\n${currentUser?.name || 'Procurement Officer'}\n`;
+  body += `ALTEN | ${project} | ${currentUser?.email || ''}\n`;
+  body += `\n***** THIS IS AN URGENT REQUEST *****`;
+  
+  return {subject, body};
+}
+
+function buildEmailPreview() {
+  const supplier = document.getElementById('sendSupplier')?.value || '';
+  const phase = document.getElementById('sendPhase')?.value || '';
+  const mode = document.getElementById('sendMode')?.value || 'total';
+  if (!supplier) {
+    document.getElementById('emailSubjectPreview').textContent = '— Select supplier to preview —';
+    document.getElementById('emailBodyPreview').textContent = '';
+    return;
+  }
+  const {subject, body} = buildEmail(supplier, phase, mode);
+  document.getElementById('emailSubjectPreview').textContent = subject;
+  document.getElementById('emailBodyPreview').textContent = body;
+}
+
+function buildModalEmailPreview() {
+  const supplier = document.getElementById('modalSendSupplier')?.value || '';
+  const phase = document.getElementById('modalSendPhase')?.value || '';
+  const mode = document.getElementById('modalSendMode')?.value || 'total';
+  if (!supplier) { document.getElementById('modalEmailPreview').textContent = '— Select supplier —'; return; }
+  const {subject, body} = buildEmail(supplier, phase, mode);
+  document.getElementById('modalEmailPreview').textContent = subject + '\n\n' + body;
+}
+
+function sendEmail() {
+  const supplier = document.getElementById('sendSupplier')?.value;
+  if (!supplier) { showNotification('Please select a supplier','error'); return; }
+  const toEmail = document.getElementById('sendToEmail')?.value || SUPPLIER_CONTACTS[supplier]?.email || '';
+  const fromEmail = document.getElementById('sendFromEmail')?.value || currentUser?.email || '';
+  const {subject, body} = buildEmail(supplier, document.getElementById('sendPhase')?.value, document.getElementById('sendMode')?.value);
+  
+  const mailtoLink = `mailto:${toEmail}?from=${encodeURIComponent(fromEmail)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(mailtoLink);
+  showNotification('Email client opened with pre-filled content!','success');
+}
+
+function sendFromModal() {
+  const supplier = document.getElementById('modalSendSupplier')?.value;
+  if (!supplier) { showNotification('Select a supplier','error'); return; }
+  const toEmail = document.getElementById('modalToEmail')?.value || SUPPLIER_CONTACTS[supplier]?.email || '';
+  const {subject, body} = buildEmail(supplier, document.getElementById('modalSendPhase')?.value, document.getElementById('modalSendMode')?.value);
+  const mailtoLink = `mailto:${toEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(mailtoLink);
+  closeModal('sendModal');
+  showNotification('Email sent via Outlook!','success');
+}
+
+function copyEmailText() {
+  const sub = document.getElementById('emailSubjectPreview')?.textContent || '';
+  const body = document.getElementById('emailBodyPreview')?.textContent || '';
+  navigator.clipboard?.writeText(sub + '\n\n' + body).then(()=>showNotification('Email copied to clipboard!','success'));
+}
+
+// ============================================================
+// PO CREATION
+// ============================================================
+function createPO() {
+  const pn = document.getElementById('newPOPN')?.value.trim();
+  const supplier = document.getElementById('newPOSupplier')?.value.trim();
+  const qty = parseInt(document.getElementById('newPOQty')?.value)||0;
+  const date = document.getElementById('newPODate')?.value;
+  const comment = document.getElementById('newPOComment')?.value.trim();
+  if (!pn || !supplier) { showNotification('PN and Supplier are required','error'); return; }
+  const id = 'PO-'+Date.now().toString().slice(-6);
+  purchaseOrders.push({id, pn, supplier, qty, date, comment, status:'open', closed:false, extraCost:false});
+  closeModal('createPOModal');
+  showNotification('PO '+id+' created!','success');
+  renderPOTable('open');
+}
+
+function showExtraCostForPO(poId) {
+  const po = purchaseOrders.find(p=>p.id===poId);
+  if (po) document.getElementById('ecPO').value = poId;
+  if (po) document.getElementById('ecPN').value = po.pn;
+  openModal('extraCostModal');
+}
+
+function createExtraCost() {
+  const pn = document.getElementById('ecPN')?.value.trim();
+  const po = document.getElementById('ecPO')?.value.trim();
+  const type = document.getElementById('ecType')?.value;
+  const amount = parseFloat(document.getElementById('ecAmount')?.value)||0;
+  const just = document.getElementById('ecJustification')?.value.trim();
+  const id = 'EC-'+Date.now().toString().slice(-6);
+  purchaseOrders.push({id, pn, supplier: purchaseOrders.find(x=>x.id===po)?.supplier||'', qty:1, date:new Date().toISOString().split('T')[0], comment:`[EXTRA COST] ${type} — ${just}`, status:'extra_cost', closed:false, extraCost:true, amount, type});
+  closeModal('extraCostModal');
+  showNotification('Extra cost request '+id+' submitted!','success');
+}
+
+// ============================================================
+// PICKUP
+// ============================================================
+function createPickup() {
+  const pn = document.getElementById('pickupPN')?.value.trim();
+  const supplier = document.getElementById('pickupSupplierSel')?.value;
+  const date = document.getElementById('pickupDate')?.value;
+  const qty = parseInt(document.getElementById('pickupQty')?.value)||0;
+  const location = document.getElementById('pickupLocation')?.value.trim();
+  const po = document.getElementById('pickupPORef')?.value.trim();
+  if (!pn || !supplier) { showNotification('PN and Supplier required','error'); return; }
+  const id = 'PKP-'+String(pickupRequests.length+1).padStart(3,'0');
+  pickupRequests.push({id, pn, supplier, readyDate:date, location, qty, status:'pending', po});
+  closeModal('pickupModal');
+  showNotification('Pickup request '+id+' created!','success');
+  renderPickupTable();
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+function renderNotifications() {
+  const container = document.getElementById('notificationsList');
+  if (!container) return;
+  container.innerHTML = '';
+  const myParts = getMyParts();
+  const myNotifs = notifications_log.filter(n => myParts.some(p=>p.pn===n.pn) || currentUser?.role==='admin');
+  
+  if (!myNotifs.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:30px">No new notifications</div>';
+    return;
+  }
+  
+  myNotifs.forEach(n => {
+    const div = document.createElement('div');
+    div.style.cssText = `display:flex;gap:14px;align-items:flex-start;padding:14px;background:${n.read?'var(--bg3)':'var(--card)'};border:1px solid var(--border);border-radius:8px;border-left:4px solid ${n.type==='increase'?'var(--accent)':n.type==='decrease'?'var(--green)':'var(--blue)'};cursor:pointer;`;
+    div.innerHTML = `
+      <div style="font-size:22px;flex-shrink:0">${n.type==='increase'?'↑':n.type==='decrease'?'↓':'+'}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px">${n.message}</div>
+        <div style="font-size:11px;color:var(--text3)">PN: ${n.pn} | ${n.supplier}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">${n.time}</div>
+      </div>
+      ${!n.read ? '<span class="badge badge-red" style="flex-shrink:0">NEW</span>' : ''}
+    `;
+    div.onclick = () => { n.read = true; renderNotifications(); updateNotifBadge(); };
+    container.appendChild(div);
+  });
+}
+
+function updateNotifBadge() {
+  const myParts = getMyParts();
+  const unread = notifications_log.filter(n => !n.read && (myParts.some(p=>p.pn===n.pn) || currentUser?.role==='admin')).length;
+  const badge = document.getElementById('notifBadge');
+  if (badge) { badge.textContent = unread; badge.style.display = unread ? '' : 'none'; }
+}
+
+// ============================================================
+// ADMIN
+// ============================================================
+function populateAdminTables() {
+  // Users table
+  const utbody = document.getElementById('adminUsersTbody');
+  if (utbody) {
+    utbody.innerHTML = '';
+    USERS.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-weight:600">${u.name}</td>
+        <td style="color:var(--blue);font-size:12px">${u.email}</td>
+        <td style="font-size:11px">${u.suppliers.join(', ').slice(0,80)}</td>
+        <td><span class="badge badge-blue">${u.plant}</span></td>
+        <td>
+          <button class="btn btn-sm btn-secondary" onclick="showNotification('Edit user — coming in full backend version','info')">Edit</button>
+          ${u.email !== 'mohamed@alten.com' ? `<button class="btn btn-sm btn-red" onclick="showNotification('User removed','success')" style="background:rgba(230,57,70,0.15);color:var(--accent);border:1px solid rgba(230,57,70,0.3)">Remove</button>` : ''}
+        </td>
+      `;
+      utbody.appendChild(tr);
+    });
+  }
+  
+  // Suppliers table
+  const stbody = document.getElementById('adminSuppliersTbody');
+  if (stbody) {
+    stbody.innerHTML = '';
+    let i = 1;
+    Object.entries(SUPPLIER_CONTACTS).forEach(([sup, contact]) => {
+      const assignedTo = USERS.find(u => u.suppliers.some(s => sup.includes(s) || s.includes(sup.split(' ')[0])));
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-mono">${i++}</td>
+        <td style="font-weight:600">${sup}</td>
+        <td>${contact.contact||'—'}</td>
+        <td style="color:var(--blue);font-size:11px">${contact.email||'—'}</td>
+        <td style="font-size:11px">${contact.phone||'—'}</td>
+        <td style="font-size:11px">${assignedTo?.name||'Unassigned'}</td>
+        <td>
+          <button class="btn btn-sm btn-secondary" onclick="showNotification('Edit supplier contact','info')">Edit</button>
+        </td>
+      `;
+      stbody.appendChild(tr);
+    });
+  }
+}
+
+function switchAdminTab(tab, el) {
+  document.querySelectorAll('#page-admin .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.admin-panel').forEach(p=>p.style.display='none');
+  const panel = document.getElementById('admin-'+tab);
+  if (panel) panel.style.display = 'block';
+}
+
+function addUser() {
+  const name = document.getElementById('newUserName')?.value.trim();
+  const email = document.getElementById('newUserEmail')?.value.trim();
+  if (!name || !email) { showNotification('Name and email required','error'); return; }
+  const suppliers = document.getElementById('newUserSuppliers')?.value.split(',').map(s=>s.trim()).filter(Boolean) || [];
+  const plant = document.getElementById('newUserPlant')?.value;
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  USERS.push({name,email,role:'officer',plant,suppliers,initials});
+  closeModal('addUserModal');
+  populateAdminTables();
+  showNotification('User '+name+' added and notified!','success');
+}
+
+function addNeed() {
+  const pn = document.getElementById('adminPN')?.value.trim();
+  const supplier = document.getElementById('adminSupplierField')?.value.trim();
+  const cr = document.getElementById('adminCR')?.value.trim();
+  const qty = parseInt(document.getElementById('adminQty')?.value)||0;
+  if (!pn || !supplier || !cr) { showNotification('Fill all required fields','error'); return; }
+  // Add to notifications
+  const officer = USERS.find(u=>u.suppliers.some(s=>supplier.includes(s)));
+  notifications_log.unshift({id:Date.now(),type:'new',pn,supplier,message:`Admin added need: ${cr}=${qty} for PN ${pn}`,time:new Date().toISOString().replace('T',' ').split('.')[0],read:false});
+  updateNotifBadge();
+  showNotification('Need added for PN '+pn+'. '+(officer?officer.name+' notified.':'No officer assigned.'),'success');
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportNeeds() {
+  const myParts = getMyParts();
+  let csv = 'Plant,PN,Description,Supplier,Open PO,Status,Total Delivery,Total Need\n';
+  myParts.forEach(p => {
+    const total = Object.values(p.needs_cr||{}).reduce((a,v)=>a+v,0);
+    csv += `"${p.plant}","${p.pn}","${p.desc}","${p.supplier}","${p.open_po}","${p.status}","${p.total_delivery}","${total}"\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ALTEN_Needs_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  showNotification('Export downloaded!','success');
+}
+
+// ============================================================
+// MODALS
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showSendModal() { openModal('sendModal'); populateFilters(); }
+function showCreatePOModal() { openModal('createPOModal'); }
+function showExtraCostModal() { openModal('extraCostModal'); }
+function showPickupModal() { openModal('pickupModal'); populateFilters(); }
+function showAddUserModal() { openModal('addUserModal'); }
+function showAddSupplierModal() { showNotification('Add supplier form — use the contact fields','info'); }
+
+// Close modals clicking outside
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('active'); });
+});
+
+// ============================================================
+// NOTIFICATIONS TOAST
+// ============================================================
+let notifTimer;
+function showNotification(text, type='info', sub='') {
+  const el = document.getElementById('notifToast');
+  const textEl = document.getElementById('notifText');
+  const subEl = document.getElementById('notifSub');
+  el.className = 'notification show '+type;
+  textEl.textContent = text;
+  subEl.textContent = sub;
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(()=>el.classList.remove('show'), 4000);
+}
+
+// ============================================================
+// CLOCK
+// ============================================================
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clockDisplay').textContent = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) + ' — ' + now.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ============================================================
+// BOOT
+// ============================================================
+document.querySelectorAll('.page').forEach(p => { p.style.display = 'none'; });
+document.getElementById('page-login').style.display = 'flex';
+// Hide topbar content initially
+document.querySelector('.topbar').style.opacity = '0.3';
+
+// Fix: show topbar after login is called inside doLogin, just need to unhide it
+const origDoLogin = doLogin;
+
+// Override showPage to fix topbar
+const origShowPage = showPage;
+window.showPage = function(page) {
+  document.querySelector('.topbar').style.opacity = '1';
+  origShowPage(page);
+};
+
+// Override doLogin to show topbar
+window.doLogin = function() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const user = USERS.find(u => u.email === email);
+  if (!user) { showNotification('User not found. Check email.','error'); return; }
+  currentUser = user;
+  document.getElementById('userAvatar').textContent = user.initials;
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('userRole').textContent = user.role === 'admin' ? 'System Administrator' : 'Procurement Officer — '+user.plant;
+  document.getElementById('sendFromEmail').value = user.email;
+  document.querySelector('.topbar').style.opacity = '1';
+  
+  if (user.role === 'admin') {
+    document.getElementById('adminNav').style.display = 'flex';
+    document.getElementById('adminSection').style.display = 'block';
+  }
+  
+  document.getElementById('page-login').style.display = 'none';
+  showPage('dashboard');
+  populateFilters();
+  populateAdminTables();
+  updateNotifBadge();
+};
+
+// Auto-login demo: uncomment to skip login
+// document.getElementById('loginEmail').value = 'abrar@alten.com';
+// doLogin();
+</script>
+</body>
+</html>
