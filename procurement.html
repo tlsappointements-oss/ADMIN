@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ALTEN Procurement Portal v2.0</title>
+<title>ALTEN Procurement Portal v3.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -21,17 +21,13 @@
   --r:8px;
 }
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-/* Futuristic Scrollbar */
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--blue);border-radius:10px;box-shadow:0 0 10px var(--blue-glow)}
-
 .app{display:flex;min-height:100vh}
 .sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--border);position:fixed;height:100vh;z-index:100;display:flex;flex-direction:column}
 .main{margin-left:260px;flex:1;padding-bottom:50px}
 .topbar{height:60px;background:rgba(10,14,20,0.8);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 25px;position:sticky;top:0;z-index:90}
-
-/* KPI Dashboard - Futuristic */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:25px}
 .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:0.3s}
 .kpi-card:hover{border-color:var(--blue);box-shadow:0 0 20px rgba(0,242,255,0.1)}
@@ -39,8 +35,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .kpi-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--text3);letter-spacing:2px}
 .kpi-val{font-size:32px;font-family:var(--display);margin:5px 0;background:linear-gradient(to bottom,#fff,#888);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .kpi-chart-mini{height:60px;width:100%;margin-top:10px}
-
-/* Futuristic Table & Matrix */
 .matrix-container{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
 .table-header{background:var(--bg3);padding:15px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
 table{width:100%;border-collapse:collapse}
@@ -48,29 +42,30 @@ th{text-align:left;padding:12px 15px;font-family:var(--mono);font-size:9px;color
 td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.02);color:var(--text2)}
 .pn-link{color:var(--blue);font-weight:600;cursor:pointer;text-decoration:none}
 .pn-link:hover{text-shadow:0 0 8px var(--blue-glow)}
-
-/* Modals */
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:1000;display:none;align-items:center;justify-content:center}
 .modal-ov.open{display:flex}
 .modal{background:var(--bg2);border:1px solid var(--blue);width:90%;max-width:1100px;max-height:90vh;border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(0,242,255,0.15)}
-
-/* Buttons */
 .btn{padding:8px 18px;border-radius:6px;border:none;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;transition:0.2s;text-transform:uppercase}
 .btn-primary{background:var(--blue);color:#000}.btn-primary:hover{box-shadow:0 0 15px var(--blue)}
 .btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2)}.btn-outline:hover{border-color:var(--text);color:var(--text)}
-
-/* Utility */
 .badge{padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:9px}
 .badge-red{background:rgba(255,0,46,0.1);color:var(--red);border:1px solid var(--red)}
 .draft-indicator{font-size:9px;color:var(--yellow);margin-left:10px;font-family:var(--mono);display:none}
-
-/* Admin specific */
 .admin-only{display:none}
 .is-mohamed .admin-only{display:block}
+/* Matrix / Pivot styling */
+.matrix-table th, .matrix-table td{border-bottom:1px solid var(--border);text-align:center}
+.matrix-header{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tabbar{display:flex;gap:6px;margin-top:10px}
+.tab{padding:6px 10px;border:1px solid var(--border2);border-radius:16px;font-family:var(--mono);font-size:10px;cursor:pointer}
+.tab.active{background:var(--blue);color:#000;border-color:var(--blue)}
+.cell-edit{width:70px;text-align:center;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:6px;padding:4px}
+.cell-edit[disabled]{opacity:0.6}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:10px}
+.kpi-chip{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:10px;font-family:var(--mono);font-size:10px;text-align:center}
 </style>
 </head>
 <body id="bodyRoot">
-
 <div class="app">
   <aside class="sidebar">
     <div style="padding:25px;border-bottom:1px solid var(--border)">
@@ -84,8 +79,8 @@ td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.0
         <div onclick="nav('needs')" class="btn btn-outline" style="width:100%;text-align:left;margin-bottom:10px">◈ NEEDS MATRIX</div>
         <div onclick="nav('send')" class="btn btn-outline" style="width:100%;text-align:left;margin-bottom:10px">✈ SEND NEEDS</div>
         <div class="admin-only">
-            <div style="color:var(--text3);font-size:9px;letter-spacing:2px;margin:20px 0 15px">ADMINISTRATION</div>
-            <div onclick="nav('upload')" class="btn btn-outline" style="width:100%;text-align:left;border-color:var(--purple)">⬆ MASTER UPLOAD</div>
+          <div style="color:var(--text3);font-size:9px;letter-spacing:2px;margin:20px 0 15px">ADMINISTRATION</div>
+          <div onclick="nav('upload')" class="btn btn-outline" style="width:100%;text-align:left;border-color:var(--purple)">⬆ MASTER UPLOAD</div>
         </div>
       </nav>
     </div>
@@ -99,7 +94,6 @@ td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.0
       </div>
     </div>
   </aside>
-
   <main class="main">
     <div class="topbar">
       <div id="pageTitle" style="font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--blue)">MISSION_CONTROL // DASHBOARD</div>
@@ -109,6 +103,7 @@ td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.0
     </div>
 
     <div class="content" style="padding:25px">
+      <!-- DASHBOARD -->
       <section id="page-dash" class="page">
         <div class="kpi-grid">
           <div class="kpi-card">
@@ -132,11 +127,14 @@ td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.0
             <div style="font-size:9px;color:var(--text3)">CURRENT PRIORITY</div>
           </div>
         </div>
-        
+
         <div class="matrix-container">
           <div class="table-header">
             <div style="font-family:var(--mono);font-size:10px">ACTIVE_SHORTAGES</div>
-            <button class="btn btn-primary btn-sm" onclick="exportMasterExcel()">⬇ EXPORT ALL</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline" onclick="refreshData()">↻ REFRESH</button>
+              <button class="btn btn-primary btn-sm" onclick="exportMasterExcel()">⬇ EXPORT ALL</button>
+            </div>
           </div>
           <div style="overflow-x:auto">
             <table id="dashTable">
@@ -148,6 +146,7 @@ td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.0
                   <th>Phase</th>
                   <th>Total Need</th>
                   <th>Status</th>
+                  <th>Owner</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -157,10 +156,14 @@ td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.0
         </div>
       </section>
 
+      <!-- NEEDS MATRIX -->
       <section id="page-needs" class="page" style="display:none">
-        <div style="display:flex;gap:10px;margin-bottom:20px">
+        <div class="matrix-header" style="margin-bottom:12px">
           <select id="filt-sup" onchange="renderMatrix()" class="btn btn-outline" style="background:var(--bg2)">
             <option value="">ALL SUPPLIERS</option>
+          </select>
+          <select id="filt-phase" onchange="renderMatrix()" class="btn btn-outline" style="background:var(--bg2)">
+            <option value="">ALL PHASES</option>
           </select>
           <select id="filt-mrd" onchange="renderMatrix()" class="btn btn-outline" style="background:var(--bg2)">
             <option value="">ALL MRD</option>
@@ -169,24 +172,47 @@ td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.0
             <option value="">ALL COUNTER MARK</option>
           </select>
           <input type="text" id="filt-search" placeholder="SEARCH PN..." oninput="renderMatrix()" class="btn btn-outline" style="flex:1;text-align:left">
+          <button class="btn btn-primary" onclick="exportFilteredNeeds()">⬇ EXPORT NEEDS</button>
         </div>
         <div id="matrix-view" class="matrix-container"></div>
       </section>
 
+      <!-- SEND NEEDS -->
+      <section id="page-send" class="page" style="display:none">
+        <div class="kpi-card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-family:var(--display);font-size:20px">Share Needs with Supplier</div>
+            <div>
+              <button class="btn btn-outline" onclick="generateEmailPreview()">✉ Generate Email</button>
+              <button class="btn btn-primary" onclick="exportFilteredNeeds()">⬇ Export Excel</button>
+            </div>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi-chip">Current Filters are applied from NEEDS MATRIX</div>
+            <div class="kpi-chip">Rows: Counter Marks • Columns: MRD • Segments: Phases</div>
+            <div class="kpi-chip">Only visible data will be exported/emailed</div>
+            <div class="kpi-chip">Draft comments are kept locally until you save</div>
+          </div>
+        </div>
+        <div id="emailPreviewWrap" style="margin-top:15px"></div>
+      </section>
+
+      <!-- UPLOAD (Admin) -->
       <section id="page-upload" class="page admin-only" style="display:none">
         <div class="kpi-card" style="text-align:center;padding:50px">
-            <div style="font-size:40px;margin-bottom:20px">📂</div>
-            <div style="font-family:var(--display);font-size:24px;margin-bottom:10px">Master Update</div>
-            <div style="color:var(--text3);margin-bottom:30px">Upload the full Excel file to synchronize the database.</div>
-            <input type="file" id="masterExcel" accept=".xlsx" style="display:none" onchange="handleMasterUpload(event)">
-            <button class="btn btn-primary" onclick="document.getElementById('masterExcel').click()">CHOOSE EXCEL FILE</button>
-            <div id="uploadLog" style="margin-top:20px;font-family:var(--mono);font-size:10px;color:var(--green)"></div>
+          <div style="font-size:40px;margin-bottom:20px">📂</div>
+          <div style="font-family:var(--display);font-size:24px;margin-bottom:10px">Master Update</div>
+          <div style="color:var(--text3);margin-bottom:30px">Upload the full Excel file to synchronize the database.</div>
+          <input type="file" id="masterExcel" accept=".xlsx" style="display:none" onchange="handleMasterUpload(event)">
+          <button class="btn btn-primary" onclick="document.getElementById('masterExcel').click()">CHOOSE EXCEL FILE</button>
+          <div id="uploadLog" style="margin-top:20px;font-family:var(--mono);font-size:10px;color:var(--green)"></div>
         </div>
       </section>
     </div>
   </main>
 </div>
 
+<!-- PN DETAIL MODAL -->
 <div class="modal-ov" id="detailModal">
   <div class="modal">
     <div style="padding:20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
@@ -197,6 +223,7 @@ td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.0
   </div>
 </div>
 
+<!-- COMMENT MODAL -->
 <div class="modal-ov" id="commentModal">
   <div class="modal" style="max-width:700px">
     <div style="padding:20px;background:var(--bg3);display:flex;justify-content:space-between">
@@ -212,8 +239,12 @@ td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.0
         <div><label style="font-size:9px;color:var(--text3);display:block;margin-bottom:5px">ETA DATE</label><input id="c-eta" type="date" class="btn btn-outline" style="width:100%" oninput="triggerDraft()"></div>
       </div>
       <div style="margin-bottom:20px">
-        <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:5px">PPL / SA COMMENT</label>
-        <textarea id="c-ppl" rows="4" class="btn btn-outline" style="width:100%;text-align:left;height:auto;padding:15px" placeholder="Enter procurement status details..." oninput="triggerDraft()"></textarea>
+        <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:5px">PPL COMMENT</label>
+        <textarea id="c-ppl" rows="3" class="btn btn-outline" style="width:100%;text-align:left;height:auto;padding:15px" placeholder="Enter PPL status details..." oninput="triggerDraft()"></textarea>
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:5px">SA COMMENT</label>
+        <textarea id="c-sa" rows="3" class="btn btn-outline" style="width:100%;text-align:left;height:auto;padding:15px" placeholder="Enter SA status details..." oninput="triggerDraft()"></textarea>
       </div>
       <div style="display:flex;gap:10px">
         <button class="btn btn-primary" style="flex:1" onclick="saveComment()">SAVE TO FIREBASE</button>
@@ -225,215 +256,481 @@ td{padding:12px 15px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.0
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // --- CONFIG & INIT ---
-const firebaseConfig = { /* Your Config Here - Auto-linked from previous turns */ };
+// NOTE: As requested, there is NO local RAW data. Everything reads/writes from Firestore.
+const firebaseConfig = { /* TODO: insert your Firebase config */ };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-let ALL_PARTS = [];
+let ALL_PARTS = [];          // [{ id, pn, desc, sup, plant, owner, status, needs: [{phase,mrd,cr,qty}], division }]
 let CURRENT_USER = null;
 let IS_MOHAMED = false;
 let ACTIVE_PN = null;
+let ACTIVE_PART = null;
+let CURRENT_FILTERS = { sup:'', phase:'', mrd:'', cr:'', search:'' };
 
 // --- AUTH & PERMISSIONS ---
 onAuthStateChanged(auth, async (user) => {
   if(!user) { window.location.href = 'login.html'; return; }
   CURRENT_USER = user;
   IS_MOHAMED = user.email === 'mohamed@alten.com';
-  
   if(IS_MOHAMED) {
     document.body.classList.add('is-mohamed');
     document.getElementById('uAvatar').style.borderColor = 'var(--red)';
   }
-  
   document.getElementById('uName').innerText = user.displayName || 'User';
   document.getElementById('uEmail').innerText = user.email;
   document.getElementById('uAvatar').innerText = (user.displayName || 'U').charAt(0);
-  
   await loadData();
   initDashboard();
+  renderMatrix();
 });
 
 // --- DATA LOADING ---
+async function refreshData(){ await loadData(); renderTable(); renderMatrix(); initDashboard(); }
+window.refreshData = refreshData;
+
 async function loadData() {
   const snap = await getDocs(collection(db, "parts_master"));
-  ALL_PARTS = snap.docs.map(d => ({id: d.id, ...d.data()}));
-  
+  ALL_PARTS = snap.docs.map(d => normalizePart({id: d.id, ...d.data()}));
   // Populate filters
-  const sups = [...new Set(ALL_PARTS.map(p => p.sup))].sort();
-  const select = document.getElementById('filt-sup');
-  sups.forEach(s => { if(s) select.innerHTML += `<option>${s}</option>`; });
-  
+  const sups = [...new Set(ALL_PARTS.map(p => p.sup).filter(Boolean))].sort();
+  const phases = [...new Set(ALL_PARTS.flatMap(p => p.needs.map(n => n.phase)).filter(Boolean))].sort();
+  const mrds = [...new Set(ALL_PARTS.flatMap(p => p.needs.map(n => n.mrd)).filter(Boolean))].sort();
+  const crs = [...new Set(ALL_PARTS.flatMap(p => p.needs.map(n => n.cr)).filter(Boolean))].sort();
+  setOptions('filt-sup', [''].concat(sups));
+  setOptions('filt-phase', [''].concat(phases));
+  setOptions('filt-mrd', [''].concat(mrds));
+  setOptions('filt-cr', [''].concat(crs));
   renderTable();
 }
 
-// --- CORE LOGIC ---
+function normalizePart(p){
+  // Ensure a consistent schema
+  const needs = Array.isArray(p.needs) ? p.needs : buildNeedsFromLegacy(p);
+  return {
+    ...p,
+    pn: p.pn || p.id,
+    desc: p.desc || '',
+    sup: p.sup || '',
+    plant: p.plant || '',
+    owner: p.owner || '',
+    status: p.sta || p.status || 'PENDING',
+    division: p.division || '',
+    needs
+  };
+}
+
+function buildNeedsFromLegacy(p){
+  // Backward compatibility with older fields (ph, mrd, cr as objects)
+  const res = [];
+  const phases = p.ph ? Object.keys(p.ph) : [];
+  const mrds = p.mrd ? Object.keys(p.mrd) : [];
+  const crs = p.cr ? Object.keys(p.cr) : [];
+  // If we only had totals by MRD / CR, distribute as-is per phase.
+  const phasesUse = phases.length ? phases : ['X0'];
+  const mrdsUse = mrds.length ? mrds : ['MRD-1'];
+  const crsUse = crs.length ? crs : ['CR-1'];
+  phasesUse.forEach(ph => {
+    mrdsUse.forEach(m => {
+      crsUse.forEach(c => {
+        const qty = (p.needs && Array.isArray(p.needs)) ? 0 : (p.cr && p.cr[c]) || (p.mrd && p.mrd[m]) || 0;
+        if(qty>0) res.push({phase:ph,mrd:m,cr:c,qty});
+      });
+    });
+  });
+  return res;
+}
+
+function setOptions(id, values){
+  const el = document.getElementById(id);
+  const curr = el.value;
+  el.innerHTML = values.map(v => `<option value="${v}">${v||el.options[0].text}</option>`).join('');
+  // Try to preserve selection
+  const ok = [...el.options].some(o => o.value===curr);
+  el.value = ok ? curr : '';
+}
+
+// --- NAV ---
 window.nav = function(page) {
   document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
   document.getElementById('page-' + page).style.display = 'block';
   document.getElementById('pageTitle').innerText = `MISSION_CONTROL // ${page.toUpperCase()}`;
+  if(page==='send') buildEmailPreview();
 }
 
+// --- DASH TABLE ---
 function renderTable() {
   const tbody = document.getElementById('dashTbody');
-  tbody.innerHTML = ALL_PARTS.map(p => `
-    <tr>
-      <td class="pn-link" onclick="openPN('${p.pn}')">${p.pn}</td>
-      <td>${p.desc || '---'}</td>
-      <td><span class="badge badge-outline">${p.sup || 'N/A'}</span></td>
-      <td>${Object.keys(p.ph || {}).join(', ')}</td>
-      <td style="font-family:var(--mono);font-weight:700">${calculateTotal(p)}</td>
-      <td><span class="badge" style="background:var(--bg3)">${p.sta || 'PENDING'}</span></td>
-      <td>
-        <button class="btn btn-outline btn-sm" onclick="openComment('${p.pn}')">✎ ALEAD</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = ALL_PARTS.map(p => {
+    const total = p.needs.reduce((a,n)=>a+(Number(n.qty)||0),0);
+    const phases = [...new Set(p.needs.map(n => n.phase))].join(', ');
+    return `
+      <tr>
+        <td class="pn-link" onclick="openPN('${p.pn}')">${p.pn}</td>
+        <td>${p.desc || '---'}</td>
+        <td><span class="badge">${p.sup || 'N/A'}</span></td>
+        <td>${phases}</td>
+        <td style="font-family:var(--mono);font-weight:700">${total}</td>
+        <td><span class="badge" style="background:var(--bg3)">${p.status}</span></td>
+        <td>${p.owner || '-'}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="openComment('${p.pn}')">✎ ALEAD</button>
+        </td>
+      </tr>`;
+  }).join('');
 }
 
-function calculateTotal(p) {
-  return Object.values(p.mrd || {}).reduce((a, b) => a + b, 0);
+// --- NEEDS PIVOT (triple: Phase > MRD x CR) ---
+function getFilteredParts(){
+  const f = CURRENT_FILTERS;
+  const q = (CURRENT_FILTERS.search||'').toLowerCase();
+  return ALL_PARTS
+    .filter(p => !f.sup || p.sup===f.sup)
+    .filter(p => !q || p.pn.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q))
+    .map(p => ({...p, needs: p.needs.filter(n => (!f.phase || n.phase===f.phase) && (!f.mrd || n.mrd===f.mrd) && (!f.cr || n.cr===f.cr))}))
+    .filter(p => p.needs.length>0);
 }
 
-// --- 3D NEEDS DRILL-DOWN ---
-window.openPN = function(pn) {
-  const p = ALL_PARTS.find(x => x.pn === pn);
+function renderMatrix(){
+  CURRENT_FILTERS = {
+    sup: document.getElementById('filt-sup').value,
+    phase: document.getElementById('filt-phase').value,
+    mrd: document.getElementById('filt-mrd').value,
+    cr: document.getElementById('filt-cr').value,
+    search: document.getElementById('filt-search').value
+  };
+  const parts = getFilteredParts();
+  const wrap = document.getElementById('matrix-view');
+  if(!parts.length){ wrap.innerHTML = `<div style="padding:20px;color:var(--text3)">No data for current filters.</div>`; return; }
+
+  // Build universe
+  const phases = [...new Set(parts.flatMap(p => p.needs.map(n=>n.phase)))];
+  const mrds = [...new Set(parts.flatMap(p => p.needs.map(n=>n.mrd)))];
+  const crs = [...new Set(parts.flatMap(p => p.needs.map(n=>n.cr)))];
+
+  const activePhase = CURRENT_FILTERS.phase || phases[0];
+
+  let html = `<div style="padding:15px">
+    <div class="tabbar">${phases.map(ph=>`<div class="tab ${ph===activePhase?'active':''}" onclick="setPhase('${ph}')">${ph}</div>`).join('')}</div>
+    <div style="overflow:auto;margin-top:10px">
+      <table class="matrix-table">
+        <thead>
+          <tr><th>PN / Counter Mark</th>${mrds.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr>
+        </thead>
+        <tbody>`;
+
+  parts.forEach(p=>{
+    const cmSet = [...new Set(p.needs.filter(n=>n.phase===activePhase).map(n=>n.cr))];
+    if(!cmSet.length) return;
+    html += `<tr style="background:rgba(255,255,255,0.03)"><td colspan="${mrds.length+2}" style="text-align:left;font-weight:600">${p.pn} — <span style="color:var(--text3)">${p.desc||''}</span> <span style="margin-left:8px" class="badge">${p.sup||''}</span></td></tr>`;
+    cmSet.forEach(cr=>{
+      let rowTotal = 0;
+      html += `<tr><td style="text-align:left;font-family:var(--mono)">${cr}</td>`;
+      mrds.forEach(m=>{
+        const item = p.needs.find(n=>n.phase===activePhase && n.cr===cr && n.mrd===m);
+        const qty = item ? Number(item.qty)||0 : 0;
+        rowTotal += qty;
+        const editable = IS_MOHAMED ? '' : 'disabled';
+        html += `<td>${IS_MOHAMED ? `<input class=\"cell-edit\" type=\"number\" min=\"0\" value=\"${qty}\" onchange=\"updateQty('${p.pn}','${activePhase}','${m}','${cr}',this.value)\">` : (qty||'-')}</td>`;
+      });
+      html += `<td style="font-family:var(--mono);font-weight:700">${rowTotal||'-'}</td></tr>`;
+    });
+  });
+  html += `</tbody></table></div></div>`;
+  wrap.innerHTML = html;
+}
+window.setPhase = function(ph){ document.getElementById('filt-phase').value = ph; renderMatrix(); };
+
+// Update quantity (Mohamed only)
+window.updateQty = async function(pn,phase,mrd,cr,val){
+  if(!IS_MOHAMED){ alert('Only mohamed@alten.com can update needs.'); return; }
+  const qty = Math.max(0, Number(val)||0);
+  const part = ALL_PARTS.find(p=>p.pn===pn);
+  if(!part) return;
+  // upsert into needs array
+  const idx = part.needs.findIndex(n=>n.phase===phase && n.mrd===mrd && n.cr===cr);
+  if(idx>=0) part.needs[idx].qty = qty; else part.needs.push({phase,mrd,cr,qty});
+  try{
+    await setDoc(doc(db,'parts_master', part.id || pn), {needs: part.needs}, {merge:true});
+  }catch(e){ alert('Error updating quantity: '+e.message); }
+  renderMatrix();
+  renderTable();
+}
+
+// --- PN DETAIL MODAL ---
+window.openPN = function(pn){
+  const p = ALL_PARTS.find(x=>x.pn===pn);
   if(!p) return;
-  ACTIVE_PN = pn;
-  
-  let html = `
+  ACTIVE_PN = pn; ACTIVE_PART = p;
+  const phases = [...new Set(p.needs.map(n=>n.phase))];
+  const mrds = [...new Set(p.needs.map(n=>n.mrd))];
+  const crs = [...new Set(p.needs.map(n=>n.cr))];
+
+  let meta = `
+    <div class="kpi-card">
+      <div class="kpi-label">Metadata</div>
+      <div style="margin-top:15px; font-size:11px">
+        <p><strong>Supplier:</strong> ${IS_MOHAMED?`<input id=\"ed-sup\" class=\"btn btn-outline\" style=\"margin-left:8px\" value=\"${p.sup}\">`:(p.sup||'-')}</p>
+        <p><strong>Description:</strong> ${IS_MOHAMED?`<input id=\"ed-desc\" class=\"btn btn-outline\" style=\"margin-left:8px;width:70%\" value=\"${p.desc}\">`:(p.desc||'-')}</p>
+        <p><strong>Status:</strong> ${IS_MOHAMED?`<input id=\"ed-status\" class=\"btn btn-outline\" style=\"margin-left:8px\" value=\"${p.status}\">`:(p.status||'-')}</p>
+        <p><strong>Owner:</strong> ${IS_MOHAMED?`<input id=\"ed-owner\" class=\"btn btn-outline\" style=\"margin-left:8px\" value=\"${p.owner}\">`:(p.owner||'-')}</p>
+      </div>
+      ${IS_MOHAMED?`<div style=\"margin-top:10px\"><button class=\"btn btn-primary\" onclick=\"savePNMeta()\">Save PN</button></div>`:''}
+    </div>`;
+
+  // Pivot (Phase tabs)
+  let pivot = `<div class="kpi-label">Pivot Tableau Croisé (Phase → MRD × Counter Mark)</div>`;
+  const firstPhase = phases[0];
+  pivot += `<div class="tabbar">${phases.map(ph=>`<div class="tab ${ph===firstPhase?'active':''}" onclick="renderPNPhase('${pn}','${ph}')">${ph}</div>`).join('')}</div>`;
+  pivot += `<div id="pnPhaseWrap" style="margin-top:10px"></div>`;
+
+  const html = `
     <div style="display:grid;grid-template-columns:1fr 2fr;gap:30px">
-      <div class="kpi-card">
-        <div class="kpi-label">Metadata</div>
-        <div style="margin-top:15px; font-size:11px">
-            <p><strong>Supplier:</strong> ${p.sup}</p>
-            <p><strong>Description:</strong> ${p.desc}</p>
-            <p><strong>Plant:</strong> ${p.plant}</p>
-        </div>
-      </div>
-      <div>
-        <div class="kpi-label">Pivot Tableau Croisé (MRD vs CR)</div>
-        <div style="overflow:auto; margin-top:10px">
-            <table class="matrix-table">
-                <thead>
-                    <tr><th>Counter Mark</th>${Object.keys(p.mrd).map(m => `<th>${m}</th>`).join('')}</tr>
-                </thead>
-                <tbody>
-                    ${Object.entries(p.cr).map(([cr, qty]) => `
-                        <tr>
-                            <td style="font-family:var(--mono)">${cr}</td>
-                            ${Object.keys(p.mrd).map(m => `<td>${qty > 0 ? qty : '-'}</td>`).join('')}
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-      </div>
-    </div>
-  `;
-  
+      ${meta}
+      <div>${pivot}</div>
+    </div>`;
+
   document.getElementById('detBody').innerHTML = html;
   openModal('detailModal');
+  renderPNPhase(pn, firstPhase);
 }
 
-// --- AUTO-SAVE DRAFT SYSTEM ---
+window.renderPNPhase = function(pn, phase){
+  const p = ALL_PARTS.find(x=>x.pn===pn); if(!p) return;
+  const mrds = [...new Set(p.needs.filter(n=>n.phase===phase).map(n=>n.mrd))];
+  const crs = [...new Set(p.needs.filter(n=>n.phase===phase).map(n=>n.cr))];
+  let html = `<div style=\"overflow:auto\"><table class=\"matrix-table\"><thead><tr><th>Counter Mark</th>${mrds.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
+  crs.forEach(cr=>{
+    let rowTotal = 0;
+    html += `<tr><td style=\"text-align:left;font-family:var(--mono)\">${cr}</td>`;
+    mrds.forEach(m=>{
+      const item = p.needs.find(n=>n.phase===phase && n.cr===cr && n.mrd===m);
+      const qty = item ? Number(item.qty)||0 : 0; rowTotal += qty;
+      html += `<td>${IS_MOHAMED ? `<input class=\"cell-edit\" type=\"number\" min=\"0\" value=\"${qty}\" onchange=\"updateQty('${p.pn}','${phase}','${m}','${cr}',this.value)\">` : (qty||'-')}</td>`;
+    });
+    html += `<td style=\"font-family:var(--mono);font-weight:700\">${rowTotal||'-'}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  document.getElementById('pnPhaseWrap').innerHTML = html;
+}
+
+window.savePNMeta = async function(){
+  if(!IS_MOHAMED){ alert('Only mohamed@alten.com can edit PN metadata.'); return; }
+  const sup = document.getElementById('ed-sup').value;
+  const desc = document.getElementById('ed-desc').value;
+  const status = document.getElementById('ed-status').value;
+  const owner = document.getElementById('ed-owner').value;
+  try{
+    await setDoc(doc(db, 'parts_master', ACTIVE_PART.id || ACTIVE_PART.pn), { sup, desc, status, owner }, {merge:true});
+    alert('PN metadata saved');
+    await loadData(); renderTable(); renderMatrix();
+  }catch(e){ alert('Error saving PN: '+e.message); }
+}
+
+// --- COMMENT DRAFT & SAVE ---
 window.openComment = function(pn) {
-    ACTIVE_PN = pn;
-    document.getElementById('cmtPN').innerText = "PN: " + pn;
-    
-    // Check for draft
-    const draft = localStorage.getItem('draft_' + pn);
-    if(draft) {
-        const d = JSON.parse(draft);
-        document.getElementById('c-kw').value = d.kw || '';
-        document.getElementById('c-eta').value = d.eta || '';
-        document.getElementById('c-ppl').value = d.ppl || '';
-        document.getElementById('draftStatus').innerText = "● LOADED FROM UNSAVED DRAFT";
-        document.getElementById('draftStatus').style.display = 'block';
-    } else {
-        document.getElementById('c-kw').value = '';
-        document.getElementById('c-ppl').value = '';
-        document.getElementById('draftStatus').style.display = 'none';
-    }
-    openModal('commentModal');
-}
-
-window.triggerDraft = function() {
-    const data = {
-        kw: document.getElementById('c-kw').value,
-        eta: document.getElementById('c-eta').value,
-        ppl: document.getElementById('c-ppl').value
-    };
-    localStorage.setItem('draft_' + ACTIVE_PN, JSON.stringify(data));
+  ACTIVE_PN = pn;
+  document.getElementById('cmtPN').innerText = "PN: " + pn;
+  const draft = localStorage.getItem('draft_'+pn);
+  if(draft){
+    const d = JSON.parse(draft);
+    document.getElementById('c-kw').value = d.kw||'';
+    document.getElementById('c-eta').value = d.eta||'';
+    document.getElementById('c-ppl').value = d.ppl||'';
+    document.getElementById('c-sa').value = d.sa||'';
+    document.getElementById('draftStatus').innerText = "● LOADED FROM UNSAVED DRAFT";
     document.getElementById('draftStatus').style.display = 'block';
-    document.getElementById('draftStatus').innerText = "● AUTO-SAVING DRAFT...";
+  } else {
+    document.getElementById('c-kw').value = '';
+    document.getElementById('c-ppl').value = '';
+    document.getElementById('c-sa').value = '';
+    document.getElementById('draftStatus').style.display = 'none';
+  }
+  openModal('commentModal');
+}
+window.triggerDraft = function(){
+  const data = {
+    kw: document.getElementById('c-kw').value,
+    eta: document.getElementById('c-eta').value,
+    ppl: document.getElementById('c-ppl').value,
+    sa: document.getElementById('c-sa').value
+  };
+  localStorage.setItem('draft_'+ACTIVE_PN, JSON.stringify(data));
+  document.getElementById('draftStatus').style.display = 'block';
+  document.getElementById('draftStatus').innerText = "● AUTO-SAVING DRAFT...";
+}
+window.discardDraft = function(){ localStorage.removeItem('draft_'+ACTIVE_PN); document.getElementById('draftStatus').innerText = '● DRAFT DISCARDED'; };
+
+window.saveComment = async function(){
+  const data = {
+    pn: ACTIVE_PN,
+    kw: document.getElementById('c-kw').value,
+    eta: document.getElementById('c-eta').value,
+    ppl: document.getElementById('c-ppl').value,
+    sa: document.getElementById('c-sa').value,
+    updatedBy: CURRENT_USER.email,
+    updatedAt: serverTimestamp()
+  };
+  try{
+    await setDoc(doc(db, 'part_comments', ACTIVE_PN), data, {merge:true});
+    localStorage.removeItem('draft_'+ACTIVE_PN);
+    alert("Saved to Database successfully!");
+    closeModal('commentModal');
+  }catch(e){ alert("Error saving: "+e.message); }
 }
 
-window.saveComment = async function() {
-    const data = {
-        pn: ACTIVE_PN,
-        kw: document.getElementById('c-kw').value,
-        eta: document.getElementById('c-eta').value,
-        ppl: document.getElementById('c-ppl').value,
-        updatedBy: CURRENT_USER.email,
-        updatedAt: serverTimestamp()
-    };
-    
-    try {
-        await setDoc(doc(db, 'part_comments', ACTIVE_PN), data, {merge: true});
-        localStorage.removeItem('draft_' + ACTIVE_PN);
-        alert("Saved to Database successfully!");
-        closeModal('commentModal');
-    } catch(e) {
-        alert("Error saving: " + e.message);
-    }
+// --- EXPORTS ---
+window.exportMasterExcel = function(){
+  const data = ALL_PARTS.map(p=>({
+    PN: p.pn,
+    Supplier: p.sup,
+    Description: p.desc,
+    Owner: p.owner,
+    Status: p.status,
+    Total_Need: p.needs.reduce((a,n)=>a+(Number(n.qty)||0),0),
+    Phases: [...new Set(p.needs.map(n=>n.phase))].join('/')
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Shortages");
+  XLSX.writeFile(wb, "ALTEN_Needs_Export.xlsx");
 }
 
-// --- EXPORT & EMAIL ---
-window.exportMasterExcel = function() {
-    const data = ALL_PARTS.map(p => ({
-        PN: p.pn,
-        Supplier: p.sup,
-        Description: p.desc,
-        Total_Need: calculateTotal(p),
-        Phase: Object.keys(p.ph).join('/')
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Shortages");
-    XLSX.writeFile(wb, "ALTEN_Needs_Export.xlsx");
+function getFilteredNeedsRows(){
+  const parts = getFilteredParts();
+  const rows = [];
+  parts.forEach(p=>{
+    p.needs.forEach(n=>{
+      rows.push({ PN:p.pn, Description:p.desc, Supplier:p.sup, Phase:n.phase, MRD:n.mrd, Counter_Mark:n.cr, Qty:Number(n.qty)||0 });
+    });
+  });
+  return rows;
 }
+
+window.exportFilteredNeeds = function(){
+  const rows = getFilteredNeedsRows();
+  if(!rows.length){ alert('No rows to export for current filters.'); return; }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Needs");
+  XLSX.writeFile(wb, `ALTEN_Needs_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// --- EMAIL PREVIEW / SHARE ---
+function buildEmailPreview(){
+  const rows = getFilteredNeedsRows();
+  const wrap = document.getElementById('emailPreviewWrap');
+  if(!rows.length){ wrap.innerHTML = '<div class="kpi-card">No rows for current filters.</div>'; return; }
+  // Build pivot by Phase
+  const phases = [...new Set(rows.map(r=>r.Phase))];
+  const mrds = [...new Set(rows.map(r=>r.MRD))];
+  const crs = [...new Set(rows.map(r=>r.Counter_Mark))];
+  let html = '<div class="kpi-card">';
+  html += '<div style="font-family:var(--display);font-size:18px;margin-bottom:10px">Email Preview — Pivot (Phase → MRD × Counter Mark)</div>';
+  html += '<div class="tabbar">'+ phases.map((ph,i)=>`<div class="tab ${i===0?'active':''}" onclick=\"previewTab('${ph}')\">${ph}</div>`).join('') + '</div>';
+  phases.forEach((ph,i)=>{
+    html += `<div class="emailTab" id="emailTab-${ph}" style="${i? 'display:none':''};overflow:auto;margin-top:10px">`;
+    html += '<table class="matrix-table"><thead><tr><th>Counter Mark</th>' + mrds.map(m=>`<th>${m}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
+    crs.forEach(cr=>{
+      let sum=0; html+='<tr><td style="text-align:left;font-family:var(--mono)">'+cr+'</td>';
+      mrds.forEach(m=>{ const qty = rows.filter(r=>r.Phase===ph && r.MRD===m && r.Counter_Mark===cr).reduce((a,b)=>a+b.Qty,0); sum+=qty; html+=`<td>${qty||'-'}</td>`; });
+      html+=`<td style="font-family:var(--mono);font-weight:700">${sum||'-'}</td></tr>`;
+    });
+    html+='</tbody></table></div>';
+  });
+  html += '<div style="margin-top:10px"><button class="btn btn-outline" onclick="openEmailWindow()">Open in New Window</button></div>';
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+window.previewTab = function(ph){ document.querySelectorAll('[id^="emailTab-"]').forEach(e=>e.style.display='none'); const t=document.getElementById('emailTab-'+ph); if(t) t.style.display='block'; };
+
+window.generateEmailPreview = buildEmailPreview;
+
+window.openEmailWindow = function(){
+  const rows = getFilteredNeedsRows();
+  if(!rows.length){ alert('No data to preview'); return; }
+  const phases = [...new Set(rows.map(r=>r.Phase))];
+  const mrds = [...new Set(rows.map(r=>r.MRD))];
+  const crs = [...new Set(rows.map(r=>r.Counter_Mark))];
+  let body = `<html><head><meta charset='utf-8'><style>
+    body{font-family:Arial;background:#0b0f17;color:#eaeef6;padding:16px}
+    table{border-collapse:collapse;width:100%;margin-bottom:24px}
+    th,td{border:1px solid #243047;padding:8px;text-align:center}
+    th{background:#0f1624;color:#8faad3}
+    .title{font-size:18px;margin:12px 0}
+  </style></head><body>`;
+  phases.forEach(ph=>{
+    body += `<div class='title'>Phase: ${ph}</div><table><thead><tr><th>Counter Mark</th>${mrds.map(m=>`<th>${m}</th>`).join('')}<th>Total</th></tr></thead><tbody>`;
+    crs.forEach(cr=>{
+      let sum=0; body+=`<tr><td style='text-align:left'>${cr}</td>`;
+      mrds.forEach(m=>{ const qty = rows.filter(r=>r.Phase===ph && r.MRD===m && r.Counter_Mark===cr).reduce((a,b)=>a+b.Qty,0); sum+=qty; body+=`<td>${qty||'-'}</td>`; });
+      body+=`<td><b>${sum||'-'}</b></td></tr>`;
+    });
+    body+='</tbody></table>';
+  });
+  body += `</body></html>`;
+  const w = window.open('', '_blank');
+  w.document.write(body); w.document.close();
+}
+
+// --- MASTER UPLOAD (Admin) ---
+window.handleMasterUpload = async function(evt){
+  if(!IS_MOHAMED){ alert('Only mohamed@alten.com can upload master file.'); return; }
+  const f = evt.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = async (e)=>{
+    const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]]; // first sheet
+    const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    // Expected columns: PN, Description, Supplier, Plant, Owner, Status, Phase, MRD, Counter_Mark, Qty
+    const byPN = new Map();
+    rows.forEach(r=>{
+      const pn = String(r.PN||'').trim(); if(!pn) return;
+      if(!byPN.has(pn)) byPN.set(pn,{ pn, desc:r.Description||'', sup:r.Supplier||'', plant:r.Plant||'', owner:r.Owner||'', status:r.Status||'PENDING', needs:[] });
+      if(r.Phase && r.MRD && r.Counter_Mark){
+        byPN.get(pn).needs.push({ phase:String(r.Phase), mrd:String(r.MRD), cr:String(r.Counter_Mark), qty:Number(r.Qty)||0 });
+      }
+    });
+    const batch = writeBatch(db);
+    let count=0;
+    byPN.forEach((val,pn)=>{
+      const ref = doc(db,'parts_master', pn);
+      batch.set(ref, val, {merge:true}); count++;
+    });
+    await batch.commit();
+    document.getElementById('uploadLog').innerText = `Uploaded ${count} PN records.`;
+    await loadData(); renderTable(); renderMatrix();
+  };
+  reader.readAsArrayBuffer(f);
+};
 
 // --- KPI DASHBOARD VISUALS ---
-function initDashboard() {
-    const ctx = document.getElementById('chart-perim').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['M-3','M-2','M-1','NOW'],
-            datasets: [{
-                data: [65, 72, 80, 85],
-                borderColor: '#00f2ff',
-                tension: 0.4,
-                borderWidth: 2,
-                pointRadius: 0
-            }]
-        },
-        options: { plugins: {legend: {display: false}}, scales: {x:{display:false}, y:{display:false}} }
-    });
-    
-    document.getElementById('kpi-perim').innerText = "85%";
-    document.getElementById('kpi-short').innerText = ALL_PARTS.length;
+function initDashboard(){
+  // Simple trend demo (static for now)
+  const ctx = document.getElementById('chart-perim').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: { labels: ['M-3','M-2','M-1','NOW'], datasets: [{ data: [65,72,80,85], borderColor: '#00f2ff', tension: 0.4, borderWidth: 2, pointRadius: 0 }] },
+    options: { plugins: {legend: {display: false}}, scales: {x:{display:false}, y:{display:false}} }
+  });
+  // Perimeter coverage: parts with any need vs with status not PENDING
+  const withNeeds = ALL_PARTS.filter(p=>p.needs.length>0).length || 1;
+  const covered = ALL_PARTS.filter(p=>p.status && p.status!=='PENDING').length;
+  const perim = Math.round((covered/withNeeds)*100);
+  document.getElementById('kpi-perim').innerText = `${isFinite(perim)?perim:0}%`;
+  document.getElementById('kpi-short').innerText = ALL_PARTS.length;
+  document.getElementById('kpi-resp').innerText = '—';
 }
 
 // --- UTILS ---
 window.openModal = id => document.getElementById(id).classList.add('open');
 window.closeModal = id => document.getElementById(id).classList.remove('open');
-setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
+setInterval(()=>{ document.getElementById('clock').innerText = new Date().toLocaleTimeString(); },1000);
 
 </script>
 </body>
