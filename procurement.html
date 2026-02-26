@@ -308,7 +308,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
     <div class="lf"><label>PASSKEY</label><input type="password" id="l-pw" placeholder="••••••••" value="demo"></div>
     <button class="l-btn" onclick="login()">⟶ INITIALIZE SESSION</button>
     <div class="l-hint">
-      Admin (full edit): <strong>mohamed@alten.com</strong><br>
+      Admin (full edit): <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="600d0f08010d050420010c14050e4e030f0d">[email&#160;protected]</a></strong><br>
       Officer (read + comment): any other email
     </div>
   </div>
@@ -630,7 +630,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 
       <!-- ══ ADMIN PANEL ══ -->
       <div id="pg-admin" class="pg adm-only">
-        <div class="al al-g" style="margin-bottom:16px">★ ADMIN ACCESS — Full edit mode for <strong>mohamed@alten.com</strong></div>
+        <div class="al al-g" style="margin-bottom:16px">★ ADMIN ACCESS — Full edit mode for <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f79a989f969a9293b7969b839299d994989a">[email&#160;protected]</a></strong></div>
         <div class="tabs">
           <div class="tab active" onclick="switchAdminTab('users',this)">Users & Perimeters</div>
           <div class="tab" onclick="switchAdminTab('sups',this)">Supplier Contacts</div>
@@ -860,11 +860,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
       </div>
       <div class="form-row">
         <div class="form-group"><label>Quantity (Q)</label><input id="cmtQty" type="number" placeholder="Qty pcs…" oninput="buildCmtPreview()"></div>
-        <div class="form-group"><label>Delivery Note (DN)</label><input id="cmtDN" placeholder="DN number…" oninput="buildCmtPreview()"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Pickup Date (PD)</label><input type="date" id="cmtPD" oninput="buildCmtPreview()"></div>
-        <div class="form-group"><label>Tracking Number (TN)</label><input id="cmtTN" placeholder="DHL / TNT / UPS number…" oninput="buildCmtPreview()"></div>
+        <div class="form-group"><label>Delivery Note (DN)</label><input id="cmtDN" placeclass="form-group"><label>Tracking Number (TN)</label><input id="cmtTN" placeholder="DHL / TNT / UPS number…" oninput="buildCmtPreview()"></div>
       </div>
       <div class="form-group"><label>Short Comment (max 120 chars)</label><input id="cmtShort" placeholder="Short description…" maxlength="120" oninput="buildCmtPreview()"></div>
       <div class="form-group"><label>Full Comment / Free Text</label><textarea id="cmtFull" rows="3" placeholder="Full detail and context…" oninput="buildCmtPreview()"></textarea></div>
@@ -1211,6 +1207,10 @@ const team = [
 function login() {
   const email = document.getElementById('l-em').value.trim().toLowerCase();
   if(!email.includes('@')) { return showToast('⚠ Enter valid email','error'); }
+  _doLogin(email);
+}
+
+function _doLogin(email) {
   CU = { email, uid: email, name: email.split('@')[0].split('.').map(w=>w[0].toUpperCase()+w.slice(1)).join(' '), role: email===ADMIN?'admin':'officer', plant:'L74', suppliers:[] };
   IS_ADMIN = (email === ADMIN);
   document.getElementById('sb-nm').textContent = CU.name;
@@ -1224,11 +1224,23 @@ function login() {
 }
 
 function logout() {
+  sessionStorage.removeItem('nexus_user');
+  sessionStorage.removeItem('nexus_is_admin');
   document.getElementById('app').classList.remove('on','admin-mode');
   document.getElementById('ls').style.display = 'flex';
   document.getElementById('l-em').value = '';
   CU = null; IS_ADMIN = false;
+  // Redirect back to login page
+  window.location.href = 'login.html';
 }
+
+// Auto-login if redirected from login.html via Firebase auth
+(function checkSessionLogin() {
+  const storedUser = sessionStorage.getItem('nexus_user');
+  if (storedUser) {
+    window.addEventListener('DOMContentLoaded', () => _doLogin(storedUser));
+  }
+})();
 
 // ════════════════════════════════════════════════════════════════
 //  NAVIGATION
