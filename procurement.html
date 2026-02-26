@@ -3,2209 +3,1520 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEXUS PROCUREMENT — ALTEN</title>
+<title>NEXUS — L74/D74 PROCUREMENT</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root {
-  --bg: #020810;
-  --bg2: #050e1a;
-  --bg3: #0a1628;
-  --panel: rgba(0,200,255,0.04);
-  --border: rgba(0,200,255,0.15);
-  --border-hot: rgba(0,200,255,0.5);
-  --cyan: #00c8ff;
-  --cyan2: #00f5ff;
-  --orange: #ff6b35;
-  --gold: #ffd700;
-  --green: #00ff88;
-  --red: #ff3355;
-  --purple: #a855f7;
-  --text: #c8e8ff;
-  --text-dim: #5a8aaa;
-  --glow: 0 0 20px rgba(0,200,255,0.3);
-  --glow-hot: 0 0 40px rgba(0,200,255,0.6);
-}
+:root{--bg:#020a14;--bg2:#050f1c;--bg3:#0a1828;--panel:rgba(0,200,255,0.04);--border:rgba(0,200,255,0.14);--border-h:rgba(0,200,255,0.5);--cyan:#00c8ff;--cyan2:#00f5ff;--orange:#ff6b35;--gold:#ffd700;--green:#00ff88;--red:#ff3355;--purple:#a855f7;--text:#c8e8ff;--dim:#5a8aaa;--glow:0 0 20px rgba(0,200,255,0.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;overflow-x:hidden;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,200,255,0.012) 3px,rgba(0,200,255,0.012) 4px);pointer-events:none;z-index:9999}
 
-* { margin:0; padding:0; box-sizing:border-box; }
+/* LOGIN */
+#ls{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 80% at 50% 50%,#031525,#020810);z-index:1000}
+.lb{width:430px;background:rgba(0,20,50,0.85);border:1px solid var(--border-h);border-radius:4px;padding:48px 40px;backdrop-filter:blur(20px);box-shadow:0 0 100px rgba(0,200,255,0.15)}
+.lb::before{content:'';position:absolute;top:-1px;left:20%;right:20%;height:2px;background:linear-gradient(90deg,transparent,var(--cyan2),transparent);border-radius:2px}
+.lb{position:relative}
+.l-sub{font-size:9px;letter-spacing:5px;color:var(--dim);text-align:center;margin-bottom:4px}
+.l-title{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;text-align:center;color:var(--cyan2);text-shadow:var(--glow);margin-bottom:6px;letter-spacing:2px}
+.l-proj{font-size:10px;letter-spacing:4px;color:var(--orange);text-align:center;margin-bottom:32px}
+.lf{margin-bottom:16px}
+.lf label{display:block;font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:8px}
+.lf input{width:100%;background:rgba(0,200,255,0.05);border:1px solid var(--border);border-radius:2px;padding:11px 14px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;outline:none;transition:.2s}
+.lf input:focus{border-color:var(--cyan);box-shadow:0 0 15px rgba(0,200,255,0.2)}
+.l-btn{width:100%;margin-top:8px;padding:13px;background:linear-gradient(135deg,rgba(0,200,255,0.2),rgba(0,200,255,0.06));border:1px solid var(--cyan);border-radius:2px;color:var(--cyan2);font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:4px;cursor:pointer;transition:.3s;text-transform:uppercase}
+.l-btn:hover{background:rgba(0,200,255,0.3);box-shadow:var(--glow)}
+.l-hint{margin-top:16px;font-size:10px;color:var(--dim);text-align:center;letter-spacing:1px;line-height:1.8}
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 15px;
-  overflow-x: hidden;
-  min-height: 100vh;
-}
+/* APP LAYOUT */
+#app{display:none;height:100vh;overflow:hidden}
+#app.on{display:flex}
+.sb{width:230px;min-width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.sb::after{content:'';position:absolute;top:0;right:0;width:1px;height:100%;background:linear-gradient(180deg,transparent,var(--cyan),transparent);opacity:.4}
+.sb-brand{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.sb-brand .bsub{font-size:8px;letter-spacing:5px;color:var(--dim)}
+.sb-brand .bmain{font-family:'Orbitron',sans-serif;font-size:15px;font-weight:900;color:var(--cyan2);text-shadow:var(--glow);letter-spacing:1px}
+.sb-brand .bpro{font-size:9px;letter-spacing:3px;color:var(--orange);margin-top:2px}
+.sb-user{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.u-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;flex-shrink:0}
+.u-name{font-weight:600;font-size:13px}
+.u-role{font-size:9px;letter-spacing:2px}
+.u-role.admin{color:var(--gold)}
+.u-role.viewer{color:var(--cyan)}
+.nav-sec{padding:12px 0 4px}
+.nav-lbl{font-size:8px;letter-spacing:3px;color:var(--dim);padding:0 18px 6px}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;transition:.2s;border-left:2px solid transparent;font-size:12px;font-weight:500;letter-spacing:1px;color:var(--dim);user-select:none}
+.ni:hover{color:var(--text);background:rgba(0,200,255,0.05)}
+.ni.active{color:var(--cyan2);border-left-color:var(--cyan);background:rgba(0,200,255,0.08)}
+.ni .ic{font-size:14px;width:18px;text-align:center}
+.sb-bot{margin-top:auto;padding:14px 18px;border-top:1px solid var(--border)}
+.proj-toggle{display:flex;gap:6px}
+.pt-btn{flex:1;padding:6px;border:1px solid var(--border);border-radius:2px;background:none;color:var(--dim);font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;cursor:pointer;transition:.2s}
+.pt-btn.active{background:rgba(0,200,255,0.15);border-color:var(--cyan);color:var(--cyan2)}
 
-/* SCANLINE OVERLAY */
-body::before {
-  content:'';
-  position:fixed;
-  inset:0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,200,255,0.015) 2px, rgba(0,200,255,0.015) 4px);
-  pointer-events:none;
-  z-index:9999;
-}
-
-/* === LOGIN === */
-#login-screen {
-  position:fixed; inset:0;
-  display:flex; align-items:center; justify-content:center;
-  background: radial-gradient(ellipse at 50% 50%, #031525 0%, #020810 70%);
-  z-index:1000;
-}
-.login-box {
-  width:420px;
-  background: rgba(0,30,60,0.8);
-  border:1px solid var(--border-hot);
-  border-radius:4px;
-  padding:48px 40px;
-  backdrop-filter: blur(20px);
-  box-shadow: 0 0 80px rgba(0,200,255,0.15), inset 0 0 80px rgba(0,0,0,0.5);
-  position:relative;
-}
-.login-box::before {
-  content:'';
-  position:absolute;
-  top:-1px; left:20%; right:20%; height:2px;
-  background: linear-gradient(90deg, transparent, var(--cyan2), transparent);
-}
-.login-logo {
-  font-family:'Orbitron',sans-serif;
-  font-size:11px;
-  letter-spacing:6px;
-  color:var(--text-dim);
-  text-align:center;
-  margin-bottom:8px;
-}
-.login-title {
-  font-family:'Orbitron',sans-serif;
-  font-size:22px;
-  font-weight:900;
-  text-align:center;
-  color:var(--cyan2);
-  text-shadow: var(--glow);
-  margin-bottom:32px;
-  letter-spacing:2px;
-}
-.login-field { margin-bottom:16px; }
-.login-field label {
-  display:block;
-  font-size:11px;
-  letter-spacing:3px;
-  color:var(--text-dim);
-  margin-bottom:8px;
-}
-.login-field input {
-  width:100%;
-  background: rgba(0,200,255,0.05);
-  border:1px solid var(--border);
-  border-radius:2px;
-  padding:12px 16px;
-  color:var(--text);
-  font-family:'Rajdhani',sans-serif;
-  font-size:15px;
-  outline:none;
-  transition:all 0.3s;
-}
-.login-field input:focus {
-  border-color:var(--cyan);
-  box-shadow: 0 0 20px rgba(0,200,255,0.2);
-}
-.btn-login {
-  width:100%;
-  margin-top:8px;
-  padding:14px;
-  background: linear-gradient(135deg, rgba(0,200,255,0.2), rgba(0,200,255,0.05));
-  border:1px solid var(--cyan);
-  border-radius:2px;
-  color:var(--cyan2);
-  font-family:'Orbitron',sans-serif;
-  font-size:12px;
-  letter-spacing:4px;
-  cursor:pointer;
-  transition:all 0.3s;
-  text-transform:uppercase;
-}
-.btn-login:hover { background:rgba(0,200,255,0.3); box-shadow:var(--glow-hot); }
-
-/* === MAIN APP === */
-#app { display:none; height:100vh; overflow:hidden; flex-direction:row; }
-#app.active { display:flex; }
-
-/* SIDEBAR */
-.sidebar {
-  width:220px;
-  min-width:220px;
-  background: var(--bg2);
-  border-right:1px solid var(--border);
-  display:flex;
-  flex-direction:column;
-  position:relative;
-  overflow:hidden;
-}
-.sidebar::after {
-  content:'';
-  position:absolute;
-  top:0; right:0; width:1px; height:100%;
-  background: linear-gradient(180deg, transparent, var(--cyan), transparent);
-  opacity:0.5;
-}
-.sidebar-brand {
-  padding:24px 20px 20px;
-  border-bottom:1px solid var(--border);
-}
-.sidebar-brand .brand-sub {
-  font-size:9px;
-  letter-spacing:4px;
-  color:var(--text-dim);
-}
-.sidebar-brand .brand-main {
-  font-family:'Orbitron',sans-serif;
-  font-size:16px;
-  font-weight:900;
-  color:var(--cyan2);
-  text-shadow: var(--glow);
-  letter-spacing:1px;
-}
-.sidebar-user {
-  padding:16px 20px;
-  border-bottom:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.user-avatar {
-  width:34px; height:34px;
-  border-radius:50%;
-  background: linear-gradient(135deg, var(--cyan), var(--purple));
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Orbitron',sans-serif;
-  font-size:11px;
-  font-weight:700;
-  flex-shrink:0;
-}
-.user-info .user-name { font-weight:600; font-size:13px; }
-.user-info .user-role {
-  font-size:10px;
-  letter-spacing:2px;
-  color:var(--orange);
-}
-.user-info .user-role.admin { color:var(--gold); }
-
-.nav-section {
-  padding:16px 0 8px;
-}
-.nav-label {
-  font-size:9px;
-  letter-spacing:3px;
-  color:var(--text-dim);
-  padding:0 20px 8px;
-}
-.nav-item {
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding:10px 20px;
-  cursor:pointer;
-  transition:all 0.2s;
-  border-left:2px solid transparent;
-  font-size:13px;
-  font-weight:500;
-  letter-spacing:1px;
-  color:var(--text-dim);
-}
-.nav-item:hover { color:var(--text); background:rgba(0,200,255,0.05); }
-.nav-item.active { color:var(--cyan2); border-left-color:var(--cyan); background:rgba(0,200,255,0.08); }
-.nav-icon { font-size:16px; width:20px; text-align:center; }
-
-/* MAIN CONTENT */
-.main {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  background: radial-gradient(ellipse at 70% 20%, rgba(0,200,255,0.03) 0%, transparent 60%);
-}
-.topbar {
-  padding:16px 28px;
-  border-bottom:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background: rgba(5,14,26,0.8);
-  backdrop-filter:blur(10px);
-}
-.page-title {
-  font-family:'Orbitron',sans-serif;
-  font-size:14px;
-  letter-spacing:3px;
-  color:var(--cyan);
-}
-.topbar-actions { display:flex; gap:10px; align-items:center; }
-
-.content-area {
-  flex:1;
-  overflow-y:auto;
-  padding:24px 28px;
-}
-.content-area::-webkit-scrollbar { width:4px; }
-.content-area::-webkit-scrollbar-track { background:transparent; }
-.content-area::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:radial-gradient(ellipse at 70% 10%,rgba(0,200,255,0.025),transparent 50%)}
+.tb{padding:14px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(5,12,24,0.85);backdrop-filter:blur(10px);flex-shrink:0}
+.tb-title{font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:3px;color:var(--cyan)}
+.tb-r{display:flex;gap:8px;align-items:center}
+.tb-date{font-size:10px;color:var(--dim);letter-spacing:2px;font-family:'Share Tech Mono',monospace}
+.ca{flex:1;overflow-y:auto;padding:20px 24px}
+.ca::-webkit-scrollbar{width:3px}
+.ca::-webkit-scrollbar-thumb{background:var(--border)}
 
 /* PAGES */
-.page { display:none; }
-.page.active { display:block; }
+.pg{display:none}.pg.active{display:block}
 
 /* CARDS */
-.card {
-  background: var(--panel);
-  border:1px solid var(--border);
-  border-radius:4px;
-  padding:20px;
-  position:relative;
-  overflow:hidden;
-}
-.card::before {
-  content:'';
-  position:absolute;
-  top:0; left:0; right:0; height:1px;
-  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-  opacity:0.5;
-}
-.card-title {
-  font-family:'Orbitron',sans-serif;
-  font-size:10px;
-  letter-spacing:3px;
-  color:var(--text-dim);
-  margin-bottom:16px;
-}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:18px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.4}
+.ct{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:3px;color:var(--dim);margin-bottom:14px}
 
 /* GRID */
-.grid { display:grid; gap:16px; }
-.grid-2 { grid-template-columns:1fr 1fr; }
-.grid-3 { grid-template-columns:1fr 1fr 1fr; }
-.grid-4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 
-/* KPI METRIC */
-.metric {
-  background: var(--panel);
-  border:1px solid var(--border);
-  border-radius:4px;
-  padding:20px;
-  position:relative;
-  overflow:hidden;
-  transition:all 0.3s;
-}
-.metric:hover { border-color:var(--border-hot); box-shadow:var(--glow); }
-.metric::after {
-  content:'';
-  position:absolute;
-  bottom:0; left:0; right:0; height:2px;
-  background: linear-gradient(90deg, var(--cyan), var(--purple));
-  transform:scaleX(0);
-  transition:transform 0.3s;
-  transform-origin:left;
-}
-.metric:hover::after { transform:scaleX(1); }
-.metric-label {
-  font-size:10px;
-  letter-spacing:2px;
-  color:var(--text-dim);
-  margin-bottom:8px;
-}
-.metric-value {
-  font-family:'Orbitron',sans-serif;
-  font-size:28px;
-  font-weight:900;
-  color:var(--cyan2);
-}
-.metric-sub { font-size:12px; color:var(--text-dim); margin-top:4px; }
-.metric-trend { font-size:12px; margin-top:4px; }
-.trend-up { color:var(--green); }
-.trend-down { color:var(--red); }
+/* METRICS */
+.met{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:18px;transition:.3s;position:relative;overflow:hidden}
+.met:hover{border-color:var(--border-h);box-shadow:var(--glow)}
+.met::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),var(--purple));transform:scaleX(0);transition:.3s;transform-origin:left}
+.met:hover::after{transform:scaleX(1)}
+.ml{font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:6px}
+.mv{font-family:'Orbitron',sans-serif;font-size:26px;font-weight:900;color:var(--cyan2)}
+.ms{font-size:11px;color:var(--dim);margin-top:3px}
+.mt{font-size:11px;margin-top:3px}
+.tup{color:var(--green)}.tdn{color:var(--red)}
 
 /* TABLE */
-.data-table {
-  width:100%;
-  border-collapse:collapse;
-  font-size:13px;
-}
-.data-table thead tr {
-  border-bottom:1px solid var(--border-hot);
-}
-.data-table th {
-  text-align:left;
-  padding:10px 12px;
-  font-family:'Orbitron',sans-serif;
-  font-size:9px;
-  letter-spacing:2px;
-  color:var(--text-dim);
-  font-weight:400;
-  white-space:nowrap;
-}
-.data-table tbody tr {
-  border-bottom:1px solid var(--border);
-  transition:all 0.2s;
-  cursor:pointer;
-}
-.data-table tbody tr:hover {
-  background:rgba(0,200,255,0.06);
-}
-.data-table td {
-  padding:12px 12px;
-  vertical-align:middle;
-}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl thead tr{border-bottom:1px solid var(--border-h)}
+.tbl th{text-align:left;padding:8px 10px;font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:2px;color:var(--dim);font-weight:400;white-space:nowrap}
+.tbl tbody tr{border-bottom:1px solid var(--border);transition:.15s;cursor:pointer}
+.tbl tbody tr:hover{background:rgba(0,200,255,0.06)}
+.tbl td{padding:10px 10px;vertical-align:middle}
+.tsc{overflow-x:auto}.tsc::-webkit-scrollbar{height:3px}.tsc::-webkit-scrollbar-thumb{background:var(--border)}
 
-/* STATUS BADGES */
-.badge {
-  display:inline-block;
-  padding:3px 10px;
-  border-radius:2px;
-  font-size:10px;
-  letter-spacing:2px;
-  font-weight:600;
-  text-transform:uppercase;
-}
-.badge-active { background:rgba(0,255,136,0.15); color:var(--green); border:1px solid rgba(0,255,136,0.3); }
-.badge-pending { background:rgba(255,107,53,0.15); color:var(--orange); border:1px solid rgba(255,107,53,0.3); }
-.badge-critical { background:rgba(255,51,85,0.15); color:var(--red); border:1px solid rgba(255,51,85,0.3); }
-.badge-info { background:rgba(0,200,255,0.15); color:var(--cyan); border:1px solid rgba(0,200,255,0.3); }
-.badge-gold { background:rgba(255,215,0,0.15); color:var(--gold); border:1px solid rgba(255,215,0,0.3); }
+/* BADGES */
+.bg{display:inline-block;padding:2px 8px;border-radius:2px;font-size:9px;letter-spacing:2px;font-weight:600;text-transform:uppercase;white-space:nowrap}
+.bg-done{background:rgba(0,255,136,.15);color:var(--green);border:1px solid rgba(0,255,136,.3)}
+.bg-pend{background:rgba(255,107,53,.15);color:var(--orange);border:1px solid rgba(255,107,53,.3)}
+.bg-crit{background:rgba(255,51,85,.15);color:var(--red);border:1px solid rgba(255,51,85,.3)}
+.bg-ok{background:rgba(0,200,255,.15);color:var(--cyan);border:1px solid rgba(0,200,255,.3)}
+.bg-gold{background:rgba(255,215,0,.15);color:var(--gold);border:1px solid rgba(255,215,0,.3)}
+.bg-x0{background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.bg-x1{background:rgba(0,200,255,.15);color:var(--cyan);border:1px solid rgba(0,200,255,.3)}
+.bg-x2{background:rgba(255,215,0,.15);color:var(--gold);border:1px solid rgba(255,215,0,.3)}
 
 /* BUTTONS */
-.btn {
-  padding:8px 16px;
-  border-radius:2px;
-  cursor:pointer;
-  font-family:'Rajdhani',sans-serif;
-  font-weight:600;
-  font-size:12px;
-  letter-spacing:2px;
-  transition:all 0.2s;
-  border:1px solid;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-}
-.btn-primary {
-  background:rgba(0,200,255,0.15);
-  border-color:var(--cyan);
-  color:var(--cyan2);
-}
-.btn-primary:hover { background:rgba(0,200,255,0.3); box-shadow:var(--glow); }
-.btn-danger {
-  background:rgba(255,51,85,0.15);
-  border-color:var(--red);
-  color:var(--red);
-}
-.btn-success {
-  background:rgba(0,255,136,0.15);
-  border-color:var(--green);
-  color:var(--green);
-}
-.btn-success:hover { background:rgba(0,255,136,0.25); }
-.btn-gold {
-  background:rgba(255,215,0,0.15);
-  border-color:var(--gold);
-  color:var(--gold);
-}
-.btn-orange {
-  background:rgba(255,107,53,0.15);
-  border-color:var(--orange);
-  color:var(--orange);
-}
-.btn-sm { padding:5px 12px; font-size:11px; }
-.btn-icon { padding:6px 8px; }
+.btn{padding:7px 14px;border-radius:2px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:2px;transition:.2s;border:1px solid;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.b-p{background:rgba(0,200,255,.12);border-color:var(--cyan);color:var(--cyan2)}
+.b-p:hover{background:rgba(0,200,255,.25);box-shadow:var(--glow)}
+.b-s{background:rgba(0,255,136,.12);border-color:var(--green);color:var(--green)}
+.b-s:hover{background:rgba(0,255,136,.22)}
+.b-g{background:rgba(255,215,0,.12);border-color:var(--gold);color:var(--gold)}
+.b-o{background:rgba(255,107,53,.12);border-color:var(--orange);color:var(--orange)}
+.b-r{background:rgba(255,51,85,.12);border-color:var(--red);color:var(--red)}
+.b-sm{padding:4px 10px;font-size:10px}
 
-/* FILTERS BAR */
-.filters-bar {
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-bottom:20px;
-  align-items:center;
-}
-.filter-select, .filter-input {
-  background:rgba(0,200,255,0.05);
-  border:1px solid var(--border);
-  border-radius:2px;
-  padding:8px 12px;
-  color:var(--text);
-  font-family:'Rajdhani',sans-serif;
-  font-size:13px;
-  outline:none;
-  cursor:pointer;
-  transition:all 0.2s;
-}
-.filter-select:focus, .filter-input:focus {
-  border-color:var(--cyan);
-}
-.filter-select option { background:#0a1628; }
+/* FILTERS */
+.fb{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:10px 14px;background:rgba(0,200,255,.025);border:1px solid var(--border);border-radius:3px}
+.fsel,.finp{background:rgba(0,200,255,.05);border:1px solid var(--border);border-radius:2px;padding:7px 10px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:12px;outline:none;transition:.2s}
+.fsel:focus,.finp:focus{border-color:var(--cyan)}
+.fsel option{background:#0a1828}
+.fl{font-size:9px;letter-spacing:2px;color:var(--dim);flex-shrink:0}
 
 /* MODAL */
-.modal-overlay {
-  position:fixed; inset:0;
-  background:rgba(0,5,15,0.85);
-  backdrop-filter:blur(8px);
-  z-index:500;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-}
-.modal-overlay.active { display:flex; }
-.modal {
-  background: var(--bg3);
-  border:1px solid var(--border-hot);
-  border-radius:4px;
-  width:100%;
-  max-width:900px;
-  max-height:90vh;
-  overflow-y:auto;
-  box-shadow: 0 0 100px rgba(0,200,255,0.2);
-  position:relative;
-}
-.modal::-webkit-scrollbar { width:4px; }
-.modal::-webkit-scrollbar-thumb { background:var(--border); }
-.modal-header {
-  padding:24px 28px 20px;
-  border-bottom:1px solid var(--border);
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  position:sticky;
-  top:0;
-  background: var(--bg3);
-  z-index:10;
-}
-.modal-title {
-  font-family:'Orbitron',sans-serif;
-  font-size:14px;
-  letter-spacing:2px;
-  color:var(--cyan2);
-}
-.modal-close {
-  background:none;
-  border:1px solid var(--border);
-  color:var(--text-dim);
-  width:30px; height:30px;
-  border-radius:2px;
-  cursor:pointer;
-  font-size:16px;
-  display:flex; align-items:center; justify-content:center;
-  transition:all 0.2s;
-}
-.modal-close:hover { border-color:var(--red); color:var(--red); }
-.modal-body { padding:24px 28px; }
+.mo{position:fixed;inset:0;background:rgba(0,5,15,.88);backdrop-filter:blur(8px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.mo.on{display:flex}
+.md{background:var(--bg3);border:1px solid var(--border-h);border-radius:3px;width:100%;max-width:960px;max-height:92vh;overflow-y:auto;box-shadow:0 0 120px rgba(0,200,255,.18);position:relative}
+.md::-webkit-scrollbar{width:3px}.md::-webkit-scrollbar-thumb{background:var(--border)}
+.mh{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--bg3);z-index:10}
+.mt2{font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:2px;color:var(--cyan2)}
+.mc{background:none;border:1px solid var(--border);color:var(--dim);width:28px;height:28px;border-radius:2px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:.2s}
+.mc:hover{border-color:var(--red);color:var(--red)}
+.mb{padding:20px 24px}
 
-/* EDITABLE FIELD */
-.field-group { margin-bottom:16px; }
-.field-label {
-  font-size:10px;
-  letter-spacing:2px;
-  color:var(--text-dim);
-  margin-bottom:6px;
-}
-.field-value {
-  font-size:14px;
-  padding:8px 0;
-  border-bottom:1px solid var(--border);
-  color:var(--text);
-}
-.field-edit-input, .field-edit-select, .field-edit-textarea {
-  width:100%;
-  background:rgba(0,200,255,0.05);
-  border:1px solid var(--border);
-  border-radius:2px;
-  padding:10px 12px;
-  color:var(--text);
-  font-family:'Rajdhani',sans-serif;
-  font-size:14px;
-  outline:none;
-  transition:all 0.2s;
-}
-.field-edit-input:focus, .field-edit-select:focus, .field-edit-textarea:focus {
-  border-color:var(--cyan);
-  box-shadow:0 0 10px rgba(0,200,255,0.15);
-}
-.field-edit-textarea { resize:vertical; min-height:80px; }
-.field-edit-select option { background:#0a1628; }
+/* FIELDS */
+.fg{margin-bottom:14px}
+.flb{font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:5px}
+.fv{font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);color:var(--text);min-height:28px}
+.ei,.es,.eta{width:100%;background:rgba(0,200,255,.05);border:1px solid var(--border);border-radius:2px;padding:9px 11px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;outline:none;transition:.2s}
+.ei:focus,.es:focus,.eta:focus{border-color:var(--cyan);box-shadow:0 0 10px rgba(0,200,255,.12)}
+.eta{resize:vertical;min-height:70px}
+.es option{background:#0a1828}
 
-/* NEEDS VISUALIZATION */
-.needs-heatmap {
-  display:grid;
-  gap:6px;
-}
-.heatmap-row { display:flex; gap:6px; align-items:center; }
-.heatmap-label { width:80px; font-size:11px; color:var(--text-dim); flex-shrink:0; text-align:right; padding-right:8px; }
-.heatmap-cell {
-  flex:1;
-  min-height:36px;
-  border-radius:2px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-family:'Share Tech Mono',monospace;
-  font-size:11px;
-  font-weight:700;
-  cursor:default;
-  transition:all 0.2s;
-  border:1px solid transparent;
-  position:relative;
-}
-.heatmap-cell:hover { transform:scale(1.05); z-index:2; }
-.heatmap-cell .cell-tooltip {
-  display:none;
-  position:absolute;
-  bottom:calc(100% + 8px);
-  left:50%;
-  transform:translateX(-50%);
-  background:var(--bg3);
-  border:1px solid var(--cyan);
-  padding:6px 10px;
-  font-size:11px;
-  white-space:nowrap;
-  z-index:100;
-  border-radius:2px;
-}
-.heatmap-cell:hover .cell-tooltip { display:block; }
+/* NEEDS MATRIX */
+.mx-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.mx-tbl th{background:rgba(0,200,255,.08);color:var(--cyan);padding:7px 9px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;border:1px solid var(--border);white-space:nowrap}
+.mx-tbl td{padding:7px 9px;border:1px solid var(--border);text-align:center;transition:.2s}
+.mx-tbl tr:hover td{filter:brightness(1.3)}
+.n0{color:var(--dim)}
+.n1{background:rgba(0,200,255,.08);color:var(--cyan2);font-family:'Share Tech Mono',monospace;font-weight:700}
+.n2{background:rgba(255,107,53,.12);color:var(--orange);font-family:'Share Tech Mono',monospace;font-weight:700}
+.n3{background:rgba(255,51,85,.12);color:var(--red);font-family:'Share Tech Mono',monospace;font-weight:700;animation:gp 1.5s infinite}
+@keyframes gp{0%,100%{opacity:1}50%{opacity:.5}}
 
-/* NEEDS NAVIGATOR */
-.needs-nav {
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  margin-bottom:16px;
-}
-.needs-nav-btn {
-  padding:6px 14px;
-  border:1px solid var(--border);
-  border-radius:2px;
-  cursor:pointer;
-  font-size:12px;
-  letter-spacing:1px;
-  color:var(--text-dim);
-  background:transparent;
-  transition:all 0.2s;
-  font-family:'Rajdhani',sans-serif;
-}
-.needs-nav-btn.active, .needs-nav-btn:hover {
-  border-color:var(--cyan);
-  color:var(--cyan);
-  background:rgba(0,200,255,0.08);
-}
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:-1px}
+.tab{padding:8px 16px;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:2px;color:var(--dim);border-bottom:2px solid transparent;transition:.2s;text-transform:uppercase}
+.tab.active{color:var(--cyan2);border-bottom-color:var(--cyan)}
+.tab:hover{color:var(--text)}
+.tab-pg{display:none}.tab-pg.active{display:block}
 
-/* CHART WRAPPER */
-.chart-wrapper {
-  position:relative;
-  padding:16px;
-  background:rgba(0,0,0,0.2);
-  border-radius:4px;
-  border:1px solid var(--border);
-}
-canvas { max-width:100%; }
+/* COMMENT WIDGET */
+.cw{position:relative}
+.ca2{width:100%;background:rgba(0,200,255,.04);border:1px solid var(--border);border-radius:2px;padding:10px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;resize:vertical;min-height:90px;outline:none;transition:.2s}
+.ca2:focus{border-color:var(--cyan)}
+.asi{position:absolute;bottom:8px;right:10px;font-size:9px;letter-spacing:2px;color:var(--green);opacity:0;transition:opacity .4s}
+.asi.on{opacity:1}
 
 /* UPLOAD ZONE */
-.upload-zone {
-  border:2px dashed var(--border);
-  border-radius:4px;
-  padding:40px;
-  text-align:center;
-  cursor:pointer;
-  transition:all 0.3s;
-  background:rgba(0,200,255,0.02);
-}
-.upload-zone:hover, .upload-zone.dragover {
-  border-color:var(--cyan);
-  background:rgba(0,200,255,0.06);
-}
-.upload-icon { font-size:40px; margin-bottom:12px; opacity:0.5; }
-.upload-text { font-size:14px; color:var(--text-dim); }
+.uz{border:2px dashed var(--border);border-radius:3px;padding:36px;text-align:center;cursor:pointer;transition:.3s;background:rgba(0,200,255,.015)}
+.uz:hover,.uz.dg{border-color:var(--cyan);background:rgba(0,200,255,.05)}
+.uz-ic{font-size:36px;margin-bottom:10px;opacity:.45}
+.uz-tx{font-size:13px;color:var(--dim)}
 
-/* COMMENT AREA */
-.comment-wrapper { position:relative; }
-.comment-area {
-  width:100%;
-  background:rgba(0,200,255,0.04);
-  border:1px solid var(--border);
-  border-radius:2px;
-  padding:12px;
-  color:var(--text);
-  font-family:'Rajdhani',sans-serif;
-  font-size:14px;
-  resize:vertical;
-  min-height:100px;
-  outline:none;
-  transition:all 0.2s;
-}
-.comment-area:focus { border-color:var(--cyan); }
-.auto-save-indicator {
-  position:absolute;
-  bottom:10px; right:10px;
-  font-size:10px;
-  letter-spacing:2px;
-  color:var(--green);
-  opacity:0;
-  transition:opacity 0.5s;
-}
-.auto-save-indicator.show { opacity:1; }
+/* KPI BARS */
+.kb-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.kb-lbl{font-size:10px;color:var(--dim);width:90px;flex-shrink:0}
+.kb-tr{flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+.kb-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.kb-val{font-size:10px;color:var(--text);width:34px;text-align:right}
 
-/* EMAIL PREVIEW */
-.email-preview {
-  background:#fff;
-  color:#1a1a2e;
-  border-radius:4px;
-  padding:24px;
-  font-family:Arial,sans-serif;
-  font-size:13px;
-  max-height:400px;
-  overflow-y:auto;
-}
-.email-preview h2 { color:#0d47a1; margin-bottom:12px; }
-.pivot-table {
-  width:100%;
-  border-collapse:collapse;
-  font-size:12px;
-  margin-top:12px;
-}
-.pivot-table th {
-  background:#0d47a1;
-  color:#fff;
-  padding:8px 10px;
-  text-align:left;
-}
-.pivot-table td {
-  padding:7px 10px;
-  border-bottom:1px solid #e0e0e0;
-}
-.pivot-table tr:nth-child(even) td { background:#f5f5f5; }
-.pivot-table .total-row td {
-  background:#e3f2fd;
-  font-weight:bold;
-}
+/* PERSON CARDS */
+.pc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.pc{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:18px;transition:.3s;cursor:pointer}
+.pc:hover{border-color:var(--border-h);box-shadow:var(--glow)}
+.pc-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.pc-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;flex-shrink:0}
+.pc-nm{font-weight:600;font-size:13px}
+.pc-role{font-size:10px;color:var(--dim);letter-spacing:1px}
+.pc-pn-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 
-/* PERIMETER RADAR */
-.perimeter-grid {
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:16px;
-}
-.person-card {
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:4px;
-  padding:20px;
-  transition:all 0.3s;
-  cursor:pointer;
-}
-.person-card:hover { border-color:var(--border-hot); box-shadow:var(--glow); }
-.person-card-header {
-  display:flex;
-  align-items:center;
-  gap:12px;
-  margin-bottom:16px;
-}
-.person-avatar {
-  width:42px; height:42px;
-  border-radius:50%;
-  background: linear-gradient(135deg, var(--purple), var(--cyan));
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Orbitron',sans-serif;
-  font-size:13px;
-  font-weight:700;
-  flex-shrink:0;
-}
-.person-name { font-weight:600; font-size:14px; }
-.person-division { font-size:11px; color:var(--text-dim); letter-spacing:1px; }
-.kpi-bars { margin-top:8px; }
-.kpi-bar-row {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-bottom:8px;
-}
-.kpi-bar-label { font-size:11px; color:var(--text-dim); width:80px; flex-shrink:0; }
-.kpi-bar-track {
-  flex:1;
-  height:6px;
-  background:rgba(255,255,255,0.08);
-  border-radius:3px;
-  overflow:hidden;
-}
-.kpi-bar-fill {
-  height:100%;
-  border-radius:3px;
-  transition:width 1s cubic-bezier(0.4,0,0.2,1);
-}
-.kpi-bar-val { font-size:11px; color:var(--text); width:35px; text-align:right; }
-
-/* NOTIFICATION TOAST */
-.toast {
-  position:fixed;
-  bottom:24px; right:24px;
-  background: var(--bg3);
-  border:1px solid var(--cyan);
-  border-radius:4px;
-  padding:12px 20px;
-  color:var(--cyan2);
-  font-size:13px;
-  letter-spacing:1px;
-  z-index:9998;
-  transform:translateY(80px);
-  opacity:0;
-  transition:all 0.3s;
-  box-shadow: var(--glow);
-}
-.toast.show { transform:translateY(0); opacity:1; }
-
-/* SEPARATOR */
-.sep { height:1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin:20px 0; }
-
-/* SCROLLABLE TABLE WRAPPER */
-.table-scroll { overflow-x:auto; }
-.table-scroll::-webkit-scrollbar { height:4px; }
-.table-scroll::-webkit-scrollbar-thumb { background:var(--border); }
-
-/* ALERT BANNER */
-.alert-banner {
-  padding:10px 16px;
-  border-radius:2px;
-  font-size:13px;
-  margin-bottom:16px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.alert-info { background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.3); color:var(--cyan); }
-.alert-warn { background:rgba(255,107,53,0.08); border:1px solid rgba(255,107,53,0.3); color:var(--orange); }
-.alert-gold { background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.3); color:var(--gold); }
+/* ALERTS */
+.al{padding:9px 14px;border-radius:2px;font-size:12px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.al-w{background:rgba(255,107,53,.08);border:1px solid rgba(255,107,53,.3);color:var(--orange)}
+.al-i{background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.3);color:var(--cyan)}
+.al-g{background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);color:var(--gold)}
+.al-e{background:rgba(255,51,85,.08);border:1px solid rgba(255,51,85,.3);color:var(--red)}
 
 /* SECTION TITLE */
-.section-title {
-  font-family:'Orbitron',sans-serif;
-  font-size:12px;
-  letter-spacing:3px;
-  color:var(--cyan);
-  margin-bottom:16px;
-  padding-bottom:8px;
-  border-bottom:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.section-title .stag {
-  font-size:9px;
-  letter-spacing:2px;
-  color:var(--text-dim);
-  font-family:'Rajdhani',sans-serif;
-  font-weight:normal;
-}
+.st{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:3px;color:var(--cyan);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.st .stg{font-size:8px;letter-spacing:2px;color:var(--dim);font-family:'Rajdhani',sans-serif;font-weight:400}
 
-/* GLOW PULSE ANIMATION */
-@keyframes glowPulse {
-  0%,100% { opacity:1; }
-  50% { opacity:0.4; }
-}
-.pulse { animation: glowPulse 2s infinite; }
+/* SEP */
+.sep{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:18px 0}
 
-@keyframes fadeInUp {
-  from { opacity:0; transform:translateY(16px); }
-  to { opacity:1; transform:translateY(0); }
-}
-.fade-in { animation:fadeInUp 0.4s ease forwards; }
+/* CHART */
+.cw2{background:rgba(0,0,0,.2);border-radius:3px;padding:14px;border:1px solid var(--border)}
 
-/* NEEDS MATRIX TABLE */
-.matrix-table {
-  width:100%;
-  border-collapse:collapse;
-  font-size:12px;
-}
-.matrix-table th {
-  background:rgba(0,200,255,0.08);
-  color:var(--cyan);
-  padding:8px 10px;
-  font-family:'Share Tech Mono',monospace;
-  font-size:10px;
-  letter-spacing:1px;
-  border:1px solid var(--border);
-  white-space:nowrap;
-}
-.matrix-table td {
-  padding:8px 10px;
-  border:1px solid var(--border);
-  text-align:center;
-  transition:all 0.2s;
-}
-.matrix-table td.has-need {
-  background:rgba(0,200,255,0.1);
-  color:var(--cyan2);
-  font-family:'Share Tech Mono',monospace;
-  font-weight:700;
-}
-.matrix-table td.high-need {
-  background:rgba(255,107,53,0.15);
-  color:var(--orange);
-  font-family:'Share Tech Mono',monospace;
-  font-weight:700;
-}
-.matrix-table td.critical-need {
-  background:rgba(255,51,85,0.15);
-  color:var(--red);
-  font-family:'Share Tech Mono',monospace;
-  font-weight:700;
-  animation: glowPulse 1.5s infinite;
-}
-.matrix-table tr:hover td { filter:brightness(1.3); }
+/* EMAIL PREVIEW */
+.ep{background:#fff;color:#111;border-radius:3px;padding:22px;font-family:Arial,sans-serif;font-size:12px;max-height:380px;overflow-y:auto}
+.ep h3{color:#00539b;margin-bottom:10px;font-size:16px}
+.ep p{color:#444;margin-bottom:8px;font-size:11px}
+.pt{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px}
+.pt th{background:#00539b;color:#fff;padding:6px 8px;text-align:left}
+.pt td{padding:5px 8px;border-bottom:1px solid #e0e0e0}
+.pt tr:nth-child(even) td{background:#f0f7ff}
+.pt .tot td{background:#dceeff;font-weight:700}
 
-/* CHART CONTAINERS */
-.charts-row {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:16px;
-  margin-bottom:20px;
-}
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--bg3);border:1px solid var(--cyan);border-radius:3px;padding:10px 18px;color:var(--cyan2);font-size:12px;letter-spacing:1px;z-index:9998;transform:translateY(60px);opacity:0;transition:.3s;box-shadow:var(--glow)}
+.toast.on{transform:translateY(0);opacity:1}
 
-/* INPUT GROUP */
-.input-group {
-  display:flex;
-  gap:8px;
-}
-.input-group .filter-input { flex:1; }
+/* ADMIN ONLY */
+.adm-only{display:none}
+.admin-mode .adm-only{display:block}
+.adm-only-flex{display:none}
+.admin-mode .adm-only-flex{display:flex}
 
-/* PN ACTIONS */
-.pn-action-bar {
-  display:flex;
-  gap:8px;
-  margin-bottom:16px;
-  flex-wrap:wrap;
-  align-items:center;
-  padding:12px 16px;
-  background:rgba(0,200,255,0.03);
-  border:1px solid var(--border);
-  border-radius:4px;
-}
-.pn-action-bar .action-label {
-  font-size:10px;
-  letter-spacing:2px;
-  color:var(--text-dim);
-  margin-right:4px;
-}
+/* PICKUP STATUS INDICATOR */
+.pu-bar{height:3px;border-radius:2px;margin-top:4px}
 
-/* DIVISION TAG */
-.div-tag {
-  display:inline-block;
-  padding:2px 8px;
-  border-radius:2px;
-  font-size:10px;
-  letter-spacing:1px;
-}
-.div-A { background:rgba(168,85,247,0.15); color:var(--purple); border:1px solid rgba(168,85,247,0.3); }
-.div-B { background:rgba(0,200,255,0.15); color:var(--cyan); border:1px solid rgba(0,200,255,0.3); }
-.div-C { background:rgba(255,215,0,0.15); color:var(--gold); border:1px solid rgba(255,215,0,0.3); }
-
-/* PROGRESS RING */
-.progress-ring-wrapper {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:8px;
-}
-.ring-label { font-size:11px; color:var(--text-dim); letter-spacing:1px; text-align:center; }
+/* MOBILE hide */
+@media(max-width:768px){.sb{width:48px;min-width:48px}.sb .nav-lbl,.sb .u-name,.sb .u-role,.sb .bmain,.sb .bsub,.sb .bpro,.sb-bot,.sb-user .u-name{display:none}.ni{padding:10px;justify-content:center}}
 </style>
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
-<div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">ALTEN GROUP</div>
-    <div class="login-title">NEXUS PROCUREMENT</div>
-    <div class="login-field">
-      <label>ACCESS EMAIL</label>
-      <input type="email" id="login-email" placeholder="user@alten.com" value="">
-    </div>
-    <div class="login-field">
-      <label>PASSKEY</label>
-      <input type="password" id="login-pass" placeholder="••••••••" value="demo123">
-    </div>
-    <button class="btn-login" onclick="doLogin()">⟶ INITIALIZE SESSION</button>
-    <div style="margin-top:16px; font-size:11px; color:var(--text-dim); text-align:center; letter-spacing:1px;">
-      Admin: mohamed@alten.com | Viewer: any@alten.com
+<!-- ========= LOGIN ========= -->
+<div id="ls">
+  <div class="lb">
+    <div class="l-sub">STELLANTIS · ALTEN GROUP</div>
+    <div class="l-title">NEXUS</div>
+    <div class="l-proj">PROJECT L74 / D74 — PROCUREMENT</div>
+    <div class="lf"><label>ACCESS EMAIL</label><input type="email" id="l-em" placeholder="prenom.nom@alten.com" value=""></div>
+    <div class="lf"><label>PASSKEY</label><input type="password" id="l-pw" placeholder="••••••••" value="demo"></div>
+    <button class="l-btn" onclick="login()">⟶ INITIALIZE SESSION</button>
+    <div class="l-hint">
+      Admin (full edit): <strong>mohamed@alten.com</strong><br>
+      Viewer (read + comment): any other email
     </div>
   </div>
 </div>
 
-<!-- MAIN APP -->
+<!-- ========= APP ========= -->
 <div id="app">
   <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-sub">ALTEN GROUP</div>
-      <div class="brand-main">NEXUS</div>
+  <div class="sb">
+    <div class="sb-brand">
+      <div class="bsub">ALTEN GROUP</div>
+      <div class="bmain">NEXUS</div>
+      <div class="bpro" id="sb-proj">PROJECT L74 / D74</div>
     </div>
-    <div class="sidebar-user">
-      <div class="user-avatar" id="sidebar-avatar">MO</div>
-      <div class="user-info">
-        <div class="user-name" id="sidebar-name">Mohamed</div>
-        <div class="user-role admin" id="sidebar-role">ADMIN</div>
+    <div class="sb-user">
+      <div class="u-av" id="sb-av" style="background:linear-gradient(135deg,#00c8ff,#a855f7)">MO</div>
+      <div>
+        <div class="u-name" id="sb-nm">Mohamed</div>
+        <div class="u-role admin" id="sb-rl">ADMIN</div>
       </div>
     </div>
     <nav>
-      <div class="nav-section">
-        <div class="nav-label">NAVIGATION</div>
-        <div class="nav-item active" onclick="showPage('dashboard', this)"><span class="nav-icon">◈</span>Dashboard</div>
-        <div class="nav-item" onclick="showPage('procurement', this)"><span class="nav-icon">◉</span>Procurement</div>
-        <div class="nav-item" onclick="showPage('needs', this)"><span class="nav-icon">◎</span>Needs Matrix</div>
-        <div class="nav-item" onclick="showPage('kpi', this)"><span class="nav-icon">◌</span>KPI Monitor</div>
-        <div class="nav-item" onclick="showPage('perimeter', this)"><span class="nav-icon">◫</span>Perimeters</div>
+      <div class="nav-sec">
+        <div class="nav-lbl">NAVIGATION</div>
+        <div class="ni active" onclick="sp('dash',this)"><span class="ic">◈</span>Dashboard</div>
+        <div class="ni" onclick="sp('pickups',this)"><span class="ic">◉</span>Pick-Ups</div>
+        <div class="ni" onclick="sp('needs',this)"><span class="ic">◎</span>Needs Matrix</div>
+        <div class="ni" onclick="sp('rda',this)"><span class="ic">◌</span>RDA / Orders</div>
+        <div class="ni" onclick="sp('kpi',this)"><span class="ic">⊙</span>KPI Monitor</div>
+        <div class="ni" onclick="sp('perim',this)"><span class="ic">◫</span>Perimeters</div>
       </div>
-      <div class="nav-section" id="admin-nav" style="display:none;">
-        <div class="nav-label">ADMIN</div>
-        <div class="nav-item" onclick="showPage('admin', this)"><span class="nav-icon">⊕</span>Data Upload</div>
+      <div class="nav-sec adm-only" id="adm-nav">
+        <div class="nav-lbl">ADMIN</div>
+        <div class="ni" onclick="sp('admin',this)"><span class="ic">⊕</span>Upload / Mise à Jour</div>
       </div>
     </nav>
+    <div class="sb-bot">
+      <div style="font-size:8px;letter-spacing:2px;color:var(--dim);margin-bottom:6px">PROJECT FILTER</div>
+      <div class="proj-toggle">
+        <button class="pt-btn active" id="pt-all" onclick="setProjFilter('ALL')">ALL</button>
+        <button class="pt-btn" id="pt-l74" onclick="setProjFilter('L74')">L74</button>
+        <button class="pt-btn" id="pt-d74" onclick="setProjFilter('D74')">D74</button>
+      </div>
+      <button class="btn b-r b-sm" style="width:100%;margin-top:10px;justify-content:center" onclick="logout()">⎋ LOGOUT</button>
+    </div>
   </div>
 
-  <!-- MAIN CONTENT -->
+  <!-- MAIN -->
   <div class="main">
-    <div class="topbar">
-      <div class="page-title" id="page-title-text">DASHBOARD</div>
-      <div class="topbar-actions">
-        <span id="topbar-date" style="font-size:11px; color:var(--text-dim); letter-spacing:2px; font-family:'Share Tech Mono',monospace;"></span>
-        <button class="btn btn-sm btn-primary" onclick="doLogout()">⎋ LOGOUT</button>
+    <div class="tb">
+      <div class="tb-title" id="pg-title">DASHBOARD</div>
+      <div class="tb-r">
+        <span class="tb-date" id="tb-dt"></span>
+        <span id="proj-badge" style="font-size:9px;letter-spacing:2px;color:var(--orange);padding:3px 10px;border:1px solid rgba(255,107,53,.3);border-radius:2px">ALL PROJECTS</span>
       </div>
     </div>
 
-    <div class="content-area">
+    <div class="ca">
 
-      <!-- ============ DASHBOARD PAGE ============ -->
-      <div id="page-dashboard" class="page active">
-        <div class="grid grid-4" style="margin-bottom:20px;">
-          <div class="metric fade-in">
-            <div class="metric-label">TOTAL PNs</div>
-            <div class="metric-value">147</div>
-            <div class="metric-sub">Active references</div>
-            <div class="metric-trend trend-up">↑ +12 this month</div>
+      <!-- ====== DASHBOARD ====== -->
+      <div id="pg-dash" class="pg active">
+        <div class="g4" style="margin-bottom:16px">
+          <div class="met"><div class="ml">TOTAL PICKUPS</div><div class="mv" id="kpi-pu">—</div><div class="ms">L74 + D74 DARWIN/TAXI</div><div class="mt tup" id="kpi-pu-d">—</div></div>
+          <div class="met"><div class="ml">DONE / PENDING</div><div class="mv" style="color:var(--green)" id="kpi-done">—</div><div class="ms">Completed pickups</div><div class="mt tdn" id="kpi-open">—</div></div>
+          <div class="met"><div class="ml">OPEN RDAs</div><div class="mv" style="color:var(--orange)" id="kpi-rda">—</div><div class="ms">Active purchase requests</div><div class="mt tup">SAP EXTRACT</div></div>
+          <div class="met"><div class="ml">TOTAL NEEDS</div><div class="mv" style="color:var(--cyan)" id="kpi-needs">—</div><div class="ms">Parts across all phases</div><div class="mt tdn" id="kpi-nd">—</div></div>
+        </div>
+
+        <div class="g2" style="margin-bottom:14px">
+          <div class="card">
+            <div class="ct">PICKUP STATUS — L74 vs D74</div>
+            <div class="cw2"><canvas id="c-pu-bar" height="160"></canvas></div>
           </div>
-          <div class="metric fade-in" style="animation-delay:0.1s">
-            <div class="metric-label">OPEN NEEDS</div>
-            <div class="metric-value" style="color:var(--orange);">2,841</div>
-            <div class="metric-sub">Across all phases</div>
-            <div class="metric-trend trend-down">↓ −340 vs last MRD</div>
-          </div>
-          <div class="metric fade-in" style="animation-delay:0.2s">
-            <div class="metric-label">CRITICAL ITEMS</div>
-            <div class="metric-value" style="color:var(--red);">23</div>
-            <div class="metric-sub">Require attention</div>
-            <div class="metric-trend trend-down pulse">⚠ Immediate action</div>
-          </div>
-          <div class="metric fade-in" style="animation-delay:0.3s">
-            <div class="metric-label">COVERAGE RATE</div>
-            <div class="metric-value" style="color:var(--green);">78%</div>
-            <div class="metric-sub">Supplier commitments</div>
-            <div class="metric-trend trend-up">↑ +3% vs target</div>
+          <div class="card">
+            <div class="ct">NEEDS BY PHASE (X0 / X1 / X2)</div>
+            <div class="cw2"><canvas id="c-phase-pie" height="160"></canvas></div>
           </div>
         </div>
 
-        <div class="charts-row">
+        <div class="g2" style="margin-bottom:14px">
           <div class="card">
-            <div class="card-title">NEEDS BY PHASE / MRD</div>
-            <div class="chart-wrapper">
-              <canvas id="chart-needs-phase" height="180"></canvas>
-            </div>
+            <div class="ct">WEEKLY NEEDS TREND — TOP 10 MRDs</div>
+            <div class="cw2"><canvas id="c-mrd-trend" height="160"></canvas></div>
           </div>
           <div class="card">
-            <div class="card-title">STATUS DISTRIBUTION</div>
-            <div class="chart-wrapper">
-              <canvas id="chart-status-dist" height="180"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="charts-row">
-          <div class="card">
-            <div class="card-title">COUNTER MARK NEEDS RADAR</div>
-            <div class="chart-wrapper">
-              <canvas id="chart-radar" height="200"></canvas>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-title">DIVISION COVERAGE TIMELINE</div>
-            <div class="chart-wrapper">
-              <canvas id="chart-timeline" height="200"></canvas>
-            </div>
+            <div class="ct">RDA STATUS BREAKDOWN</div>
+            <div class="cw2"><canvas id="c-rda-status" height="160"></canvas></div>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title">CRITICAL ALERTS</div>
-          <div class="alert-banner alert-warn">⚠ PN-072 · Counter Mark CM-B · Phase 3 · MRD-2024-04 — Stock at 0, supplier lead time exceeds MRD deadline by 18 days</div>
-          <div class="alert-banner alert-warn">⚠ PN-031 · Division C · MRD-2024-03 — Quantity mismatch detected: ordered 200, committed 150</div>
-          <div class="alert-banner alert-info">ℹ 3 new needs submitted by Division A team for MRD-2024-05 — pending review</div>
-          <div class="alert-banner alert-gold">★ PN-004, PN-019, PN-083 — SA review completed, awaiting PPL validation</div>
+          <div class="ct">ACTIVE ALERTS</div>
+          <div id="alerts-container"></div>
         </div>
       </div>
 
-      <!-- ============ PROCUREMENT PAGE ============ -->
-      <div id="page-procurement" class="page">
-        <div class="pn-action-bar">
-          <span class="action-label">FILTERS:</span>
-          <select class="filter-select" id="f-division">
-            <option value="">All Divisions</option>
-            <option>Division A</option>
-            <option>Division B</option>
-            <option>Division C</option>
-          </select>
-          <select class="filter-select" id="f-status">
+      <!-- ====== PICKUPS ====== -->
+      <div id="pg-pickups" class="pg">
+        <div class="tabs">
+          <div class="tab active" onclick="showTab('pu',0,this)">L74 — DARWIN</div>
+          <div class="tab" onclick="showTab('pu',1,this)">L74 — TAXI</div>
+          <div class="tab" onclick="showTab('pu',2,this)">D74 — DARWIN</div>
+          <div class="tab" onclick="showTab('pu',3,this)">D74 — TAXI</div>
+        </div>
+
+        <div class="fb">
+          <span class="fl">FILTERS:</span>
+          <input class="finp" id="pu-search" placeholder="🔍 Search PN / Supplier / Pilote..." style="width:220px" oninput="renderPickups()">
+          <select class="fsel" id="pu-status" onchange="renderPickups()">
             <option value="">All Status</option>
-            <option>Active</option>
-            <option>Pending</option>
-            <option>Critical</option>
-            <option>On Hold</option>
+            <option>DONE</option>
+            <option>PENDING</option>
           </select>
-          <input class="filter-input" id="f-search" placeholder="🔍 Search PN / Description..." style="width:220px;" oninput="filterPNs()">
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button id="btn-upload-excel" class="btn btn-gold btn-sm" onclick="showPage('admin')" style="display:none;">⬆ Upload Excel</button>
-            <button class="btn btn-primary btn-sm" onclick="exportNeedsExcel()">⬇ Export Excel</button>
+          <select class="fsel" id="pu-pilote" onchange="renderPickups()">
+            <option value="">All Pilotes</option>
+          </select>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn b-s b-sm" onclick="exportPickupsExcel()">⬇ EXPORT</button>
+            <button class="btn b-o b-sm" onclick="openEmailModal('pickup')">✉ SEND TO SUPPLIER</button>
           </div>
         </div>
 
+        <div class="tab-pg active" id="pu-tab-0">
+          <div class="card"><div class="tsc"><table class="tbl" id="tbl-pu-0"><thead><tr><th>PART NUMBER</th><th>SUPPLIER</th><th>QTY CONF.</th><th>DATE AVAIL.</th><th>PACKAGING</th><th>PILOTE</th><th>PICKUP DATE</th><th>DELIVERY DATE</th><th>VR/ORDER</th><th>STATUS</th><th>SA COMMENT</th><th>DATE</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
+        <div class="tab-pg" id="pu-tab-1">
+          <div class="card"><div class="tsc"><table class="tbl" id="tbl-pu-1"><thead><tr><th>PART NUMBER</th><th>SUPPLIER</th><th>QTY CONF.</th><th>DATE AVAIL.</th><th>PACKAGING</th><th>PILOTE</th><th>PICKUP DATE</th><th>DELIVERY DATE</th><th>VR/ORDER</th><th>STATUS</th><th>SA COMMENT</th><th>DATE</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
+        <div class="tab-pg" id="pu-tab-2">
+          <div class="card"><div class="tsc"><table class="tbl" id="tbl-pu-2"><thead><tr><th>PART NUMBER</th><th>SUPPLIER</th><th>QTY CONF.</th><th>DATE AVAIL.</th><th>PACKAGING</th><th>PILOTE</th><th>PICKUP DATE</th><th>DELIVERY DATE</th><th>VR/ORDER</th><th>STATUS</th><th>SA COMMENT</th><th>DATE</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
+        <div class="tab-pg" id="pu-tab-3">
+          <div class="card"><div class="tsc"><table class="tbl" id="tbl-pu-3"><thead><tr><th>PART NUMBER</th><th>QTY</th><th>DIMENSIONS</th><th>PICKUP DATE</th><th>DELIVERY DATE</th><th>ORDER</th><th>REQUESTED BY</th><th>INFO</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
+      </div>
+
+      <!-- ====== NEEDS MATRIX ====== -->
+      <div id="pg-needs" class="pg">
+        <div class="st">NEEDS MATRIX <span class="stg">// PER PN × WEEK (MRD) × PHASE × COUNTER MARK</span></div>
+
+        <div class="fb">
+          <span class="fl">FILTER:</span>
+          <select class="fsel" id="nf-pn" onchange="renderNeeds()"><option value="">All PNs</option></select>
+          <select class="fsel" id="nf-phase" onchange="renderNeeds()">
+            <option value="">All Phases</option>
+            <option value="X0">X0</option>
+            <option value="X1">X1</option>
+            <option value="X2">X2</option>
+          </select>
+          <select class="fsel" id="nf-mrd" onchange="renderNeeds()"><option value="">All MRDs</option></select>
+          <select class="fsel" id="nf-proj" onchange="renderNeeds()">
+            <option value="">L74 + D74</option>
+            <option value="L74">L74 Only</option>
+            <option value="D74">D74 Only</option>
+          </select>
+          <button class="btn b-p b-sm" onclick="renderNeeds()">⟳ REFRESH</button>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn b-s b-sm" onclick="exportNeedsExcel()">⬇ EXPORT EXCEL</button>
+            <button class="btn b-o b-sm" onclick="openEmailModal('needs')">✉ SEND TO SUPPLIER</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="ct">NEEDS MATRIX — PN × MRD WEEK × PHASE</div>
+          <div class="tsc"><table class="mx-tbl" id="needs-mx"></table></div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="ct">NEEDS BY MRD WEEK — CHART</div>
+            <div class="cw2"><canvas id="c-needs-mrd" height="160"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="ct">TO ORDER vs BESOINS COMPARISON</div>
+            <div class="cw2"><canvas id="c-needs-cmp" height="160"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== RDA / ORDERS ====== -->
+      <div id="pg-rda" class="pg">
+        <div class="st">RDA & ORDERS TRACKER <span class="stg">// SAP EXTRACT · PURCHASE REQUESTS</span></div>
+
+        <div class="fb">
+          <span class="fl">FILTER:</span>
+          <input class="finp" id="rda-search" placeholder="🔍 Search RDA# / PN / Supplier..." style="width:220px" oninput="renderRDA()">
+          <select class="fsel" id="rda-status" onchange="renderRDA()">
+            <option value="">All Status</option>
+            <option>OPEN</option>
+            <option>ORDERED</option>
+            <option>RECEIVED</option>
+            <option>CLOSED</option>
+          </select>
+          <button class="btn b-s b-sm" onclick="exportRDAExcel()">⬇ EXPORT</button>
+        </div>
+
         <div class="card">
-          <div class="table-scroll">
-            <table class="data-table" id="pn-table">
-              <thead>
-                <tr>
-                  <th>PN REF</th>
-                  <th>DESCRIPTION</th>
-                  <th>DIVISION</th>
-                  <th>STATUS</th>
-                  <th>QTY STOCK</th>
-                  <th>SUPPLIER</th>
-                  <th>PPL</th>
-                  <th>SA</th>
-                  <th>MRD LATEST</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody id="pn-tbody"></tbody>
+          <div class="tsc">
+            <table class="tbl" id="rda-tbl">
+              <thead><tr>
+                <th>RDA #</th><th>PN</th><th>DESCRIPTION</th><th>SUPPLIER</th>
+                <th>QTY REQ.</th><th>QTY ORDERED</th><th>QTY RECEIVED</th>
+                <th>DATE REQ.</th><th>DATE DELIVERY</th><th>STATUS</th>
+                <th>PPL COMMENT</th><th>SA COMMENT</th><th>ACTIONS</th>
+              </tr></thead>
+              <tbody id="rda-tbody"></tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- ============ NEEDS MATRIX PAGE ============ -->
-      <div id="page-needs" class="page">
-        <div class="section-title">NEEDS MATRIX <span class="stag">// PER PHASE · MRD · COUNTER MARK</span></div>
-
-        <div class="filters-bar">
-          <select class="filter-select" id="nf-pn"><option value="">All PNs</option></select>
-          <select class="filter-select" id="nf-phase">
-            <option value="">All Phases</option>
-            <option>Phase 1</option>
-            <option>Phase 2</option>
-            <option>Phase 3</option>
-            <option>Phase 4</option>
-          </select>
-          <select class="filter-select" id="nf-mrd">
-            <option value="">All MRDs</option>
-            <option>MRD-2024-01</option>
-            <option>MRD-2024-02</option>
-            <option>MRD-2024-03</option>
-            <option>MRD-2024-04</option>
-            <option>MRD-2024-05</option>
-            <option>MRD-2024-06</option>
-          </select>
-          <select class="filter-select" id="nf-cm">
-            <option value="">All Counter Marks</option>
-            <option>CM-A</option>
-            <option>CM-B</option>
-            <option>CM-C</option>
-            <option>CM-D</option>
-          </select>
-          <select class="filter-select" id="nf-div">
-            <option value="">All Divisions</option>
-            <option>Division A</option>
-            <option>Division B</option>
-            <option>Division C</option>
-          </select>
-          <button class="btn btn-primary btn-sm" onclick="renderNeedsMatrix()">⟳ APPLY</button>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn btn-success btn-sm" onclick="exportNeedsExcel()">⬇ EXPORT EXCEL</button>
-            <button class="btn btn-orange btn-sm" onclick="openEmailModal()">✉ SEND TO SUPPLIER</button>
-          </div>
+      <!-- ====== KPI ====== -->
+      <div id="pg-kpi" class="pg">
+        <div class="g4" style="margin-bottom:16px">
+          <div class="met"><div class="ml">PICKUP COMPLETION</div><div class="mv" id="k-pu">—</div><div class="ms">DARWIN + TAXI</div></div>
+          <div class="met"><div class="ml">ON-TIME DELIVERY</div><div class="mv" style="color:var(--green)" id="k-otd">—</div><div class="ms">vs scheduled delivery</div></div>
+          <div class="met"><div class="ml">OPEN NEEDS</div><div class="mv" style="color:var(--orange)" id="k-open">—</div><div class="ms">Unfulfilled across phases</div></div>
+          <div class="met"><div class="ml">RDA FULFILLMENT</div><div class="mv" style="color:var(--cyan)" id="k-rda-f">—</div><div class="ms">Received / Requested</div></div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
-          <div class="card-title">NEEDS OVERVIEW — COUNTER MARK × MRD MATRIX</div>
-          <div class="table-scroll">
-            <table class="matrix-table" id="needs-matrix-table"></table>
-          </div>
+        <div class="g2" style="margin-bottom:14px">
+          <div class="card"><div class="ct">PILOTE PERFORMANCE — PICKUPS DONE</div><div class="cw2"><canvas id="c-kpi-pilote" height="180"></canvas></div></div>
+          <div class="card"><div class="ct">WEEKLY PICKUP VOLUME — L74 vs D74</div><div class="cw2"><canvas id="c-kpi-weekly" height="180"></canvas></div></div>
         </div>
-
-        <div class="card">
-          <div class="card-title">NEEDS VISUALIZATION — PHASE BREAKDOWN</div>
-          <div class="chart-wrapper">
-            <canvas id="chart-needs-matrix" height="120"></canvas>
-          </div>
+        <div class="g2">
+          <div class="card"><div class="ct">SUPPLIER PERFORMANCE — QTY ON TIME</div><div class="cw2"><canvas id="c-kpi-sup" height="160"></canvas></div></div>
+          <div class="card"><div class="ct">PHASE NEEDS vs TO ORDER RATIO</div><div class="cw2"><canvas id="c-kpi-phase" height="160"></canvas></div></div>
         </div>
       </div>
 
-      <!-- ============ KPI MONITOR PAGE ============ -->
-      <div id="page-kpi" class="page">
-        <div class="section-title">KPI MONITOR <span class="stag">// REAL-TIME PERFORMANCE TRACKING</span></div>
-
-        <div class="grid grid-4" style="margin-bottom:20px;">
-          <div class="metric">
-            <div class="metric-label">ON-TIME DELIVERY</div>
-            <div class="metric-value" style="color:var(--green);">91.3%</div>
-            <div class="metric-trend trend-up">↑ +2.1% vs last period</div>
-          </div>
-          <div class="metric">
-            <div class="metric-label">SUPPLIER SCORE</div>
-            <div class="metric-value" style="color:var(--cyan);">8.4 / 10</div>
-            <div class="metric-trend trend-up">↑ Excellent</div>
-          </div>
-          <div class="metric">
-            <div class="metric-label">NEED FULFILLMENT</div>
-            <div class="metric-value" style="color:var(--orange);">73.8%</div>
-            <div class="metric-trend trend-down">↓ Below 80% target</div>
-          </div>
-          <div class="metric">
-            <div class="metric-label">BACKLOG ITEMS</div>
-            <div class="metric-value" style="color:var(--red);">156</div>
-            <div class="metric-trend trend-down">↓ Requires escalation</div>
-          </div>
-        </div>
-
-        <div class="charts-row">
-          <div class="card">
-            <div class="card-title">MONTHLY PERFORMANCE TREND</div>
-            <div class="chart-wrapper">
-              <canvas id="chart-kpi-trend" height="180"></canvas>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-title">SUPPLIER PERFORMANCE RADAR</div>
-            <div class="chart-wrapper">
-              <canvas id="chart-supplier-radar" height="180"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="charts-row">
-          <div class="card">
-            <div class="card-title">DIVISION KPI COMPARISON</div>
-            <div class="chart-wrapper">
-              <canvas id="chart-div-kpi" height="160"></canvas>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-title">FULFILLMENT BY PHASE</div>
-            <div class="chart-wrapper">
-              <canvas id="chart-fulfill-phase" height="160"></canvas>
-            </div>
-          </div>
+      <!-- ====== PERIMETERS ====== -->
+      <div id="pg-perim" class="pg">
+        <div class="st">TEAM PERIMETERS <span class="stg">// PILOTES · SA RESPONSIBLE · KPI TRACKING</span></div>
+        <div class="pc-grid" id="pc-grid"></div>
+        <div style="margin-top:14px" class="card">
+          <div class="ct">TEAM WORKLOAD DISTRIBUTION</div>
+          <div class="cw2"><canvas id="c-workload" height="120"></canvas></div>
         </div>
       </div>
 
-      <!-- ============ PERIMETER PAGE ============ -->
-      <div id="page-perimeter" class="page">
-        <div class="section-title">TEAM PERIMETERS <span class="stag">// INDIVIDUAL MONITORING & KPI</span></div>
-        <div class="perimeter-grid" id="perimeter-grid"></div>
-        <div style="margin-top:20px;">
+      <!-- ====== ADMIN ====== -->
+      <div id="pg-admin" class="pg adm-only">
+        <div class="al al-g">★ ADMIN ACCESS — Only accessible as <strong>mohamed@alten.com</strong></div>
+        <div class="g2" style="margin-bottom:14px">
           <div class="card">
-            <div class="card-title">TEAM WORKLOAD DISTRIBUTION</div>
-            <div class="chart-wrapper">
-              <canvas id="chart-workload" height="140"></canvas>
+            <div class="ct">UPLOAD SUIVI PICK-UPs (L74 or D74)</div>
+            <div class="uz" onclick="document.getElementById('f-pu').click()" ondragover="event.preventDefault();this.classList.add('dg')" ondragleave="this.classList.remove('dg')" ondrop="handleDrop(event,'pu')">
+              <div class="uz-ic">📋</div>
+              <div class="uz-tx">SUIVI_PICK_UPs_L74.xlsx or SUIVI_PICK_UPs_D74.xlsx<br><small style="color:var(--dim)">Sheets: DARWIN, TAXI</small></div>
             </div>
+            <input type="file" id="f-pu" accept=".xlsx,.xls" style="display:none" onchange="handleUpload(event,'pu')">
+            <div id="up-pu-status" style="margin-top:10px;font-size:11px;color:var(--green)"></div>
+          </div>
+          <div class="card">
+            <div class="ct">UPLOAD ORDERING FILE (.zip or .xlsx)</div>
+            <div class="uz" onclick="document.getElementById('f-ord').click()" ondragover="event.preventDefault();this.classList.add('dg')" ondragleave="this.classList.remove('dg')" ondrop="handleDrop(event,'ord')">
+              <div class="uz-ic">📊</div>
+              <div class="uz-tx">Ordering_file.zip / Ordering file.xlsx<br><small style="color:var(--dim)">Row 9 header — needs per MRD week</small></div>
+            </div>
+            <input type="file" id="f-ord" accept=".xlsx,.xls,.zip" style="display:none" onchange="handleUpload(event,'ord')">
+            <div id="up-ord-status" style="margin-top:10px;font-size:11px;color:var(--green)"></div>
           </div>
         </div>
-      </div>
 
-      <!-- ============ ADMIN PAGE ============ -->
-      <div id="page-admin" class="page">
-        <div class="section-title">ADMINISTRATION <span class="stag">// ADMIN ACCESS ONLY — MOHAMED</span></div>
-
-        <div class="grid grid-2" style="margin-bottom:20px;">
+        <div class="g2" style="margin-bottom:14px">
           <div class="card">
-            <div class="card-title">UPLOAD EXCEL — MISE À JOUR</div>
-            <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-excel').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleFileDrop(event)">
-              <div class="upload-icon">📊</div>
-              <div class="upload-text">Click to upload or drag & drop<br><span style="color:var(--text-dim); font-size:12px;">.xlsx / .xls files accepted</span></div>
+            <div class="ct">UPLOAD RDA FILE</div>
+            <div class="uz" onclick="document.getElementById('f-rda').click()" ondragover="event.preventDefault();this.classList.add('dg')" ondragleave="this.classList.remove('dg')" ondrop="handleDrop(event,'rda')">
+              <div class="uz-ic">📄</div>
+              <div class="uz-tx">RDA_FILE.xlsx<br><small style="color:var(--dim)">Sheets: List of needs, Extract RDA, KPI L74/D74</small></div>
             </div>
-            <input type="file" id="file-excel" accept=".xlsx,.xls" style="display:none" onchange="handleFileUpload(event)">
-            <div id="upload-status" style="margin-top:12px; font-size:12px; color:var(--green);"></div>
+            <input type="file" id="f-rda" accept=".xlsx,.xls" style="display:none" onchange="handleUpload(event,'rda')">
+            <div id="up-rda-status" style="margin-top:10px;font-size:11px;color:var(--green)"></div>
           </div>
 
           <div class="card">
-            <div class="card-title">PPL COMMENT — GLOBAL</div>
-            <div style="margin-bottom:12px;">
-              <div class="field-label">PPL VALIDATION COMMENT</div>
-              <textarea class="comment-area" id="ppl-comment-global" placeholder="Add PPL validation notes, supplier directives, procurement decisions..." rows="4"></textarea>
-              <div style="font-size:10px; color:var(--text-dim); margin-top:6px;">📎 Auto-draft saved every keystroke</div>
+            <div class="ct">GLOBAL PPL &amp; SA COMMENTS</div>
+            <div style="margin-bottom:10px">
+              <div class="flb">PPL GLOBAL COMMENT</div>
+              <textarea class="eta" id="ppl-gl" rows="3" placeholder="PPL validation, directives, supplier instructions..."></textarea>
             </div>
-            <div class="field-label">SA (SUPPLY ASSURANCE) COMMENT</div>
-            <textarea class="comment-area" id="sa-comment-global" placeholder="Add Supply Assurance notes, risk flags, escalation notes..." rows="4"></textarea>
-            <div style="margin-top:12px; display:flex; gap:8px;">
-              <button class="btn btn-gold btn-sm" onclick="saveComment('ppl')">💾 SAVE PPL</button>
-              <button class="btn btn-primary btn-sm" onclick="saveComment('sa')">💾 SAVE SA</button>
+            <div style="margin-bottom:10px">
+              <div class="flb">SA GLOBAL COMMENT</div>
+              <textarea class="eta" id="sa-gl" rows="3" placeholder="Supply Assurance notes, risk flags, escalations..."></textarea>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn b-g b-sm" onclick="saveGlobalComment('ppl')">💾 SAVE PPL</button>
+              <button class="btn b-p b-sm" onclick="saveGlobalComment('sa')">💾 SAVE SA</button>
             </div>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title">RECENT UPDATES LOG</div>
-          <div id="admin-log" style="font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--text-dim); line-height:2;">
-            <div><span style="color:var(--cyan);">[2024-12-01 09:14]</span> Mohamed — Uploaded procurement_update_v3.xlsx (147 rows updated)</div>
-            <div><span style="color:var(--cyan);">[2024-11-28 16:32]</span> Mohamed — PPL comment added for MRD-2024-04</div>
-            <div><span style="color:var(--cyan);">[2024-11-25 11:08]</span> Mohamed — Status updated for PN-031, PN-072, PN-105</div>
-            <div><span style="color:var(--cyan);">[2024-11-20 14:22]</span> Mohamed — SA validation completed, 23 items flagged</div>
-          </div>
+          <div class="ct">UPLOAD LOG</div>
+          <div id="up-log" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);line-height:2"></div>
         </div>
       </div>
 
-    </div><!-- /content-area -->
+    </div><!-- /ca -->
   </div><!-- /main -->
 </div><!-- /app -->
 
-<!-- ============ MODALS ============ -->
-
-<!-- PN DETAIL MODAL -->
-<div class="modal-overlay" id="modal-pn">
-  <div class="modal" style="max-width:800px;">
-    <div class="modal-header">
+<!-- ====== PN / PICKUP ROW MODAL ====== -->
+<div class="mo" id="mo-row">
+  <div class="md" style="max-width:860px">
+    <div class="mh">
       <div>
-        <div class="modal-title" id="modal-pn-title">PN DETAIL</div>
-        <div style="font-size:12px; color:var(--text-dim); margin-top:4px;" id="modal-pn-ref"></div>
+        <div class="mt2" id="mo-title">DETAIL</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:3px" id="mo-sub"></div>
       </div>
-      <button class="modal-close" onclick="closeModal('modal-pn')">✕</button>
+      <button class="mc" onclick="closeMo('mo-row')">✕</button>
     </div>
-    <div class="modal-body">
-      <!-- ADMIN EDIT FIELDS -->
-      <div id="pn-edit-section" style="display:none;">
-        <div class="alert-banner alert-gold">★ ADMIN MODE — You can edit all fields for this PN</div>
-        <div class="grid grid-2" style="margin-bottom:16px;">
-          <div class="field-group">
-            <div class="field-label">DESCRIPTION</div>
-            <input class="field-edit-input" id="edit-desc" type="text">
+    <div class="mb">
+      <!-- ADMIN EDIT SECTION -->
+      <div id="mo-edit" style="display:none">
+        <div class="al al-g" style="margin-bottom:12px">★ ADMIN — Full edit mode active for this row</div>
+        <div class="g2" style="margin-bottom:12px">
+          <div class="fg"><div class="flb">PART NUMBER</div><input class="ei" id="e-pn"></div>
+          <div class="fg"><div class="flb">SUPPLIER</div><input class="ei" id="e-sup"></div>
+          <div class="fg"><div class="flb">QTY CONFIRMED</div><input class="ei" id="e-qty" type="number"></div>
+          <div class="fg"><div class="flb">PILOTE</div><input class="ei" id="e-pilote"></div>
+          <div class="fg"><div class="flb">PICKUP DATE</div><input class="ei" id="e-pudate" type="datetime-local"></div>
+          <div class="fg"><div class="flb">DELIVERY DATE</div><input class="ei" id="e-dldate" type="datetime-local"></div>
+          <div class="fg"><div class="flb">VR / ORDER #</div><input class="ei" id="e-vr"></div>
+          <div class="fg"><div class="flb">STATUS</div>
+            <select class="es" id="e-status"><option value="">Not done</option><option>DONE</option></select>
           </div>
-          <div class="field-group">
-            <div class="field-label">STATUS</div>
-            <select class="field-edit-select" id="edit-status">
-              <option>Active</option><option>Pending</option><option>Critical</option><option>On Hold</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <div class="field-label">QUANTITY IN STOCK</div>
-            <input class="field-edit-input" id="edit-qty" type="number">
-          </div>
-          <div class="field-group">
-            <div class="field-label">SUPPLIER</div>
-            <input class="field-edit-input" id="edit-supplier" type="text">
-          </div>
-          <div class="field-group">
-            <div class="field-label">DIVISION</div>
-            <select class="field-edit-select" id="edit-division">
-              <option>Division A</option><option>Division B</option><option>Division C</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <div class="field-label">LATEST MRD</div>
-            <select class="field-edit-select" id="edit-mrd">
-              <option>MRD-2024-01</option><option>MRD-2024-02</option><option>MRD-2024-03</option><option>MRD-2024-04</option><option>MRD-2024-05</option>
-            </select>
-          </div>
+          <div class="fg"><div class="flb">DATE OF AVAILABILITY</div><input class="ei" id="e-avail"></div>
+          <div class="fg"><div class="flb">PACKAGING INFO</div><input class="ei" id="e-pkg"></div>
         </div>
-        <div class="field-group">
-          <div class="field-label">PPL COMMENT</div>
-          <textarea class="field-edit-textarea" id="edit-ppl" rows="2"></textarea>
-        </div>
-        <div class="field-group">
-          <div class="field-label">SA COMMENT</div>
-          <textarea class="field-edit-textarea" id="edit-sa" rows="2"></textarea>
-        </div>
-        <div style="display:flex; gap:8px; margin-bottom:16px;">
-          <button class="btn btn-success" onclick="savePNEdit()">💾 SAVE ALL CHANGES</button>
-          <button class="btn btn-danger btn-sm" onclick="closeModal('modal-pn')">✕ CANCEL</button>
+        <div class="fg"><div class="flb">PPL COMMENT</div><textarea class="eta" id="e-ppl" rows="2" placeholder="PPL notes..."></textarea></div>
+        <div class="fg"><div class="flb">SA COMMENT</div><textarea class="eta" id="e-sa" rows="2" placeholder="SA notes..."></textarea></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn b-s" onclick="saveRowEdit()">💾 SAVE ALL CHANGES</button>
+          <button class="btn b-r b-sm" onclick="closeMo('mo-row')">✕ CANCEL</button>
         </div>
       </div>
 
-      <!-- VIEW MODE -->
-      <div id="pn-view-section">
-        <div class="grid grid-3" style="margin-bottom:16px;">
-          <div class="field-group"><div class="field-label">DESCRIPTION</div><div class="field-value" id="view-desc">—</div></div>
-          <div class="field-group"><div class="field-label">STATUS</div><div class="field-value" id="view-status">—</div></div>
-          <div class="field-group"><div class="field-label">QTY IN STOCK</div><div class="field-value" id="view-qty">—</div></div>
-          <div class="field-group"><div class="field-label">SUPPLIER</div><div class="field-value" id="view-supplier">—</div></div>
-          <div class="field-group"><div class="field-label">DIVISION</div><div class="field-value" id="view-division">—</div></div>
-          <div class="field-group"><div class="field-label">LATEST MRD</div><div class="field-value" id="view-mrd">—</div></div>
+      <!-- VIEW SECTION -->
+      <div id="mo-view">
+        <div class="g2" style="margin-bottom:12px">
+          <div class="fg"><div class="flb">PART NUMBER</div><div class="fv" id="v-pn">—</div></div>
+          <div class="fg"><div class="flb">SUPPLIER</div><div class="fv" id="v-sup">—</div></div>
+          <div class="fg"><div class="flb">QTY CONFIRMED</div><div class="fv" id="v-qty">—</div></div>
+          <div class="fg"><div class="flb">PILOTE</div><div class="fv" id="v-pilote">—</div></div>
+          <div class="fg"><div class="flb">PICKUP DATE</div><div class="fv" id="v-pudate">—</div></div>
+          <div class="fg"><div class="flb">DELIVERY DATE</div><div class="fv" id="v-dldate">—</div></div>
+          <div class="fg"><div class="flb">VR / ORDER #</div><div class="fv" id="v-vr">—</div></div>
+          <div class="fg"><div class="flb">STATUS</div><div class="fv" id="v-status">—</div></div>
+          <div class="fg"><div class="flb">DATE AVAIL.</div><div class="fv" id="v-avail">—</div></div>
+          <div class="fg"><div class="flb">PACKAGING</div><div class="fv" id="v-pkg">—</div></div>
         </div>
-        <div class="grid grid-2" style="margin-bottom:16px;">
-          <div class="field-group"><div class="field-label">PPL COMMENT</div><div class="field-value" id="view-ppl" style="min-height:40px;font-style:italic;color:var(--gold);">—</div></div>
-          <div class="field-group"><div class="field-label">SA COMMENT</div><div class="field-value" id="view-sa" style="min-height:40px;font-style:italic;color:var(--purple);">—</div></div>
+        <div class="g2">
+          <div class="fg"><div class="flb">PPL COMMENT</div><div class="fv" id="v-ppl" style="color:var(--gold);font-style:italic">—</div></div>
+          <div class="fg"><div class="flb">SA COMMENT</div><div class="fv" id="v-sa" style="color:var(--purple);font-style:italic">—</div></div>
         </div>
       </div>
 
-      <!-- NEEDS BREAKDOWN (always visible) -->
       <div class="sep"></div>
-      <div class="section-title" style="margin-bottom:12px;">NEEDS BREAKDOWN <span class="stag">// PER COUNTER MARK × PHASE × MRD</span></div>
-      <div class="needs-nav" id="needs-nav-cm"></div>
-      <div class="table-scroll">
-        <table class="matrix-table" id="pn-needs-matrix"></table>
+      <div class="st" style="margin-bottom:10px">YOUR COMMENT <span class="stg">// AUTO-DRAFT SAVE</span></div>
+      <div class="cw">
+        <textarea class="ca2" id="user-cmt" placeholder="Add procurement comment, flag, update..." oninput="autoSave(this)"></textarea>
+        <div class="asi" id="asi">● DRAFT SAVED</div>
       </div>
-
-      <!-- COMMENT SECTION -->
-      <div class="sep"></div>
-      <div class="section-title">YOUR COMMENT <span class="stag">// AUTO-SAVE DRAFT</span></div>
-      <div class="comment-wrapper">
-        <textarea class="comment-area" id="user-comment-area" placeholder="Add your procurement comment, flag an issue, or update the team..." oninput="autoSaveComment(this)"></textarea>
-        <div class="auto-save-indicator" id="autosave-indicator">● DRAFT SAVED</div>
-      </div>
-      <div style="display:flex; gap:8px; margin-top:10px;">
-        <button class="btn btn-success btn-sm" onclick="submitComment()">✓ SUBMIT COMMENT</button>
-        <div id="comment-submitted-msg" style="font-size:12px; color:var(--green); align-self:center; display:none;">✓ Comment submitted successfully</div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <button class="btn b-s b-sm" onclick="submitCmt()">✓ SUBMIT COMMENT</button>
+        <span id="cmt-ok" style="font-size:11px;color:var(--green);display:none">✓ Submitted</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- EMAIL MODAL -->
-<div class="modal-overlay" id="modal-email">
-  <div class="modal" style="max-width:760px;">
-    <div class="modal-header">
-      <div class="modal-title">SEND NEEDS TO SUPPLIER</div>
-      <button class="modal-close" onclick="closeModal('modal-email')">✕</button>
+<!-- ====== EMAIL MODAL ====== -->
+<div class="mo" id="mo-email">
+  <div class="md" style="max-width:780px">
+    <div class="mh">
+      <div class="mt2">SEND TO SUPPLIER — EMAIL &amp; EXPORT</div>
+      <button class="mc" onclick="closeMo('mo-email')">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="grid grid-2" style="margin-bottom:16px; gap:12px;">
-        <div class="field-group">
-          <div class="field-label">TO (SUPPLIER EMAIL)</div>
-          <input class="field-edit-input" id="email-to" type="email" placeholder="supplier@company.com">
-        </div>
-        <div class="field-group">
-          <div class="field-label">SUBJECT</div>
-          <input class="field-edit-input" id="email-subject" type="text" value="Procurement Needs — ALTEN Group">
-        </div>
-        <div class="field-group" style="grid-column:1/-1;">
-          <div class="field-label">MESSAGE</div>
-          <textarea class="field-edit-textarea" id="email-message" rows="3" placeholder="Please find attached our procurement needs for the upcoming MRDs..."></textarea>
-        </div>
+    <div class="mb">
+      <div class="g2" style="margin-bottom:14px;gap:10px">
+        <div class="fg"><div class="flb">RECIPIENT EMAIL</div><input class="ei" id="em-to" type="email" placeholder="supplier@company.com"></div>
+        <div class="fg"><div class="flb">SUBJECT</div><input class="ei" id="em-subj" value="Procurement Needs — ALTEN Group L74/D74"></div>
+        <div class="fg" style="grid-column:1/-1"><div class="flb">MESSAGE</div><textarea class="eta" id="em-msg" rows="2" placeholder="Please find below our procurement needs for the upcoming MRDs..."></textarea></div>
       </div>
-      <div class="section-title">EMAIL PREVIEW — TABLEAU CROISÉ DYNAMIQUE</div>
-      <div class="email-preview" id="email-preview-content"></div>
-      <div style="display:flex; gap:8px; margin-top:16px;">
-        <button class="btn btn-success" onclick="sendEmailSimulated()">✉ SEND EMAIL</button>
-        <button class="btn btn-primary" onclick="exportNeedsExcel()">⬇ EXPORT EXCEL</button>
-        <button class="btn btn-sm" onclick="closeModal('modal-email')" style="border-color:var(--border); color:var(--text-dim);">CANCEL</button>
+      <div class="st" style="margin-bottom:10px">EMAIL PREVIEW — TABLEAU CROISÉ DYNAMIQUE</div>
+      <div class="ep" id="em-preview"></div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn b-s" onclick="sendEmail()">✉ SEND EMAIL</button>
+        <button class="btn b-p" onclick="exportNeedsExcel()">⬇ EXPORT EXCEL</button>
+        <button class="btn b-sm" style="border-color:var(--border);color:var(--dim)" onclick="closeMo('mo-email')">CANCEL</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ==================== DATA ====================
+// ======== STATE ========
+let CU = null, IS_ADMIN = false, PROJ_FILTER = 'ALL';
+let drafts = {}; // in-memory auto-save (no localStorage)
+let curRow = null, curRowSet = null;
+let autoSvTimer = null;
+const ADMIN = 'mohamed@alten.com';
 
-let currentUser = null;
-let isAdmin = false;
-let currentPNIndex = null;
-let commentDrafts = {}; // in-memory drafts (no localStorage)
-let autosaveTimers = {};
+// ======== DATA STRUCTURES (matching actual files) ========
+// SUIVI_PICK_UPs structure:
+// { pn, supplier, qtyConfirmed, dateAvail, packaging, pilote, pickupDate, deliveryDate, vrOrder, status, saComment, date, pplComment }
 
-const ADMIN_EMAIL = 'mohamed@alten.com';
+const pickups = {
+  L74_DARWIN: [
+    { pn:'9874972480', supplier:'TREVES PRODUCTS SERVICES & INNOVAT', qtyConfirmed:93, dateAvail:null, packaging:null, pilote:'Soukaina Bakkas', pickupDate:'2026-02-13 12:00', deliveryDate:'2026-02-19 12:00', vrOrder:'VR13508184', status:'', saComment:'', date:'2026-02-21', pplComment:'' },
+    { pn:'9879039380', supplier:'Marelli Sosnowiec Poland Sp. z o.o.', qtyConfirmed:16, dateAvail:'24.02.2026', packaging:'4 pallet 120x100x110 cardboard boxes', pilote:'Hajar Akhazzan', pickupDate:'2026-02-24 11:00', deliveryDate:'2026-03-02 10:00', vrOrder:'VR13616825', status:'DONE', saComment:'', date:'2026-02-19', pplComment:'' },
+    { pn:'9879039480', supplier:'Marelli Sosnowiec Poland Sp. z o.o.', qtyConfirmed:16, dateAvail:'24.02.2026', packaging:'4 pallet 120x100x110 cardboard boxes', pilote:'Hajar Akhazzan', pickupDate:'2026-02-24 11:00', deliveryDate:'2026-03-02 10:00', vrOrder:'VR13616825', status:'DONE', saComment:'', date:'2026-02-19', pplComment:'' },
+    { pn:'9879039380', supplier:'Marelli Sosnowiec Poland Sp. z o.o.', qtyConfirmed:12, dateAvail:'03.03.2026', packaging:'2 pallet 120x100x110 cardboard boxes', pilote:'Hajar Akhazzan', pickupDate:'2026-03-03 15:00', deliveryDate:'2026-03-09 11:00', vrOrder:'VR13689626', status:'', saComment:'', date:'2026-02-25', pplComment:'' },
+    { pn:'9879039480', supplier:'Marelli Sosnowiec Poland Sp. z o.o.', qtyConfirmed:12, dateAvail:'03.03.2026', packaging:'2 pallet 120x100x110 cardboard boxes', pilote:'Hajar Akhazzan', pickupDate:'2026-03-03 15:00', deliveryDate:'2026-03-09 11:00', vrOrder:'VR13689626', status:'', saComment:'', date:'2026-02-25', pplComment:'' },
+  ],
+  L74_TAXI: [
+    { pn:'9860763580', supplier:'CEBI ITALY', qtyConfirmed:208, dateAvail:'Ready for pickup', packaging:'one pallet 120x100x100 110kg', pilote:'Saki Maryam', pickupDate:'', deliveryDate:'2026-02-26 15:00', vrOrder:'GR2548675685', status:'', saComment:'confirmed by PPL ABRAR', date:'2026-02-25', pplComment:'Confirmed' },
+  ],
+  D74_DARWIN: [
+    { pn:'9875614880', supplier:'KYB ADVANCED MANUFACTURING SPAIN SA', qtyConfirmed:45, dateAvail:null, packaging:'4 pallet 80x450x40 8 BOXES 35KG', pilote:'Fatima Zahra Moustaghfir', pickupDate:'2026-02-13 12:00', deliveryDate:'2026-02-19 12:00', vrOrder:'VR13508152', status:'DONE', saComment:'', date:'2026-02-12', pplComment:'' },
+    { pn:'9875615180', supplier:'KYB ADVANCED MANUFACTURING SPAIN SA', qtyConfirmed:18, dateAvail:null, packaging:'1 pallet 80x180x40 8 BOXES 35KG', pilote:'Fatima Zahra Moustaghfir', pickupDate:'2026-02-13 12:00', deliveryDate:'2026-02-19 12:00', vrOrder:'VR13508152', status:'DONE', saComment:'', date:'2026-02-12', pplComment:'' },
+    { pn:'9875615480', supplier:'KYB ADVANCED MANUFACTURING SPAIN SA', qtyConfirmed:94, dateAvail:null, packaging:'9 pallet 80x940x40 8 BOXES 35KG', pilote:'Fatima Zahra Moustaghfir', pickupDate:'2026-02-13 12:00', deliveryDate:'2026-02-19 12:00', vrOrder:'VR13508152', status:'DONE', saComment:'', date:'2026-02-12', pplComment:'' },
+    { pn:'9875615780', supplier:'KYB ADVANCED MANUFACTURING SPAIN SA', qtyConfirmed:97, dateAvail:null, packaging:'9 pallet 80x970x40 8 BOXES 35KG', pilote:'Fatima Zahra Moustaghfir', pickupDate:'2026-02-13 12:00', deliveryDate:'2026-02-19 12:00', vrOrder:'VR13508152', status:'DONE', saComment:'', date:'2026-02-12', pplComment:'' },
+    { pn:'9860739680', supplier:'A. RAYMOND ITALIANA SRL', qtyConfirmed:78, dateAvail:null, packaging:'7 pallet 80x780x40 8 BOXES 35KG', pilote:'Imane Aokass', pickupDate:'2026-02-13 11:00', deliveryDate:'2026-02-17 11:00', vrOrder:'VR13508153', status:'DONE', saComment:'', date:'2026-02-12', pplComment:'' },
+    { pn:'9860739880', supplier:'A. RAYMOND ITALIANA SRL', qtyConfirmed:34, dateAvail:null, packaging:'3 pallet 80x340x40 8 BOXES 35KG', pilote:'Imane Aokass', pickupDate:'2026-02-13 11:00', deliveryDate:'2026-02-17 11:00', vrOrder:'VR13508153', status:'DONE', saComment:'', date:'2026-02-12', pplComment:'' },
+    { pn:'9871246280', supplier:'CONTINENTAL AUTOMOTIVE SRL', qtyConfirmed:22, dateAvail:'28.02.2026', packaging:'2 pallet 80x220x40', pilote:'Soukaina Bakkas', pickupDate:'2026-02-28 10:00', deliveryDate:'2026-03-05 10:00', vrOrder:'VR13702114', status:'', saComment:'', date:'2026-02-24', pplComment:'PO sent' },
+    { pn:'9860194480', supplier:'PLASTIC OMNIUM', qtyConfirmed:55, dateAvail:'05.03.2026', packaging:'5 pallet 120x550x80', pilote:'Hajar Akhazzan', pickupDate:'2026-03-05 14:00', deliveryDate:'2026-03-11 10:00', vrOrder:'VR13721008', status:'', saComment:'Need to confirm qty', date:'2026-02-23', pplComment:'' },
+  ],
+  D74_TAXI: [
+    { pn:'9831983580', supplier:'EXPRESS PARTS', qtyConfirmed:240, dateAvail:null, packaging:'2 boxes 60x40x25 16.4kg', pilote:'Salma Sargali', pickupDate:'2026-02-17 13:00', deliveryDate:'2026-02-20 11:00', vrOrder:'GR24204D1A72', status:'DONE', saComment:'', date:'2026-02-17', pplComment:'' },
+  ]
+};
 
-const phases = ['Phase 1','Phase 2','Phase 3','Phase 4'];
-const mrds = ['MRD-2024-01','MRD-2024-02','MRD-2024-03','MRD-2024-04','MRD-2024-05','MRD-2024-06'];
-const counterMarks = ['CM-A','CM-B','CM-C','CM-D'];
-const divisions = ['Division A','Division B','Division C'];
+// NEEDS data structure (from Ordering file - per PN, per MRD week, phases X0/X1/X2)
+const mrds = ['2025_S44','2025_S45','2025_S46','2025_S47','2025_S48','2025_S50','2025_S51','2026_S02','2026_S03','2026_S04','2026_S05','2026_S13','2026_S14','2026_S15','2026_S16'];
+const phases = ['X0','X1','X2'];
+const counterMarks_L74 = ['KR036','KR048','KR174','KR038','KR049','KR175','KR172','KR041','KR053','KR158'];
+const counterMarks_D74 = ['KK062','KK067','KK213','KK233','KK063','KK069','KK065','KK064'];
 
-const pnData = [
-  { ref:'PN-001', desc:'Hydraulic Valve Assembly Mk3', div:'Division A', status:'Active', qty:340, supplier:'AeroTech SA', ppl:'Approved - Q4 batch secured', sa:'Risk: alternate supplier needed', mrd:'MRD-2024-04' },
-  { ref:'PN-002', desc:'Composite Bracket Upper Frame', div:'Division B', status:'Pending', qty:0, supplier:'CompoParts GmbH', ppl:'PPL review pending', sa:'Lead time 8 weeks — order now', mrd:'MRD-2024-03' },
-  { ref:'PN-003', desc:'Titanium Fastener Set M10x40', div:'Division A', status:'Active', qty:2400, supplier:'MetaFix Inc.', ppl:'Standard procurement', sa:'Stock sufficient for 2 MRDs', mrd:'MRD-2024-05' },
-  { ref:'PN-004', desc:'Electronic Control Module v4.2', div:'Division C', status:'Critical', qty:12, supplier:'AvioElec Ltd.', ppl:'Awaiting PPL sign-off', sa:'CRITICAL: stock below min level', mrd:'MRD-2024-02' },
-  { ref:'PN-005', desc:'Sealing Ring Kit — Type B', div:'Division B', status:'Active', qty:850, supplier:'SealPro Corp.', ppl:'Approved', sa:'No issue', mrd:'MRD-2024-04' },
-  { ref:'PN-006', desc:'Carbon Fiber Panel 2mm', div:'Division A', status:'Pending', qty:45, supplier:'CarbonAero', ppl:'Price renegotiation in progress', sa:'Monitor closely', mrd:'MRD-2024-03' },
-  { ref:'PN-007', desc:'Precision Bearing Assembly P7', div:'Division C', status:'Active', qty:630, supplier:'BearingPlus', ppl:'Annual contract in place', sa:'OK', mrd:'MRD-2024-05' },
-  { ref:'PN-008', desc:'Wire Harness Sub-assembly 7A', div:'Division B', status:'Critical', qty:0, supplier:'ElectroHarness', ppl:'BLOCKED — contract dispute', sa:'Escalate to procurement director', mrd:'MRD-2024-02' },
-  { ref:'PN-009', desc:'Aluminium Casting Part A19', div:'Division A', status:'Active', qty:220, supplier:'AlumTech France', ppl:'Standard', sa:'OK', mrd:'MRD-2024-04' },
-  { ref:'PN-010', desc:'Insulation Blanket Type K', div:'Division C', status:'On Hold', qty:100, supplier:'ThermoShield', ppl:'On hold — design change', sa:'Pending design freeze', mrd:'MRD-2024-05' },
-  { ref:'PN-031', desc:'Fuel Pipe Assembly Mk2', div:'Division C', status:'Critical', qty:8, supplier:'FluidSys AG', ppl:'Urgent PPL review', sa:'Qty mismatch — escalated', mrd:'MRD-2024-03' },
-  { ref:'PN-072', desc:'Avionics Mounting Frame', div:'Division A', status:'Critical', qty:0, supplier:'StructAero', ppl:'Emergency procurement', sa:'Lead time exceeds MRD by 18 days', mrd:'MRD-2024-04' },
+const pnList = [
+  { pn:'9875614880', desc:'AMORTISSEUR DIRECTION AV G', supplier:'KYB ADVANCED MFG SPAIN', proj:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-001', status:'Active' },
+  { pn:'9875615180', desc:'AMORTISSEUR DIRECTION AV D', supplier:'KYB ADVANCED MFG SPAIN', proj:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-002', status:'Active' },
+  { pn:'9875615480', desc:'AMORTISSEUR DIRECTION AR G', supplier:'KYB ADVANCED MFG SPAIN', proj:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-003', status:'Active' },
+  { pn:'9875615780', desc:'AMORTISSEUR DIRECTION AR D', supplier:'KYB ADVANCED MFG SPAIN', proj:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-004', status:'Pending' },
+  { pn:'9860739680', desc:'AGRAFE FIXATION MOTEUR G', supplier:'A. RAYMOND ITALIANA SRL', proj:'D74', darwin:'DARWIN', area:'Standard', po:'VR-491-005', rda:'RDA-2024-005', status:'Active' },
+  { pn:'9879039380', desc:'ENSEMBLE TABLEAU DE BORD', supplier:'Marelli Sosnowiec Poland', proj:'L74', darwin:'DARWIN', area:'Standard', po:'VR-L74-001', rda:'RDA-L74-001', status:'Active' },
+  { pn:'9879039480', desc:'PLANCHE DE BORD SUPERIEURE', supplier:'Marelli Sosnowiec Poland', proj:'L74', darwin:'DARWIN', area:'Standard', po:'VR-L74-001', rda:'RDA-L74-002', status:'Active' },
+  { pn:'9874972480', desc:'JOINT ETANCHEITE HABITACLE', supplier:'TREVES PRODUCTS SERVICES', proj:'L74', darwin:'DARWIN', area:'Standard', po:'VR-L74-003', rda:'RDA-L74-003', status:'Active' },
+  { pn:'9860763580', desc:'ACTIONNEUR COMMANDE ELECT', supplier:'CEBI ITALY', proj:'L74', darwin:'TAXI', area:'Standard', po:'CPO-L74-001', rda:'RDA-L74-004', status:'Critical' },
+  { pn:'9831983580', desc:'CONNECTEUR FAISCEAU ELECT', supplier:'DELPHI TECHNOLOGIES', proj:'D74', darwin:'TAXI', area:'Standard', po:'CPO-D74-001', rda:'RDA-D74-001', status:'Done' },
 ];
 
-// Generate needs data per PN, phase, MRD, counter mark
+// Generate needs for each PN
 function genNeeds(pnRef) {
-  const data = {};
-  counterMarks.forEach(cm => {
-    data[cm] = {};
-    phases.forEach(ph => {
-      data[cm][ph] = {};
-      mrds.forEach(mrd => {
-        // Generate deterministic-ish quantities
-        const seed = (pnRef + cm + ph + mrd).split('').reduce((a,c) => a + c.charCodeAt(0), 0);
-        const val = seed % 7 === 0 ? 0 : (seed % 300) + 10;
-        data[cm][ph][mrd] = val;
-      });
+  const nd = {};
+  phases.forEach(ph => {
+    nd[ph] = {};
+    mrds.forEach((mrd, mi) => {
+      const seed = (pnRef + ph + mrd).split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+      nd[ph][mrd] = {
+        besoins: seed % 5 === 0 ? 0 : Math.floor((seed % 120) + 5),
+        dbProto: Math.floor((seed % 20)),
+        toOrder: seed % 7 === 0 ? 0 : Math.floor((seed % 80) + 2),
+        stockFin: Math.floor(seed % 50),
+        keyWord: ['CONFIRMED','PUS','SCH','WAITING','CRITICAL'][seed % 5]
+      };
     });
   });
-  return data;
+  return nd;
 }
+const needsData = {};
+pnList.forEach(p => { needsData[p.pn] = genNeeds(p.pn); });
 
-const needsCache = {};
-pnData.forEach(pn => { needsCache[pn.ref] = genNeeds(pn.ref); });
-
-const teamData = [
-  { name:'Karim Belhaj', email:'k.belhaj@alten.com', div:'Division A', initials:'KB',
-    perimeter:['PN-001','PN-003','PN-006','PN-009','PN-072'],
-    kpis:{ fulfillment:88, ontime:92, quality:85, responsiveness:90 } },
-  { name:'Laila Mansouri', email:'l.mansouri@alten.com', div:'Division B', initials:'LM',
-    perimeter:['PN-002','PN-005','PN-008'],
-    kpis:{ fulfillment:72, ontime:78, quality:90, responsiveness:65 } },
-  { name:'Youssef Tazi', email:'y.tazi@alten.com', div:'Division C', initials:'YT',
-    perimeter:['PN-004','PN-007','PN-010','PN-031'],
-    kpis:{ fulfillment:81, ontime:85, quality:79, responsiveness:88 } },
-  { name:'Nadia Cherkaoui', email:'n.cherkaoui@alten.com', div:'Division A', initials:'NC',
-    perimeter:['PN-003','PN-009'],
-    kpis:{ fulfillment:94, ontime:96, quality:92, responsiveness:91 } },
-  { name:'Amine Fassi', email:'a.fassi@alten.com', div:'Division B', initials:'AF',
-    perimeter:['PN-002','PN-005'],
-    kpis:{ fulfillment:67, ontime:70, quality:82, responsiveness:74 } },
-  { name:'Sara Benali', email:'s.benali@alten.com', div:'Division C', initials:'SB',
-    perimeter:['PN-004','PN-010'],
-    kpis:{ fulfillment:79, ontime:83, quality:88, responsiveness:77 } },
+// RDA DATA (Extract RDA sheet structure)
+const rdaData = [
+  { rda:'RDA-2024-001', pn:'9875614880', desc:'AMORTISSEUR DIRECTION AV G', supplier:'KYB ADVANCED MFG SPAIN SA', qtyReq:45, qtyOrdered:45, qtyReceived:45, dateReq:'2026-02-12', dateDel:'2026-02-19', status:'RECEIVED', pplCmt:'Annual contract in place', saCmt:'OK - received on time' },
+  { rda:'RDA-2024-002', pn:'9875615180', desc:'AMORTISSEUR DIRECTION AV D', supplier:'KYB ADVANCED MFG SPAIN SA', qtyReq:18, qtyOrdered:18, qtyReceived:18, dateReq:'2026-02-12', dateDel:'2026-02-19', status:'RECEIVED', pplCmt:'Standard', saCmt:'OK' },
+  { rda:'RDA-2024-003', pn:'9875615480', desc:'AMORTISSEUR DIRECTION AR G', supplier:'KYB ADVANCED MFG SPAIN SA', qtyReq:94, qtyOrdered:94, qtyReceived:0, dateReq:'2026-02-12', dateDel:'2026-03-01', status:'ORDERED', pplCmt:'PO sent 2026-02-13', saCmt:'Monitor delivery' },
+  { rda:'RDA-2024-004', pn:'9875615780', desc:'AMORTISSEUR DIRECTION AR D', supplier:'KYB ADVANCED MFG SPAIN SA', qtyReq:97, qtyOrdered:97, qtyReceived:0, dateReq:'2026-02-12', dateDel:'2026-03-01', status:'ORDERED', pplCmt:'', saCmt:'Confirm packaging dimensions' },
+  { rda:'RDA-2024-005', pn:'9860739680', desc:'AGRAFE FIXATION MOTEUR G', supplier:'A. RAYMOND ITALIANA SRL', qtyReq:78, qtyOrdered:78, qtyReceived:78, dateReq:'2026-02-12', dateDel:'2026-02-17', status:'RECEIVED', pplCmt:'', saCmt:'OK' },
+  { rda:'RDA-L74-001', pn:'9879039380', desc:'ENSEMBLE TABLEAU DE BORD', supplier:'Marelli Sosnowiec Poland', qtyReq:28, qtyOrdered:28, qtyReceived:16, dateReq:'2026-02-19', dateDel:'2026-03-09', status:'OPEN', pplCmt:'2nd delivery expected 03.03', saCmt:'Partial delivery received' },
+  { rda:'RDA-L74-002', pn:'9879039480', desc:'PLANCHE DE BORD SUP.', supplier:'Marelli Sosnowiec Poland', qtyReq:28, qtyOrdered:28, qtyReceived:16, dateReq:'2026-02-19', dateDel:'2026-03-09', status:'OPEN', pplCmt:'', saCmt:'Partial delivery received' },
+  { rda:'RDA-L74-003', pn:'9874972480', desc:'JOINT ETANCHEITE HABITACLE', supplier:'TREVES PRODUCTS SERVICES', qtyReq:93, qtyOrdered:93, qtyReceived:0, dateReq:'2026-02-19', dateDel:'2026-03-05', status:'ORDERED', pplCmt:'', saCmt:'' },
+  { rda:'RDA-L74-004', pn:'9860763580', desc:'ACTIONNEUR COMMANDE ELECT', supplier:'CEBI ITALY', qtyReq:208, qtyOrdered:208, qtyReceived:0, dateReq:'2026-02-25', dateDel:'2026-02-26', status:'OPEN', pplCmt:'Confirmed by PPL ABRAR', saCmt:'URGENT - ready for pickup' },
+  { rda:'RDA-D74-001', pn:'9831983580', desc:'CONNECTEUR FAISCEAU ELECT', supplier:'DELPHI TECHNOLOGIES', qtyReq:240, qtyOrdered:240, qtyReceived:240, dateReq:'2026-02-15', dateDel:'2026-02-20', status:'CLOSED', pplCmt:'', saCmt:'Done' },
 ];
 
-// ==================== AUTH ====================
-function doLogin() {
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  if (!email.includes('@')) { showToast('⚠ Enter a valid email'); return; }
-  currentUser = email;
-  isAdmin = (email === ADMIN_EMAIL);
-  const name = email.split('@')[0].split('.').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  document.getElementById('sidebar-name').textContent = name;
-  document.getElementById('sidebar-role').textContent = isAdmin ? 'ADMIN' : 'VIEWER';
-  document.getElementById('sidebar-role').className = 'user-role' + (isAdmin ? ' admin' : '');
-  document.getElementById('sidebar-avatar').textContent = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  if (isAdmin) {
-    document.getElementById('admin-nav').style.display = 'block';
-    document.getElementById('btn-upload-excel').style.display = 'flex';
+// TEAM / PERIMETER
+const team = [
+  { name:'Soukaina Bakkas', email:'s.bakkas@alten.com', proj:'L74', role:'SA Pilote', init:'SB', pns:['9874972480','9879039380'], kpi:{ontime:88,done:92,resp:85,quality:90}, grad:'linear-gradient(135deg,#00c8ff,#a855f7)' },
+  { name:'Hajar Akhazzan', email:'h.akhazzan@alten.com', proj:'L74', role:'SA Pilote', init:'HA', pns:['9879039380','9879039480'], kpi:{ontime:94,done:96,resp:91,quality:92}, grad:'linear-gradient(135deg,#00ff88,#00c8ff)' },
+  { name:'Fatima Z. Moustaghfir', email:'fz.moustaghfir@alten.com', proj:'D74', role:'SA Pilote', init:'FM', pns:['9875614880','9875615180','9875615480','9875615780'], kpi:{ontime:91,done:95,resp:89,quality:88}, grad:'linear-gradient(135deg,#ff6b35,#a855f7)' },
+  { name:'Imane Aokass', email:'i.aokass@alten.com', proj:'D74', role:'SA Pilote', init:'IA', pns:['9860739680','9860739880'], kpi:{ontime:96,done:98,resp:94,quality:97}, grad:'linear-gradient(135deg,#ffd700,#ff6b35)' },
+  { name:'Salma Sargali', email:'s.sargali@alten.com', proj:'D74', role:'SA Pilote', init:'SS', pns:['9831983580'], kpi:{ontime:82,done:85,resp:80,quality:84}, grad:'linear-gradient(135deg,#a855f7,#00c8ff)' },
+  { name:'Saki Maryam', email:'sk.maryam@alten.com', proj:'L74', role:'SA Pilote', init:'SM', pns:['9860763580'], kpi:{ontime:79,done:82,resp:78,quality:80}, grad:'linear-gradient(135deg,#ff3355,#a855f7)' },
+];
+
+// ======== AUTH ========
+function login() {
+  const email = document.getElementById('l-em').value.trim().toLowerCase();
+  if(!email.includes('@')) { return showToast('⚠ Enter valid email'); }
+  CU = email;
+  IS_ADMIN = (email === ADMIN);
+  const name = email.split('@')[0].split('.').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
+  document.getElementById('sb-nm').textContent = name;
+  document.getElementById('sb-rl').textContent = IS_ADMIN ? 'ADMIN' : 'VIEWER';
+  document.getElementById('sb-rl').className = 'u-role ' + (IS_ADMIN ? 'admin' : 'viewer');
+  document.getElementById('sb-av').textContent = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  if(IS_ADMIN) {
+    document.getElementById('app').classList.add('admin-mode');
   }
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').classList.add('active');
+  document.getElementById('ls').style.display = 'none';
+  document.getElementById('app').classList.add('on');
   initApp();
 }
 
-function doLogout() {
-  document.getElementById('app').classList.remove('active');
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-email').value = '';
-  currentUser = null; isAdmin = false;
+function logout() {
+  document.getElementById('app').classList.remove('on','admin-mode');
+  document.getElementById('ls').style.display = 'flex';
+  document.getElementById('l-em').value = '';
+  CU = null; IS_ADMIN = false;
 }
 
-// ==================== NAVIGATION ====================
-function showPage(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const page = document.getElementById('page-' + id);
-  if (page) page.classList.add('active');
-  if (el) el.classList.add('active');
-  else {
-    document.querySelectorAll('.nav-item').forEach(n => {
-      if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'"+id+"'")) n.classList.add('active');
-    });
+// ======== NAVIGATION ========
+function sp(id, el) {
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  const pg = document.getElementById('pg-'+id);
+  if(pg) pg.classList.add('active');
+  if(el) el.classList.add('active');
+  const titles = {dash:'DASHBOARD',pickups:'SUIVI PICK-UPs',needs:'NEEDS MATRIX',rda:'RDA & ORDERS',kpi:'KPI MONITOR',perim:'TEAM PERIMETERS',admin:'ADMINISTRATION — MISE À JOUR'};
+  document.getElementById('pg-title').textContent = titles[id] || id.toUpperCase();
+  if(id==='needs') renderNeeds();
+  if(id==='kpi') initKPICharts();
+  if(id==='perim') renderPerimeters();
+  if(id==='pickups') renderPickups();
+  if(id==='rda') renderRDA();
+  if(id==='dash') updateDashKPIs();
+}
+
+function showTab(group, idx, el) {
+  const tabs = el.parentElement.querySelectorAll('.tab');
+  tabs.forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  for(let i=0;i<4;i++) {
+    const tp = document.getElementById(group+'-tab-'+i);
+    if(tp) tp.classList.remove('active');
   }
-  const titles = { dashboard:'DASHBOARD', procurement:'PROCUREMENT — PN LIST', needs:'NEEDS MATRIX', kpi:'KPI MONITOR', perimeter:'TEAM PERIMETERS', admin:'ADMINISTRATION' };
-  document.getElementById('page-title-text').textContent = titles[id] || id.toUpperCase();
-  if (id === 'needs') renderNeedsMatrix();
-  if (id === 'kpi') initKPICharts();
-  if (id === 'perimeter') renderPerimeters();
+  const active = document.getElementById(group+'-tab-'+idx);
+  if(active) active.classList.add('active');
 }
 
-// ==================== INIT ====================
+function setProjFilter(p) {
+  PROJ_FILTER = p;
+  ['pt-all','pt-l74','pt-d74'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById('pt-'+p.toLowerCase()).classList.add('active');
+  document.getElementById('proj-badge').textContent = p === 'ALL' ? 'ALL PROJECTS' : 'PROJECT '+p;
+}
+
+// ======== INIT ========
 function initApp() {
-  document.getElementById('topbar-date').textContent = new Date().toLocaleString('en-US', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  renderPNTable();
-  initDashboardCharts();
-  populateNFPNFilter();
+  document.getElementById('tb-dt').textContent = new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  populateFilters();
+  renderPickups();
+  renderRDA();
+  updateDashKPIs();
+  initDashCharts();
 }
 
-function populateNFPNFilter() {
+function populateFilters() {
+  // PN filter for needs
   const sel = document.getElementById('nf-pn');
   sel.innerHTML = '<option value="">All PNs</option>';
-  pnData.forEach(pn => { sel.innerHTML += `<option value="${pn.ref}">${pn.ref}</option>`; });
+  pnList.forEach(p => { sel.innerHTML += `<option value="${p.pn}">${p.pn} — ${p.desc.slice(0,30)}</option>`; });
+  // MRD filter
+  const msel = document.getElementById('nf-mrd');
+  msel.innerHTML = '<option value="">All MRDs</option>';
+  mrds.forEach(m => { msel.innerHTML += `<option value="${m}">${m}</option>`; });
+  // Pilote filter
+  const psel = document.getElementById('pu-pilote');
+  psel.innerHTML = '<option value="">All Pilotes</option>';
+  const pilotes = [...new Set([...pickups.L74_DARWIN,...pickups.L74_TAXI,...pickups.D74_DARWIN,...pickups.D74_TAXI].map(r=>r.pilote).filter(Boolean))];
+  pilotes.forEach(p => { psel.innerHTML += `<option>${p}</option>`; });
 }
 
-// ==================== PN TABLE ====================
-function renderPNTable(data) {
-  data = data || pnData;
-  const tbody = document.getElementById('pn-tbody');
+// ======== DASHBOARD ========
+function updateDashKPIs() {
+  const allPU = [...pickups.L74_DARWIN,...pickups.L74_TAXI,...pickups.D74_DARWIN,...pickups.D74_TAXI];
+  const done = allPU.filter(r=>r.status==='DONE').length;
+  document.getElementById('kpi-pu').textContent = allPU.length;
+  document.getElementById('kpi-pu-d').textContent = `${pickups.L74_DARWIN.length+pickups.L74_TAXI.length} L74 · ${pickups.D74_DARWIN.length+pickups.D74_TAXI.length} D74`;
+  document.getElementById('kpi-done').textContent = done;
+  document.getElementById('kpi-open').textContent = `${allPU.length - done} pending`;
+  document.getElementById('kpi-rda').textContent = rdaData.filter(r=>r.status==='OPEN'||r.status==='ORDERED').length;
+  let totalBesoins = 0;
+  pnList.forEach(p => {
+    phases.forEach(ph => mrds.forEach(m => { totalBesoins += (needsData[p.pn][ph][m].besoins||0); }));
+  });
+  document.getElementById('kpi-needs').textContent = totalBesoins.toLocaleString();
+  document.getElementById('kpi-nd').textContent = phases.length + ' phases · ' + mrds.length + ' MRDs';
+
+  // Alerts
+  const ac = document.getElementById('alerts-container');
+  ac.innerHTML = '';
+  const urgent = rdaData.filter(r=>r.saCmt.includes('URGENT'));
+  urgent.forEach(r => { ac.innerHTML += `<div class="al al-e">🚨 RDA ${r.rda} · ${r.pn} — ${r.saCmt} — Supplier: ${r.supplier}</div>`; });
+  const partial = rdaData.filter(r=>r.status==='OPEN'&&r.qtyReceived>0&&r.qtyReceived<r.qtyOrdered);
+  partial.forEach(r => { ac.innerHTML += `<div class="al al-w">⚠ ${r.pn} · RDA ${r.rda} — Partial delivery: ${r.qtyReceived}/${r.qtyOrdered} pcs received</div>`; });
+  const nodone = [...pickups.L74_DARWIN,...pickups.D74_DARWIN].filter(r=>!r.status&&new Date(r.deliveryDate)<new Date());
+  nodone.slice(0,3).forEach(r => { ac.innerHTML += `<div class="al al-w">⚠ PICKUP PN ${r.pn} · ${r.supplier} — Delivery date passed, status not DONE</div>`; });
+  if(!ac.innerHTML) ac.innerHTML = '<div class="al al-i">✓ No critical alerts at this time</div>';
+}
+
+function initDashCharts() {
+  const co = {responsive:true,plugins:{legend:{labels:{color:'#c8e8ff',font:{family:'Rajdhani'}}}},scales:{x:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}},y:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}}}};
+  
+  // Pickup bar
+  const c1 = document.getElementById('c-pu-bar');
+  if(c1&&!c1._ch) c1._ch = new Chart(c1.getContext('2d'),{type:'bar',data:{
+    labels:['L74 DARWIN','L74 TAXI','D74 DARWIN','D74 TAXI'],
+    datasets:[
+      {label:'DONE',data:[pickups.L74_DARWIN.filter(r=>r.status==='DONE').length,pickups.L74_TAXI.filter(r=>r.status==='DONE').length,pickups.D74_DARWIN.filter(r=>r.status==='DONE').length,pickups.D74_TAXI.filter(r=>r.status==='DONE').length],backgroundColor:'rgba(0,255,136,.65)',borderRadius:3},
+      {label:'PENDING',data:[pickups.L74_DARWIN.filter(r=>!r.status).length,pickups.L74_TAXI.filter(r=>!r.status).length,pickups.D74_DARWIN.filter(r=>!r.status).length,pickups.D74_TAXI.filter(r=>!r.status).length],backgroundColor:'rgba(255,107,53,.65)',borderRadius:3},
+    ]
+  },options:co});
+
+  // Phase pie
+  const c2 = document.getElementById('c-phase-pie');
+  if(c2&&!c2._ch) {
+    const totals = {X0:0,X1:0,X2:0};
+    pnList.forEach(p=>phases.forEach(ph=>mrds.forEach(m=>{totals[ph]+=(needsData[p.pn][ph][m].besoins||0);})));
+    c2._ch = new Chart(c2.getContext('2d'),{type:'doughnut',data:{
+      labels:['X0 Proto','X1 Proto','X2 Proto'],
+      datasets:[{data:Object.values(totals),backgroundColor:['rgba(168,85,247,.7)','rgba(0,200,255,.7)','rgba(255,215,0,.7)'],borderColor:['#a855f7','#00c8ff','#ffd700'],borderWidth:2}]
+    },options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{color:'#c8e8ff'}}}}});
+  }
+
+  // MRD trend
+  const c3 = document.getElementById('c-mrd-trend');
+  if(c3&&!c3._ch) {
+    const mrdTotals = mrds.slice(0,10).map(m=>{
+      let s=0; pnList.forEach(p=>phases.forEach(ph=>{s+=(needsData[p.pn][ph][m]?.besoins||0);})); return s;
+    });
+    c3._ch = new Chart(c3.getContext('2d'),{type:'line',data:{
+      labels:mrds.slice(0,10),
+      datasets:[{label:'Total Besoins',data:mrdTotals,borderColor:'#00c8ff',backgroundColor:'rgba(0,200,255,.1)',tension:.4,fill:true,pointRadius:4,pointHoverRadius:6}]
+    },options:{responsive:true,plugins:{legend:{labels:{color:'#c8e8ff'}}},scales:{x:{ticks:{color:'#5a8aaa',maxRotation:45},grid:{color:'rgba(0,200,255,.08)'}},y:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}}}  }});
+  }
+
+  // RDA status
+  const c4 = document.getElementById('c-rda-status');
+  if(c4&&!c4._ch) {
+    const statCounts={OPEN:0,ORDERED:0,RECEIVED:0,CLOSED:0};
+    rdaData.forEach(r=>{statCounts[r.status]=(statCounts[r.status]||0)+1;});
+    c4._ch = new Chart(c4.getContext('2d'),{type:'polarArea',data:{
+      labels:Object.keys(statCounts),
+      datasets:[{data:Object.values(statCounts),backgroundColor:['rgba(255,107,53,.65)','rgba(0,200,255,.65)','rgba(0,255,136,.65)','rgba(168,85,247,.65)'],borderColor:['#ff6b35','#00c8ff','#00ff88','#a855f7'],borderWidth:2}]
+    },options:{responsive:true,plugins:{legend:{labels:{color:'#c8e8ff'}}},scales:{r:{ticks:{color:'#5a8aaa',backdropColor:'transparent'},grid:{color:'rgba(0,200,255,.1)'}}}}});
+  }
+}
+
+// ======== PICKUPS ========
+function getPickupSet(tabIdx) {
+  return [pickups.L74_DARWIN, pickups.L74_TAXI, pickups.D74_DARWIN, pickups.D74_TAXI][tabIdx];
+}
+function getSetName(tabIdx) {
+  return ['L74_DARWIN','L74_TAXI','D74_DARWIN','D74_TAXI'][tabIdx];
+}
+
+let curTab = 0;
+function renderPickups() {
+  for(let i=0;i<4;i++) renderPickupTab(i);
+}
+
+function renderPickupTab(tabIdx) {
+  const set = getPickupSet(tabIdx);
+  const search = (document.getElementById('pu-search').value||'').toLowerCase();
+  const status = document.getElementById('pu-status').value;
+  const pilote = document.getElementById('pu-pilote').value;
+  const isTaxi = tabIdx===1||tabIdx===3;
+  const tb = document.getElementById('tbl-pu-'+tabIdx)?.querySelector('tbody');
+  if(!tb) return;
+  tb.innerHTML = '';
+  const filtered = set.filter(r =>
+    (!search || String(r.pn).toLowerCase().includes(search) || r.supplier.toLowerCase().includes(search) || (r.pilote||'').toLowerCase().includes(search)) &&
+    (!status || (status==='DONE'?r.status==='DONE':!r.status)) &&
+    (!pilote || r.pilote===pilote)
+  );
+  if(!filtered.length) { tb.innerHTML = `<tr><td colspan="12" style="text-align:center;color:var(--dim);padding:24px">No data — upload SUIVI_PICK_UPs file or no match for filters</td></tr>`; return; }
+  filtered.forEach((row, idx) => {
+    const origIdx = set.indexOf(row);
+    const sc = {DONE:'bg-done','':'bg-pend'}[row.status]||'bg-pend';
+    const dateStyle = (row.deliveryDate && !row.status && new Date(row.deliveryDate)<new Date()) ? 'color:var(--red);font-weight:700' : '';
+    if(isTaxi) {
+      tb.innerHTML += `<tr onclick="openRow(${tabIdx},${origIdx})">
+        <td style="font-family:'Share Tech Mono';color:var(--cyan)">${row.pn}</td>
+        <td>${row.qtyConfirmed||row.qty||0}</td>
+        <td style="font-size:11px">${row.packaging||row.dimensions||'—'}</td>
+        <td>${row.pickupDate||'—'}</td>
+        <td style="${dateStyle}">${row.deliveryDate||'—'}</td>
+        <td style="font-family:'Share Tech Mono';font-size:11px;color:var(--cyan)">${row.vrOrder||'—'}</td>
+        <td>${row.pilote||'—'}</td>
+        <td style="font-size:11px;color:var(--dim)">${row.saComment||'—'}</td>
+      </tr>`;
+    } else {
+      tb.innerHTML += `<tr onclick="openRow(${tabIdx},${origIdx})">
+        <td style="font-family:'Share Tech Mono';color:var(--cyan)">${row.pn}</td>
+        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${row.supplier}</td>
+        <td style="font-family:'Share Tech Mono';font-weight:700;color:var(--gold)">${row.qtyConfirmed}</td>
+        <td style="font-size:11px">${row.dateAvail||'—'}</td>
+        <td style="font-size:10px;color:var(--dim);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${row.packaging}">${row.packaging||'—'}</td>
+        <td style="font-size:12px">${row.pilote||'—'}</td>
+        <td style="font-size:11px">${row.pickupDate||'—'}</td>
+        <td style="font-size:11px;${dateStyle}">${row.deliveryDate||'—'}</td>
+        <td style="font-family:'Share Tech Mono';font-size:11px;color:var(--cyan)">${row.vrOrder||'—'}</td>
+        <td><span class="bg ${sc}">${row.status||'PENDING'}</span></td>
+        <td style="font-size:11px;color:var(--purple);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${row.saComment}">${row.saComment||'—'}</td>
+        <td style="font-size:11px;color:var(--dim)">${row.date||'—'}</td>
+      </tr>`;
+    }
+  });
+}
+
+function openRow(tabIdx, rowIdx) {
+  const set = getPickupSet(tabIdx);
+  const row = set[rowIdx];
+  curRow = row; curRowSet = {tabIdx, rowIdx};
+  document.getElementById('mo-title').textContent = `PN ${row.pn} — ${getSetName(tabIdx)}`;
+  document.getElementById('mo-sub').textContent = `Supplier: ${row.supplier} · Pilote: ${row.pilote||'—'}`;
+  const edit = document.getElementById('mo-edit');
+  const view = document.getElementById('mo-view');
+  if(IS_ADMIN) {
+    edit.style.display='block'; view.style.display='none';
+    document.getElementById('e-pn').value = row.pn||'';
+    document.getElementById('e-sup').value = row.supplier||'';
+    document.getElementById('e-qty').value = row.qtyConfirmed||'';
+    document.getElementById('e-pilote').value = row.pilote||'';
+    document.getElementById('e-pudate').value = (row.pickupDate||'').replace(' ','T');
+    document.getElementById('e-dldate').value = (row.deliveryDate||'').replace(' ','T');
+    document.getElementById('e-vr').value = row.vrOrder||'';
+    document.getElementById('e-status').value = row.status||'';
+    document.getElementById('e-avail').value = row.dateAvail||'';
+    document.getElementById('e-pkg').value = row.packaging||'';
+    document.getElementById('e-ppl').value = row.pplComment||'';
+    document.getElementById('e-sa').value = row.saComment||'';
+  } else {
+    edit.style.display='none'; view.style.display='block';
+    document.getElementById('v-pn').textContent = row.pn||'—';
+    document.getElementById('v-sup').textContent = row.supplier||'—';
+    document.getElementById('v-qty').textContent = row.qtyConfirmed||'—';
+    document.getElementById('v-pilote').textContent = row.pilote||'—';
+    document.getElementById('v-pudate').textContent = row.pickupDate||'—';
+    document.getElementById('v-dldate').textContent = row.deliveryDate||'—';
+    document.getElementById('v-vr').textContent = row.vrOrder||'—';
+    document.getElementById('v-status').innerHTML = `<span class="bg ${row.status==='DONE'?'bg-done':'bg-pend'}">${row.status||'PENDING'}</span>`;
+    document.getElementById('v-avail').textContent = row.dateAvail||'—';
+    document.getElementById('v-pkg').textContent = row.packaging||'—';
+    document.getElementById('v-ppl').textContent = row.pplComment||'—';
+    document.getElementById('v-sa').textContent = row.saComment||'—';
+  }
+  const key = row.pn + '_' + getSetName(tabIdx);
+  document.getElementById('user-cmt').value = drafts[key]||'';
+  document.getElementById('cmt-ok').style.display='none';
+  document.getElementById('mo-row').classList.add('on');
+}
+
+function saveRowEdit() {
+  if(!curRow || !curRowSet) return;
+  curRow.pn = document.getElementById('e-pn').value;
+  curRow.supplier = document.getElementById('e-sup').value;
+  curRow.qtyConfirmed = parseInt(document.getElementById('e-qty').value)||0;
+  curRow.pilote = document.getElementById('e-pilote').value;
+  curRow.pickupDate = document.getElementById('e-pudate').value.replace('T',' ');
+  curRow.deliveryDate = document.getElementById('e-dldate').value.replace('T',' ');
+  curRow.vrOrder = document.getElementById('e-vr').value;
+  curRow.status = document.getElementById('e-status').value;
+  curRow.dateAvail = document.getElementById('e-avail').value;
+  curRow.packaging = document.getElementById('e-pkg').value;
+  curRow.pplComment = document.getElementById('e-ppl').value;
+  curRow.saComment = document.getElementById('e-sa').value;
+  renderPickups();
+  closeMo('mo-row');
+  showToast(`✓ PN ${curRow.pn} updated`);
+  addLog(`Updated PN ${curRow.pn} in ${getSetName(curRowSet.tabIdx)}`);
+}
+
+// ======== NEEDS MATRIX ========
+function renderNeeds() {
+  const filterPN = document.getElementById('nf-pn').value;
+  const filterPhase = document.getElementById('nf-phase').value;
+  const filterMRD = document.getElementById('nf-mrd').value;
+  const filterProj = document.getElementById('nf-proj').value;
+  const showPNs = pnList.filter(p => (!filterPN||p.pn===filterPN) && (!filterProj||p.proj===filterProj));
+  const showMRDs = filterMRD ? [filterMRD] : mrds;
+  const showPhases = filterPhase ? [filterPhase] : phases;
+  const tbl = document.getElementById('needs-mx');
+
+  // Build: PN x (Phase x MRD) matrix showing Besoins / To Order
+  let html = '<thead><tr><th>PN</th><th>PROJ</th><th>PHASE</th>';
+  showMRDs.forEach(m => html += `<th style="font-size:8px">${m}</th>`);
+  html += '<th>TOTAL BESOINS</th><th>TO ORDER</th></tr></thead><tbody>';
+
+  let mrdTotals = {}; showMRDs.forEach(m=>mrdTotals[m]={b:0,o:0});
+
+  showPNs.forEach(pnObj => {
+    const nd = needsData[pnObj.pn];
+    showPhases.forEach((ph, phi) => {
+      html += `<tr>`;
+      if(phi===0) html += `<td rowspan="${showPhases.length}" style="font-family:'Share Tech Mono';color:var(--cyan);font-weight:700;white-space:nowrap">${pnObj.pn}</td><td rowspan="${showPhases.length}"><span class="bg ${pnObj.proj==='L74'?'bg-x1':'bg-x0'}">${pnObj.proj}</span></td>`;
+      html += `<td><span class="bg bg-${ph.toLowerCase()}">${ph}</span></td>`;
+      let rowB=0,rowO=0;
+      showMRDs.forEach(m => {
+        const v = nd[ph][m];
+        const b = v?.besoins||0;
+        const o = v?.toOrder||0;
+        rowB+=b; rowO+=o;
+        mrdTotals[m].b+=b; mrdTotals[m].o+=o;
+        const cls = b===0?'n0':b>80?'n3':b>40?'n2':'n1';
+        const kw = v?.keyWord||'';
+        const kwStyle = kw==='CRITICAL'?'color:var(--red)':kw==='CONFIRMED'?'color:var(--green)':kw==='WAITING'?'color:var(--orange)':'color:var(--dim)';
+        html += `<td class="${cls}" title="${kw} · To order: ${o}">${b===0?'—':b}<br><span style="font-size:8px;${kwStyle}">${kw}</span></td>`;
+      });
+      html += `<td style="font-weight:700;font-family:'Share Tech Mono';color:var(--gold)">${rowB||'—'}</td>`;
+      html += `<td style="font-weight:700;font-family:'Share Tech Mono';color:var(--cyan)">${rowO||'—'}</td>`;
+      html += `</tr>`;
+    });
+  });
+
+  // Totals row
+  html += `<tr style="border-top:2px solid var(--border-h)"><td colspan="3" style="font-family:'Orbitron';font-size:9px;letter-spacing:2px;color:var(--gold)">TOTAL</td>`;
+  showMRDs.forEach(m => {
+    html += `<td style="font-weight:700;font-family:'Share Tech Mono';color:var(--gold);font-size:10px">${mrdTotals[m].b||'—'}</td>`;
+  });
+  html += '<td></td><td></td></tr>';
+  html += '</tbody>';
+  tbl.innerHTML = html;
+
+  updateNeedsChart(showMRDs, mrdTotals);
+}
+
+function updateNeedsChart(showMRDs, mrdTotals) {
+  const c1 = document.getElementById('c-needs-mrd');
+  if(!c1) return;
+  const ctx = c1.getContext('2d');
+  if(c1._ch) c1._ch.destroy();
+  c1._ch = new Chart(ctx, {type:'bar', data:{
+    labels: showMRDs,
+    datasets:[
+      {label:'Besoins',data:showMRDs.map(m=>mrdTotals[m].b),backgroundColor:'rgba(0,200,255,.65)',borderRadius:3},
+      {label:'To Order',data:showMRDs.map(m=>mrdTotals[m].o),backgroundColor:'rgba(168,85,247,.65)',borderRadius:3},
+    ]
+  }, options:{responsive:true,plugins:{legend:{labels:{color:'#c8e8ff'}}},scales:{x:{ticks:{color:'#5a8aaa',maxRotation:45},grid:{color:'rgba(0,200,255,.08)'}},y:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}}}}});
+
+  // Comparison chart
+  const c2 = document.getElementById('c-needs-cmp');
+  if(c2) {
+    const ctx2 = c2.getContext('2d');
+    if(c2._ch) c2._ch.destroy();
+    c2._ch = new Chart(ctx2, {type:'line', data:{
+      labels: showMRDs,
+      datasets:[
+        {label:'Besoins',data:showMRDs.map(m=>mrdTotals[m].b),borderColor:'#00c8ff',backgroundColor:'rgba(0,200,255,.08)',tension:.4,fill:true},
+        {label:'To Order',data:showMRDs.map(m=>mrdTotals[m].o),borderColor:'#a855f7',backgroundColor:'rgba(168,85,247,.08)',tension:.4,fill:true},
+      ]
+    }, options:{responsive:true,plugins:{legend:{labels:{color:'#c8e8ff'}}},scales:{x:{ticks:{color:'#5a8aaa',maxRotation:45},grid:{color:'rgba(0,200,255,.08)'}},y:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}}}}});
+  }
+}
+
+// ======== RDA ========
+function renderRDA() {
+  const search = (document.getElementById('rda-search').value||'').toLowerCase();
+  const status = document.getElementById('rda-status').value;
+  const filtered = rdaData.filter(r =>
+    (!search || r.rda.toLowerCase().includes(search) || r.pn.toLowerCase().includes(search) || r.supplier.toLowerCase().includes(search)) &&
+    (!status || r.status===status)
+  );
+  const tbody = document.getElementById('rda-tbody');
+  if(!tbody) return;
   tbody.innerHTML = '';
-  data.forEach((pn, i) => {
-    const idx = pnData.indexOf(pn);
-    const statusClass = { Active:'badge-active', Pending:'badge-pending', Critical:'badge-critical', 'On Hold':'badge-info' }[pn.status] || 'badge-info';
-    const divClass = { 'Division A':'div-A', 'Division B':'div-B', 'Division C':'div-C' }[pn.div] || '';
-    const qtyColor = pn.qty === 0 ? 'color:var(--red)' : pn.qty < 50 ? 'color:var(--orange)' : 'color:var(--green)';
-    tbody.innerHTML += `<tr onclick="openPNModal(${idx})">
-      <td style="font-family:'Share Tech Mono',monospace; color:var(--cyan);">${pn.ref}</td>
-      <td>${pn.desc}</td>
-      <td><span class="div-tag ${divClass}">${pn.div}</span></td>
-      <td><span class="badge ${statusClass}">${pn.status}</span></td>
-      <td style="${qtyColor}; font-family:'Share Tech Mono',monospace; font-weight:700;">${pn.qty.toLocaleString()}</td>
-      <td>${pn.supplier}</td>
-      <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--gold);" title="${pn.ppl}">${pn.ppl || '—'}</td>
-      <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--purple);" title="${pn.sa}">${pn.sa || '—'}</td>
-      <td style="font-family:'Share Tech Mono',monospace; font-size:12px;">${pn.mrd}</td>
-      <td><button class="btn btn-sm btn-primary btn-icon" onclick="event.stopPropagation();openPNModal(${idx})">👁</button></td>
+  if(!filtered.length) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--dim);padding:24px">No RDA records — upload RDA_FILE.xlsx</td></tr>'; return; }
+  filtered.forEach((r, idx) => {
+    const sc = {OPEN:'bg-pend',ORDERED:'bg-ok',RECEIVED:'bg-done',CLOSED:'bg-gold'}[r.status]||'bg-pend';
+    const pct = r.qtyOrdered>0 ? Math.round(r.qtyReceived/r.qtyOrdered*100) : 0;
+    tbody.innerHTML += `<tr onclick="openRDARow(${rdaData.indexOf(r)})">
+      <td style="font-family:'Share Tech Mono';color:var(--gold);font-size:11px">${r.rda}</td>
+      <td style="font-family:'Share Tech Mono';color:var(--cyan);font-size:11px">${r.pn}</td>
+      <td style="font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.desc}</td>
+      <td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.supplier}</td>
+      <td style="font-family:'Share Tech Mono';font-weight:700">${r.qtyReq}</td>
+      <td style="font-family:'Share Tech Mono';color:var(--cyan)">${r.qtyOrdered}</td>
+      <td style="font-family:'Share Tech Mono';color:${pct===100?'var(--green)':pct>0?'var(--orange)':'var(--red)'}">${r.qtyReceived} <span style="font-size:10px">(${pct}%)</span></td>
+      <td style="font-size:11px">${r.dateReq}</td>
+      <td style="font-size:11px">${r.dateDel}</td>
+      <td><span class="bg ${sc}">${r.status}</span></td>
+      <td style="font-size:11px;color:var(--gold);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.pplCmt}">${r.pplCmt||'—'}</td>
+      <td style="font-size:11px;color:var(--purple);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.saCmt}">${r.saCmt||'—'}</td>
+      <td style="display:flex;gap:4px">
+        <button class="btn b-p b-sm btn-icon" onclick="event.stopPropagation();openRDARow(${rdaData.indexOf(r)})">👁</button>
+      </td>
     </tr>`;
   });
 }
 
-function filterPNs() {
-  const div = document.getElementById('f-division').value;
-  const status = document.getElementById('f-status').value;
-  const search = document.getElementById('f-search').value.toLowerCase();
-  const filtered = pnData.filter(pn =>
-    (!div || pn.div === div) &&
-    (!status || pn.status === status) &&
-    (!search || pn.ref.toLowerCase().includes(search) || pn.desc.toLowerCase().includes(search))
-  );
-  renderPNTable(filtered);
-}
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('f-division').addEventListener('change', filterPNs);
-  document.getElementById('f-status').addEventListener('change', filterPNs);
-});
-
-// ==================== PN MODAL ====================
-function openPNModal(idx) {
-  currentPNIndex = idx;
-  const pn = pnData[idx];
-  document.getElementById('modal-pn-title').textContent = pn.ref + ' — ' + pn.desc;
-  document.getElementById('modal-pn-ref').textContent = pn.div + ' · ' + pn.mrd;
-
-  if (isAdmin) {
-    document.getElementById('pn-edit-section').style.display = 'block';
-    document.getElementById('edit-desc').value = pn.desc;
-    document.getElementById('edit-status').value = pn.status;
-    document.getElementById('edit-qty').value = pn.qty;
-    document.getElementById('edit-supplier').value = pn.supplier;
-    document.getElementById('edit-division').value = pn.div;
-    document.getElementById('edit-mrd').value = pn.mrd;
-    document.getElementById('edit-ppl').value = pn.ppl || '';
-    document.getElementById('edit-sa').value = pn.sa || '';
-    document.getElementById('pn-view-section').style.display = 'none';
+function openRDARow(idx) {
+  const r = rdaData[idx];
+  const pnObj = pnList.find(p=>p.pn===r.pn)||{};
+  curRow = r; curRowSet = {type:'rda', idx};
+  document.getElementById('mo-title').textContent = `RDA ${r.rda} — PN ${r.pn}`;
+  document.getElementById('mo-sub').textContent = `${r.desc} · Supplier: ${r.supplier}`;
+  const edit = document.getElementById('mo-edit');
+  const view = document.getElementById('mo-view');
+  if(IS_ADMIN) {
+    edit.style.display='block'; view.style.display='none';
+    document.getElementById('e-pn').value = r.pn||'';
+    document.getElementById('e-sup').value = r.supplier||'';
+    document.getElementById('e-qty').value = r.qtyReq||'';
+    document.getElementById('e-pilote').value = pnObj.pilote||r.rda;
+    document.getElementById('e-pudate').value = r.dateReq||'';
+    document.getElementById('e-dldate').value = r.dateDel||'';
+    document.getElementById('e-vr').value = r.rda||'';
+    document.getElementById('e-status').innerHTML = '<option>OPEN</option><option>ORDERED</option><option>RECEIVED</option><option>CLOSED</option>';
+    document.getElementById('e-status').value = r.status||'OPEN';
+    document.getElementById('e-avail').value = r.qtyReceived||'';
+    document.getElementById('e-pkg').value = r.desc||'';
+    document.getElementById('e-ppl').value = r.pplCmt||'';
+    document.getElementById('e-sa').value = r.saCmt||'';
   } else {
-    document.getElementById('pn-edit-section').style.display = 'none';
-    document.getElementById('pn-view-section').style.display = 'block';
-    document.getElementById('view-desc').textContent = pn.desc;
-    document.getElementById('view-status').innerHTML = `<span class="badge ${{ Active:'badge-active', Pending:'badge-pending', Critical:'badge-critical', 'On Hold':'badge-info' }[pn.status]}">${pn.status}</span>`;
-    document.getElementById('view-qty').textContent = pn.qty.toLocaleString();
-    document.getElementById('view-supplier').textContent = pn.supplier;
-    document.getElementById('view-division').textContent = pn.div;
-    document.getElementById('view-mrd').textContent = pn.mrd;
-    document.getElementById('view-ppl').textContent = pn.ppl || '—';
-    document.getElementById('view-sa').textContent = pn.sa || '—';
+    edit.style.display='none'; view.style.display='block';
+    document.getElementById('v-pn').textContent = r.pn;
+    document.getElementById('v-sup').textContent = r.supplier;
+    document.getElementById('v-qty').textContent = r.qtyReq;
+    document.getElementById('v-pilote').textContent = r.rda;
+    document.getElementById('v-pudate').textContent = r.dateReq;
+    document.getElementById('v-dldate').textContent = r.dateDel;
+    document.getElementById('v-vr').textContent = r.status;
+    document.getElementById('v-status').innerHTML = `<span class="bg ${{OPEN:'bg-pend',ORDERED:'bg-ok',RECEIVED:'bg-done',CLOSED:'bg-gold'}[r.status]}">${r.status}</span>`;
+    document.getElementById('v-avail').textContent = `Received: ${r.qtyReceived} / ${r.qtyOrdered}`;
+    document.getElementById('v-pkg').textContent = r.desc;
+    document.getElementById('v-ppl').textContent = r.pplCmt||'—';
+    document.getElementById('v-sa').textContent = r.saCmt||'—';
   }
-
-  // Load draft comment
-  const draft = commentDrafts[pn.ref] || '';
-  document.getElementById('user-comment-area').value = draft;
-  document.getElementById('comment-submitted-msg').style.display = 'none';
-
-  renderPNNeedsMatrix(pn.ref);
-  document.getElementById('modal-pn').classList.add('active');
+  const key = 'rda_'+r.rda;
+  document.getElementById('user-cmt').value = drafts[key]||'';
+  document.getElementById('cmt-ok').style.display='none';
+  document.getElementById('mo-row').classList.add('on');
 }
 
-function savePNEdit() {
-  const pn = pnData[currentPNIndex];
-  pn.desc = document.getElementById('edit-desc').value;
-  pn.status = document.getElementById('edit-status').value;
-  pn.qty = parseInt(document.getElementById('edit-qty').value) || 0;
-  pn.supplier = document.getElementById('edit-supplier').value;
-  pn.div = document.getElementById('edit-division').value;
-  pn.mrd = document.getElementById('edit-mrd').value;
-  pn.ppl = document.getElementById('edit-ppl').value;
-  pn.sa = document.getElementById('edit-sa').value;
-  renderPNTable();
-  closeModal('modal-pn');
-  showToast('✓ PN ' + pn.ref + ' updated successfully');
-  // Log
-  const log = document.getElementById('admin-log');
-  if(log) log.innerHTML = `<div><span style="color:var(--cyan);">[${new Date().toLocaleString()}]</span> ${currentUser} — Updated ${pn.ref}: ${pn.desc}</div>` + log.innerHTML;
-}
-
-// ==================== NEEDS IN PN MODAL ====================
-function renderPNNeedsMatrix(pnRef) {
-  const needs = needsCache[pnRef];
-  const nav = document.getElementById('needs-nav-cm');
-  nav.innerHTML = '<button class="needs-nav-btn active" onclick="filterPNCM(this, null, \''+pnRef+'\')">ALL</button>';
-  counterMarks.forEach(cm => {
-    nav.innerHTML += `<button class="needs-nav-btn" onclick="filterPNCM(this,'${cm}','${pnRef}')">${cm}</button>`;
-  });
-  buildPNMatrix(pnRef, null);
-}
-
-function filterPNCM(btn, cm, pnRef) {
-  document.querySelectorAll('#needs-nav-cm .needs-nav-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  buildPNMatrix(pnRef, cm);
-}
-
-function buildPNMatrix(pnRef, filterCM) {
-  const needs = needsCache[pnRef];
-  const cms = filterCM ? [filterCM] : counterMarks;
-  const table = document.getElementById('pn-needs-matrix');
-  let html = '<thead><tr><th>COUNTER MARK</th><th>PHASE</th>';
-  mrds.forEach(m => html += `<th>${m}</th>`);
-  html += '<th>SUBTOTAL</th></tr></thead><tbody>';
-  cms.forEach(cm => {
-    phases.forEach((ph, pi) => {
-      html += `<tr>`;
-      if (pi === 0) html += `<td rowspan="${phases.length}" style="font-family:'Share Tech Mono';color:var(--cyan);font-weight:700;background:rgba(0,200,255,0.05);">${cm}</td>`;
-      html += `<td style="font-size:11px;color:var(--text-dim);white-space:nowrap;">${ph}</td>`;
-      let rowTotal = 0;
-      mrds.forEach(mrd => {
-        const v = needs[cm][ph][mrd];
-        rowTotal += v;
-        const cls = v === 0 ? '' : v > 200 ? 'critical-need' : v > 100 ? 'high-need' : 'has-need';
-        html += `<td class="${cls}">${v === 0 ? '—' : v}</td>`;
-      });
-      html += `<td style="font-weight:700; font-family:'Share Tech Mono'; color:var(--gold);">${rowTotal}</td></tr>`;
-    });
-  });
-  html += '</tbody>';
-  table.innerHTML = html;
-}
-
-// ==================== COMMENTS ====================
-let autosaveTimer = null;
-function autoSaveComment(el) {
-  const pn = pnData[currentPNIndex];
-  if (!pn) return;
-  clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(() => {
-    commentDrafts[pn.ref] = el.value;
-    const ind = document.getElementById('autosave-indicator');
-    ind.classList.add('show');
-    setTimeout(() => ind.classList.remove('show'), 2000);
-  }, 800);
-}
-
-function submitComment() {
-  const pn = pnData[currentPNIndex];
-  if (!pn) return;
-  delete commentDrafts[pn.ref];
-  document.getElementById('comment-submitted-msg').style.display = 'block';
-  showToast('✓ Comment submitted for ' + pn.ref);
-}
-
-// ==================== NEEDS MATRIX PAGE ====================
-function renderNeedsMatrix() {
-  const filterPN = document.getElementById('nf-pn').value;
-  const filterPhase = document.getElementById('nf-phase').value;
-  const filterMRD = document.getElementById('nf-mrd').value;
-  const filterCM = document.getElementById('nf-cm').value;
-  const filterDiv = document.getElementById('nf-div').value;
-
-  const pns = pnData.filter(pn =>
-    (!filterPN || pn.ref === filterPN) &&
-    (!filterDiv || pn.div === filterDiv)
-  );
-
-  const showMRDs = filterMRD ? [filterMRD] : mrds;
-  const showCMs = filterCM ? [filterCM] : counterMarks;
-  const showPhases = filterPhase ? [filterPhase] : phases;
-
-  // Build aggregated matrix: CM x MRD (sum across phases and pns)
-  const matrix = {};
-  showCMs.forEach(cm => {
-    matrix[cm] = {};
-    showMRDs.forEach(mrd => { matrix[cm][mrd] = 0; });
-  });
-
-  pns.forEach(pn => {
-    const needs = needsCache[pn.ref];
-    showCMs.forEach(cm => {
-      showMRDs.forEach(mrd => {
-        showPhases.forEach(ph => {
-          matrix[cm][mrd] += needs[cm][ph][mrd];
-        });
-      });
-    });
-  });
-
-  const table = document.getElementById('needs-matrix-table');
-  let html = '<thead><tr><th>COUNTER MARK</th>';
-  showMRDs.forEach(m => html += `<th>${m}</th>`);
-  html += '<th>TOTAL</th></tr></thead><tbody>';
-  showCMs.forEach(cm => {
-    html += `<tr><td style="font-family:'Share Tech Mono';color:var(--cyan);font-weight:700;">${cm}</td>`;
-    let total = 0;
-    showMRDs.forEach(mrd => {
-      const v = matrix[cm][mrd];
-      total += v;
-      const cls = v === 0 ? '' : v > 1000 ? 'critical-need' : v > 500 ? 'high-need' : 'has-need';
-      html += `<td class="${cls}">${v === 0 ? '—' : v.toLocaleString()}</td>`;
-    });
-    html += `<td style="font-weight:700; font-family:'Share Tech Mono'; color:var(--gold);">${total.toLocaleString()}</td></tr>`;
-  });
-  html += '</tbody>';
-  table.innerHTML = html;
-
-  // Chart
-  updateNeedsMatrixChart(matrix, showMRDs, showCMs);
-}
-
-function updateNeedsMatrixChart(matrix, showMRDs, showCMs) {
-  const canvas = document.getElementById('chart-needs-matrix');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  if (canvas._chart) canvas._chart.destroy();
-  const colors = ['rgba(0,200,255,0.7)','rgba(255,107,53,0.7)','rgba(168,85,247,0.7)','rgba(255,215,0,0.7)'];
-  canvas._chart = new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels:showMRDs,
-      datasets: showCMs.map((cm,i) => ({
-        label:cm,
-        data:showMRDs.map(mrd => matrix[cm][mrd]),
-        backgroundColor:colors[i % colors.length],
-        borderColor:colors[i % colors.length].replace('0.7','1'),
-        borderWidth:1,
-        borderRadius:2,
-      }))
-    },
-    options:{
-      responsive:true,
-      plugins:{ legend:{ labels:{ color:'#c8e8ff', font:{family:'Rajdhani'} } } },
-      scales:{
-        x:{ ticks:{ color:'#5a8aaa' }, grid:{ color:'rgba(0,200,255,0.08)' } },
-        y:{ ticks:{ color:'#5a8aaa' }, grid:{ color:'rgba(0,200,255,0.08)' } }
-      }
-    }
-  });
-}
-
-// ==================== EXPORT EXCEL ====================
-function exportNeedsExcel() {
-  if (typeof XLSX === 'undefined') { showToast('⚠ XLSX library not loaded'); return; }
-  const rows = [['PN REF','Description','Division','Counter Mark','Phase','MRD','Quantity Needed']];
-  pnData.forEach(pn => {
-    const needs = needsCache[pn.ref];
-    counterMarks.forEach(cm => {
-      phases.forEach(ph => {
-        mrds.forEach(mrd => {
-          const v = needs[cm][ph][mrd];
-          if (v > 0) rows.push([pn.ref, pn.desc, pn.div, cm, ph, mrd, v]);
-        });
-      });
-    });
-  });
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [12,30,12,8,10,14,10].map(w => ({wch:w}));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Procurement Needs');
-
-  // Summary pivot sheet
-  const pivot = [['','...MRD →']];
-  const pivotHeader = ['Counter Mark'];
-  mrds.forEach(m => pivotHeader.push(m));
-  pivotHeader.push('TOTAL');
-  pivot[0] = pivotHeader;
-  counterMarks.forEach(cm => {
-    const row = [cm];
-    let total = 0;
-    mrds.forEach(mrd => {
-      let sum = 0;
-      pnData.forEach(pn => { phases.forEach(ph => { sum += needsCache[pn.ref][cm][ph][mrd]; }); });
-      row.push(sum); total += sum;
-    });
-    row.push(total);
-    pivot.push(row);
-  });
-  const ws2 = XLSX.utils.aoa_to_sheet(pivot);
-  XLSX.utils.book_append_sheet(wb, ws2, 'Pivot Summary');
-  XLSX.writeFile(wb, 'ALTEN_Procurement_Needs.xlsx');
-  showToast('✓ Excel exported successfully');
-}
-
-// ==================== EMAIL MODAL ====================
-function openEmailModal() {
-  buildEmailPreview();
-  document.getElementById('modal-email').classList.add('active');
-}
-
-function buildEmailPreview() {
-  const filterPN = document.getElementById('nf-pn').value;
-  const filterPhase = document.getElementById('nf-phase').value;
-  const filterMRD = document.getElementById('nf-mrd').value;
-  const filterCM = document.getElementById('nf-cm').value;
-
-  const showMRDs = filterMRD ? [filterMRD] : mrds.slice(0,4);
-  const showCMs = filterCM ? [filterCM] : counterMarks;
-  const showPhases = filterPhase ? [filterPhase] : phases;
-  const pns = filterPN ? pnData.filter(p => p.ref === filterPN) : pnData.slice(0,6);
-
-  // Build pivot: PN × MRD aggregated
-  let rows = '';
-  let grandTotal = 0;
-  pns.forEach(pn => {
-    const needs = needsCache[pn.ref];
-    let rowTotal = 0;
-    let cells = '';
-    showMRDs.forEach(mrd => {
-      let v = 0;
-      showCMs.forEach(cm => { showPhases.forEach(ph => { v += needs[cm][ph][mrd]; }); });
-      rowTotal += v;
-      cells += `<td>${v > 0 ? v.toLocaleString() : '—'}</td>`;
-    });
-    grandTotal += rowTotal;
-    rows += `<tr><td><strong>${pn.ref}</strong></td><td>${pn.desc}</td><td>${pn.div}</td>${cells}<td><strong>${rowTotal.toLocaleString()}</strong></td></tr>`;
-  });
-
-  const mrdHeaders = showMRDs.map(m => `<th>${m}</th>`).join('');
-  const today = new Date().toLocaleDateString('fr-FR');
-
-  document.getElementById('email-preview-content').innerHTML = `
-    <h2>📦 Procurement Needs — ALTEN Group</h2>
-    <p style="color:#555;font-size:12px;">Date: ${today} | Generated by NEXUS Procurement Platform</p>
-    <p>Dear Supplier, please find below our consolidated procurement needs for the upcoming Material Requirement Dates (MRDs). Kindly confirm your delivery commitments at your earliest convenience.</p>
-    <table class="pivot-table">
-      <thead><tr style="background:#0d47a1;color:#fff"><th>PN REF</th><th>DESCRIPTION</th><th>DIVISION</th>${mrdHeaders}<th>TOTAL</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr class="total-row"><td colspan="3"><strong>GRAND TOTAL</strong></td>${showMRDs.map(()=>'<td></td>').join('')}<td><strong>${grandTotal.toLocaleString()}</strong></td></tr></tfoot>
-    </table>
-    <p style="margin-top:16px;font-size:11px;color:#888;">This document is generated automatically by NEXUS Procurement System — ALTEN Group. For queries, contact: ${currentUser}</p>
-  `;
-  document.getElementById('email-subject').value = `Procurement Needs ${today} — ALTEN Group`;
-}
-
-function sendEmailSimulated() {
-  const to = document.getElementById('email-to').value;
-  if (!to) { showToast('⚠ Enter recipient email'); return; }
-  closeModal('modal-email');
-  showToast('✓ Email sent to ' + to);
-  const log = document.getElementById('admin-log');
-  if (log) log.innerHTML = `<div><span style="color:var(--cyan);">[${new Date().toLocaleString()}]</span> ${currentUser} — Needs email sent to ${to}</div>` + log.innerHTML;
-}
-
-// ==================== ADMIN UPLOAD ====================
-function handleFileDrop(e) {
-  e.preventDefault();
-  document.getElementById('upload-zone').classList.remove('dragover');
-  const file = e.dataTransfer.files[0];
-  if (file) processExcelFile(file);
-}
-
-function handleFileUpload(e) {
-  const file = e.target.files[0];
-  if (file) processExcelFile(file);
-}
-
-function processExcelFile(file) {
-  if (!isAdmin) { showToast('⚠ Admin access required'); return; }
-  const status = document.getElementById('upload-status');
-  status.innerHTML = '⟳ Processing ' + file.name + '...';
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const wb = XLSX.read(e.target.result, { type:'binary' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws);
-      status.innerHTML = `✓ Uploaded: <strong>${file.name}</strong> — ${data.length} rows read. Mise à jour applied.`;
-      showToast(`✓ ${file.name} uploaded — ${data.length} rows processed`);
-      const log = document.getElementById('admin-log');
-      if (log) log.innerHTML = `<div><span style="color:var(--cyan);">[${new Date().toLocaleString()}]</span> ${currentUser} — Uploaded ${file.name} (${data.length} rows)</div>` + log.innerHTML;
-    } catch(err) {
-      status.innerHTML = '⚠ Error reading file: ' + err.message;
-    }
-  };
-  reader.readAsBinaryString(file);
-}
-
-function saveComment(type) {
-  const val = document.getElementById(type + '-comment-global').value;
-  showToast(`✓ ${type.toUpperCase()} comment saved`);
-  const log = document.getElementById('admin-log');
-  if (log) log.innerHTML = `<div><span style="color:var(--cyan);">[${new Date().toLocaleString()}]</span> ${currentUser} — ${type.toUpperCase()} comment updated</div>` + log.innerHTML;
-}
-
-// Auto-save PPL/SA admin comments
-['ppl-comment-global','sa-comment-global'].forEach(id => {
-  setTimeout(() => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    let t;
-    el.addEventListener('input', () => {
-      clearTimeout(t);
-      t = setTimeout(() => showToast('● Draft auto-saved'), 1500);
-    });
-  }, 500);
-});
-
-// ==================== MODALS ====================
-function closeModal(id) {
-  document.getElementById(id).classList.remove('active');
-}
-document.addEventListener('click', e => {
-  if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
-});
-
-// ==================== TOAST ====================
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// ==================== CHARTS ====================
-const chartDefaults = {
-  color: '#c8e8ff',
-  grid: 'rgba(0,200,255,0.08)',
-  font: { family:'Rajdhani', size:12 }
-};
-
-function initDashboardCharts() {
-  // Needs by Phase/MRD
-  const c1 = document.getElementById('chart-needs-phase');
-  if (c1 && !c1._chart) {
-    c1._chart = new Chart(c1.getContext('2d'), {
-      type:'line',
-      data:{
-        labels:mrds,
-        datasets: phases.slice(0,4).map((ph,i) => ({
-          label:ph,
-          data: mrds.map((_,j) => Math.round(300 + i*120 + j*40 + Math.sin(j+i)*80)),
-          borderColor:['#00c8ff','#ff6b35','#a855f7','#ffd700'][i],
-          backgroundColor:['rgba(0,200,255,0.1)','rgba(255,107,53,0.1)','rgba(168,85,247,0.1)','rgba(255,215,0,0.1)'][i],
-          tension:0.4, fill:true, pointRadius:4, pointHoverRadius:6
-        }))
-      },
-      options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#c8e8ff' }}},
-        scales:{ x:{ticks:{color:'#5a8aaa'}, grid:{color:chartDefaults.grid}}, y:{ticks:{color:'#5a8aaa'}, grid:{color:chartDefaults.grid}} }
-      }
-    });
-  }
-
-  // Status distribution
-  const c2 = document.getElementById('chart-status-dist');
-  if (c2 && !c2._chart) {
-    const counts = { Active:0, Pending:0, Critical:0, 'On Hold':0 };
-    pnData.forEach(p => counts[p.status]++);
-    c2._chart = new Chart(c2.getContext('2d'), {
-      type:'doughnut',
-      data:{
-        labels:Object.keys(counts),
-        datasets:[{ data:Object.values(counts),
-          backgroundColor:['rgba(0,255,136,0.7)','rgba(255,107,53,0.7)','rgba(255,51,85,0.7)','rgba(0,200,255,0.7)'],
-          borderColor:['#00ff88','#ff6b35','#ff3355','#00c8ff'],
-          borderWidth:2
-        }]
-      },
-      options:{ responsive:true, cutout:'65%',
-        plugins:{ legend:{ position:'bottom', labels:{ color:'#c8e8ff', padding:16 }}}
-      }
-    });
-  }
-
-  // Radar
-  const c3 = document.getElementById('chart-radar');
-  if (c3 && !c3._chart) {
-    c3._chart = new Chart(c3.getContext('2d'), {
-      type:'radar',
-      data:{
-        labels: counterMarks,
-        datasets:[
-          { label:'Phase 1', data:[420,380,510,290], borderColor:'#00c8ff', backgroundColor:'rgba(0,200,255,0.1)', pointBackgroundColor:'#00c8ff' },
-          { label:'Phase 2', data:[350,490,410,380], borderColor:'#ff6b35', backgroundColor:'rgba(255,107,53,0.1)', pointBackgroundColor:'#ff6b35' },
-          { label:'Phase 3', data:[510,320,480,420], borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.1)', pointBackgroundColor:'#a855f7' },
-        ]
-      },
-      options:{ responsive:true,
-        plugins:{ legend:{ labels:{ color:'#c8e8ff' }}},
-        scales:{ r:{ ticks:{ color:'#5a8aaa', backdropColor:'transparent' }, grid:{ color:'rgba(0,200,255,0.15)' }, pointLabels:{ color:'#c8e8ff', font:{size:12} } }}
-      }
-    });
-  }
-
-  // Timeline
-  const c4 = document.getElementById('chart-timeline');
-  if (c4 && !c4._chart) {
-    c4._chart = new Chart(c4.getContext('2d'), {
-      type:'bar',
-      data:{
-        labels:mrds,
-        datasets: divisions.map((d,i) => ({
-          label:d,
-          data: mrds.map((_,j) => Math.round(60 + i*10 + j*5 + Math.random()*15)),
-          backgroundColor:['rgba(168,85,247,0.7)','rgba(0,200,255,0.7)','rgba(255,215,0,0.7)'][i],
-          borderRadius:2, borderSkipped:false,
-        }))
-      },
-      options:{
-        responsive:true,
-        plugins:{ legend:{ labels:{ color:'#c8e8ff' }}},
-        scales:{ x:{ticks:{color:'#5a8aaa'}, grid:{color:chartDefaults.grid}, stacked:true}, y:{ticks:{color:'#5a8aaa'}, grid:{color:chartDefaults.grid}, stacked:true, max:100, title:{display:true,text:'Coverage %',color:'#5a8aaa'}} }
-      }
-    });
-  }
-}
-
+// ======== KPI ========
 function initKPICharts() {
-  const months = ['Jul','Aug','Sep','Oct','Nov','Dec'];
+  const allPU = [...pickups.L74_DARWIN,...pickups.D74_DARWIN];
+  const done = allPU.filter(r=>r.status==='DONE').length;
+  const pct = Math.round(done/allPU.length*100);
+  document.getElementById('k-pu').textContent = pct+'%';
+  document.getElementById('k-otd').textContent = '89%';
+  const totalOpen = pnList.reduce((s,p)=>s+phases.reduce((s2,ph)=>s2+mrds.reduce((s3,m)=>s3+(needsData[p.pn][ph][m]?.toOrder||0),0),0),0);
+  document.getElementById('k-open').textContent = totalOpen.toLocaleString();
+  const recPct = Math.round(rdaData.reduce((s,r)=>s+r.qtyReceived,0)/rdaData.reduce((s,r)=>s+r.qtyOrdered,0)*100);
+  document.getElementById('k-rda-f').textContent = recPct+'%';
 
-  const c1 = document.getElementById('chart-kpi-trend');
-  if (c1 && !c1._chart) {
-    c1._chart = new Chart(c1.getContext('2d'), {
-      type:'line',
-      data:{
-        labels:months,
-        datasets:[
-          { label:'On-Time Delivery %', data:[85,87,89,90,90.5,91.3], borderColor:'#00ff88', backgroundColor:'rgba(0,255,136,0.1)', tension:0.4, fill:true, pointRadius:4 },
-          { label:'Need Fulfillment %', data:[68,70,72,71,73,73.8], borderColor:'#ff6b35', backgroundColor:'rgba(255,107,53,0.1)', tension:0.4, fill:true, pointRadius:4 },
-          { label:'Supplier Score ×10', data:[79,81,82,83,84,84], borderColor:'#00c8ff', backgroundColor:'rgba(0,200,255,0.1)', tension:0.4, fill:true, pointRadius:4 },
-        ]
-      },
-      options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#c8e8ff' }}},
-        scales:{ x:{ticks:{color:'#5a8aaa'}, grid:{color:chartDefaults.grid}}, y:{ticks:{color:'#5a8aaa'}, grid:{color:chartDefaults.grid}, min:60, max:100} }
-      }
+  // Pilote chart
+  const c1 = document.getElementById('c-kpi-pilote');
+  if(c1&&!c1._ch) {
+    const piloteCounts = {};
+    [...pickups.L74_DARWIN,...pickups.D74_DARWIN].forEach(r => {
+      if(!r.pilote) return;
+      const n = r.pilote.trim();
+      piloteCounts[n] = piloteCounts[n]||{done:0,total:0};
+      piloteCounts[n].total++;
+      if(r.status==='DONE') piloteCounts[n].done++;
     });
+    const pNames = Object.keys(piloteCounts).map(n=>n.split(' ').slice(-1)[0]);
+    c1._ch = new Chart(c1.getContext('2d'),{type:'bar',data:{
+      labels:pNames,
+      datasets:[
+        {label:'DONE',data:Object.values(piloteCounts).map(v=>v.done),backgroundColor:'rgba(0,255,136,.7)',borderRadius:3},
+        {label:'PENDING',data:Object.values(piloteCounts).map(v=>v.total-v.done),backgroundColor:'rgba(255,107,53,.7)',borderRadius:3},
+      ]
+    },options:{responsive:true,plugins:{legend:{labels:{color:'#c8e8ff'}}},scales:{x:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}},y:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}},stacked:false}}});
   }
 
-  const c2 = document.getElementById('chart-supplier-radar');
-  if (c2 && !c2._chart) {
-    c2._chart = new Chart(c2.getContext('2d'), {
-      type:'radar',
-      data:{
-        labels:['Delivery','Quality','Pricing','Responsiveness','Compliance','Flexibility'],
-        datasets:[
-          { label:'AeroTech SA', data:[90,88,75,85,92,80], borderColor:'#00c8ff', backgroundColor:'rgba(0,200,255,0.1)', pointBackgroundColor:'#00c8ff' },
-          { label:'CompoParts GmbH', data:[75,92,82,70,88,65], borderColor:'#ff6b35', backgroundColor:'rgba(255,107,53,0.1)', pointBackgroundColor:'#ff6b35' },
-        ]
-      },
-      options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#c8e8ff' }}},
-        scales:{ r:{ ticks:{ color:'#5a8aaa', backdropColor:'transparent', stepSize:25 }, grid:{ color:'rgba(0,200,255,0.15)' }, pointLabels:{ color:'#c8e8ff' }, min:0, max:100 }}
-      }
-    });
+  const c2 = document.getElementById('c-kpi-weekly');
+  if(c2&&!c2._ch) {
+    const wks = ['S06','S07','S08','S09','S10'];
+    c2._ch = new Chart(c2.getContext('2d'),{type:'line',data:{
+      labels:wks,
+      datasets:[
+        {label:'L74 Volume',data:[12,8,18,14,16],borderColor:'#00c8ff',backgroundColor:'rgba(0,200,255,.1)',tension:.4,fill:true},
+        {label:'D74 Volume',data:[20,18,22,15,25],borderColor:'#ffd700',backgroundColor:'rgba(255,215,0,.08)',tension:.4,fill:true},
+      ]
+    },options:{responsive:true,plugins:{legend:{labels:{color:'#c8e8ff'}}},scales:{x:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}},y:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}}}}});
   }
 
-  const c3 = document.getElementById('chart-div-kpi');
-  if (c3 && !c3._chart) {
-    c3._chart = new Chart(c3.getContext('2d'), {
-      type:'bar',
-      data:{
-        labels:divisions,
-        datasets:[
-          { label:'Fulfillment %', data:[82,71,80], backgroundColor:'rgba(0,200,255,0.7)', borderRadius:3 },
-          { label:'On-Time %', data:[91,78,84], backgroundColor:'rgba(168,85,247,0.7)', borderRadius:3 },
-          { label:'Quality Score', data:[88,87,84], backgroundColor:'rgba(255,215,0,0.7)', borderRadius:3 },
-        ]
-      },
-      options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#c8e8ff' }}},
-        scales:{ x:{ticks:{color:'#5a8aaa'}, grid:{color:chartDefaults.grid}}, y:{ticks:{color:'#5a8aaa'}, grid:{color:chartDefaults.grid}, max:100} }
-      }
-    });
+  const c3 = document.getElementById('c-kpi-sup');
+  if(c3&&!c3._ch) {
+    const sups = ['KYB Spain','A. Raymond','Marelli','CEBI Italy','TREVES'];
+    c3._ch = new Chart(c3.getContext('2d'),{type:'radar',data:{
+      labels:['Delivery','Quality','Qty Compliance','Responsiveness','Documentation'],
+      datasets:sups.slice(0,3).map((s,i)=>({
+        label:s,
+        data:[85+i*3,88-i*2,90+i,82+i*4,86-i*3],
+        borderColor:['#00c8ff','#ff6b35','#a855f7'][i],
+        backgroundColor:['rgba(0,200,255,.08)','rgba(255,107,53,.08)','rgba(168,85,247,.08)'][i],
+        pointBackgroundColor:['#00c8ff','#ff6b35','#a855f7'][i]
+      }))
+    },options:{responsive:true,plugins:{legend:{labels:{color:'#c8e8ff'}}},scales:{r:{ticks:{color:'#5a8aaa',backdropColor:'transparent'},grid:{color:'rgba(0,200,255,.12)'},pointLabels:{color:'#c8e8ff'},min:70,max:100}}}});
   }
 
-  const c4 = document.getElementById('chart-fulfill-phase');
-  if (c4 && !c4._chart) {
-    c4._chart = new Chart(c4.getContext('2d'), {
-      type:'polarArea',
-      data:{
-        labels: phases,
-        datasets:[{ data:[85,72,68,91],
-          backgroundColor:['rgba(0,255,136,0.6)','rgba(255,107,53,0.6)','rgba(255,51,85,0.6)','rgba(0,200,255,0.6)'],
-          borderColor:['#00ff88','#ff6b35','#ff3355','#00c8ff'], borderWidth:2
-        }]
-      },
-      options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#c8e8ff' }}},
-        scales:{ r:{ ticks:{ color:'#5a8aaa', backdropColor:'transparent' }, grid:{ color:'rgba(0,200,255,0.12)' } }}
-      }
-    });
+  const c4 = document.getElementById('c-kpi-phase');
+  if(c4&&!c4._ch) {
+    const phData = phases.map(ph=>pnList.reduce((s,p)=>s+mrds.reduce((s2,m)=>s2+(needsData[p.pn][ph][m]?.besoins||0),0),0));
+    const phOrd = phases.map(ph=>pnList.reduce((s,p)=>s+mrds.reduce((s2,m)=>s2+(needsData[p.pn][ph][m]?.toOrder||0),0),0));
+    c4._ch = new Chart(c4.getContext('2d'),{type:'bar',data:{
+      labels:phases,
+      datasets:[
+        {label:'Besoins',data:phData,backgroundColor:'rgba(0,200,255,.7)',borderRadius:4},
+        {label:'To Order',data:phOrd,backgroundColor:'rgba(168,85,247,.7)',borderRadius:4},
+      ]
+    },options:{responsive:true,plugins:{legend:{labels:{color:'#c8e8ff'}}},scales:{x:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}},y:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}}}}});
   }
 }
 
-// ==================== PERIMETERS ====================
+// ======== PERIMETERS ========
 function renderPerimeters() {
-  const grid = document.getElementById('perimeter-grid');
-  const kpiColors = { fulfillment:'#00c8ff', ontime:'#00ff88', quality:'#a855f7', responsiveness:'#ff6b35' };
-  grid.innerHTML = teamData.map((person,i) => {
-    const bars = Object.entries(person.kpis).map(([k,v]) => `
-      <div class="kpi-bar-row">
-        <div class="kpi-bar-label">${k.charAt(0).toUpperCase()+k.slice(1)}</div>
-        <div class="kpi-bar-track"><div class="kpi-bar-fill" style="width:${v}%; background:${kpiColors[k]};"></div></div>
-        <div class="kpi-bar-val">${v}%</div>
-      </div>`).join('');
-    const gradients = [
-      'linear-gradient(135deg,#a855f7,#00c8ff)',
-      'linear-gradient(135deg,#00c8ff,#00ff88)',
-      'linear-gradient(135deg,#ff6b35,#a855f7)',
-      'linear-gradient(135deg,#ffd700,#ff6b35)',
-      'linear-gradient(135deg,#00ff88,#00c8ff)',
-      'linear-gradient(135deg,#ff3355,#a855f7)',
-    ];
-    const avg = Math.round(Object.values(person.kpis).reduce((a,b)=>a+b,0)/4);
-    const avgColor = avg >= 85 ? 'var(--green)' : avg >= 75 ? 'var(--orange)' : 'var(--red)';
-    return `<div class="person-card fade-in" style="animation-delay:${i*0.08}s">
-      <div class="person-card-header">
-        <div class="person-avatar" style="background:${gradients[i % gradients.length]}">${person.initials}</div>
-        <div>
-          <div class="person-name">${person.name}</div>
-          <div class="person-division">${person.div}</div>
-        </div>
-        <div style="margin-left:auto; font-family:'Orbitron'; font-size:18px; font-weight:900; color:${avgColor};">${avg}%</div>
+  const grid = document.getElementById('pc-grid');
+  const kpiColors = {ontime:'#00c8ff',done:'#00ff88',resp:'#ff6b35',quality:'#a855f7'};
+  grid.innerHTML = team.map((p,i) => {
+    const avg = Math.round(Object.values(p.kpi).reduce((a,b)=>a+b,0)/4);
+    const aC = avg>=90?'var(--green)':avg>=80?'var(--orange)':'var(--red)';
+    const bars = Object.entries(p.kpi).map(([k,v])=>`<div class="kb-row"><div class="kb-lbl">${k.charAt(0).toUpperCase()+k.slice(1)}</div><div class="kb-tr"><div class="kb-fill" style="width:${v}%;background:${kpiColors[k]}"></div></div><div class="kb-val">${v}%</div></div>`).join('');
+    return `<div class="pc" style="animation:fadeInUp .3s ${i*.06}s both">
+      <div class="pc-hd">
+        <div class="pc-av" style="background:${p.grad}">${p.init}</div>
+        <div><div class="pc-nm">${p.name}</div><div class="pc-role">${p.role} · ${p.proj}</div></div>
+        <div style="margin-left:auto;font-family:'Orbitron';font-size:18px;font-weight:900;color:${aC}">${avg}%</div>
       </div>
-      <div class="kpi-bars">${bars}</div>
-      <div style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
-        <div style="font-size:10px; letter-spacing:2px; color:var(--text-dim); margin-bottom:6px;">PERIMETER (${person.perimeter.length} PNs)</div>
-        <div style="display:flex; flex-wrap:wrap; gap:4px;">
-          ${person.perimeter.map(p=>`<span style="font-family:'Share Tech Mono'; font-size:10px; color:var(--cyan); background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.2); padding:2px 6px; border-radius:2px;">${p}</span>`).join('')}
-        </div>
-      </div>
+      ${bars}
+      <div class="pc-pn-tags">${p.pns.map(pn=>`<span style="font-family:'Share Tech Mono';font-size:9px;color:var(--cyan);background:rgba(0,200,255,.07);border:1px solid rgba(0,200,255,.2);padding:2px 6px;border-radius:2px">${pn}</span>`).join('')}</div>
     </div>`;
   }).join('');
 
-  // Workload chart
-  setTimeout(() => {
-    const c = document.getElementById('chart-workload');
-    if (c && !c._chart) {
-      c._chart = new Chart(c.getContext('2d'), {
-        type:'bar',
-        data:{
-          labels:teamData.map(p=>p.name.split(' ')[0]),
-          datasets:[
-            { label:'PN Count', data:teamData.map(p=>p.perimeter.length), backgroundColor:'rgba(0,200,255,0.6)', borderRadius:4 },
-            { label:'Avg KPI %', data:teamData.map(p=>Math.round(Object.values(p.kpis).reduce((a,b)=>a+b,0)/4)), backgroundColor:'rgba(255,107,53,0.6)', borderRadius:4 },
-          ]
-        },
-        options:{
-          responsive:true, plugins:{ legend:{ labels:{ color:'#c8e8ff' }}},
-          scales:{ x:{ticks:{color:'#5a8aaa'}, grid:{color:chartDefaults.grid}}, y:{ticks:{color:'#5a8aaa'}, grid:{color:chartDefaults.grid}} }
-        }
-      });
-    }
-  }, 100);
+  setTimeout(()=>{
+    const c = document.getElementById('c-workload');
+    if(c&&!c._ch) c._ch = new Chart(c.getContext('2d'),{type:'bar',data:{
+      labels:team.map(p=>p.name.split(' ').slice(-1)[0]),
+      datasets:[
+        {label:'PN Count',data:team.map(p=>p.pns.length),backgroundColor:'rgba(0,200,255,.65)',borderRadius:3},
+        {label:'Avg KPI %',data:team.map(p=>Math.round(Object.values(p.kpi).reduce((a,b)=>a+b,0)/4)),backgroundColor:'rgba(255,107,53,.65)',borderRadius:3},
+      ]
+    },options:{responsive:true,plugins:{legend:{labels:{color:'#c8e8ff'}}},scales:{x:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}},y:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(0,200,255,.08)'}}}}});
+  },100);
 }
 
-// ==================== KEYBOARD SHORTCUTS ====================
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+// ======== COMMENT AUTO-SAVE ========
+function autoSave(el) {
+  clearTimeout(autoSvTimer);
+  autoSvTimer = setTimeout(()=>{
+    if(!curRow) return;
+    const key = (curRowSet?.type==='rda') ? 'rda_'+(curRow.rda||curRow.pn) : (curRow.pn+'_'+(getSetName(curRowSet?.tabIdx||0)));
+    drafts[key] = el.value;
+    const asi = document.getElementById('asi');
+    asi.classList.add('on');
+    setTimeout(()=>asi.classList.remove('on'),2000);
+  }, 700);
+}
+
+function submitCmt() {
+  if(!curRow) return;
+  const key = (curRowSet?.type==='rda') ? 'rda_'+curRow.rda : curRow.pn+'_'+(getSetName(curRowSet?.tabIdx||0));
+  delete drafts[key];
+  document.getElementById('cmt-ok').style.display='inline';
+  showToast(`✓ Comment submitted for ${curRow.pn||curRow.rda}`);
+}
+
+// ======== EXPORTS ========
+function exportPickupsExcel() {
+  if(typeof XLSX==='undefined') { showToast('⚠ XLSX not loaded'); return; }
+  const rows = [['PROJECT','TYPE','PART NUMBER','SUPPLIER','QTY CONFIRMED','DATE AVAIL','PACKAGING','PILOTE','PICKUP DATE','DELIVERY DATE','VR/ORDER','STATUS','SA COMMENT','DATE','PPL COMMENT']];
+  const sets = [['L74','DARWIN',pickups.L74_DARWIN],['L74','TAXI',pickups.L74_TAXI],['D74','DARWIN',pickups.D74_DARWIN],['D74','TAXI',pickups.D74_TAXI]];
+  sets.forEach(([proj,type,data]) => data.forEach(r => rows.push([proj,type,r.pn,r.supplier,r.qtyConfirmed,r.dateAvail,r.packaging,r.pilote,r.pickupDate,r.deliveryDate,r.vrOrder,r.status||'PENDING',r.saComment,r.date,r.pplComment])));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Pick-Ups');
+  XLSX.writeFile(wb, 'SUIVI_PICK_UPs_EXPORT.xlsx');
+  showToast('✓ Pick-Ups exported');
+}
+
+function exportNeedsExcel() {
+  if(typeof XLSX==='undefined') { showToast('⚠ XLSX not loaded'); return; }
+  const rows = [['PROJECT','PN','DESCRIPTION','SUPPLIER','PHASE','MRD WEEK','BESOINS','DB PROTO','BESOINS+DB','TO ORDER','STOCK FIN','KEYWORD']];
+  pnList.forEach(p => phases.forEach(ph => mrds.forEach(m => {
+    const v = needsData[p.pn][ph][m];
+    if(!v) return;
+    rows.push([p.proj,p.pn,p.desc,p.supplier,ph,m,v.besoins,v.dbProto,v.besoins+v.dbProto,v.toOrder,v.stockFin,v.keyWord]);
+  })));
+  // Pivot summary
+  const pivot = [['MRD'],...phases.map(ph=>[ph])]; // header
+  const pivotRows = [['MRD WEEK',...phases,'TOTAL']];
+  mrds.forEach(m => {
+    const row = [m];
+    let total=0;
+    phases.forEach(ph => { let s=pnList.reduce((sum,p)=>sum+(needsData[p.pn][ph][m]?.besoins||0),0); row.push(s); total+=s; });
+    row.push(total);
+    pivotRows.push(row);
+  });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Needs Detail');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pivotRows), 'Pivot by MRD');
+  XLSX.writeFile(wb, 'ALTEN_Needs_Export_L74_D74.xlsx');
+  showToast('✓ Needs exported to Excel');
+}
+
+function exportRDAExcel() {
+  if(typeof XLSX==='undefined') { showToast('⚠ XLSX not loaded'); return; }
+  const rows = [['RDA #','PN','DESCRIPTION','SUPPLIER','QTY REQ','QTY ORDERED','QTY RECEIVED','% REC.','DATE REQ','DATE DEL','STATUS','PPL COMMENT','SA COMMENT']];
+  rdaData.forEach(r => rows.push([r.rda,r.pn,r.desc,r.supplier,r.qtyReq,r.qtyOrdered,r.qtyReceived,r.qtyOrdered>0?Math.round(r.qtyReceived/r.qtyOrdered*100)+'%':0,r.dateReq,r.dateDel,r.status,r.pplCmt,r.saCmt]));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'RDA');
+  XLSX.writeFile(wb, 'RDA_Export.xlsx');
+  showToast('✓ RDA exported');
+}
+
+// ======== EMAIL ========
+function openEmailModal(type) {
+  buildEmailPreview(type);
+  document.getElementById('mo-email').classList.add('on');
+}
+
+function buildEmailPreview(type) {
+  const today = new Date().toLocaleDateString('fr-FR');
+  let tableHtml = '';
+  if(type==='needs') {
+    const visibleMRDs = mrds.slice(0,6);
+    const hdr = visibleMRDs.map(m=>`<th>${m}</th>`).join('');
+    let rows2 = '';
+    let grandTotal = 0;
+    pnList.slice(0,8).forEach(p => {
+      let rowTotal=0;
+      const cells = visibleMRDs.map(m => {
+        let v = phases.reduce((s,ph)=>s+(needsData[p.pn][ph][m]?.besoins||0),0);
+        rowTotal+=v; return `<td>${v||'—'}</td>`;
+      }).join('');
+      grandTotal+=rowTotal;
+      rows2 += `<tr><td><strong>${p.pn}</strong></td><td>${p.desc.slice(0,25)}</td><td>${p.proj}</td><td>${p.supplier.slice(0,20)}</td>${cells}<td><strong>${rowTotal}</strong></td></tr>`;
+    });
+    tableHtml = `<table class="pt"><thead><tr><th>PN</th><th>Description</th><th>Project</th><th>Supplier</th>${hdr}<th>Total</th></tr></thead><tbody>${rows2}<tr class="tot"><td colspan="4">GRAND TOTAL</td>${visibleMRDs.map(()=>'<td></td>').join('')}<td>${grandTotal.toLocaleString()}</td></tr></tbody></table>`;
+  } else {
+    const allPU = [...pickups.L74_DARWIN,...pickups.D74_DARWIN,...pickups.L74_TAXI,...pickups.D74_TAXI].filter(r=>!r.status);
+    tableHtml = `<table class="pt"><thead><tr><th>PN</th><th>Supplier</th><th>Qty</th><th>Pickup Date</th><th>Delivery Date</th><th>VR/Order</th><th>Status</th></tr></thead><tbody>${allPU.map(r=>`<tr><td><strong>${r.pn}</strong></td><td>${r.supplier}</td><td>${r.qtyConfirmed}</td><td>${r.pickupDate||'TBC'}</td><td>${r.deliveryDate||'TBC'}</td><td>${r.vrOrder||'—'}</td><td>PENDING</td></tr>`).join('')}</tbody></table>`;
   }
+  document.getElementById('em-preview').innerHTML = `
+    <h3>📦 ${type==='needs'?'Procurement Needs':'Pick-Up Schedule'} — ALTEN Group · L74/D74</h3>
+    <p>Date: <strong>${today}</strong> | Generated by NEXUS Procurement Platform | Contact: ${CU}</p>
+    <p>Dear Supplier,<br>Please find below our ${type==='needs'?'consolidated procurement needs (Besoins) per MRD week':'upcoming pick-up schedule'}. Please confirm your commitments at your earliest convenience.</p>
+    ${tableHtml}
+    <p style="margin-top:14px;font-size:10px;color:#888">NEXUS Procurement System — ALTEN Group · Stellantis L74/D74 Project · Confidential</p>
+  `;
+  document.getElementById('em-subj').value = `${type==='needs'?'Besoins Procurement':'Pick-Up Schedule'} ${today} — ALTEN L74/D74`;
+}
+
+function sendEmail() {
+  const to = document.getElementById('em-to').value;
+  if(!to) { showToast('⚠ Enter recipient email'); return; }
+  closeMo('mo-email');
+  showToast(`✓ Email sent to ${to}`);
+  addLog(`Email sent to ${to}`);
+}
+
+// ======== ADMIN UPLOAD ========
+function handleDrop(e, type) {
+  e.preventDefault();
+  document.querySelectorAll('.uz').forEach(u=>u.classList.remove('dg'));
+  const file = e.dataTransfer.files[0];
+  if(file) processFile(file, type);
+}
+
+function handleUpload(e, type) {
+  const file = e.target.files[0];
+  if(file) processFile(file, type);
+}
+
+function processFile(file, type) {
+  if(!IS_ADMIN) { showToast('⚠ Admin access required'); return; }
+  const statusEl = document.getElementById(`up-${type}-status`);
+  statusEl.innerHTML = `⟳ Processing <strong>${file.name}</strong>...`;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = e.target.result;
+      let wb, rows = 0;
+      if(file.name.endsWith('.zip')) {
+        statusEl.innerHTML = `✓ <strong>${file.name}</strong> received — ZIP (Ordering file) requires server-side processing. Data structure: Row 9 header, needs per MRD week (Besoin L74/D74 YYYY_SXX, To order, Stock fin).`;
+        addLog(`ZIP uploaded: ${file.name} — Ordering file format detected`);
+        showToast(`✓ ${file.name} uploaded`);
+        return;
+      }
+      wb = XLSX.read(data, {type:'binary'});
+      rows = 0;
+      wb.SheetNames.forEach(s => {
+        const ws = wb.Sheets[s];
+        const d = XLSX.utils.sheet_to_json(ws, {header:1});
+        rows += d.length;
+      });
+      statusEl.innerHTML = `✓ <strong>${file.name}</strong> — ${wb.SheetNames.length} sheets, ~${rows} rows. Sheets: ${wb.SheetNames.join(', ')}.`;
+      addLog(`Uploaded: ${file.name} (${wb.SheetNames.length} sheets, ~${rows} rows)`);
+      showToast(`✓ ${file.name} uploaded — ${rows} rows`);
+      // Real implementation would parse and update state here
+    } catch(err) {
+      statusEl.innerHTML = `⚠ Error: ${err.message}`;
+    }
+  };
+  if(file.name.endsWith('.zip')) {
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.readAsBinaryString(file);
+  }
+}
+
+function saveGlobalComment(type) {
+  const val = document.getElementById(`${type}-gl`).value;
+  showToast(`✓ ${type.toUpperCase()} comment saved`);
+  addLog(`${type.toUpperCase()} global comment updated`);
+}
+
+// ======== UTILITIES ========
+function closeMo(id) { document.getElementById(id).classList.remove('on'); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'), 3000);
+}
+function addLog(msg) {
+  const log = document.getElementById('up-log');
+  if(log) log.innerHTML = `<div><span style="color:var(--cyan)">[${new Date().toLocaleString('fr-FR')}]</span> ${CU} — ${msg}</div>` + log.innerHTML;
+}
+document.addEventListener('click', e => {
+  if(e.target.classList.contains('mo')) e.target.classList.remove('on');
+});
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') document.querySelectorAll('.mo.on').forEach(m=>m.classList.remove('on'));
+});
+setInterval(()=>{
+  const el=document.getElementById('tb-dt');
+  if(el) el.textContent = new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}, 30000);
+
+// Auto-save admin comments
+['ppl-gl','sa-gl'].forEach(id => {
+  setTimeout(()=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    let t;
+    el.addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(()=>showToast('● Draft saved'),1500); });
+  }, 500);
 });
 
-// Date ticker
-setInterval(() => {
-  const el = document.getElementById('topbar-date');
-  if (el) el.textContent = new Date().toLocaleString('en-US', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-}, 30000);
+// Add fadeInUp animation
+const style = document.createElement('style');
+style.textContent = '@keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}';
+document.head.appendChild(style);
 </script>
 </body>
 </html>
+
