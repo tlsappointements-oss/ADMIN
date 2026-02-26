@@ -819,12 +819,11 @@ window.handleLogin = async function(){
     // Firebase sign in
     await signInWithEmailAndPassword(auth, email, pass);
 
-    // Route by role
-    if(email === 'mohamed@alten.com'){
-      window.location.href = 'admin.html';
-    } else {
-      window.location.href = 'procurement.html';
-    }
+    // Route to NEXUS procurement platform (handles roles internally)
+    // Pass user info via sessionStorage
+    sessionStorage.setItem('nexus_user', email);
+    sessionStorage.setItem('nexus_is_admin', email === 'mohamed@alten.com' ? '1' : '0');
+    window.location.href = 'NEXUS_Procurement_FULL.html';
 
   } catch(err) {
     console.error(err);
