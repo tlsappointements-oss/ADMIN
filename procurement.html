@@ -24,19 +24,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 ::-webkit-scrollbar-track{background:var(--bg2)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
-/* ── LOGIN ───────────────────────────────────────────────────── */
-#ls{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 80% at 50% 50%,#031525,#020810);z-index:1000}
-.lb{width:430px;background:rgba(0,20,50,0.85);border:1px solid var(--border-h);border-radius:var(--r);padding:48px 40px;backdrop-filter:blur(20px);box-shadow:0 0 100px rgba(0,200,255,0.15);position:relative}
-.lb::before{content:'';position:absolute;top:-1px;left:20%;right:20%;height:2px;background:linear-gradient(90deg,transparent,var(--cyan2),transparent);border-radius:2px}
-.l-sub{font-size:9px;letter-spacing:5px;color:var(--dim);text-align:center;margin-bottom:4px}
-.l-title{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;text-align:center;color:var(--cyan2);text-shadow:var(--glow);margin-bottom:6px;letter-spacing:2px}
-.l-proj{font-size:10px;letter-spacing:4px;color:var(--orange);text-align:center;margin-bottom:32px}
-.lf{margin-bottom:16px}
-.lf label{display:block;font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:8px}
-.lf input{width:100%;background:rgba(0,200,255,0.05);border:1px solid var(--border);border-radius:2px;padding:11px 14px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;outline:none;transition:.2s}
-.lf input:focus{border-color:var(--cyan);box-shadow:0 0 15px rgba(0,200,255,0.2)}
-.l-btn{width:100%;margin-top:8px;padding:13px;background:linear-gradient(135deg,rgba(0,200,255,0.2),rgba(0,200,255,0.06));border:1px solid var(--cyan);border-radius:2px;color:var(--cyan2);font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:4px;cursor:pointer;transition:.3s;text-transform:uppercase}
-.l-btn:hover{background:rgba(0,200,255,0.3);box-shadow:var(--glow)}
+/* ── LOGIN removed — handled by login.html ── */
 .l-hint{margin-top:16px;font-size:10px;color:var(--dim);text-align:center;letter-spacing:1px;line-height:1.8}
 
 /* ── APP LAYOUT ──────────────────────────────────────────────── */
@@ -297,22 +285,6 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 </style>
 </head>
 <body>
-
-<!-- ═══════════ LOGIN ═══════════ -->
-<div id="ls">
-  <div class="lb">
-    <div class="l-sub">STELLANTIS · ALTEN GROUP</div>
-    <div class="l-title">NEXUS</div>
-    <div class="l-proj">PROJECT L74 / D74 — PROCUREMENT PLATFORM</div>
-    <div class="lf"><label>ACCESS EMAIL</label><input type="email" id="l-em" placeholder="prenom.nom@alten.com"></div>
-    <div class="lf"><label>PASSKEY</label><input type="password" id="l-pw" placeholder="••••••••" value="demo"></div>
-    <button class="l-btn" onclick="login()">⟶ INITIALIZE SESSION</button>
-    <div class="l-hint">
-      Admin (full edit): <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="600d0f08010d050420010c14050e4e030f0d">[email&#160;protected]</a></strong><br>
-      Officer (read + comment): any other email
-    </div>
-  </div>
-</div>
 
 <!-- ═══════════ APP ═══════════ -->
 <div id="app">
@@ -1204,11 +1176,7 @@ const team = [
 // ════════════════════════════════════════════════════════════════
 //  AUTH
 // ════════════════════════════════════════════════════════════════
-function login() {
-  const email = document.getElementById('l-em').value.trim().toLowerCase();
-  if(!email.includes('@')) { return showToast('⚠ Enter valid email','error'); }
-  _doLogin(email);
-}
+function login() { /* handled by login.html */ }
 
 function _doLogin(email) {
   CU = { email, uid: email, name: email.split('@')[0].split('.').map(w=>w[0].toUpperCase()+w.slice(1)).join(' '), role: email===ADMIN?'admin':'officer', plant:'L74', suppliers:[] };
@@ -1218,7 +1186,6 @@ function _doLogin(email) {
   document.getElementById('sb-rl').className = 'u-role ' + (IS_ADMIN ? 'admin' : 'viewer');
   document.getElementById('sb-av').textContent = CU.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   if(IS_ADMIN) document.getElementById('app').classList.add('admin-mode');
-  document.getElementById('ls').style.display = 'none';
   document.getElementById('app').classList.add('on');
   initApp();
 }
@@ -1226,20 +1193,17 @@ function _doLogin(email) {
 function logout() {
   sessionStorage.removeItem('nexus_user');
   sessionStorage.removeItem('nexus_is_admin');
-  document.getElementById('app').classList.remove('on','admin-mode');
-  document.getElementById('ls').style.display = 'flex';
-  document.getElementById('l-em').value = '';
-  CU = null; IS_ADMIN = false;
-  // Redirect back to login page
   window.location.href = 'login.html';
 }
 
-// Auto-login if redirected from login.html via Firebase auth
-(function checkSessionLogin() {
+// Session guard — redirect to login if no session
+(function initSession() {
   const storedUser = sessionStorage.getItem('nexus_user');
-  if (storedUser) {
-    window.addEventListener('DOMContentLoaded', () => _doLogin(storedUser));
+  if (!storedUser) {
+    window.location.href = 'login.html';
+    return;
   }
+  window.addEventListener('DOMContentLoaded', () => _doLogin(storedUser));
 })();
 
 // ════════════════════════════════════════════════════════════════
@@ -2281,3 +2245,4 @@ setInterval(()=>{
 </script>
 </body>
 </html>
+
