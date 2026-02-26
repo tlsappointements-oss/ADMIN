@@ -1196,20 +1196,15 @@ function logout() {
   window.location.href = 'login.html';
 }
 
-// Session guard — redirect to login if no session
-(function initSession() {
+// Session guard — runs after full page load
+window.addEventListener('load', function() {
   const storedUser = sessionStorage.getItem('nexus_user');
   if (!storedUser) {
     window.location.href = 'login.html';
     return;
   }
-  // DOMContentLoaded may have already fired if script is at end of body
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => _doLogin(storedUser));
-  } else {
-    _doLogin(storedUser);
-  }
-})();
+  _doLogin(storedUser);
+});
 
 // ════════════════════════════════════════════════════════════════
 //  NAVIGATION
@@ -1456,7 +1451,7 @@ function openPartDetail(pn) {
     crEntries.forEach(([cr,q])=>{const m=CR_META[cr]||{};crHtml+=`<tr><td class="pn-cell">${cr}</td><td class="${q>10?'need-hi':'need-lo'}">${q}</td><td>${m.mrd||'—'}</td><td><span class="bg bg-x${m.phase?.slice(-1)||0}">${m.phase||'—'}</span></td></tr>`;});
     crHtml+='</tbody></table></div>';
   }
-  const phHtml=Object.entries(p.ph||{}).map(([ph,q])=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:10px;text-align:center;flex:1"><div style="font-family:'+"'Orbitron'"!important+`,sans-serif;font-size:22px;font-weight:900;color:${ph==='X0'?'var(--blue)':ph==='X1'?'var(--cyan)':'var(--gold)'}">${q}</div><div style="font-size:10px;color:var(--dim)">${ph}</div></div>`).join('');
+  const phHtml=Object.entries(p.ph||{}).map(([ph,q])=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:10px;text-align:center;flex:1"><div style="font-family:Orbitron,sans-serif;font-size:22px;font-weight:900;color:${ph==='X0'?'var(--blue)':ph==='X1'?'var(--cyan)':'var(--gold)'}">${q}</div><div style="font-size:10px;color:var(--dim)">${ph}</div></div>`).join('');
   document.getElementById('mo-part-body').innerHTML=`
     <div class="g2">
       <div>
@@ -2250,4 +2245,3 @@ setInterval(()=>{
 </script>
 </body>
 </html>
-
