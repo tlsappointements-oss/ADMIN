@@ -1203,7 +1203,12 @@ function logout() {
     window.location.href = 'login.html';
     return;
   }
-  window.addEventListener('DOMContentLoaded', () => _doLogin(storedUser));
+  // DOMContentLoaded may have already fired if script is at end of body
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => _doLogin(storedUser));
+  } else {
+    _doLogin(storedUser);
+  }
 })();
 
 // ════════════════════════════════════════════════════════════════
