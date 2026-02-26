@@ -780,12 +780,39 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 
 <!-- PART DETAIL MODAL -->
 <div class="mo" id="mo-part">
-  <div class="md" style="max-width:900px">
+  <div class="md" style="max-width:960px">
     <div class="mh">
       <div class="mt2" id="mo-part-title">Part Detail</div>
       <button class="mc" onclick="closeMo('mo-part')">✕</button>
     </div>
     <div class="mb" id="mo-part-body"></div>
+  </div>
+</div>
+
+<!-- RECEPTION ADD MODAL -->
+<div class="mo" id="mo-reception">
+  <div class="md" style="max-width:560px">
+    <div class="mh">
+      <div class="mt2">📦 ADD RECEPTION — PN <span id="rec-pn-label"></span></div>
+      <button class="mc" onclick="closeMo('mo-reception')">✕</button>
+    </div>
+    <div class="mb">
+      <div style="font-size:11px;color:var(--dim);margin-bottom:14px" id="rec-pn-desc"></div>
+      <input type="hidden" id="rec-pn-hidden">
+      <div class="g2">
+        <div class="form-group"><label>Date of Reception</label><input type="date" id="rec-date"></div>
+        <div class="form-group"><label>Quantity Received</label><input type="number" id="rec-qty" placeholder="e.g. 45" min="1"></div>
+        <div class="form-group"><label>Delivery Note (DN)</label><input id="rec-dn" placeholder="DN 458963"></div>
+        <div class="form-group"><label>PO Reference</label><input id="rec-po" placeholder="VR-491-001"></div>
+        <div class="form-group"><label>Phase</label><select id="rec-phase"><option>X0</option><option>X1</option><option>X2</option></select></div>
+        <div class="form-group"><label>Counter Mark</label><input id="rec-cr" placeholder="KR036 / KK062..."></div>
+      </div>
+      <div class="form-group"><label>Comment</label><input id="rec-comment" placeholder="Received OK / Partial / Anomaly..."></div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn b-g" onclick="saveReception()">✓ Save Reception</button>
+        <button class="btn" onclick="closeMo('mo-reception')">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1092,20 +1119,42 @@ const counterMarks_L74 = ['KR036','KR048','KR174','KR038','KR049','KR175','KR172
 const counterMarks_D74 = ['KK062','KK067','KK213','KK233','KK063','KK069','KK065','KK064'];
 
 const ALL_PARTS = [
-  { pn:'9875614880', desc:'AMORTISSEUR DIRECTION AV G', supplier:'KYB ADVANCED MFG SPAIN SA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-001', status:'Active', opo:'VR13508152', sta:'DONE', csa:'', mag:'', dts:'', tr:'', col:'', pnu:'9875614880', qpo:45, del:450, _kw:'', _gen:'', cr:{'KK062':45,'KK067':18}, mrd:{'2026_S03':63}, ph:{X0:63} },
-  { pn:'9875615180', desc:'AMORTISSEUR DIRECTION AV D', supplier:'KYB ADVANCED MFG SPAIN SA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-002', status:'Active', opo:'VR13508152', sta:'DONE', csa:'', mag:'', del:180, cr:{'KK062':18}, mrd:{'2026_S03':18}, ph:{X0:18} },
-  { pn:'9875615480', desc:'AMORTISSEUR DIRECTION AR G', supplier:'KYB ADVANCED MFG SPAIN SA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-003', status:'Active', opo:'VR13508152', sta:'ORDERED', csa:'Monitor delivery', del:940, cr:{'KK063':94}, mrd:{'2026_S05':94}, ph:{X1:94} },
-  { pn:'9875615780', desc:'AMORTISSEUR DIRECTION AR D', supplier:'KYB ADVANCED MFG SPAIN SA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-004', status:'Pending', opo:'', sta:'', csa:'Confirm packaging dimensions', del:970, cr:{'KK063':97}, mrd:{'2026_S05':97}, ph:{X1:97} },
-  { pn:'9860739680', desc:'AGRAFE FIXATION MOTEUR G', supplier:'A. RAYMOND ITALIANA SRL', proj:'D74', plant:'D74', darwin:'DARWIN', area:'Standard', po:'VR-491-005', rda:'RDA-2024-005', status:'Active', opo:'VR13508153', sta:'DONE', del:780, cr:{'KK064':78}, mrd:{'2026_S02':78}, ph:{X0:78} },
-  { pn:'9860739880', desc:'AGRAFE FIXATION MOTEUR D', supplier:'A. RAYMOND ITALIANA SRL', proj:'D74', plant:'D74', darwin:'DARWIN', area:'Standard', po:'VR-491-005', sta:'DONE', del:340, cr:{'KK064':34}, mrd:{'2026_S02':34}, ph:{X0:34} },
-  { pn:'9879039380', desc:'ENSEMBLE TABLEAU DE BORD', supplier:'Marelli Sosnowiec Poland Sp.', proj:'L74', plant:'L74', darwin:'DARWIN', area:'Standard', po:'VR-L74-001', rda:'RDA-L74-001', status:'Active', opo:'VR13616825', sta:'OPEN', csa:'Partial delivery received', del:280, cr:{'KR036':28}, mrd:{'2026_S04':28}, ph:{X0:28} },
-  { pn:'9879039480', desc:'PLANCHE DE BORD SUPERIEURE', supplier:'Marelli Sosnowiec Poland Sp.', proj:'L74', plant:'L74', darwin:'DARWIN', area:'Standard', po:'VR-L74-001', rda:'RDA-L74-002', status:'Active', opo:'VR13616825', sta:'OPEN', csa:'Partial delivery received', del:280, cr:{'KR036':28}, mrd:{'2026_S04':28}, ph:{X0:28} },
-  { pn:'9874972480', desc:'JOINT ETANCHEITE HABITACLE', supplier:'TREVES PRODUCTS SERVICES', proj:'L74', plant:'L74', darwin:'DARWIN', area:'Standard', po:'VR-L74-003', rda:'RDA-L74-003', status:'Active', opo:'VR13508184', sta:'ORDERED', del:930, cr:{'KR048':93}, mrd:{'2026_S05':93}, ph:{X1:93} },
-  { pn:'9860763580', desc:'ACTIONNEUR COMMANDE ELECT', supplier:'CEBI ITALY', proj:'L74', plant:'L74', darwin:'TAXI', area:'Standard', po:'CPO-L74-001', rda:'RDA-L74-004', status:'Critical', opo:'GR2548675685', sta:'URGENT', csa:'URGENT - ready for pickup', del:208, cr:{'KR174':208}, mrd:{'2026_S02':208}, ph:{X2:208} },
-  { pn:'9831983580', desc:'CONNECTEUR FAISCEAU ELECT', supplier:'DELPHI TECHNOLOGIES', proj:'D74', plant:'D74', darwin:'TAXI', area:'Standard', po:'CPO-D74-001', rda:'RDA-D74-001', status:'Done', opo:'GR24204D1A72', sta:'DONE', del:240, cr:{'KK065':240}, mrd:{'2026_S01':240}, ph:{X0:240} },
-  { pn:'9871246280', desc:'SUPPORT FIXATION MOTEUR', supplier:'CONTINENTAL AUTOMOTIVE SRL', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-D74-010', rda:'RDA-D74-010', status:'Active', opo:'VR13702114', sta:'PO sent', del:220, cr:{'KK067':22}, mrd:{'2026_S06':22}, ph:{X1:22} },
-  { pn:'9860194480', desc:'PARE-CHOCS AVANT COMPLET', supplier:'PLASTIC OMNIUM', proj:'D74', plant:'D74', darwin:'DARWIN', area:'Standard', po:'VR-D74-011', rda:'RDA-D74-011', status:'Active', opo:'VR13721008', sta:'', csa:'Need to confirm qty', del:550, cr:{'KK069':55}, mrd:{'2026_S07':55}, ph:{X2:55} },
+  { pn:'9875614880', pnu:'9875614880', xpPn:'9875614880', desc:'AMORTISSEUR DIRECTION AV G', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-001', status:'Active', opo:'VR13508152', sta:'E', csa:'', mag:'0780', dts:'2025-09-02', tr:'Y', col:'N', qpo:45, del:450, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', pilote:'Fatima Z. Moustaghfir', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q45 / PD 15.03 / DN 458963 / LR 14.03 : Parts ready at supplier', dateAjout:'2025-11-05', cr:{'KK062':45,'KK067':18}, mrd:{'2026_S03':63}, ph:{X0:63} },
+  { pn:'9875615180', pnu:'9875615180', xpPn:'9875615180', desc:'AMORTISSEUR DIRECTION AV D', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-002', status:'Active', opo:'VR13508152', sta:'E', csa:'', mag:'0780', dts:'2025-09-02', tr:'Y', col:'N', del:180, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', pilote:'Fatima Z. Moustaghfir', shortComment:'WAITING DELIVERY DATE', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q18 / LR 20.02 : Waiting supplier feedback', dateAjout:'2025-11-05', cr:{'KK062':18}, mrd:{'2026_S03':18}, ph:{X0:18} },
+  { pn:'9875615480', pnu:'9875615480', xpPn:'9875615480', desc:'AMORTISSEUR DIRECTION AR G', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-003', status:'Active', opo:'VR13508152', sta:'O', csa:'Monitor delivery', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', del:940, toOrder:'', plaque:'', eta:'2026-03-05', etd:'2026-03-03', lastReminder:'20.02', pilote:'Fatima Z. Moustaghfir', shortComment:'ETA CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q94 / PD 05.03 / DN 775432 / LR 20.02 : Confirmed for next week delivery', dateAjout:'2025-11-05', cr:{'KK063':94}, mrd:{'2026_S05':94}, ph:{X1:94} },
+  { pn:'9875615780', pnu:'9875615780', xpPn:'9875615780', desc:'AMORTISSEUR DIRECTION AR D', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-004', status:'Pending', opo:'', sta:'', csa:'Confirm packaging dimensions', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', del:970, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'18.02', pilote:'Fatima Z. Moustaghfir', shortComment:'APPRO/In Progress', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q97 / LR 18.02 : Waiting delivery date confirmation', dateAjout:'2025-11-27', cr:{'KK063':97}, mrd:{'2026_S05':97}, ph:{X1:97} },
+  { pn:'9860739680', pnu:'9860739680', xpPn:'9860739680', desc:'AGRAFE FIXATION MOTEUR G', supplier:'A. RAYMOND ITALIANA SRL', supplierSAP:'A. RAYMOND ITALIANA SRL', supplierCORAIL:'A. RAYMOND ITALIANA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'56', po:'VR-491-005', rda:'RDA-2024-005', status:'Active', opo:'VR13508153', sta:'E', del:780, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', mag:'0780', dts:'2024-10-14', tr:'Y', col:'N', pilote:'Imane Aokass', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q78 / click 13.02 / DN 985421 / LR 13.02 : Received OK', dateAjout:'2025-11-05', cr:{'KK064':78}, mrd:{'2026_S02':78}, ph:{X0:78} },
+  { pn:'9860739880', pnu:'9860739880', xpPn:'9860739880', desc:'AGRAFE FIXATION MOTEUR D', supplier:'A. RAYMOND ITALIANA SRL', supplierSAP:'A. RAYMOND ITALIANA SRL', supplierCORAIL:'A. RAYMOND ITALIANA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'56', po:'VR-491-005', sta:'E', del:340, toOrder:'', mag:'0780', dts:'2024-10-14', tr:'Y', col:'N', pilote:'Imane Aokass', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q34 / click 13.02 / DN 985422 / LR 13.02 : Received OK', dateAjout:'2025-11-05', cr:{'KK064':34}, mrd:{'2026_S02':34}, ph:{X0:34} },
+  { pn:'9879039380', pnu:'9879039380', xpPn:'9879039380', desc:'ENSEMBLE TABLEAU DE BORD', supplier:'Marelli Sosnowiec Poland Sp.', supplierSAP:'Marelli Sosnowiec Poland Sp.', supplierCORAIL:'Marelli Sosnowiec Poland', proj:'L74', plant:'L74', darwin:'DARWIN', area:'JIS', po:'VR-L74-001', rda:'RDA-L74-001', status:'Active', opo:'VR13616825', sta:'E', csa:'Partial delivery received', del:280, toOrder:'12', plaque:'L74 BEV', eta:'2026-03-09', etd:'2026-03-07', lastReminder:'24.02', mag:'0780', dts:'2025-11-25', tr:'Y', col:'N', pilote:'Hajar Akhazzan', shortComment:'PARTIAL CONFIRMED', keyWord:'CONFIRMED', appComment:'PARTIAL / PUS / First Qty Q16 / Pickup done on 21.02 / DN 226534 + Second Qty Q12 CONFIRMED / Pickup on 09.03 / Delivery date on 11.03 / DN / LR 24.02 : Waiting DN second qty', dateAjout:'2025-11-27', cr:{'KR036':28}, mrd:{'2026_S04':28}, ph:{X0:28} },
+  { pn:'9879039480', pnu:'9879039480', xpPn:'9879039480', desc:'PLANCHE DE BORD SUPERIEURE', supplier:'Marelli Sosnowiec Poland Sp.', supplierSAP:'Marelli Sosnowiec Poland Sp.', supplierCORAIL:'Marelli Sosnowiec Poland', proj:'L74', plant:'L74', darwin:'DARWIN', area:'JIS', po:'VR-L74-001', rda:'RDA-L74-002', status:'Active', opo:'VR13616825', sta:'E', csa:'Partial delivery received', del:280, toOrder:'12', mag:'0780', dts:'2025-11-25', tr:'Y', col:'N', pilote:'Hajar Akhazzan', shortComment:'PARTIAL CONFIRMED', keyWord:'CONFIRMED', appComment:'PARTIAL / PUS / First Qty Q16 / Pickup done on 21.02 / DN 226535 + Second Qty Q12 CONFIRMED / Pickup on 09.03 / Delivery date on 11.03 / DN / LR 24.02 : Waiting DN', dateAjout:'2025-11-27', cr:{'KR036':28}, mrd:{'2026_S04':28}, ph:{X0:28} },
+  { pn:'9874972480', pnu:'9874972480', xpPn:'9874972480', desc:'JOINT ETANCHEITE HABITACLE', supplier:'TREVES PRODUCTS SERVICES', supplierSAP:'TREVES PRODUCTS SERVICES', supplierCORAIL:'TREVES PRODUCTS SERVICES', proj:'L74', plant:'L74', darwin:'DARWIN', area:'89', po:'VR-L74-003', rda:'RDA-L74-003', status:'Active', opo:'VR13508184', sta:'E', del:930, toOrder:'', mag:'0780', dts:'2025-12-09', tr:'Y', col:'N', pilote:'Soukaina Bakkas', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q93 / PD 05.03 / DN / LR 19.02 : Parts ready, pickup planned', dateAjout:'2025-11-27', cr:{'KR048':93}, mrd:{'2026_S05':93}, ph:{X1:93} },
+  { pn:'9860763580', pnu:'9860763580', xpPn:'9860763580', desc:'ACTIONNEUR COMMANDE ELECT', supplier:'CEBI ITALY', supplierSAP:'CEBI ITALY SPA', supplierCORAIL:'CEBI ITALY', proj:'L74', plant:'L74', darwin:'TAXI', area:'JIS', po:'CPO-L74-001', rda:'RDA-L74-004', status:'Critical', opo:'GR2548675685', sta:'U', csa:'URGENT - ready for pickup', del:208, toOrder:'', plaque:'L74 X2', eta:'2026-02-28', etd:'2026-02-26', lastReminder:'25.02', mag:'0780', dts:'2026-01-07', tr:'Y', col:'N', pilote:'Saki Maryam', shortComment:'ETA CONFIRMED', keyWord:'ESCALATION', appComment:'ESCALATE PURCH Sarah MARTIN on 24.02 / PUS / Q208 / LR 25.02 : Parts ready, urgent pickup needed - assembly line at risk', dateAjout:'2026-01-27', cr:{'KR174':208}, mrd:{'2026_S02':208}, ph:{X2:208} },
+  { pn:'9831983580', pnu:'9831983580', xpPn:'9831983580', desc:'CONNECTEUR FAISCEAU ELECT', supplier:'DELPHI TECHNOLOGIES', supplierSAP:'DELPHI TECHNOLOGIES INT.', supplierCORAIL:'DELPHI TECHNOLOGIES', proj:'D74', plant:'D74', darwin:'TAXI', area:'JIS', po:'CPO-D74-001', rda:'RDA-D74-001', status:'Done', opo:'GR24204D1A72', sta:'E', del:240, toOrder:'', mag:'0780', dts:'2025-09-23', tr:'Y', col:'N', pilote:'Salma Sargali', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q240 / click 20.02 / DN 664523 / LR 20.02 : All qty received OK', dateAjout:'2025-11-05', cr:{'KK065':240}, mrd:{'2026_S01':240}, ph:{X0:240} },
+  { pn:'9871246280', pnu:'9871246280', xpPn:'9871246280', desc:'SUPPORT FIXATION MOTEUR', supplier:'CONTINENTAL AUTOMOTIVE SRL', supplierSAP:'CONTINENTAL AUTOMOTIVE SRL', supplierCORAIL:'CONTINENTAL AUTOMOTIVE', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-D74-010', rda:'RDA-D74-010', status:'Active', opo:'VR13702114', sta:'E', del:220, toOrder:'', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', pilote:'Soukaina Bakkas', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q22 / PD 05.03 / DN / LR 24.02 : Confirmed delivery date from supplier', dateAjout:'2025-11-27', cr:{'KK067':22}, mrd:{'2026_S06':22}, ph:{X1:22} },
+  { pn:'9860194480', pnu:'9860194480', xpPn:'9860194480', desc:'PARE-CHOCS AVANT COMPLET', supplier:'PLASTIC OMNIUM', supplierSAP:'PLASTIC OMNIUM AUTO EXT', supplierCORAIL:'PLASTIC OMNIUM', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-D74-011', rda:'RDA-D74-011', status:'Active', opo:'VR13721008', sta:'', csa:'Need to confirm qty', del:550, toOrder:'', mag:'0780', dts:'2026-01-07', tr:'N', col:'N', pilote:'Hajar Akhazzan', shortComment:'APPRO/In Progress', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q55 / LR 23.02 : Waiting delivery date', dateAjout:'2026-01-27', cr:{'KK069':55}, mrd:{'2026_S07':55}, ph:{X2:55} },
 ];
+
+// Reception history data (per PN)
+const receptionHistory = {
+  '9875614880': [
+    { date:'2026-02-19', qty:45, dn:'DN 458963', po:'VR-491-001', phase:'X0', cr:'KK062', comment:'Received OK - all qty', addedBy:'Fatima Z. Moustaghfir' },
+  ],
+  '9860739680': [
+    { date:'2026-02-13', qty:78, dn:'DN 985421', po:'VR-491-005', phase:'X0', cr:'KK064', comment:'Full qty received', addedBy:'Imane Aokass' },
+  ],
+  '9860739880': [
+    { date:'2026-02-13', qty:34, dn:'DN 985422', po:'VR-491-005', phase:'X0', cr:'KK064', comment:'Full qty received', addedBy:'Imane Aokass' },
+  ],
+  '9879039380': [
+    { date:'2026-02-21', qty:16, dn:'DN 226534', po:'VR-L74-001', phase:'X0', cr:'KR036', comment:'Partial delivery 1/2 — awaiting 2nd', addedBy:'Hajar Akhazzan' },
+  ],
+  '9879039480': [
+    { date:'2026-02-21', qty:16, dn:'DN 226535', po:'VR-L74-001', phase:'X0', cr:'KR036', comment:'Partial delivery 1/2', addedBy:'Hajar Akhazzan' },
+  ],
+  '9831983580': [
+    { date:'2026-02-20', qty:240, dn:'DN 664523', po:'CPO-D74-001', phase:'X0', cr:'KK065', comment:'Complete reception OK', addedBy:'Salma Sargali' },
+  ],
+};
 
 const CR_META = {};
 ALL_PARTS.forEach(p => {
@@ -1397,35 +1446,41 @@ function renderNeeds() {
   const tbody = document.getElementById('needsTbody');
   document.getElementById('needsCount').textContent = `${pts.length} parts`;
   let cols = ['PN','DESCRIPTION','SUPPLIER','PLANT'];
-  if(view==='total') cols.push('TOTAL NEED','PO STATUS','SA COMMENT','ACTIONS');
-  else if(view==='phase') cols.push(...phases,'TOTAL','ACTIONS');
-  else if(view==='mrd') { MRDS.slice(0,8).forEach(m=>cols.push(m)); cols.push('ACTIONS'); }
+  if(view==='total') cols.push('TOTAL NEED','CORAIL','KEY WORD','PILOTE','ACTIONS');
+  else if(view==='phase') cols.push(...phases,'TOTAL','KEY WORD','ACTIONS');
+  else if(view==='mrd') { MRDS.slice(0,8).forEach(m=>cols.push(m)); cols.push('KEY WORD','ACTIONS'); }
   else { cols.push('COUNTER MARK','QTY','MRD','PHASE','ACTIONS'); }
   head.innerHTML = cols.map(c=>`<th>${c}</th>`).join('');
   tbody.innerHTML = '';
+  const staCls = {'E':'bg-done','O':'bg-pend','U':'bg-crit','C':'bg-crit'};
+  const kwColor = {'CONFIRMED':'var(--green)','RECEIVED':'var(--green)','PROBLEM':'var(--red)','ESCALATION':'var(--red)','FALSE MISSING':'var(--purple)','ETA CONFIRMED':'var(--blue)','CONFIRMED LATE':'var(--orange)'};
   pts.forEach(p=>{
     const total=Object.values(p.cr||{}).reduce((a,q)=>a+q,0);
     let cells='';
     if(view==='total'){
-      const staCls = p.sta==='DONE'?'bg-done':p.sta==='URGENT'?'bg-crit':p.sta?'bg-pend':'';
-      cells=`<td><span class="bg ${staCls}" style="font-size:9px">${p.sta||'—'}</span></td><td style="font-size:10px;color:var(--purple);max-width:120px;overflow:hidden;text-overflow:ellipsis">${p.csa||'—'}</td>`;
+      const kc = kwColor[p.keyWord] || 'var(--dim)';
+      cells=`<td style="font-family:'Share Tech Mono';font-weight:700;color:${total>50?'var(--red)':total>20?'var(--orange)':'var(--cyan)'}">${total}</td>`;
+      cells+=`<td><span class="bg ${staCls[p.sta]||''}" style="font-size:9px">${p.sta||'—'}</span></td>`;
+      cells+=`<td><span style="font-size:9px;color:${kc};font-family:'Share Tech Mono'">${p.keyWord||'—'}</span></td>`;
+      cells+=`<td style="font-size:10px;color:var(--dim);max-width:100px;overflow:hidden;text-overflow:ellipsis">${p.pilote||'—'}</td>`;
       cells+=`<td><button class="btn b-p b-sm" onclick="openPartDetail('${p.pn}')">Detail</button></td>`;
-      head.children[4].textContent='TOTAL NEED'; // ensure col
-      // total qty cell
-      cells=`<td style="font-family:'Share Tech Mono';font-weight:700;color:${total>50?'var(--red)':total>20?'var(--orange)':'var(--cyan)'}">${total}</td>`+cells;
     } else if(view==='phase'){
       phases.forEach(ph=>{ const v=Object.entries(p.cr||{}).filter(([cr])=>CR_META[cr]?.phase===ph).reduce((a,[,q])=>a+q,0); cells+=`<td style="font-family:'Share Tech Mono'">${v||'—'}</td>`; });
       cells+=`<td style="font-weight:700;font-family:'Share Tech Mono';color:var(--gold)">${total}</td>`;
+      const kc = kwColor[p.keyWord] || 'var(--dim)';
+      cells+=`<td><span style="font-size:9px;color:${kc};font-family:'Share Tech Mono'">${p.keyWord||'—'}</span></td>`;
       cells+=`<td><button class="btn b-p b-sm" onclick="openPartDetail('${p.pn}')">Detail</button></td>`;
     } else if(view==='mrd'){
       MRDS.slice(0,8).forEach(m=>{ const v=(p.mrd||{})[m]||0; cells+=`<td style="font-family:'Share Tech Mono';${v>0?'color:var(--cyan);font-weight:700':''}">${v||'—'}</td>`; });
+      const kc = kwColor[p.keyWord] || 'var(--dim)';
+      cells+=`<td><span style="font-size:9px;color:${kc};font-family:'Share Tech Mono'">${p.keyWord||'—'}</span></td>`;
       cells+=`<td><button class="btn b-p b-sm" onclick="openPartDetail('${p.pn}')">Detail</button></td>`;
     } else {
       Object.entries(p.cr||{}).filter(([,q])=>q>0).forEach(([cr,q])=>{
         const m=CR_META[cr];
         cells+=`</tr><tr><td class="mono" style="color:var(--cyan)">${p.pn}</td><td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${p.desc}</td><td style="font-size:11px">${p.supplier}</td><td><span class="bg ${p.proj==='L74'?'bg-ok':'bg-gold'}">${p.proj}</span></td><td class="mono" style="font-weight:700">${cr}</td><td class="mono" style="font-weight:700;color:var(--gold)">${q}</td><td class="mono">${m?.mrd||'—'}</td><td><span class="bg bg-x${m?.phase?.slice(-1)||0}">${m?.phase||'—'}</span></td><td><button class="btn b-p b-sm" onclick="openPartDetail('${p.pn}')">Detail</button></td>`;
       });
-      if(view==='cr') return; // rows already added
+      if(view==='cr') return;
     }
     tbody.innerHTML+=`<tr><td class="mono" style="color:var(--cyan);cursor:pointer" onclick="openPartDetail('${p.pn}')">${p.pn}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${p.desc}</td><td style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${p.supplier}</td><td><span class="bg ${p.proj==='L74'?'bg-ok':'bg-gold'}">${p.proj}</span></td>${cells}</tr>`;
   });
@@ -1442,52 +1497,158 @@ function clearFilters() {
 //  PART DETAIL MODAL
 // ════════════════════════════════════════════════════════════════
 function openPartDetail(pn) {
-  const p=ALL_PARTS.find(x=>x.pn===pn); if(!p) return;
-  document.getElementById('mo-part-title').textContent=`PN ${pn} — ${p.desc||'Detail'}`;
-  const crEntries=Object.entries(p.cr||{}).filter(([,q])=>q>0);
-  let crHtml='';
-  if(crEntries.length){
-    crHtml='<div style="margin-top:14px"><div style="font-size:8px;color:var(--dim);letter-spacing:2px;margin-bottom:6px;font-family:\'Share Tech Mono\',monospace">NEEDS BY COUNTER MARK</div><table class="matrix-table" style="width:100%"><thead><tr><th>COUNTER MARK</th><th>QTY</th><th>MRD</th><th>PHASE</th></tr></thead><tbody>';
-    crEntries.forEach(([cr,q])=>{const m=CR_META[cr]||{};crHtml+=`<tr><td class="pn-cell">${cr}</td><td class="${q>10?'need-hi':'need-lo'}">${q}</td><td>${m.mrd||'—'}</td><td><span class="bg bg-x${m.phase?.slice(-1)||0}">${m.phase||'—'}</span></td></tr>`;});
-    crHtml+='</tbody></table></div>';
+  const p = ALL_PARTS.find(x => x.pn === pn); if (!p) return;
+  document.getElementById('mo-part-title').textContent = `PN ${pn} — ${p.desc || 'Detail'}`;
+
+  const staCls = {'E':'bg-done','O':'bg-pend','U':'bg-crit','C':'bg-crit','':''};
+  const staLabel = {'E':'En commande (E)','O':'Ouvert (O)','U':'Urgent (U)','C':'Clôturé (C)','':'—'};
+
+  const mrdEntries = Object.entries(p.mrd || {}).sort();
+  let mrdHtml = mrdEntries.length ? `<table class="tbl"><thead><tr><th>MRD</th><th>Need</th><th>Phase</th></tr></thead><tbody>` : '<div style="color:var(--dim);font-size:11px;padding:12px">No MRD data</div>';
+  mrdEntries.forEach(([mrd, qty]) => {
+    const ph = Object.keys(p.ph||{})[0] || 'X0';
+    mrdHtml += `<tr><td class="mono" style="color:var(--cyan)">${mrd}</td><td style="font-weight:700;color:var(--orange)">${qty}</td><td><span class="bg bg-x${ph.slice(-1)||0}">${ph}</span></td></tr>`;
+  });
+  if (mrdEntries.length) mrdHtml += '</tbody></table>';
+
+  const phEntries = Object.entries(p.ph || {});
+  let phHtml = phEntries.length ? `<table class="tbl"><thead><tr><th>Phase</th><th>Total Need</th></tr></thead><tbody>` : '<div style="color:var(--dim);font-size:11px;padding:12px">No phase data</div>';
+  phEntries.forEach(([ph, qty]) => {
+    phHtml += `<tr><td><span class="bg bg-x${ph.slice(-1)||0}">${ph}</span></td><td style="font-weight:700;color:var(--orange)">${qty}</td></tr>`;
+  });
+  if (phEntries.length) phHtml += '</tbody></table>';
+
+  const crEntries = Object.entries(p.cr || {}).filter(([, q]) => q > 0);
+  let crHtml = crEntries.length ? `<table class="tbl"><thead><tr><th>Counter Mark</th><th>Qty</th><th>MRD</th><th>Phase</th></tr></thead><tbody>` : '<div style="color:var(--dim);font-size:11px;padding:12px">No counter marks</div>';
+  crEntries.forEach(([cr, q]) => {
+    const m = CR_META[cr] || {};
+    crHtml += `<tr><td class="mono" style="color:var(--purple)">${cr}</td><td style="font-weight:700;color:var(--orange)">${q}</td><td class="mono">${m.mrd||'—'}</td><td><span class="bg bg-x${(m.phase||'').slice(-1)||0}">${m.phase||'—'}</span></td></tr>`;
+  });
+  if (crEntries.length) crHtml += '</tbody></table>';
+
+  const hist = receptionHistory[pn] || [];
+  let recHtml = `<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center"><div class="flb" style="margin:0">RECEPTION HISTORY</div><button class="btn b-g b-sm" onclick="openAddReception('${pn}')">+ Add Reception</button></div>`;
+  if (hist.length) {
+    recHtml += `<table class="tbl"><thead><tr><th>Date</th><th>Qty</th><th>DN</th><th>PO</th><th>Phase</th><th>C-Mark</th><th>Comment</th><th>By</th></tr></thead><tbody>`;
+    hist.forEach(r => { recHtml += `<tr><td class="mono" style="color:var(--cyan)">${r.date}</td><td style="font-weight:700;color:var(--green)">${r.qty}</td><td class="mono">${r.dn}</td><td class="mono" style="font-size:10px">${r.po}</td><td><span class="bg bg-x${(r.phase||'').slice(-1)||0}">${r.phase}</span></td><td class="mono" style="color:var(--purple)">${r.cr}</td><td style="font-size:11px;color:var(--dim)">${r.comment}</td><td style="font-size:10px;color:var(--dim)">${r.addedBy}</td></tr>`; });
+    recHtml += '</tbody></table>';
+    const totalRec = hist.reduce((s, r) => s + r.qty, 0);
+    recHtml += `<div style="margin-top:8px;font-size:11px;color:var(--green);font-family:'Share Tech Mono',monospace">✓ TOTAL RECEIVED: <strong>${totalRec}</strong> / ${p.del||'—'} ordered</div>`;
+  } else {
+    recHtml += '<div style="color:var(--dim);font-size:11px;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:3px">No receptions recorded yet.</div>';
   }
-  const phHtml=Object.entries(p.ph||{}).map(([ph,q])=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:10px;text-align:center;flex:1"><div style="font-family:Orbitron,sans-serif;font-size:22px;font-weight:900;color:${ph==='X0'?'var(--blue)':ph==='X1'?'var(--cyan)':'var(--gold)'}">${q}</div><div style="font-size:10px;color:var(--dim)">${ph}</div></div>`).join('');
-  document.getElementById('mo-part-body').innerHTML=`
-    <div class="g2">
-      <div>
-        <div class="flb">PART DETAILS</div>
-        <table class="dtl" style="width:100%">
-          <tr><td>Plant</td><td><span class="bg ${p.plant==='L74'?'bg-ok':'bg-gold'}">${p.plant||'—'}</span></td></tr>
-          <tr><td>Project</td><td>${p.proj||'—'}</td></tr>
-          <tr><td>Description</td><td>${p.desc||'—'}</td></tr>
-          <tr><td>Area JIT</td><td>${p.area||'—'}</td></tr>
-          <tr><td>Status (Corail)</td><td><span class="bg ${p.sta?'bg-done':'bdg-gray'}">${p.sta||'—'}</span></td></tr>
-          <tr><td>Open PO</td><td style="color:var(--cyan);font-family:'Share Tech Mono',monospace">${p.opo||'—'}</td></tr>
-          <tr><td>PO (491 / CPO)</td><td style="font-family:'Share Tech Mono',monospace">${p.po||'—'}</td></tr>
-          <tr><td>RDA Ref.</td><td style="font-family:'Share Tech Mono',monospace">${p.rda||'—'}</td></tr>
-          <tr><td>Total Delivery</td><td style="font-family:'Share Tech Mono',monospace">${(p.del||0).toLocaleString()}</td></tr>
-          <tr><td>Comment SA</td><td style="font-size:10px;color:var(--dim)">${p.csa||'—'}</td></tr>
-        </table>
-        ${phHtml?`<div style="display:flex;gap:8px;margin-top:14px">${phHtml}</div>`:''}
-      </div>
-      <div>
-        <div class="flb">SUPPLIER</div>
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:12px;margin-bottom:14px">
-          <div style="font-weight:700;margin-bottom:6px;font-size:13px">${p.supplier||'—'}</div>
-          <div style="font-size:11px;color:var(--dim)">Status: <strong>${p.status||'—'}</strong></div>
+
+  const kwColors = {CONFIRMED:'var(--green)',RECEIVED:'var(--green)',PROBLEM:'var(--red)',ESCALATION:'var(--red)','FALSE MISSING':'var(--purple)',MONITORING:'var(--cyan)',DEPANNAGE:'var(--orange)','ETA CONFIRMED':'var(--blue)',PARTIAL:'var(--gold)'};
+  const kwColor = kwColors[p.keyWord] || 'var(--dim)';
+  const commentHtml = `<div><div class="flb">CURRENT COMMENT (ALEAD STANDARD)</div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:12px"><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap"><span style="font-family:'Share Tech Mono',monospace;font-size:10px;background:rgba(0,0,0,0.3);color:${kwColor};padding:4px 10px;border-radius:2px;border:1px solid ${kwColor}">${p.keyWord||'—'}</span><span style="font-size:10px;color:var(--dim)">Short: <strong style="color:var(--text)">${p.shortComment||'—'}</strong></span>${p.eta?`<span style="font-size:10px;color:var(--dim)">ETA: <strong style="color:var(--cyan)">${p.eta}</strong></span>`:''} ${p.etd?`<span style="font-size:10px;color:var(--dim)">ETD: <strong style="color:var(--cyan)">${p.etd}</strong></span>`:''} ${p.lastReminder?`<span style="font-size:10px;color:var(--dim)">LR: <strong style="color:var(--text)">${p.lastReminder}</strong></span>`:''} ${p.plaque?`<span style="font-size:10px;color:var(--dim)">Plaque: <strong style="color:var(--gold)">${p.plaque}</strong></span>`:''}</div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text);line-height:1.6;padding:8px;background:var(--bg3);border-radius:2px;border-left:3px solid ${kwColor}">${p.appComment||'—'}</div></div><div style="margin-top:8px"><button class="btn b-g b-sm" onclick="closeMo('mo-part');openCmtModal('${pn}')">✎ Edit Comment</button></div></div>`;
+
+  document.getElementById('mo-part-body').innerHTML = `
+    <div style="display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--border);overflow-x:auto">
+      ${['overview','needs-mrd','needs-phase','needs-cr','reception','comment'].map((t,i)=>`<button id="pdt-${t}" onclick="pdTab('${t}','${pn}')" style="padding:7px 14px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;background:${i===0?'rgba(0,200,255,0.12)':'transparent'};border:none;border-bottom:2px solid ${i===0?'var(--cyan)':'transparent'};color:${i===0?'var(--cyan)':'var(--dim)'};cursor:pointer;white-space:nowrap;transition:.2s">${['OVERVIEW','BY MRD','BY PHASE','BY C-MARK','RECEPTIONS','COMMENT'][i]}</button>`).join('')}
+    </div>
+    <div id="pdt-c-overview">
+      <div class="g2">
+        <div>
+          <div class="flb">PART IDENTIFICATION</div>
+          <table class="dtl" style="width:100%">
+            <tr><td>PN (colored)</td><td class="mono" style="color:var(--cyan)">${p.pn}</td></tr>
+            <tr><td>PN (uncolored)</td><td class="mono">${p.pnu||'—'}</td></tr>
+            <tr><td>x-P PN</td><td class="mono">${p.xpPn||'—'}</td></tr>
+            <tr><td>Description</td><td style="font-size:12px">${p.desc||'—'}</td></tr>
+            <tr><td>Project</td><td><span class="bg ${p.proj==='L74'?'bg-ok':'bg-gold'}">${p.proj}</span></td></tr>
+            <tr><td>Area JIT</td><td>${p.area||'—'}</td></tr>
+            <tr><td>Mag</td><td class="mono">${p.mag||'—'}</td></tr>
+            <tr><td>DTS</td><td class="mono">${p.dts||'—'}</td></tr>
+            <tr><td>Darwin</td><td><span class="bg ${p.darwin==='DARWIN'?'bg-done':'bg-pend'}">${p.darwin||'—'}</span></td></tr>
+            <tr><td>Date Ajout</td><td class="mono">${p.dateAjout||'—'}</td></tr>
+          </table>
         </div>
-        ${p._gen?`<div class="flb">SAVED COMMENT</div><div class="comment-gen" style="font-size:9px">${p._gen}</div>`:''}
-        ${p._eta?`<div style="margin-top:8px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;font-size:10px;color:var(--dim)"><strong style="color:var(--text)">ETA:</strong> ${p._eta} &nbsp; <strong style="color:var(--text)">ETD:</strong> ${p._etd||'—'} &nbsp; <strong style="color:var(--text)">LR:</strong> ${p._lr||'—'}</div>`:''}
+        <div>
+          <div class="flb">SUPPLIER INFO</div>
+          <table class="dtl" style="width:100%;margin-bottom:12px">
+            <tr><td>Supplier</td><td style="font-weight:700">${p.supplier||'—'}</td></tr>
+            <tr><td>SAP Check</td><td style="font-size:11px;color:var(--dim)">${p.supplierSAP||'—'}</td></tr>
+            <tr><td>CORAIL Check</td><td style="font-size:11px;color:var(--dim)">${p.supplierCORAIL||'—'}</td></tr>
+            <tr><td>Pilote</td><td>${p.pilote||'—'}</td></tr>
+          </table>
+          <div class="flb">STATUS & PO</div>
+          <table class="dtl" style="width:100%">
+            <tr><td>Status CORAIL</td><td><span class="bg ${staCls[p.sta]||''}">${staLabel[p.sta]||p.sta||'—'}</span></td></tr>
+            <tr><td>Open PO</td><td class="mono" style="color:var(--cyan)">${p.opo||'—'}</td></tr>
+            <tr><td>PO (491/CPO)</td><td class="mono">${p.po||'—'}</td></tr>
+            <tr><td>RDA Ref</td><td class="mono">${p.rda||'—'}</td></tr>
+            <tr><td>Total Delivery</td><td class="mono" style="color:var(--green)">${(p.del||0).toLocaleString()}</td></tr>
+            <tr><td>To Order</td><td class="mono" style="color:var(--orange)">${p.toOrder||'—'}</td></tr>
+            <tr><td>Transferred</td><td><span class="bg ${p.tr==='Y'?'bg-done':'bg-pend'}">${p.tr||'—'}</span></td></tr>
+          </table>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        ${Object.entries(p.ph||{}).map(([ph,q])=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:10px 18px;text-align:center;flex:1;min-width:80px"><div style="font-family:Orbitron,sans-serif;font-size:24px;font-weight:900;color:${ph==='X0'?'var(--blue)':ph==='X1'?'var(--cyan)':'var(--gold)'}">${q}</div><div style="font-size:10px;color:var(--dim);letter-spacing:2px">${ph}</div></div>`).join('')}
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn b-g b-sm" onclick="closeMo('mo-part');openCmtModal('${pn}')">✎ Edit Comment</button>
+        <button class="btn b-p b-sm" onclick="closeMo('mo-part');openSendForSup('${esc(p.supplier||'')}')">✈ Send Needs</button>
+        <button class="btn b-s b-sm" onclick="closeMo('mo-part');openPOFor('${pn}','${esc(p.supplier||'')}')">+ Create PO</button>
+        <button class="btn b-sm" style="background:rgba(0,255,136,0.1);border-color:var(--green);color:var(--green)" onclick="pdTab('reception','${pn}')">📦 Receptions</button>
       </div>
     </div>
-    ${crHtml}
-    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn b-g b-sm" onclick="closeMo('mo-part');openCmtModal('${pn}')">✎ Edit Comment</button>
-      <button class="btn b-p b-sm" onclick="closeMo('mo-part');openSendForSup('${esc(p.supplier||'')}')">✈ Send Needs</button>
-      <button class="btn b-s b-sm" onclick="closeMo('mo-part');openPOFor('${pn}','${esc(p.supplier||'')}')">+ Create PO</button>
-    </div>`;
+    <div id="pdt-c-needs-mrd" style="display:none">${mrdHtml}</div>
+    <div id="pdt-c-needs-phase" style="display:none">${phHtml}</div>
+    <div id="pdt-c-needs-cr" style="display:none">${crHtml}</div>
+    <div id="pdt-c-reception" style="display:none">${recHtml}</div>
+    <div id="pdt-c-comment" style="display:none">${commentHtml}</div>
+  `;
   openMo('mo-part');
 }
+
+function pdTab(t, pn) {
+  ['overview','needs-mrd','needs-phase','needs-cr','reception','comment'].forEach(id => {
+    const btn = document.getElementById(`pdt-${id}`);
+    const cnt = document.getElementById(`pdt-c-${id}`);
+    const active = id === t;
+    if (btn) { btn.style.background = active?'rgba(0,200,255,0.12)':'transparent'; btn.style.borderBottom = active?'2px solid var(--cyan)':'2px solid transparent'; btn.style.color = active?'var(--cyan)':'var(--dim)'; }
+    if (cnt) cnt.style.display = active ? '' : 'none';
+  });
+}
+
+function openAddReception(pn) {
+  const p = ALL_PARTS.find(x => x.pn === pn); if (!p) return;
+  document.getElementById('rec-pn-label').textContent = pn;
+  document.getElementById('rec-pn-desc').textContent = p.desc || '';
+  document.getElementById('rec-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('rec-qty').value = '';
+  document.getElementById('rec-dn').value = '';
+  document.getElementById('rec-po').value = p.po || p.opo || '';
+  document.getElementById('rec-cr').value = Object.keys(p.cr||{})[0] || '';
+  document.getElementById('rec-phase').value = Object.keys(p.ph||{})[0] || 'X0';
+  document.getElementById('rec-comment').value = '';
+  document.getElementById('rec-pn-hidden').value = pn;
+  openMo('mo-reception');
+}
+
+function saveReception() {
+  const pn = document.getElementById('rec-pn-hidden').value;
+  const qty = parseInt(document.getElementById('rec-qty').value) || 0;
+  if (!qty) { showToast('⚠ Enter a valid quantity','error'); return; }
+  if (!receptionHistory[pn]) receptionHistory[pn] = [];
+  receptionHistory[pn].unshift({
+    date: document.getElementById('rec-date').value,
+    qty,
+    dn: document.getElementById('rec-dn').value || '—',
+    po: document.getElementById('rec-po').value || '—',
+    phase: document.getElementById('rec-phase').value,
+    cr: document.getElementById('rec-cr').value || '—',
+    comment: document.getElementById('rec-comment').value,
+    addedBy: CU ? CU.name : 'Unknown'
+  });
+  closeMo('mo-reception');
+  showToast(`✓ Reception of Q${qty} recorded for PN ${pn}`);
+  // Refresh part detail on reception tab
+  openPartDetail(pn);
+  pdTab('reception', pn);
+}
+
 function openPOFor(pn,sup){ document.getElementById('po-pn').value=pn; document.getElementById('po-sup').value=sup; openMo('mo-create-po'); }
 function openSendForSup(sup){ sp('send',null); setTimeout(()=>{ const el=document.getElementById('sendSup'); if(el){el.value=sup;buildEmail();} },50); }
 
@@ -2142,23 +2303,156 @@ function adminAddNeed(){
 }
 function handleDrop(e,type){ e.preventDefault(); document.querySelectorAll('.uz').forEach(u=>u.classList.remove('dg')); const file=e.dataTransfer.files[0]; if(file) processFile(file,type); }
 function handleUpload(e,type){ const file=e.target.files[0]; if(file) processFile(file,type); }
-function processFile(file,type){
-  if(!IS_ADMIN){ showToast('⚠ Admin access required','error'); return; }
-  const statusEl=document.getElementById(`up-${type}-status`);
-  statusEl.innerHTML=`⟳ Processing <strong>${file.name}</strong>...`;
-  const reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      if(file.name.endsWith('.zip')){ statusEl.innerHTML=`✓ <strong>${file.name}</strong> received — ZIP format detected. Requires server-side processing.`; addLog(`ZIP uploaded: ${file.name}`); showToast(`✓ ${file.name} uploaded`); return; }
-      const wb=XLSX.read(e.target.result,{type:'binary'});
-      let rows=0; wb.SheetNames.forEach(s=>{const ws=wb.Sheets[s];const d=XLSX.utils.sheet_to_json(ws,{header:1});rows+=d.length;});
-      statusEl.innerHTML=`✓ <strong>${file.name}</strong> — ${wb.SheetNames.length} sheets, ~${rows} rows. Sheets: ${wb.SheetNames.join(', ')}.`;
-      addLog(`Uploaded: ${file.name} (${wb.SheetNames.length} sheets, ~${rows} rows)`);
-      showToast(`✓ ${file.name} uploaded — ${rows} rows`);
-    }catch(err){ statusEl.innerHTML=`⚠ Error: ${err.message}`; }
+function processFile(file, type) {
+  if (!IS_ADMIN) { showToast('⚠ Admin access required', 'error'); return; }
+  const statusEl = document.getElementById(`up-${type}-status`);
+  statusEl.innerHTML = `⟳ Processing <strong>${file.name}</strong>...`;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      if (file.name.endsWith('.zip')) {
+        statusEl.innerHTML = `⚠ ZIP format — please extract and upload the .xlsx file directly.`;
+        addLog(`ZIP uploaded: ${file.name} — needs extraction`);
+        showToast('⚠ Please upload the .xlsx file directly (not ZIP)', 'error');
+        return;
+      }
+      const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
+
+      if (type === 'ord') {
+        parseOrderingFile(wb, file.name, statusEl);
+      } else if (type === 'pu') {
+        parsePickupFile(wb, file.name, statusEl);
+      } else {
+        let rows = 0;
+        wb.SheetNames.forEach(s => { const d = XLSX.utils.sheet_to_json(wb.Sheets[s], { header: 1 }); rows += d.length; });
+        statusEl.innerHTML = `✓ <strong>${file.name}</strong> — ${wb.SheetNames.length} sheets, ~${rows} rows.`;
+        addLog(`Uploaded: ${file.name}`);
+        showToast(`✓ ${file.name} uploaded`);
+      }
+    } catch (err) {
+      statusEl.innerHTML = `⚠ Error: ${err.message}`;
+      console.error(err);
+    }
   };
-  if(file.name.endsWith('.zip')) reader.readAsArrayBuffer(file);
-  else reader.readAsBinaryString(file);
+  reader.readAsBinaryString(file);
+}
+
+function parseOrderingFile(wb, fileName, statusEl) {
+  // The Ordering file has sheet "Ordering file" with:
+  // Row 9 (index 8) = headers
+  // Data starts row 10 (index 9)
+  // Key columns (0-indexed): 1=D74/L74, 3=PN, 4=PN_uncolored, 5=xP_PN, 6=Desc, 7=Colorato,
+  // 8=Area, 9=Supplier, 10=SupplierSAP, 11=SupplierCORAIL, 12=Mag, 13=PO, 14=OpenPO,
+  // 17=Darwin, 28=StatusCorail, 29=DTS, 30=Transferred, 31=TotalDelivery,
+  // 179=CatX1, 180=ShortComment, 181=KeyWord, 182=ApproComment,
+  // 196=ToOrder, 197=Plaque, 198=ETA, 200=ETD, 201=LastReminder, 203=DateAjout, 205=Pilote
+  const sheetName = wb.SheetNames.find(s => s.toLowerCase().includes('ordering')) || wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: false });
+
+  if (raw.length < 10) { statusEl.innerHTML = '⚠ File format not recognized — need at least 10 rows'; return; }
+
+  // Find header row (row 9 = index 8 based on our analysis)
+  const HEADER_ROW = 8;
+  const DATA_START = 9;
+
+  const COL = {
+    PROJ: 1, PN: 3, PNU: 4, XP_PN: 5, DESC: 6, COL_FLAG: 7,
+    AREA: 8, SUPPLIER: 9, SUPPLIER_SAP: 10, SUPPLIER_CORAIL: 11, MAG: 12,
+    PO: 13, OPO: 14, DARWIN: 17, STATUS_CORAIL: 28, DTS: 29,
+    TRANSFERRED: 30, TOTAL_DEL: 31, CAT_X1: 179, SHORT_CMT: 180,
+    KEYWORD: 181, APPRO_CMT: 182, TO_ORDER: 196, PLAQUE: 197,
+    ETA: 198, ETD: 200, LAST_REMINDER: 201, DATE_AJOUT: 203, PILOTE: 205
+  };
+
+  let updated = 0, added = 0, skipped = 0;
+
+  for (let i = DATA_START; i < raw.length; i++) {
+    const row = raw[i];
+    if (!row) continue;
+    const pnRaw = row[COL.PN];
+    if (!pnRaw || pnRaw === '#N/A') { skipped++; continue; }
+    const pn = String(pnRaw).trim();
+    if (!pn || pn.length < 5) { skipped++; continue; }
+
+    const fmtDate = v => {
+      if (!v) return '';
+      if (v instanceof Date) return v.toISOString().split('T')[0];
+      const s = String(v);
+      if (s.match(/^\d{4}-\d{2}-\d{2}/)) return s.split('T')[0];
+      return s;
+    };
+
+    const partData = {
+      pn,
+      pnu: row[COL.PNU] ? String(row[COL.PNU]).trim() : pn,
+      xpPn: row[COL.XP_PN] ? String(row[COL.XP_PN]).trim() : pn,
+      desc: row[COL.DESC] ? String(row[COL.DESC]).trim() : '',
+      proj: row[COL.PROJ] ? String(row[COL.PROJ]).trim() : 'L74',
+      plant: row[COL.PROJ] ? String(row[COL.PROJ]).trim() : 'L74',
+      col: row[COL.COL_FLAG] ? String(row[COL.COL_FLAG]).trim() : 'N',
+      area: row[COL.AREA] ? String(row[COL.AREA]).trim() : '',
+      supplier: row[COL.SUPPLIER] ? String(row[COL.SUPPLIER]).trim() : '',
+      supplierSAP: row[COL.SUPPLIER_SAP] ? String(row[COL.SUPPLIER_SAP]).trim() : '',
+      supplierCORAIL: row[COL.SUPPLIER_CORAIL] ? String(row[COL.SUPPLIER_CORAIL]).trim() : '',
+      mag: row[COL.MAG] ? String(row[COL.MAG]).trim() : '',
+      po: row[COL.PO] ? String(row[COL.PO]).trim() : '',
+      opo: row[COL.OPO] ? String(row[COL.OPO]).trim() : '',
+      darwin: row[COL.DARWIN] ? String(row[COL.DARWIN]).trim() : '',
+      sta: row[COL.STATUS_CORAIL] ? String(row[COL.STATUS_CORAIL]).trim() : '',
+      dts: fmtDate(row[COL.DTS]),
+      tr: row[COL.TRANSFERRED] ? String(row[COL.TRANSFERRED]).trim() : 'N',
+      del: parseFloat(row[COL.TOTAL_DEL]) || 0,
+      shortComment: row[COL.SHORT_CMT] ? String(row[COL.SHORT_CMT]).trim() : '',
+      keyWord: row[COL.KEYWORD] ? String(row[COL.KEYWORD]).trim() : '',
+      appComment: row[COL.APPRO_CMT] ? String(row[COL.APPRO_CMT]).trim() : '',
+      toOrder: row[COL.TO_ORDER] ? String(row[COL.TO_ORDER]).trim() : '',
+      plaque: row[COL.PLAQUE] ? String(row[COL.PLAQUE]).trim() : '',
+      eta: fmtDate(row[COL.ETA]),
+      etd: fmtDate(row[COL.ETD]),
+      lastReminder: row[COL.LAST_REMINDER] ? String(row[COL.LAST_REMINDER]).trim() : '',
+      dateAjout: fmtDate(row[COL.DATE_AJOUT]),
+      pilote: row[COL.PILOTE] ? String(row[COL.PILOTE]).trim() : '',
+      cr: {}, mrd: {}, ph: {}
+    };
+
+    // Find existing part
+    const existIdx = ALL_PARTS.findIndex(x => x.pn === pn);
+    if (existIdx >= 0) {
+      // Update fields that come from the ordering file (preserve cr/mrd/ph)
+      const existing = ALL_PARTS[existIdx];
+      Object.assign(existing, { ...partData, cr: existing.cr, mrd: existing.mrd, ph: existing.ph });
+      updated++;
+    } else {
+      ALL_PARTS.push(partData);
+      added++;
+    }
+  }
+
+  // Refresh display
+  populateFilters();
+  populateSelects();
+  updateDashKPIs();
+  renderNeeds();
+  addLog(`Ordering file parsed: ${added} added, ${updated} updated, ${skipped} skipped — ${fileName}`);
+  statusEl.innerHTML = `✅ <strong>${fileName}</strong> parsed successfully!<br>
+    <span style="color:var(--green)">✓ ${updated} parts updated</span> &nbsp;
+    <span style="color:var(--cyan)">+ ${added} new parts added</span> &nbsp;
+    <span style="color:var(--dim)">${skipped} rows skipped</span><br>
+    <span style="font-size:10px;color:var(--dim)">Total in system: ${ALL_PARTS.length} parts</span>`;
+  showToast(`✓ Ordering file: ${updated} updated, ${added} added`);
+}
+
+function parsePickupFile(wb, fileName, statusEl) {
+  let totalRows = 0;
+  wb.SheetNames.forEach(s => {
+    const ws = wb.Sheets[s];
+    const d = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    totalRows += d.length;
+  });
+  statusEl.innerHTML = `✓ <strong>${fileName}</strong> — ${wb.SheetNames.length} sheets, ~${totalRows} rows. Sheets: ${wb.SheetNames.join(', ')}.`;
+  addLog(`Pick-up file uploaded: ${fileName}`);
+  showToast(`✓ ${fileName} uploaded`);
 }
 function saveGlobalComment(type){ const val=document.getElementById(`${type}-gl`)?.value; showToast(`✓ ${type.toUpperCase()} comment saved`); addLog(`${type.toUpperCase()} global comment updated`); }
 
@@ -2169,16 +2463,25 @@ function searchEditPart(){
   const p=ALL_PARTS.find(x=>x.pn===pn||x.pn.startsWith(pn));
   if(!p){ res.innerHTML='<div class="al al-e">PN not found in current dataset</div>'; return; }
   res.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:14px">
-    <div style="font-weight:700;margin-bottom:10px;font-size:12px">PN ${p.pn} — ${p.desc||'—'}</div>
-    <div class="form-row"><div class="form-group"><label>Description</label><input id="ep-desc" value="${p.desc||''}"></div><div class="form-group"><label>Supplier</label><input id="ep-sup" value="${p.supplier||''}"></div></div>
-    <div class="form-row"><div class="form-group"><label>Open PO</label><input id="ep-opo" value="${p.opo||''}"></div><div class="form-group"><label>Status (Corail)</label><input id="ep-sta" value="${p.sta||''}"></div></div>
-    <div class="form-group"><label>Comment SA</label><input id="ep-csa" value="${p.csa||''}"></div>
+    <div style="font-weight:700;margin-bottom:10px;font-size:12px;color:var(--cyan)">PN ${p.pn} — ${p.desc||'—'}</div>
+    <div class="form-row"><div class="form-group"><label>Description</label><input id="ep-desc" value="${esc(p.desc||'')}"></div><div class="form-group"><label>Supplier</label><input id="ep-sup" value="${esc(p.supplier||'')}"></div></div>
+    <div class="form-row"><div class="form-group"><label>Supplier SAP</label><input id="ep-supsap" value="${esc(p.supplierSAP||'')}"></div><div class="form-group"><label>Supplier CORAIL</label><input id="ep-supcorail" value="${esc(p.supplierCORAIL||'')}"></div></div>
+    <div class="form-row"><div class="form-group"><label>Open PO</label><input id="ep-opo" value="${esc(p.opo||'')}"></div><div class="form-group"><label>Status Corail</label><select id="ep-sta"><option value="">—</option><option value="E" ${p.sta==='E'?'selected':''}>E — En commande</option><option value="O" ${p.sta==='O'?'selected':''}>O — Ouvert</option><option value="U" ${p.sta==='U'?'selected':''}>U — Urgent</option><option value="C" ${p.sta==='C'?'selected':''}>C — Clôturé</option></select></div></div>
+    <div class="form-row"><div class="form-group"><label>Mag</label><input id="ep-mag" value="${esc(p.mag||'')}"></div><div class="form-group"><label>DTS</label><input id="ep-dts" value="${esc(p.dts||'')}"></div><div class="form-group"><label>Darwin</label><select id="ep-darwin"><option value="DARWIN" ${p.darwin==='DARWIN'?'selected':''}>DARWIN</option><option value="NO DARWIN" ${p.darwin==='NO DARWIN'?'selected':''}>NO DARWIN</option></select></div></div>
+    <div class="form-row"><div class="form-group"><label>Pilote</label><input id="ep-pilote" value="${esc(p.pilote||'')}"></div><div class="form-group"><label>Short Comment</label><input id="ep-shortcmt" value="${esc(p.shortComment||'')}"></div></div>
+    <div class="form-row"><div class="form-group"><label>Key Word</label><select id="ep-kw">${['','CONFIRMED','CONFIRMED LATE','ETA CONFIRMED','ETA CONFIRMED LATE','RECEIVED','FALSE MISSING','PARTS IN LINE','WAITING DELIVERY DATE','PROBLEM','LATE NEEDS','APPRO/No Communication','APPRO/In Progress','ESCALATION','MONITORING','CONFIRMED PROJECT','EXTRA COST','CLOSED ORDER','PARTIAL','DEPANNAGE','RECEIPT ANOMALY','PROJECT MONITORING','PREPA MODIFICATION'].map(k=>`<option value="${k}" ${p.keyWord===k?'selected':''}>${k||'— Select —'}</option>`).join('')}</select></div><div class="form-group"><label>ETA</label><input id="ep-eta" type="date" value="${p.eta||''}"></div><div class="form-group"><label>ETD</label><input id="ep-etd" type="date" value="${p.etd||''}"></div></div>
+    <div class="form-group"><label>Appro Comment (ALEAD Standard)</label><textarea id="ep-appcmt" rows="3" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:2px;color:var(--text);padding:8px;font-family:'Share Tech Mono',monospace;font-size:11px">${esc(p.appComment||'')}</textarea></div>
+    <div class="form-group"><label>To Order</label><input id="ep-toorder" value="${esc(p.toOrder||'')}"></div>
     <button class="btn b-s b-sm" onclick="saveEditPart('${p.pn}')">💾 Save Changes</button>
+    <button class="btn b-sm" style="background:rgba(0,200,255,0.1);border-color:var(--cyan);color:var(--cyan)" onclick="openPartDetail('${p.pn}')">👁 View Detail</button>
   </div>`;
 }
 function saveEditPart(pn){
   const p=ALL_PARTS.find(x=>x.pn===pn); if(!p) return;
-  p.desc=gv('ep-desc'); p.supplier=gv('ep-sup'); p.opo=gv('ep-opo'); p.sta=gv('ep-sta'); p.csa=gv('ep-csa');
+  p.desc=gv('ep-desc'); p.supplier=gv('ep-sup'); p.supplierSAP=gv('ep-supsap'); p.supplierCORAIL=gv('ep-supcorail');
+  p.opo=gv('ep-opo'); p.sta=gv('ep-sta'); p.mag=gv('ep-mag'); p.dts=gv('ep-dts'); p.darwin=gv('ep-darwin');
+  p.pilote=gv('ep-pilote'); p.shortComment=gv('ep-shortcmt'); p.keyWord=gv('ep-kw');
+  p.eta=gv('ep-eta'); p.etd=gv('ep-etd'); p.appComment=gv('ep-appcmt'); p.toOrder=gv('ep-toorder');
   showToast('✓ Part updated!'); renderNeeds();
 }
 
