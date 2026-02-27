@@ -1157,6 +1157,44 @@ const phases = ['X0','X1','X2'];
 const counterMarks_L74 = ['KR036','KR048','KR174','KR038','KR049','KR175','KR172','KR041','KR053','KR158'];
 const counterMarks_D74 = ['KK062','KK067','KK213','KK233','KK063','KK069','KK065','KK064'];
 
+// Full CR metadata from Needs.xlsx (phase, mrd, plant)
+const CR_META_FULL = {
+  'KR001':{'phase':'X0','mrd':'MRD43','plant':'L74'},'KR156':{'phase':'X0','mrd':'MRD43','plant':'L74'},'KR002':{'phase':'X0','mrd':'MRD43','plant':'L74'},'KR004':{'phase':'X0','mrd':'MRD44','plant':'L74'},'KR016':{'phase':'X0','mrd':'MRD44','plant':'L74'},'KR007':{'phase':'X0','mrd':'MRD44','plant':'L74'},'KR003':{'phase':'X0','mrd':'MRD43','plant':'L74'},'KR015':{'phase':'X0','mrd':'MRD44','plant':'L74'},'KR142':{'phase':'X0','mrd':'MRD45','plant':'L74'},'KR018':{'phase':'X0','mrd':'MRD45','plant':'L74'},'KR143':{'phase':'X0','mrd':'MRD45','plant':'L74'},'KR151':{'phase':'X0','mrd':'MRD45','plant':'L74'},'KR010':{'phase':'X0','mrd':'MRD45','plant':'L74'},'KR012':{'phase':'X0','mrd':'MRD45','plant':'L74'},'KR017':{'phase':'X0','mrd':'MRD45','plant':'L74'},'KR144':{'phase':'X0','mrd':'MRD46','plant':'L74'},'KR152':{'phase':'X0','mrd':'MRD46','plant':'L74'},'KR008':{'phase':'X0','mrd':'MRD46','plant':'L74'},'KR009':{'phase':'X0','mrd':'MRD46','plant':'L74'},'KR145':{'phase':'X0','mrd':'MRD46','plant':'L74'},'KR014':{'phase':'X0','mrd':'MRD46','plant':'L74'},'KR013':{'phase':'X0','mrd':'MRD46','plant':'L74'},'KR019':{'phase':'X0','mrd':'MRD46','plant':'L74'},'KR146':{'phase':'X0','mrd':'MRD46','plant':'L74'},'KR005':{'phase':'X0','mrd':'MRD46','plant':'L74'},
+  'KR149':{'phase':'X0','mrd':'MRD47','plant':'L74'},'KR028':{'phase':'X0','mrd':'MRD47','plant':'L74'},'KR157':{'phase':'X0','mrd':'MRD47','plant':'L74'},'KR024':{'phase':'X0','mrd':'MRD47','plant':'L74'},'KR025':{'phase':'X0','mrd':'MRD47','plant':'L74'},'KR021':{'phase':'X0','mrd':'MRD47','plant':'L74'},'KR147':{'phase':'X0','mrd':'MRD47','plant':'L74'},'KR148':{'phase':'X0','mrd':'MRD47','plant':'L74'},'KR020':{'phase':'X0','mrd':'MRD47','plant':'L74'},'KR155':{'phase':'X0','mrd':'MRD47','plant':'L74'},'KR022':{'phase':'X0','mrd':'MRD47','plant':'L74'},
+  'KR023':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR031':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR153':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR032':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR164':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR162':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR030':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR006':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR011':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR166':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR033':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR029':{'phase':'X0','mrd':'MRD48','plant':'L74'},'KR034':{'phase':'X0','mrd':'MRD48','plant':'L74'},
+  'KR036':{'phase':'X1','mrd':'MRD49','plant':'L74'},'KR048':{'phase':'X1','mrd':'MRD49','plant':'L74'},'KR174':{'phase':'X1','mrd':'MRD49','plant':'L74'},'KR038':{'phase':'X1','mrd':'MRD49','plant':'L74'},'KR049':{'phase':'X1','mrd':'MRD49','plant':'L74'},'KR175':{'phase':'X1','mrd':'MRD49','plant':'L74'},'KR172':{'phase':'X1','mrd':'MRD49','plant':'L74'},
+  'KR159':{'phase':'X1','mrd':'MRD50','plant':'L74'},'KR173':{'phase':'X1','mrd':'MRD50','plant':'L74'},'KR161':{'phase':'X1','mrd':'MRD50','plant':'L74'},'KR050':{'phase':'X1','mrd':'MRD50','plant':'L74'},'KR046':{'phase':'X1','mrd':'MRD50','plant':'L74'},'KR047':{'phase':'X1','mrd':'MRD50','plant':'L74'},
+  'KR041':{'phase':'X1','mrd':'MRD50','plant':'L74'},'KR053':{'phase':'X1','mrd':'MRD50','plant':'L74'},'KR158':{'phase':'X1','mrd':'MRD50','plant':'L74'},'KR037':{'phase':'X1','mrd':'MRD50','plant':'L74'},'KR160':{'phase':'X1','mrd':'MRD50','plant':'L74'},
+  'KR052':{'phase':'X1','mrd':'MRD52','plant':'L74'},'KR171':{'phase':'X1','mrd':'MRD52','plant':'L74'},'KR163':{'phase':'X1','mrd':'MRD52','plant':'L74'},'KR165':{'phase':'X1','mrd':'MRD52','plant':'L74'},
+  'KR042':{'phase':'X1','mrd':'MRD53','plant':'L74'},'KR039':{'phase':'X1','mrd':'MRD53','plant':'L74'},'KR043':{'phase':'X1','mrd':'MRD53','plant':'L74'},'KR167':{'phase':'X1','mrd':'MRD53','plant':'L74'},'KR169':{'phase':'X1','mrd':'MRD53','plant':'L74'},
+  'KR044':{'phase':'X1','mrd':'MRD53','plant':'L74'},'KR051':{'phase':'X1','mrd':'MRD53','plant':'L74'},'KR045':{'phase':'X1','mrd':'MRD53','plant':'L74'},
+  'KR056':{'phase':'X1','mrd':'MRD54','plant':'L74'},'KR057':{'phase':'X1','mrd':'MRD54','plant':'L74'},'KR058':{'phase':'X1','mrd':'MRD54','plant':'L74'},'KR060':{'phase':'X1','mrd':'MRD54','plant':'L74'},'KR061':{'phase':'X1','mrd':'MRD54','plant':'L74'},'KR062':{'phase':'X1','mrd':'MRD54','plant':'L74'},'KR059':{'phase':'X1','mrd':'MRD54','plant':'L74'},
+  'KR219':{'phase':'X2','mrd':'MRD57','plant':'L74'},'KR226':{'phase':'X2','mrd':'MRD57','plant':'L74'},'KR203':{'phase':'X2','mrd':'MRD57','plant':'L74'},'KR223':{'phase':'X2','mrd':'MRD57','plant':'L74'},'KR221':{'phase':'X2','mrd':'MRD57','plant':'L74'},'KR229':{'phase':'X2','mrd':'MRD57','plant':'L74'},'KR218':{'phase':'X2','mrd':'MRD57','plant':'L74'},'KR232':{'phase':'X2','mrd':'MRD57','plant':'L74'},
+  'KR204':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR205':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR206':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR207':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR200':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR201':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR214':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR215':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR202':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR208':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR231':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR233':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR209':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR210':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR211':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR216':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR227':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR228':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR234':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR217':{'phase':'X2','mrd':'MRD58','plant':'L74'},'KR235':{'phase':'X2','mrd':'MRD58','plant':'L74'},
+  'KR212':{'phase':'X2','mrd':'MRD59','plant':'L74'},'KR230':{'phase':'X2','mrd':'MRD59','plant':'L74'},'KR213':{'phase':'X2','mrd':'MRD59','plant':'L74'},'KR220':{'phase':'X2','mrd':'MRD59','plant':'L74'},'KR222':{'phase':'X2','mrd':'MRD59','plant':'L74'},'KR224':{'phase':'X2','mrd':'MRD59','plant':'L74'},'KR225':{'phase':'X2','mrd':'MRD59','plant':'L74'},
+  // D74 KK counter marks
+  'KK237':{'phase':'X0','mrd':'MRD43','plant':'D74'},'KK062':{'phase':'X0','mrd':'MRD43','plant':'D74'},'KK238':{'phase':'X0','mrd':'MRD45','plant':'D74'},'KK067':{'phase':'X0','mrd':'MRD45','plant':'D74'},'KK213':{'phase':'X0','mrd':'MRD45','plant':'D74'},'KK233':{'phase':'X0','mrd':'MRD45','plant':'D74'},
+  'KK063':{'phase':'X1','mrd':'MRD46','plant':'D74'},'KK069':{'phase':'X1','mrd':'MRD46','plant':'D74'},'KK065':{'phase':'X1','mrd':'MRD46','plant':'D74'},'KK064':{'phase':'X1','mrd':'MRD46','plant':'D74'},'KK061':{'phase':'X1','mrd':'MRD46','plant':'D74'},'KK208':{'phase':'X1','mrd':'MRD46','plant':'D74'},'KK073':{'phase':'X1','mrd':'MRD46','plant':'D74'},
+  'KK066':{'phase':'X1','mrd':'MRD47','plant':'D74'},'KK070':{'phase':'X1','mrd':'MRD47','plant':'D74'},'KK072':{'phase':'X1','mrd':'MRD47','plant':'D74'},'KK068':{'phase':'X1','mrd':'MRD47','plant':'D74'},'KK071':{'phase':'X1','mrd':'MRD47','plant':'D74'},'KK207':{'phase':'X1','mrd':'MRD47','plant':'D74'},'KK209':{'phase':'X1','mrd':'MRD47','plant':'D74'},'KK210':{'phase':'X1','mrd':'MRD47','plant':'D74'},'KK236':{'phase':'X1','mrd':'MRD47','plant':'D74'},
+  'KK078':{'phase':'X1','mrd':'MRD48','plant':'D74'},'KK201':{'phase':'X1','mrd':'MRD48','plant':'D74'},'KK205':{'phase':'X1','mrd':'MRD48','plant':'D74'},'KK074':{'phase':'X1','mrd':'MRD48','plant':'D74'},'KK075':{'phase':'X1','mrd':'MRD48','plant':'D74'},'KK076':{'phase':'X1','mrd':'MRD48','plant':'D74'},'KK077':{'phase':'X1','mrd':'MRD48','plant':'D74'},'KK204':{'phase':'X1','mrd':'MRD48','plant':'D74'},'KK206':{'phase':'X1','mrd':'MRD48','plant':'D74'},
+  'KK203':{'phase':'X1','mrd':'MRD49','plant':'D74'},'KK239':{'phase':'X1','mrd':'MRD49','plant':'D74'},'KK211':{'phase':'X1','mrd':'MRD49','plant':'D74'},'KK212':{'phase':'X1','mrd':'MRD49','plant':'D74'},'KK079':{'phase':'X1','mrd':'MRD49','plant':'D74'},'KK220':{'phase':'X1','mrd':'MRD49','plant':'D74'},
+  'KK221':{'phase':'X1','mrd':'MRD50','plant':'D74'},'KK232':{'phase':'X1','mrd':'MRD50','plant':'D74'},'KK240':{'phase':'X1','mrd':'MRD50','plant':'D74'},'KK202':{'phase':'X1','mrd':'MRD50','plant':'D74'},'KK234':{'phase':'X1','mrd':'MRD50','plant':'D74'},
+  'KK214':{'phase':'X1','mrd':'MRD52','plant':'D74'},'KK218':{'phase':'X1','mrd':'MRD52','plant':'D74'},'KK222':{'phase':'X1','mrd':'MRD52','plant':'D74'},'KK231':{'phase':'X1','mrd':'MRD52','plant':'D74'},'KK241':{'phase':'X1','mrd':'MRD52','plant':'D74'},
+  'KK315':{'phase':'X2','mrd':'MRD53','plant':'D74'},'KK091':{'phase':'X2','mrd':'MRD53','plant':'D74'},'KK300':{'phase':'X2','mrd':'MRD53','plant':'D74'},'KK092':{'phase':'X2','mrd':'MRD53','plant':'D74'},'KK301':{'phase':'X2','mrd':'MRD53','plant':'D74'},
+  'KK302':{'phase':'X2','mrd':'MRD54','plant':'D74'},'KK303':{'phase':'X2','mrd':'MRD54','plant':'D74'},'KK093':{'phase':'X2','mrd':'MRD54','plant':'D74'},'KK304':{'phase':'X2','mrd':'MRD54','plant':'D74'},'KK096':{'phase':'X2','mrd':'MRD54','plant':'D74'},
+  'KK305':{'phase':'X2','mrd':'MRD57','plant':'D74'},'KK306':{'phase':'X2','mrd':'MRD57','plant':'D74'},'KK307':{'phase':'X2','mrd':'MRD57','plant':'D74'},'KK099':{'phase':'X2','mrd':'MRD57','plant':'D74'},'KK097':{'phase':'X2','mrd':'MRD57','plant':'D74'},
+  'KK309':{'phase':'X2','mrd':'MRD58','plant':'D74'},'KK310':{'phase':'X2','mrd':'MRD58','plant':'D74'},'KK311':{'phase':'X2','mrd':'MRD58','plant':'D74'},'KK102':{'phase':'X2','mrd':'MRD58','plant':'D74'},'KK105':{'phase':'X2','mrd':'MRD58','plant':'D74'},
+  'KK312':{'phase':'X2','mrd':'MRD59','plant':'D74'},'KK313':{'phase':'X2','mrd':'MRD59','plant':'D74'},'KK314':{'phase':'X2','mrd':'MRD59','plant':'D74'},
+  'KK112':{'phase':'X2','mrd':'MRD59','plant':'D74'},'KK113':{'phase':'X2','mrd':'MRD59','plant':'D74'},'KK114':{'phase':'X2','mrd':'MRD59','plant':'D74'},'KK115':{'phase':'X2','mrd':'MRD59','plant':'D74'},
+};
+
+// Week besoin structure (L74 and D74 by week)
+const WEEK_BESOINS_L74 = [
+  {week:'S30',phase:'X0',mrd:null},{week:'S35',phase:'X0',mrd:'MRD43'},{week:'2025_S36',phase:'X0',mrd:'MRD43'},{week:'2025_S38',phase:'X0',mrd:'MRD45'},{week:'2025_S39',phase:'X0',mrd:'MRD45'},{week:'2025_S40',phase:'X0',mrd:'MRD45'},{week:'2025_S41',phase:'X0',mrd:'MRD46'},{week:'2025_S42',phase:'X0',mrd:'MRD46'},{week:'2025_S43',phase:'X0',mrd:'MRD46'},{week:'2025_S44',phase:'X0',mrd:'MRD47'},{week:'2025_S45',phase:'X0',mrd:'MRD47'},{week:'2025_S46',phase:'X0',mrd:'MRD48'},{week:'2025_S47',phase:'X0',mrd:'MRD48'},
+  {week:'2025_S48',phase:'X1',mrd:'MRD49'},{week:'2025_S49',phase:'X1',mrd:'MRD49'},{week:'2025_S50',phase:'X1',mrd:'MRD50'},{week:'2025_S51',phase:'X1',mrd:'MRD50'},{week:'2026_S02',phase:'X1',mrd:'MRD52'},{week:'2026_S03',phase:'X1',mrd:'MRD52'},{week:'2026_S04',phase:'X1',mrd:'MRD53'},{week:'2026_S05',phase:'X1',mrd:'MRD54'},
+  {week:'2026_S13',phase:'X2',mrd:'MRD57'},{week:'2026_S14',phase:'X2',mrd:'MRD58'},{week:'2026_S15',phase:'X2',mrd:'MRD58'},{week:'2026_S16',phase:'X2',mrd:'MRD59'}
+];
+
 const ALL_PARTS = [
   { pn:'9875614880', pnu:'9875614880', xpPn:'9875614880', desc:'AMORTISSEUR DIRECTION AV G', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-001', status:'Active', opo:'VR13508152', sta:'E', csa:'Monitor delivery', mag:'0780', dts:'2025-09-02', tr:'Y', col:'N', qpo:45, del:450, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', pilote:'Fatima Z. Moustaghfir', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q45 / PD 15.03 / DN 458963 / LR 14.03 : Parts ready at supplier', pplComment:'Annual contract in place - KYB confirmed delivery', saComment:'OK - received on time', supplierCheckName:'KYB ADVANCED MFG SPAIN SA', totalReceived:450, ecartMag:0, dateAjout:'2025-11-05', cr:{'KK062':45,'KK067':18}, mrd:{'2026_S03':63}, ph:{X0:63} },
   { pn:'9875615180', pnu:'9875615180', xpPn:'9875615180', desc:'AMORTISSEUR DIRECTION AV D', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-002', status:'Active', opo:'VR13508152', sta:'E', csa:'', mag:'0780', dts:'2025-09-02', tr:'Y', col:'N', del:180, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', pilote:'Fatima Z. Moustaghfir', shortComment:'WAITING DELIVERY DATE', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q18 / LR 20.02 : Waiting supplier feedback', pplComment:'Standard', saComment:'OK', supplierCheckName:'KYB ADVANCED MFG SPAIN SA', totalReceived:180, ecartMag:0, dateAjout:'2025-11-05', cr:{'KK062':18}, mrd:{'2026_S03':18}, ph:{X0:18} },
@@ -1164,10 +1202,44 @@ const ALL_PARTS = [
   { pn:'9875615780', pnu:'9875615780', xpPn:'9875615780', desc:'AMORTISSEUR DIRECTION AR D', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-004', status:'Pending', opo:'', sta:'', csa:'Confirm packaging dimensions', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', del:970, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'18.02', pilote:'Fatima Z. Moustaghfir', shortComment:'APPRO/In Progress', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q97 / LR 18.02 : Waiting delivery date confirmation', pplComment:'', saComment:'Confirm packaging dimensions', supplierCheckName:'KYB ADVANCED MFG SPAIN SA', totalReceived:0, ecartMag:970, dateAjout:'2025-11-27', cr:{'KK063':97}, mrd:{'2026_S05':97}, ph:{X1:97} },
   { pn:'9860739680', pnu:'9860739680', xpPn:'9860739680', desc:'AGRAFE FIXATION MOTEUR G', supplier:'A. RAYMOND ITALIANA SRL', supplierSAP:'A. RAYMOND ITALIANA SRL', supplierCORAIL:'A. RAYMOND ITALIANA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'56', po:'VR-491-005', rda:'RDA-2024-005', status:'Active', opo:'VR13508153', sta:'E', del:780, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', mag:'0780', dts:'2024-10-14', tr:'Y', col:'N', pilote:'Imane Aokass', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q78 / click 13.02 / DN 985421 / LR 13.02 : Received OK', pplComment:'', saComment:'OK', supplierCheckName:'A. RAYMOND ITALIANA SRL', totalReceived:780, ecartMag:0, dateAjout:'2025-11-05', cr:{'KK064':78}, mrd:{'2026_S02':78}, ph:{X0:78} },
   { pn:'9860739880', pnu:'9860739880', xpPn:'9860739880', desc:'AGRAFE FIXATION MOTEUR D', supplier:'A. RAYMOND ITALIANA SRL', supplierSAP:'A. RAYMOND ITALIANA SRL', supplierCORAIL:'A. RAYMOND ITALIANA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'56', po:'VR-491-005', sta:'E', del:340, toOrder:'', mag:'0780', dts:'2024-10-14', tr:'Y', col:'N', pilote:'Imane Aokass', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q34 / click 13.02 / DN 985422 / LR 13.02 : Received OK', pplComment:'', saComment:'OK', supplierCheckName:'A. RAYMOND ITALIANA SRL', totalReceived:340, ecartMag:0, dateAjout:'2025-11-05', cr:{'KK064':34}, mrd:{'2026_S02':34}, ph:{X0:34} },
-  { pn:'9879039380', pnu:'9879039380', xpPn:'9879039380', desc:'ENSEMBLE TABLEAU DE BORD', supplier:'Marelli Sosnowiec Poland Sp.', supplierSAP:'Marelli Sosnowiec Poland Sp.', supplierCORAIL:'Marelli Sosnowiec Poland', proj:'L74', plant:'L74', darwin:'DARWIN', area:'JIS', po:'VR-L74-001', rda:'RDA-L74-001', status:'Active', opo:'VR13616825', sta:'E', csa:'Partial delivery received', del:280, toOrder:'12', plaque:'L74 BEV', eta:'2026-03-09', etd:'2026-03-07', lastReminder:'24.02', mag:'0780', dts:'2025-11-25', tr:'Y', col:'N', pilote:'Hajar Akhazzan', shortComment:'PARTIAL CONFIRMED', keyWord:'CONFIRMED', appComment:'PARTIAL / PUS / First Qty Q16 / Pickup done on 21.02 / DN 226534 + Second Qty Q12 CONFIRMED / Pickup on 09.03 / Delivery date on 11.03 / DN / LR 24.02 : Waiting DN second qty', pplComment:'2nd delivery expected 03.03', saComment:'Partial delivery received', supplierCheckName:'Marelli Sosnowiec Poland Sp.', totalReceived:16, ecartMag:12, dateAjout:'2025-11-27', cr:{'KR036':28}, mrd:{'2026_S04':28}, ph:{X0:28} },
-  { pn:'9879039480', pnu:'9879039480', xpPn:'9879039480', desc:'PLANCHE DE BORD SUPERIEURE', supplier:'Marelli Sosnowiec Poland Sp.', supplierSAP:'Marelli Sosnowiec Poland Sp.', supplierCORAIL:'Marelli Sosnowiec Poland', proj:'L74', plant:'L74', darwin:'DARWIN', area:'JIS', po:'VR-L74-001', rda:'RDA-L74-002', status:'Active', opo:'VR13616825', sta:'E', csa:'Partial delivery received', del:280, toOrder:'12', mag:'0780', dts:'2025-11-25', tr:'Y', col:'N', pilote:'Hajar Akhazzan', shortComment:'PARTIAL CONFIRMED', keyWord:'CONFIRMED', appComment:'PARTIAL / PUS / First Qty Q16 / Pickup done on 21.02 / DN 226535 + Second Qty Q12 CONFIRMED / Pickup on 09.03 / Delivery date on 11.03 / DN / LR 24.02 : Waiting DN', pplComment:'', saComment:'Partial delivery received', supplierCheckName:'Marelli Sosnowiec Poland Sp.', totalReceived:16, ecartMag:12, dateAjout:'2025-11-27', cr:{'KR036':28}, mrd:{'2026_S04':28}, ph:{X0:28} },
-  { pn:'9874972480', pnu:'9874972480', xpPn:'9874972480', desc:'JOINT ETANCHEITE HABITACLE', supplier:'TREVES PRODUCTS SERVICES', supplierSAP:'TREVES PRODUCTS SERVICES', supplierCORAIL:'TREVES PRODUCTS SERVICES', proj:'L74', plant:'L74', darwin:'DARWIN', area:'89', po:'VR-L74-003', rda:'RDA-L74-003', status:'Active', opo:'VR13508184', sta:'E', del:930, toOrder:'', mag:'0780', dts:'2025-12-09', tr:'Y', col:'N', pilote:'Soukaina Bakkas', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q93 / PD 05.03 / DN / LR 19.02 : Parts ready, pickup planned', pplComment:'', saComment:'', supplierCheckName:'TREVES PRODUCTS SERVICES & INNOVAT', totalReceived:0, ecartMag:930, dateAjout:'2025-11-27', cr:{'KR048':93}, mrd:{'2026_S05':93}, ph:{X1:93} },
-  { pn:'9860763580', pnu:'9860763580', xpPn:'9860763580', desc:'ACTIONNEUR COMMANDE ELECT', supplier:'CEBI ITALY', supplierSAP:'CEBI ITALY SPA', supplierCORAIL:'CEBI ITALY', proj:'L74', plant:'L74', darwin:'TAXI', area:'JIS', po:'CPO-L74-001', rda:'RDA-L74-004', status:'Critical', opo:'GR2548675685', sta:'U', csa:'URGENT - ready for pickup', del:208, toOrder:'', plaque:'L74 X2', eta:'2026-02-28', etd:'2026-02-26', lastReminder:'25.02', mag:'0780', dts:'2026-01-07', tr:'Y', col:'N', pilote:'Saki Maryam', shortComment:'ETA CONFIRMED', keyWord:'ESCALATION', appComment:'ESCALATE PURCH Sarah MARTIN on 24.02 / PUS / Q208 / LR 25.02 : Parts ready, urgent pickup needed - assembly line at risk', pplComment:'Confirmed by PPL ABRAR', saComment:'URGENT - ready for pickup', supplierCheckName:'CEBI ITALY SPA', totalReceived:0, ecartMag:208, dateAjout:'2026-01-27', cr:{'KR174':208}, mrd:{'2026_S02':208}, ph:{X2:208} },
+  { pn:'9879039380', pnu:'9879039380', xpPn:'9879039380', desc:'ENSEMBLE TABLEAU DE BORD', supplier:'Marelli Sosnowiec Poland Sp.', supplierSAP:'Marelli Sosnowiec Poland Sp.', supplierCORAIL:'Marelli Sosnowiec Poland', proj:'L74', plant:'L74', darwin:'DARWIN', area:'JIS', po:'VR-L74-001', rda:'RDA-L74-001', status:'Active', opo:'VR13616825', sta:'E', csa:'Partial delivery received', del:280, toOrder:'12', plaque:'L74 BEV', eta:'2026-03-09', etd:'2026-03-07', lastReminder:'24.02', mag:'0780', dts:'2025-11-25', tr:'Y', col:'N', pilote:'Hajar Akhazzan', shortComment:'PARTIAL CONFIRMED', keyWord:'CONFIRMED', appComment:'PARTIAL / PUS / First Qty Q16 / Pickup done on 21.02 / DN 226534 + Second Qty Q12 CONFIRMED / Pickup on 09.03 / Delivery date on 11.03 / DN / LR 24.02 : Waiting DN second qty', pplComment:'2nd delivery expected 03.03', saComment:'Partial delivery received', supplierCheckName:'Marelli Sosnowiec Poland Sp.', totalReceived:16, ecartMag:12, dateAjout:'2025-11-27',
+    cr:{'KR036':16,'KR048':12}, mrd:{'2025_S47':16,'2026_S02':12}, ph:{X0:16,X1:12},
+    crDetails:[
+      {cr:'KR036',qty:16,variant:'BEV',mrd:'MRD49',phase:'X1'},{cr:'KR036',qty:0,variant:'MHEV',mrd:'MRD49',phase:'X1'},
+      {cr:'KR048',qty:6,variant:'BEV',mrd:'MRD49',phase:'X1'},{cr:'KR048',qty:6,variant:'MHEV',mrd:'MRD49',phase:'X1'},
+    ],
+    weekBesoins:[
+      {week:'2025_S47',phase:'X0',mrd:'MRD48',qty:16},{week:'2026_S02',phase:'X1',mrd:'MRD52',qty:12}
+    ]
+  },
+  { pn:'9879039480', pnu:'9879039480', xpPn:'9879039480', desc:'PLANCHE DE BORD SUPERIEURE', supplier:'Marelli Sosnowiec Poland Sp.', supplierSAP:'Marelli Sosnowiec Poland Sp.', supplierCORAIL:'Marelli Sosnowiec Poland', proj:'L74', plant:'L74', darwin:'DARWIN', area:'JIS', po:'VR-L74-001', rda:'RDA-L74-002', status:'Active', opo:'VR13616825', sta:'E', csa:'Partial delivery received', del:280, toOrder:'12', mag:'0780', dts:'2025-11-25', tr:'Y', col:'N', pilote:'Hajar Akhazzan', shortComment:'PARTIAL CONFIRMED', keyWord:'CONFIRMED', appComment:'PARTIAL / PUS / First Qty Q16 / Pickup done on 21.02 / DN 226535 + Second Qty Q12 CONFIRMED / Pickup on 09.03 / Delivery date on 11.03 / DN / LR 24.02 : Waiting DN', pplComment:'', saComment:'Partial delivery received', supplierCheckName:'Marelli Sosnowiec Poland Sp.', totalReceived:16, ecartMag:12, dateAjout:'2025-11-27',
+    cr:{'KR036':16,'KR048':12}, mrd:{'2025_S47':16,'2026_S02':12}, ph:{X0:16,X1:12},
+    crDetails:[
+      {cr:'KR036',qty:16,variant:'BEV',mrd:'MRD49',phase:'X1'},{cr:'KR036',qty:0,variant:'MHEV',mrd:'MRD49',phase:'X1'},
+      {cr:'KR048',qty:6,variant:'BEV',mrd:'MRD49',phase:'X1'},{cr:'KR048',qty:6,variant:'MHEV',mrd:'MRD49',phase:'X1'},
+    ],
+    weekBesoins:[
+      {week:'2025_S47',phase:'X0',mrd:'MRD48',qty:16},{week:'2026_S02',phase:'X1',mrd:'MRD52',qty:12}
+    ]
+  },
+  { pn:'9874972480', pnu:'9874972480', xpPn:'9874972480', desc:'JOINT ETANCHEITE HABITACLE', supplier:'TREVES PRODUCTS SERVICES', supplierSAP:'TREVES PRODUCTS SERVICES', supplierCORAIL:'TREVES PRODUCTS SERVICES', proj:'L74', plant:'L74', darwin:'DARWIN', area:'89', po:'VR-L74-003', rda:'RDA-L74-003', status:'Active', opo:'VR13508184', sta:'E', del:930, toOrder:'', mag:'0780', dts:'2025-12-09', tr:'Y', col:'N', pilote:'Soukaina Bakkas', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q93 / PD 05.03 / DN / LR 19.02 : Parts ready, pickup planned', pplComment:'', saComment:'', supplierCheckName:'TREVES PRODUCTS SERVICES & INNOVAT', totalReceived:0, ecartMag:930, dateAjout:'2025-11-27',
+    cr:{'KR048':93}, mrd:{'2026_S05':93}, ph:{X1:93},
+    crDetails:[
+      {cr:'KR048',qty:50,variant:'BEV',mrd:'MRD49',phase:'X1'},{cr:'KR048',qty:43,variant:'MHEV',mrd:'MRD49',phase:'X1'},
+    ],
+    weekBesoins:[
+      {week:'2025_S48',phase:'X1',mrd:'MRD49',qty:31},{week:'2025_S49',phase:'X1',mrd:'MRD49',qty:31},{week:'2026_S02',phase:'X1',mrd:'MRD52',qty:31}
+    ]
+  },
+  { pn:'9860763580', pnu:'9860763580', xpPn:'9860763580', desc:'ACTIONNEUR COMMANDE ELECT', supplier:'CEBI ITALY', supplierSAP:'CEBI ITALY SPA', supplierCORAIL:'CEBI ITALY', proj:'L74', plant:'L74', darwin:'TAXI', area:'JIS', po:'CPO-L74-001', rda:'RDA-L74-004', status:'Critical', opo:'GR2548675685', sta:'U', csa:'URGENT - ready for pickup', del:208, toOrder:'', plaque:'L74 X2', eta:'2026-02-28', etd:'2026-02-26', lastReminder:'25.02', mag:'0780', dts:'2026-01-07', tr:'Y', col:'N', pilote:'Saki Maryam', shortComment:'ETA CONFIRMED', keyWord:'ESCALATION', appComment:'ESCALATE PURCH Sarah MARTIN on 24.02 / PUS / Q208 / LR 25.02 : Parts ready, urgent pickup needed - assembly line at risk', pplComment:'Confirmed by PPL ABRAR', saComment:'URGENT - ready for pickup', supplierCheckName:'CEBI ITALY SPA', totalReceived:0, ecartMag:208, dateAjout:'2026-01-27',
+    cr:{'KR174':208}, mrd:{'2026_S02':208}, ph:{X2:208},
+    crDetails:[
+      {cr:'KR174',qty:130,variant:'BEV',mrd:'MRD49',phase:'X1'},{cr:'KR174',qty:78,variant:'MHEV',mrd:'MRD49',phase:'X1'},
+    ],
+    weekBesoins:[
+      {week:'2025_S47',phase:'X0',mrd:'MRD48',qty:52},{week:'2025_S48',phase:'X1',mrd:'MRD49',qty:52},{week:'2026_S02',phase:'X1',mrd:'MRD52',qty:52},{week:'2026_S04',phase:'X1',mrd:'MRD53',qty:52}
+    ]
+  },
   { pn:'9831983580', pnu:'9831983580', xpPn:'9831983580', desc:'CONNECTEUR FAISCEAU ELECT', supplier:'DELPHI TECHNOLOGIES', supplierSAP:'DELPHI TECHNOLOGIES INT.', supplierCORAIL:'DELPHI TECHNOLOGIES', proj:'D74', plant:'D74', darwin:'TAXI', area:'JIS', po:'CPO-D74-001', rda:'RDA-D74-001', status:'Done', opo:'GR24204D1A72', sta:'E', del:240, toOrder:'', mag:'0780', dts:'2025-09-23', tr:'Y', col:'N', pilote:'Salma Sargali', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q240 / click 20.02 / DN 664523 / LR 20.02 : All qty received OK', pplComment:'', saComment:'Done', supplierCheckName:'DELPHI TECHNOLOGIES INT.', totalReceived:240, ecartMag:0, dateAjout:'2025-11-05', cr:{'KK065':240}, mrd:{'2026_S01':240}, ph:{X0:240} },
   { pn:'9871246280', pnu:'9871246280', xpPn:'9871246280', desc:'SUPPORT FIXATION MOTEUR', supplier:'CONTINENTAL AUTOMOTIVE SRL', supplierSAP:'CONTINENTAL AUTOMOTIVE SRL', supplierCORAIL:'CONTINENTAL AUTOMOTIVE', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-D74-010', rda:'RDA-D74-010', status:'Active', opo:'VR13702114', sta:'E', del:220, toOrder:'', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', pilote:'Soukaina Bakkas', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q22 / PD 05.03 / DN / LR 24.02 : Confirmed delivery date from supplier', pplComment:'PO sent', saComment:'', supplierCheckName:'CONTINENTAL AUTOMOTIVE SRL', totalReceived:0, ecartMag:220, dateAjout:'2025-11-27', cr:{'KK067':22}, mrd:{'2026_S06':22}, ph:{X1:22} },
   { pn:'9860194480', pnu:'9860194480', xpPn:'9860194480', desc:'PARE-CHOCS AVANT COMPLET', supplier:'PLASTIC OMNIUM', supplierSAP:'PLASTIC OMNIUM AUTO EXT', supplierCORAIL:'PLASTIC OMNIUM', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-D74-011', rda:'RDA-D74-011', status:'Active', opo:'VR13721008', sta:'', csa:'Need to confirm qty', del:550, toOrder:'', mag:'0780', dts:'2026-01-07', tr:'N', col:'N', pilote:'Hajar Akhazzan', shortComment:'APPRO/In Progress', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q55 / LR 23.02 : Waiting delivery date', pplComment:'', saComment:'Need to confirm qty', supplierCheckName:'PLASTIC OMNIUM AUTO EXT', totalReceived:0, ecartMag:550, dateAjout:'2026-01-27', cr:{'KK069':55}, mrd:{'2026_S07':55}, ph:{X2:55} },
@@ -1568,28 +1640,152 @@ function openPartDetail(pn) {
   const staCls = {'E':'bg-done','O':'bg-pend','U':'bg-crit','C':'bg-crit','':''};
   const staLabel = {'E':'En commande (E)','O':'Ouvert (O)','U':'Urgent (U)','C':'Clôturé (C)','':'—'};
 
-  const mrdEntries = Object.entries(p.mrd || {}).sort();
-  let mrdHtml = mrdEntries.length ? `<table class="tbl"><thead><tr><th>MRD</th><th>Need</th><th>Phase</th></tr></thead><tbody>` : '<div style="color:var(--dim);font-size:11px;padding:12px">No MRD data</div>';
-  mrdEntries.forEach(([mrd, qty]) => {
-    const ph = Object.keys(p.ph||{})[0] || 'X0';
-    mrdHtml += `<tr><td class="mono" style="color:var(--cyan)">${mrd}</td><td style="font-weight:700;color:var(--orange)">${qty}</td><td><span class="bg bg-x${ph.slice(-1)||0}">${ph}</span></td></tr>`;
-  });
-  if (mrdEntries.length) mrdHtml += '</tbody></table>';
 
-  const phEntries = Object.entries(p.ph || {});
-  let phHtml = phEntries.length ? `<table class="tbl"><thead><tr><th>Phase</th><th>Total Need</th></tr></thead><tbody>` : '<div style="color:var(--dim);font-size:11px;padding:12px">No phase data</div>';
-  phEntries.forEach(([ph, qty]) => {
-    phHtml += `<tr><td><span class="bg bg-x${ph.slice(-1)||0}">${ph}</span></td><td style="font-weight:700;color:var(--orange)">${qty}</td></tr>`;
-  });
-  if (phEntries.length) phHtml += '</tbody></table>';
 
-  const crEntries = Object.entries(p.cr || {}).filter(([, q]) => q > 0);
-  let crHtml = crEntries.length ? `<table class="tbl"><thead><tr><th>Counter Mark</th><th>Qty</th><th>MRD</th><th>Phase</th></tr></thead><tbody>` : '<div style="color:var(--dim);font-size:11px;padding:12px">No counter marks</div>';
-  crEntries.forEach(([cr, q]) => {
-    const m = CR_META[cr] || {};
-    crHtml += `<tr><td class="mono" style="color:var(--purple)">${cr}</td><td style="font-weight:700;color:var(--orange)">${q}</td><td class="mono">${m.mrd||'—'}</td><td><span class="bg bg-x${(m.phase||'').slice(-1)||0}">${m.phase||'—'}</span></td></tr>`;
-  });
-  if (crEntries.length) crHtml += '</tbody></table>';
+  // ─── BY COUNTER MARK: Grouped table (Phase → MRD group → CR rows with BEV/MHEV)
+  let crHtml = '';
+  const crDetails = p.crDetails || [];
+  if (crDetails.length > 0) {
+    // Group by phase then by mrd
+    const phaseGroups = {};
+    crDetails.forEach(d => {
+      if (!phaseGroups[d.phase]) phaseGroups[d.phase] = {};
+      if (!phaseGroups[d.phase][d.mrd]) phaseGroups[d.phase][d.mrd] = {};
+      if (!phaseGroups[d.phase][d.mrd][d.cr]) phaseGroups[d.phase][d.mrd][d.cr] = {BEV:0,MHEV:0,total:0};
+      if (d.variant === 'BEV') phaseGroups[d.phase][d.mrd][d.cr].BEV += d.qty;
+      else if (d.variant === 'MHEV') phaseGroups[d.phase][d.mrd][d.cr].MHEV += d.qty;
+      else phaseGroups[d.phase][d.mrd][d.cr].total += d.qty;
+    });
+    // Check if we have BEV/MHEV variants
+    const hasVariants = crDetails.some(d => d.variant === 'BEV' || d.variant === 'MHEV');
+    crHtml = `<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead>
+        <tr style="background:var(--bg);border-bottom:2px solid var(--border)">
+          <th style="padding:6px 10px;text-align:left;color:var(--dim);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">PHASE / MRD</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--dim);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">COUNTER MARK</th>
+          ${hasVariants ? `<th style="padding:6px 10px;text-align:center;color:#4488ff;font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">BEV</th><th style="padding:6px 10px;text-align:center;color:#ffaa00;font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">MHEV</th>` : ''}
+          <th style="padding:6px 10px;text-align:center;color:var(--orange);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">TOTAL</th>
+        </tr>
+      </thead>
+      <tbody>`;
+    ['X0','X1','X2'].forEach(ph => {
+      if (!phaseGroups[ph]) return;
+      const phColor = ph==='X0'?'var(--blue)':ph==='X1'?'var(--cyan)':'var(--gold)';
+      const phTotal = crDetails.filter(d=>d.phase===ph).reduce((s,d)=>s+d.qty,0);
+      crHtml += `<tr style="background:rgba(0,0,0,0.3)">
+        <td colspan="${hasVariants?4:3}" style="padding:6px 10px;font-family:'Share Tech Mono',monospace">
+          <span style="background:${phColor}22;border:1px solid ${phColor};color:${phColor};padding:2px 10px;border-radius:2px;font-size:10px;font-weight:700;letter-spacing:2px">${ph}</span>
+          <span style="margin-left:12px;color:var(--dim);font-size:10px">TOTAL: <strong style="color:${phColor}">${phTotal} pcs</strong></span>
+        </td>
+      </tr>`;
+      Object.entries(phaseGroups[ph]).sort().forEach(([mrd, crMap]) => {
+        const mrdTotal = Object.values(crMap).reduce((s,v)=>s+(v.BEV||0)+(v.MHEV||0)+(v.total||0),0);
+        crHtml += `<tr style="background:var(--bg2)">
+          <td colspan="${hasVariants?4:3}" style="padding:4px 10px 4px 20px;color:var(--gold);font-family:'Share Tech Mono',monospace;font-size:10px">
+            ▸ ${mrd} <span style="color:var(--dim);margin-left:8px">${mrdTotal} pcs</span>
+          </td>
+        </tr>`;
+        Object.entries(crMap).sort().forEach(([cr, vals]) => {
+          const rowTotal = (vals.BEV||0)+(vals.MHEV||0)+(vals.total||0);
+          crHtml += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+            <td style="padding:5px 10px 5px 30px;color:var(--dim);font-size:10px">·</td>
+            <td style="padding:5px 10px;font-family:'Share Tech Mono',monospace;color:var(--purple);font-size:11px;font-weight:700">${cr}</td>
+            ${hasVariants ? `<td style="padding:5px 10px;text-align:center;font-family:'Share Tech Mono',monospace;color:${vals.BEV>0?'#4488ff':'var(--dim)'}">${vals.BEV||'—'}</td><td style="padding:5px 10px;text-align:center;font-family:'Share Tech Mono',monospace;color:${vals.MHEV>0?'#ffaa00':'var(--dim)'}">${vals.MHEV||'—'}</td>` : ''}
+            <td style="padding:5px 10px;text-align:center;font-weight:700;color:var(--orange);font-family:'Share Tech Mono',monospace">${rowTotal}</td>
+          </tr>`;
+        });
+      });
+    });
+    crHtml += '</tbody></table></div>';
+  } else {
+    // Fallback: simple table from p.cr
+    const crEntries = Object.entries(p.cr || {}).filter(([, q]) => q > 0);
+    if (crEntries.length) {
+      crHtml = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:var(--bg);border-bottom:2px solid var(--border)">
+          <th style="padding:6px 10px;text-align:left;color:var(--dim);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">COUNTER MARK</th>
+          <th style="padding:6px 10px;text-align:center;color:var(--dim);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">QTY</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--dim);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">MRD</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--dim);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">PHASE</th>
+        </tr></thead><tbody>`;
+      crEntries.forEach(([cr, q]) => {
+        const m = CR_META[cr] || CR_META_FULL[cr] || {};
+        const ph = m.phase||'—';
+        const phColor = ph==='X0'?'var(--blue)':ph==='X1'?'var(--cyan)':ph==='X2'?'var(--gold)':'var(--dim)';
+        crHtml += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+          <td style="padding:6px 10px;font-family:'Share Tech Mono',monospace;color:var(--purple);font-weight:700">${cr}</td>
+          <td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--orange)">${q}</td>
+          <td style="padding:6px 10px;font-family:'Share Tech Mono',monospace;color:var(--dim)">${m.mrd||'—'}</td>
+          <td style="padding:6px 10px"><span style="background:${phColor}22;border:1px solid ${phColor};color:${phColor};padding:2px 8px;border-radius:2px;font-size:9px;font-family:'Share Tech Mono',monospace">${ph}</span></td>
+        </tr>`;
+      });
+      crHtml += '</tbody></table></div>';
+    } else {
+      crHtml = '<div style="color:var(--dim);font-size:11px;padding:12px">No counter mark data</div>';
+    }
+  }
+
+  // ─── BY WEEK: Week-by-week besoins table
+  const weekData = p.weekBesoins || [];
+  let weekHtml = '';
+  if (weekData.length > 0) {
+    // Group by phase
+    const wkByPhase = {X0:[],X1:[],X2:[]};
+    weekData.forEach(w => { if (wkByPhase[w.phase]) wkByPhase[w.phase].push(w); });
+    weekHtml = `<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead>
+        <tr style="background:var(--bg);border-bottom:2px solid var(--border)">
+          <th style="padding:6px 10px;text-align:left;color:var(--dim);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">PHASE</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--dim);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">MRD</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--dim);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">WEEK</th>
+          <th style="padding:6px 10px;text-align:right;color:var(--orange);font-size:9px;letter-spacing:1px;font-family:'Share Tech Mono',monospace">BESOINS (QTY)</th>
+        </tr>
+      </thead>
+      <tbody>`;
+    ['X0','X1','X2'].forEach(ph => {
+      if (!wkByPhase[ph].length) return;
+      const phColor = ph==='X0'?'var(--blue)':ph==='X1'?'var(--cyan)':'var(--gold)';
+      const phTotal = wkByPhase[ph].reduce((s,w)=>s+w.qty,0);
+      weekHtml += `<tr style="background:rgba(0,0,0,0.3)"><td colspan="4" style="padding:6px 10px;font-family:'Share Tech Mono',monospace">
+        <span style="background:${phColor}22;border:1px solid ${phColor};color:${phColor};padding:2px 10px;border-radius:2px;font-size:10px;font-weight:700;letter-spacing:2px">${ph}</span>
+        <span style="margin-left:12px;color:var(--dim);font-size:10px">TOTAL: <strong style="color:${phColor}">${phTotal} pcs</strong></span>
+      </td></tr>`;
+      wkByPhase[ph].forEach((w, i) => {
+        weekHtml += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);${i%2===0?'':'background:rgba(255,255,255,0.02)'}">
+          <td style="padding:5px 10px"></td>
+          <td style="padding:5px 10px;font-family:'Share Tech Mono',monospace;color:var(--gold);font-size:10px">${w.mrd||'—'}</td>
+          <td style="padding:5px 10px;font-family:'Share Tech Mono',monospace;color:var(--cyan);font-size:11px">${w.week}</td>
+          <td style="padding:5px 10px;text-align:right;font-weight:700;color:var(--orange);font-family:'Share Tech Mono',monospace">${w.qty}</td>
+        </tr>`;
+      });
+    });
+    weekHtml += `<tr style="background:var(--bg);border-top:2px solid var(--border)">
+      <td colspan="3" style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:1px">GRAND TOTAL</td>
+      <td style="padding:8px 10px;text-align:right;font-weight:900;color:var(--orange);font-family:'Share Tech Mono',monospace;font-size:14px">${weekData.reduce((s,w)=>s+w.qty,0)}</td>
+    </tr>`;
+    weekHtml += '</tbody></table></div>';
+  } else {
+    // Fallback from p.mrd
+    const mrdEntries = Object.entries(p.mrd || {}).filter(([,q])=>q>0);
+    if (mrdEntries.length) {
+      weekHtml = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:var(--bg);border-bottom:2px solid var(--border)">
+          <th style="padding:6px 10px;text-align:left;color:var(--dim);font-size:9px;font-family:'Share Tech Mono',monospace">MRD WEEK</th>
+          <th style="padding:6px 10px;text-align:right;color:var(--orange);font-size:9px;font-family:'Share Tech Mono',monospace">QTY</th>
+        </tr></thead><tbody>`;
+      mrdEntries.forEach(([w,q]) => {
+        weekHtml += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+          <td style="padding:6px 10px;font-family:'Share Tech Mono',monospace;color:var(--cyan)">${w}</td>
+          <td style="padding:6px 10px;text-align:right;font-weight:700;color:var(--orange)">${q}</td>
+        </tr>`;
+      });
+      weekHtml += '</tbody></table></div>';
+    } else {
+      weekHtml = '<div style="color:var(--dim);font-size:11px;padding:12px">No week data available</div>';
+    }
+  }
 
   const hist = receptionHistory[pn] || [];
   let recHtml = `<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center"><div class="flb" style="margin:0">RECEPTION HISTORY</div><button class="btn b-g b-sm" onclick="openAddReception('${pn}')">+ Add Reception</button></div>`;
@@ -1609,7 +1805,7 @@ function openPartDetail(pn) {
 
   document.getElementById('mo-part-body').innerHTML = `
     <div style="display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--border);overflow-x:auto">
-      ${['overview','needs-mrd','needs-phase','needs-cr','reception','comment'].map((t,i)=>`<button id="pdt-${t}" onclick="pdTab('${t}','${pn}')" style="padding:7px 14px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;background:${i===0?'rgba(0,200,255,0.12)':'transparent'};border:none;border-bottom:2px solid ${i===0?'var(--cyan)':'transparent'};color:${i===0?'var(--cyan)':'var(--dim)'};cursor:pointer;white-space:nowrap;transition:.2s">${['OVERVIEW','BY MRD','BY PHASE','BY C-MARK','RECEPTIONS','COMMENT'][i]}</button>`).join('')}
+      ${['overview','needs-week','needs-cr','reception','comment'].map((t,i)=>`<button id="pdt-${t}" onclick="pdTab('${t}','${pn}')" style="padding:7px 14px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;background:${i===0?'rgba(0,200,255,0.12)':'transparent'};border:none;border-bottom:2px solid ${i===0?'var(--cyan)':'transparent'};color:${i===0?'var(--cyan)':'var(--dim)'};cursor:pointer;white-space:nowrap;transition:.2s">${['OVERVIEW','BY WEEK','BY C-MARK','RECEPTIONS','COMMENT'][i]}</button>`).join('')}
     </div>
     <div id="pdt-c-overview">
       <div class="g2">
@@ -1667,8 +1863,7 @@ function openPartDetail(pn) {
         <button class="btn b-sm" style="background:rgba(0,255,136,0.1);border-color:var(--green);color:var(--green)" onclick="pdTab('reception','${pn}')">📦 Receptions</button>
       </div>
     </div>
-    <div id="pdt-c-needs-mrd" style="display:none">${mrdHtml}</div>
-    <div id="pdt-c-needs-phase" style="display:none">${phHtml}</div>
+    <div id="pdt-c-needs-week" style="display:none">${weekHtml}</div>
     <div id="pdt-c-needs-cr" style="display:none">${crHtml}</div>
     <div id="pdt-c-reception" style="display:none">${recHtml}</div>
     <div id="pdt-c-comment" style="display:none">${commentHtml}</div>
@@ -1677,7 +1872,7 @@ function openPartDetail(pn) {
 }
 
 function pdTab(t, pn) {
-  ['overview','needs-mrd','needs-phase','needs-cr','reception','comment'].forEach(id => {
+  ['overview','needs-week','needs-cr','reception','comment'].forEach(id => {
     const btn = document.getElementById(`pdt-${id}`);
     const cnt = document.getElementById(`pdt-c-${id}`);
     const active = id === t;
