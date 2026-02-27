@@ -413,7 +413,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
           </div>
         </div>
         <div class="card">
-          <div class="card-head"><div class="ct">MANQUANTS — PRODUCTION NEEDS</div><span id="needsCount" style="font-size:10px;color:var(--dim);font-family:'Share Tech Mono',monospace"></span></div>
+          <div class="card-head"><div class="ct">MANQUANTS — PRODUCTION NEEDS</div><span id="needsCount" style="font-size:10px;color:var(--dim);font-family:'Share Tech Mono',monospace"></span><div style="display:flex;gap:6px"><button class="btn btn-sm b-g" onclick="openAddNeed()">+ Add Need</button><button class="btn btn-sm" style="background:rgba(0,200,255,0.08);border-color:var(--cyan);color:var(--cyan)" onclick="exportNeedsExcel()">↓ Excel</button></div></div>
           <div class="tsc"><table class="tbl"><thead><tr id="needsHead"></tr></thead><tbody id="needsTbody"></tbody></table></div>
         </div>
       </div>
@@ -611,7 +611,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
         </div>
         <div id="adm-users">
           <div class="card">
-            <div class="card-head"><div class="ct">PROCUREMENT OFFICERS</div><button class="btn btn-sm b-p" onclick="openMo('mo-add-user')">+ Add User</button></div>
+            <div class="card-head"><div class="ct">PROCUREMENT OFFICERS</div><div style="display:flex;gap:6px"><button class="btn btn-sm b-p" onclick="openMo('mo-add-user')">+ Add User</button><button class="btn btn-sm" style="background:rgba(255,215,0,0.1);border-color:var(--gold);color:var(--gold)" onclick="openBulkReassign()">🔄 Bulk Reassign</button></div></div>
             <div class="tsc"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Plant</th><th>Role</th><th>Assigned Suppliers</th><th>Actions</th></tr></thead><tbody id="admUsersTbody"><tr><td colspan="6" style="text-align:center;color:var(--dim);padding:20px">Connect Firebase to load users</td></tr></tbody></table></div>
           </div>
         </div>
@@ -1031,6 +1031,45 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 </div>
 
 <!-- ADD USER -->
+<!-- ══ MANUAL NEED MODAL ══════════════════════════════════════════ -->
+<div class="mo" id="mo-add-need">
+  <div class="mw" style="max-width:500px">
+    <div class="mh"><div class="mt2">➕ ADD MANUAL NEED</div><button class="mc" onclick="closeMo('mo-add-need')">✕</button></div>
+    <div class="mb" style="padding:20px">
+      <div style="font-size:10px;color:var(--dim);margin-bottom:14px;letter-spacing:1px">Manually insert a production need. Counter Mark → MRD → Phase hierarchy is respected.</div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>Part Number (PN)</label><select id="an-pn2" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:2px"><option value="">— Select PN —</option></select></div>
+        <div class="form-group"><label>Phase</label><select id="an-phase2" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:2px"><option value="X0">X0</option><option value="X1">X1</option><option value="X2">X2</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Counter Mark (CR)</label><select id="an-cr2" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:2px"><option value="">— Select CR —</option></select></div>
+        <div class="form-group"><label>MRD Week</label><select id="an-mrd2" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:2px"><option value="">— Select MRD —</option></select></div>
+      </div>
+      <div class="form-group"><label>Quantity</label><input id="an-qty2" type="number" min="1" placeholder="Enter quantity" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:2px"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn b-s" onclick="saveManualNeed()">💾 Save Need</button>
+        <button class="btn btn-secondary" onclick="closeMo('mo-add-need')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN BULK REASSIGN MODAL ════════════════════════════════ -->
+<div class="mo" id="mo-bulk-reassign">
+  <div class="mw" style="max-width:460px">
+    <div class="mh"><div class="mt2">🔄 BULK REASSIGN SUPPLIER</div><button class="mc" onclick="closeMo('mo-bulk-reassign')">✕</button></div>
+    <div class="mb" style="padding:20px">
+      <div class="form-group"><label>Supplier</label><select id="br-sup" onchange="previewBulkReassign()" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:2px"><option value="">— Select supplier —</option></select></div>
+      <div class="form-group"><label>Assign ALL PNs to</label><select id="br-pilote" onchange="previewBulkReassign()" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:2px"><option value="">— Select officer —</option></select></div>
+      <div id="br-preview" style="font-size:10px;color:var(--dim);margin-top:8px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;display:none"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn b-s" onclick="dosBulkReassign()">✓ Apply Reassignment</button>
+        <button class="btn btn-secondary" onclick="closeMo('mo-bulk-reassign')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="mo" id="mo-add-user">
   <div class="md">
     <div class="mh"><div class="mt2">+ ADD PROCUREMENT OFFICER</div><button class="mc" onclick="closeMo('mo-add-user')">✕</button></div>
@@ -1119,19 +1158,19 @@ const counterMarks_L74 = ['KR036','KR048','KR174','KR038','KR049','KR175','KR172
 const counterMarks_D74 = ['KK062','KK067','KK213','KK233','KK063','KK069','KK065','KK064'];
 
 const ALL_PARTS = [
-  { pn:'9875614880', pnu:'9875614880', xpPn:'9875614880', desc:'AMORTISSEUR DIRECTION AV G', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-001', status:'Active', opo:'VR13508152', sta:'E', csa:'', mag:'0780', dts:'2025-09-02', tr:'Y', col:'N', qpo:45, del:450, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', pilote:'Fatima Z. Moustaghfir', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q45 / PD 15.03 / DN 458963 / LR 14.03 : Parts ready at supplier', dateAjout:'2025-11-05', cr:{'KK062':45,'KK067':18}, mrd:{'2026_S03':63}, ph:{X0:63} },
-  { pn:'9875615180', pnu:'9875615180', xpPn:'9875615180', desc:'AMORTISSEUR DIRECTION AV D', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-002', status:'Active', opo:'VR13508152', sta:'E', csa:'', mag:'0780', dts:'2025-09-02', tr:'Y', col:'N', del:180, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', pilote:'Fatima Z. Moustaghfir', shortComment:'WAITING DELIVERY DATE', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q18 / LR 20.02 : Waiting supplier feedback', dateAjout:'2025-11-05', cr:{'KK062':18}, mrd:{'2026_S03':18}, ph:{X0:18} },
-  { pn:'9875615480', pnu:'9875615480', xpPn:'9875615480', desc:'AMORTISSEUR DIRECTION AR G', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-003', status:'Active', opo:'VR13508152', sta:'O', csa:'Monitor delivery', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', del:940, toOrder:'', plaque:'', eta:'2026-03-05', etd:'2026-03-03', lastReminder:'20.02', pilote:'Fatima Z. Moustaghfir', shortComment:'ETA CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q94 / PD 05.03 / DN 775432 / LR 20.02 : Confirmed for next week delivery', dateAjout:'2025-11-05', cr:{'KK063':94}, mrd:{'2026_S05':94}, ph:{X1:94} },
-  { pn:'9875615780', pnu:'9875615780', xpPn:'9875615780', desc:'AMORTISSEUR DIRECTION AR D', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-004', status:'Pending', opo:'', sta:'', csa:'Confirm packaging dimensions', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', del:970, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'18.02', pilote:'Fatima Z. Moustaghfir', shortComment:'APPRO/In Progress', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q97 / LR 18.02 : Waiting delivery date confirmation', dateAjout:'2025-11-27', cr:{'KK063':97}, mrd:{'2026_S05':97}, ph:{X1:97} },
-  { pn:'9860739680', pnu:'9860739680', xpPn:'9860739680', desc:'AGRAFE FIXATION MOTEUR G', supplier:'A. RAYMOND ITALIANA SRL', supplierSAP:'A. RAYMOND ITALIANA SRL', supplierCORAIL:'A. RAYMOND ITALIANA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'56', po:'VR-491-005', rda:'RDA-2024-005', status:'Active', opo:'VR13508153', sta:'E', del:780, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', mag:'0780', dts:'2024-10-14', tr:'Y', col:'N', pilote:'Imane Aokass', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q78 / click 13.02 / DN 985421 / LR 13.02 : Received OK', dateAjout:'2025-11-05', cr:{'KK064':78}, mrd:{'2026_S02':78}, ph:{X0:78} },
-  { pn:'9860739880', pnu:'9860739880', xpPn:'9860739880', desc:'AGRAFE FIXATION MOTEUR D', supplier:'A. RAYMOND ITALIANA SRL', supplierSAP:'A. RAYMOND ITALIANA SRL', supplierCORAIL:'A. RAYMOND ITALIANA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'56', po:'VR-491-005', sta:'E', del:340, toOrder:'', mag:'0780', dts:'2024-10-14', tr:'Y', col:'N', pilote:'Imane Aokass', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q34 / click 13.02 / DN 985422 / LR 13.02 : Received OK', dateAjout:'2025-11-05', cr:{'KK064':34}, mrd:{'2026_S02':34}, ph:{X0:34} },
-  { pn:'9879039380', pnu:'9879039380', xpPn:'9879039380', desc:'ENSEMBLE TABLEAU DE BORD', supplier:'Marelli Sosnowiec Poland Sp.', supplierSAP:'Marelli Sosnowiec Poland Sp.', supplierCORAIL:'Marelli Sosnowiec Poland', proj:'L74', plant:'L74', darwin:'DARWIN', area:'JIS', po:'VR-L74-001', rda:'RDA-L74-001', status:'Active', opo:'VR13616825', sta:'E', csa:'Partial delivery received', del:280, toOrder:'12', plaque:'L74 BEV', eta:'2026-03-09', etd:'2026-03-07', lastReminder:'24.02', mag:'0780', dts:'2025-11-25', tr:'Y', col:'N', pilote:'Hajar Akhazzan', shortComment:'PARTIAL CONFIRMED', keyWord:'CONFIRMED', appComment:'PARTIAL / PUS / First Qty Q16 / Pickup done on 21.02 / DN 226534 + Second Qty Q12 CONFIRMED / Pickup on 09.03 / Delivery date on 11.03 / DN / LR 24.02 : Waiting DN second qty', dateAjout:'2025-11-27', cr:{'KR036':28}, mrd:{'2026_S04':28}, ph:{X0:28} },
-  { pn:'9879039480', pnu:'9879039480', xpPn:'9879039480', desc:'PLANCHE DE BORD SUPERIEURE', supplier:'Marelli Sosnowiec Poland Sp.', supplierSAP:'Marelli Sosnowiec Poland Sp.', supplierCORAIL:'Marelli Sosnowiec Poland', proj:'L74', plant:'L74', darwin:'DARWIN', area:'JIS', po:'VR-L74-001', rda:'RDA-L74-002', status:'Active', opo:'VR13616825', sta:'E', csa:'Partial delivery received', del:280, toOrder:'12', mag:'0780', dts:'2025-11-25', tr:'Y', col:'N', pilote:'Hajar Akhazzan', shortComment:'PARTIAL CONFIRMED', keyWord:'CONFIRMED', appComment:'PARTIAL / PUS / First Qty Q16 / Pickup done on 21.02 / DN 226535 + Second Qty Q12 CONFIRMED / Pickup on 09.03 / Delivery date on 11.03 / DN / LR 24.02 : Waiting DN', dateAjout:'2025-11-27', cr:{'KR036':28}, mrd:{'2026_S04':28}, ph:{X0:28} },
-  { pn:'9874972480', pnu:'9874972480', xpPn:'9874972480', desc:'JOINT ETANCHEITE HABITACLE', supplier:'TREVES PRODUCTS SERVICES', supplierSAP:'TREVES PRODUCTS SERVICES', supplierCORAIL:'TREVES PRODUCTS SERVICES', proj:'L74', plant:'L74', darwin:'DARWIN', area:'89', po:'VR-L74-003', rda:'RDA-L74-003', status:'Active', opo:'VR13508184', sta:'E', del:930, toOrder:'', mag:'0780', dts:'2025-12-09', tr:'Y', col:'N', pilote:'Soukaina Bakkas', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q93 / PD 05.03 / DN / LR 19.02 : Parts ready, pickup planned', dateAjout:'2025-11-27', cr:{'KR048':93}, mrd:{'2026_S05':93}, ph:{X1:93} },
-  { pn:'9860763580', pnu:'9860763580', xpPn:'9860763580', desc:'ACTIONNEUR COMMANDE ELECT', supplier:'CEBI ITALY', supplierSAP:'CEBI ITALY SPA', supplierCORAIL:'CEBI ITALY', proj:'L74', plant:'L74', darwin:'TAXI', area:'JIS', po:'CPO-L74-001', rda:'RDA-L74-004', status:'Critical', opo:'GR2548675685', sta:'U', csa:'URGENT - ready for pickup', del:208, toOrder:'', plaque:'L74 X2', eta:'2026-02-28', etd:'2026-02-26', lastReminder:'25.02', mag:'0780', dts:'2026-01-07', tr:'Y', col:'N', pilote:'Saki Maryam', shortComment:'ETA CONFIRMED', keyWord:'ESCALATION', appComment:'ESCALATE PURCH Sarah MARTIN on 24.02 / PUS / Q208 / LR 25.02 : Parts ready, urgent pickup needed - assembly line at risk', dateAjout:'2026-01-27', cr:{'KR174':208}, mrd:{'2026_S02':208}, ph:{X2:208} },
-  { pn:'9831983580', pnu:'9831983580', xpPn:'9831983580', desc:'CONNECTEUR FAISCEAU ELECT', supplier:'DELPHI TECHNOLOGIES', supplierSAP:'DELPHI TECHNOLOGIES INT.', supplierCORAIL:'DELPHI TECHNOLOGIES', proj:'D74', plant:'D74', darwin:'TAXI', area:'JIS', po:'CPO-D74-001', rda:'RDA-D74-001', status:'Done', opo:'GR24204D1A72', sta:'E', del:240, toOrder:'', mag:'0780', dts:'2025-09-23', tr:'Y', col:'N', pilote:'Salma Sargali', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q240 / click 20.02 / DN 664523 / LR 20.02 : All qty received OK', dateAjout:'2025-11-05', cr:{'KK065':240}, mrd:{'2026_S01':240}, ph:{X0:240} },
-  { pn:'9871246280', pnu:'9871246280', xpPn:'9871246280', desc:'SUPPORT FIXATION MOTEUR', supplier:'CONTINENTAL AUTOMOTIVE SRL', supplierSAP:'CONTINENTAL AUTOMOTIVE SRL', supplierCORAIL:'CONTINENTAL AUTOMOTIVE', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-D74-010', rda:'RDA-D74-010', status:'Active', opo:'VR13702114', sta:'E', del:220, toOrder:'', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', pilote:'Soukaina Bakkas', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q22 / PD 05.03 / DN / LR 24.02 : Confirmed delivery date from supplier', dateAjout:'2025-11-27', cr:{'KK067':22}, mrd:{'2026_S06':22}, ph:{X1:22} },
-  { pn:'9860194480', pnu:'9860194480', xpPn:'9860194480', desc:'PARE-CHOCS AVANT COMPLET', supplier:'PLASTIC OMNIUM', supplierSAP:'PLASTIC OMNIUM AUTO EXT', supplierCORAIL:'PLASTIC OMNIUM', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-D74-011', rda:'RDA-D74-011', status:'Active', opo:'VR13721008', sta:'', csa:'Need to confirm qty', del:550, toOrder:'', mag:'0780', dts:'2026-01-07', tr:'N', col:'N', pilote:'Hajar Akhazzan', shortComment:'APPRO/In Progress', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q55 / LR 23.02 : Waiting delivery date', dateAjout:'2026-01-27', cr:{'KK069':55}, mrd:{'2026_S07':55}, ph:{X2:55} },
+  { pn:'9875614880', pnu:'9875614880', xpPn:'9875614880', desc:'AMORTISSEUR DIRECTION AV G', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-001', status:'Active', opo:'VR13508152', sta:'E', csa:'Monitor delivery', mag:'0780', dts:'2025-09-02', tr:'Y', col:'N', qpo:45, del:450, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', pilote:'Fatima Z. Moustaghfir', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q45 / PD 15.03 / DN 458963 / LR 14.03 : Parts ready at supplier', pplComment:'Annual contract in place - KYB confirmed delivery', saComment:'OK - received on time', supplierCheckName:'KYB ADVANCED MFG SPAIN SA', totalReceived:450, ecartMag:0, dateAjout:'2025-11-05', cr:{'KK062':45,'KK067':18}, mrd:{'2026_S03':63}, ph:{X0:63} },
+  { pn:'9875615180', pnu:'9875615180', xpPn:'9875615180', desc:'AMORTISSEUR DIRECTION AV D', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-001', rda:'RDA-2024-002', status:'Active', opo:'VR13508152', sta:'E', csa:'', mag:'0780', dts:'2025-09-02', tr:'Y', col:'N', del:180, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', pilote:'Fatima Z. Moustaghfir', shortComment:'WAITING DELIVERY DATE', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q18 / LR 20.02 : Waiting supplier feedback', pplComment:'Standard', saComment:'OK', supplierCheckName:'KYB ADVANCED MFG SPAIN SA', totalReceived:180, ecartMag:0, dateAjout:'2025-11-05', cr:{'KK062':18}, mrd:{'2026_S03':18}, ph:{X0:18} },
+  { pn:'9875615480', pnu:'9875615480', xpPn:'9875615480', desc:'AMORTISSEUR DIRECTION AR G', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-003', status:'Active', opo:'VR13508152', sta:'O', csa:'Monitor delivery', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', del:940, toOrder:'', plaque:'', eta:'2026-03-05', etd:'2026-03-03', lastReminder:'20.02', pilote:'Fatima Z. Moustaghfir', shortComment:'ETA CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q94 / PD 05.03 / DN 775432 / LR 20.02 : Confirmed for next week delivery', pplComment:'PO sent 2026-02-13', saComment:'Monitor delivery', supplierCheckName:'KYB ADVANCED MFG SPAIN SA', totalReceived:0, ecartMag:940, dateAjout:'2025-11-05', cr:{'KK063':94}, mrd:{'2026_S05':94}, ph:{X1:94} },
+  { pn:'9875615780', pnu:'9875615780', xpPn:'9875615780', desc:'AMORTISSEUR DIRECTION AR D', supplier:'KYB ADVANCED MFG SPAIN SA', supplierSAP:'KYB ADVANCED MFG SPAIN SA', supplierCORAIL:'KYB ADVANCED MFG SPAIN', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-491-003', rda:'RDA-2024-004', status:'Pending', opo:'', sta:'', csa:'Confirm packaging dimensions', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', del:970, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'18.02', pilote:'Fatima Z. Moustaghfir', shortComment:'APPRO/In Progress', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q97 / LR 18.02 : Waiting delivery date confirmation', pplComment:'', saComment:'Confirm packaging dimensions', supplierCheckName:'KYB ADVANCED MFG SPAIN SA', totalReceived:0, ecartMag:970, dateAjout:'2025-11-27', cr:{'KK063':97}, mrd:{'2026_S05':97}, ph:{X1:97} },
+  { pn:'9860739680', pnu:'9860739680', xpPn:'9860739680', desc:'AGRAFE FIXATION MOTEUR G', supplier:'A. RAYMOND ITALIANA SRL', supplierSAP:'A. RAYMOND ITALIANA SRL', supplierCORAIL:'A. RAYMOND ITALIANA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'56', po:'VR-491-005', rda:'RDA-2024-005', status:'Active', opo:'VR13508153', sta:'E', del:780, toOrder:'', plaque:'', eta:'', etd:'', lastReminder:'', mag:'0780', dts:'2024-10-14', tr:'Y', col:'N', pilote:'Imane Aokass', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q78 / click 13.02 / DN 985421 / LR 13.02 : Received OK', pplComment:'', saComment:'OK', supplierCheckName:'A. RAYMOND ITALIANA SRL', totalReceived:780, ecartMag:0, dateAjout:'2025-11-05', cr:{'KK064':78}, mrd:{'2026_S02':78}, ph:{X0:78} },
+  { pn:'9860739880', pnu:'9860739880', xpPn:'9860739880', desc:'AGRAFE FIXATION MOTEUR D', supplier:'A. RAYMOND ITALIANA SRL', supplierSAP:'A. RAYMOND ITALIANA SRL', supplierCORAIL:'A. RAYMOND ITALIANA', proj:'D74', plant:'D74', darwin:'DARWIN', area:'56', po:'VR-491-005', sta:'E', del:340, toOrder:'', mag:'0780', dts:'2024-10-14', tr:'Y', col:'N', pilote:'Imane Aokass', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q34 / click 13.02 / DN 985422 / LR 13.02 : Received OK', pplComment:'', saComment:'OK', supplierCheckName:'A. RAYMOND ITALIANA SRL', totalReceived:340, ecartMag:0, dateAjout:'2025-11-05', cr:{'KK064':34}, mrd:{'2026_S02':34}, ph:{X0:34} },
+  { pn:'9879039380', pnu:'9879039380', xpPn:'9879039380', desc:'ENSEMBLE TABLEAU DE BORD', supplier:'Marelli Sosnowiec Poland Sp.', supplierSAP:'Marelli Sosnowiec Poland Sp.', supplierCORAIL:'Marelli Sosnowiec Poland', proj:'L74', plant:'L74', darwin:'DARWIN', area:'JIS', po:'VR-L74-001', rda:'RDA-L74-001', status:'Active', opo:'VR13616825', sta:'E', csa:'Partial delivery received', del:280, toOrder:'12', plaque:'L74 BEV', eta:'2026-03-09', etd:'2026-03-07', lastReminder:'24.02', mag:'0780', dts:'2025-11-25', tr:'Y', col:'N', pilote:'Hajar Akhazzan', shortComment:'PARTIAL CONFIRMED', keyWord:'CONFIRMED', appComment:'PARTIAL / PUS / First Qty Q16 / Pickup done on 21.02 / DN 226534 + Second Qty Q12 CONFIRMED / Pickup on 09.03 / Delivery date on 11.03 / DN / LR 24.02 : Waiting DN second qty', pplComment:'2nd delivery expected 03.03', saComment:'Partial delivery received', supplierCheckName:'Marelli Sosnowiec Poland Sp.', totalReceived:16, ecartMag:12, dateAjout:'2025-11-27', cr:{'KR036':28}, mrd:{'2026_S04':28}, ph:{X0:28} },
+  { pn:'9879039480', pnu:'9879039480', xpPn:'9879039480', desc:'PLANCHE DE BORD SUPERIEURE', supplier:'Marelli Sosnowiec Poland Sp.', supplierSAP:'Marelli Sosnowiec Poland Sp.', supplierCORAIL:'Marelli Sosnowiec Poland', proj:'L74', plant:'L74', darwin:'DARWIN', area:'JIS', po:'VR-L74-001', rda:'RDA-L74-002', status:'Active', opo:'VR13616825', sta:'E', csa:'Partial delivery received', del:280, toOrder:'12', mag:'0780', dts:'2025-11-25', tr:'Y', col:'N', pilote:'Hajar Akhazzan', shortComment:'PARTIAL CONFIRMED', keyWord:'CONFIRMED', appComment:'PARTIAL / PUS / First Qty Q16 / Pickup done on 21.02 / DN 226535 + Second Qty Q12 CONFIRMED / Pickup on 09.03 / Delivery date on 11.03 / DN / LR 24.02 : Waiting DN', pplComment:'', saComment:'Partial delivery received', supplierCheckName:'Marelli Sosnowiec Poland Sp.', totalReceived:16, ecartMag:12, dateAjout:'2025-11-27', cr:{'KR036':28}, mrd:{'2026_S04':28}, ph:{X0:28} },
+  { pn:'9874972480', pnu:'9874972480', xpPn:'9874972480', desc:'JOINT ETANCHEITE HABITACLE', supplier:'TREVES PRODUCTS SERVICES', supplierSAP:'TREVES PRODUCTS SERVICES', supplierCORAIL:'TREVES PRODUCTS SERVICES', proj:'L74', plant:'L74', darwin:'DARWIN', area:'89', po:'VR-L74-003', rda:'RDA-L74-003', status:'Active', opo:'VR13508184', sta:'E', del:930, toOrder:'', mag:'0780', dts:'2025-12-09', tr:'Y', col:'N', pilote:'Soukaina Bakkas', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q93 / PD 05.03 / DN / LR 19.02 : Parts ready, pickup planned', pplComment:'', saComment:'', supplierCheckName:'TREVES PRODUCTS SERVICES & INNOVAT', totalReceived:0, ecartMag:930, dateAjout:'2025-11-27', cr:{'KR048':93}, mrd:{'2026_S05':93}, ph:{X1:93} },
+  { pn:'9860763580', pnu:'9860763580', xpPn:'9860763580', desc:'ACTIONNEUR COMMANDE ELECT', supplier:'CEBI ITALY', supplierSAP:'CEBI ITALY SPA', supplierCORAIL:'CEBI ITALY', proj:'L74', plant:'L74', darwin:'TAXI', area:'JIS', po:'CPO-L74-001', rda:'RDA-L74-004', status:'Critical', opo:'GR2548675685', sta:'U', csa:'URGENT - ready for pickup', del:208, toOrder:'', plaque:'L74 X2', eta:'2026-02-28', etd:'2026-02-26', lastReminder:'25.02', mag:'0780', dts:'2026-01-07', tr:'Y', col:'N', pilote:'Saki Maryam', shortComment:'ETA CONFIRMED', keyWord:'ESCALATION', appComment:'ESCALATE PURCH Sarah MARTIN on 24.02 / PUS / Q208 / LR 25.02 : Parts ready, urgent pickup needed - assembly line at risk', pplComment:'Confirmed by PPL ABRAR', saComment:'URGENT - ready for pickup', supplierCheckName:'CEBI ITALY SPA', totalReceived:0, ecartMag:208, dateAjout:'2026-01-27', cr:{'KR174':208}, mrd:{'2026_S02':208}, ph:{X2:208} },
+  { pn:'9831983580', pnu:'9831983580', xpPn:'9831983580', desc:'CONNECTEUR FAISCEAU ELECT', supplier:'DELPHI TECHNOLOGIES', supplierSAP:'DELPHI TECHNOLOGIES INT.', supplierCORAIL:'DELPHI TECHNOLOGIES', proj:'D74', plant:'D74', darwin:'TAXI', area:'JIS', po:'CPO-D74-001', rda:'RDA-D74-001', status:'Done', opo:'GR24204D1A72', sta:'E', del:240, toOrder:'', mag:'0780', dts:'2025-09-23', tr:'Y', col:'N', pilote:'Salma Sargali', shortComment:'RECEIVED', keyWord:'RECEIVED', appComment:'RECEIVED / PUS / Q240 / click 20.02 / DN 664523 / LR 20.02 : All qty received OK', pplComment:'', saComment:'Done', supplierCheckName:'DELPHI TECHNOLOGIES INT.', totalReceived:240, ecartMag:0, dateAjout:'2025-11-05', cr:{'KK065':240}, mrd:{'2026_S01':240}, ph:{X0:240} },
+  { pn:'9871246280', pnu:'9871246280', xpPn:'9871246280', desc:'SUPPORT FIXATION MOTEUR', supplier:'CONTINENTAL AUTOMOTIVE SRL', supplierSAP:'CONTINENTAL AUTOMOTIVE SRL', supplierCORAIL:'CONTINENTAL AUTOMOTIVE', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-D74-010', rda:'RDA-D74-010', status:'Active', opo:'VR13702114', sta:'E', del:220, toOrder:'', mag:'0780', dts:'2025-10-07', tr:'Y', col:'N', pilote:'Soukaina Bakkas', shortComment:'CONFIRMED', keyWord:'CONFIRMED', appComment:'CONFIRMED / PUS / Q22 / PD 05.03 / DN / LR 24.02 : Confirmed delivery date from supplier', pplComment:'PO sent', saComment:'', supplierCheckName:'CONTINENTAL AUTOMOTIVE SRL', totalReceived:0, ecartMag:220, dateAjout:'2025-11-27', cr:{'KK067':22}, mrd:{'2026_S06':22}, ph:{X1:22} },
+  { pn:'9860194480', pnu:'9860194480', xpPn:'9860194480', desc:'PARE-CHOCS AVANT COMPLET', supplier:'PLASTIC OMNIUM', supplierSAP:'PLASTIC OMNIUM AUTO EXT', supplierCORAIL:'PLASTIC OMNIUM', proj:'D74', plant:'D74', darwin:'DARWIN', area:'JIS', po:'VR-D74-011', rda:'RDA-D74-011', status:'Active', opo:'VR13721008', sta:'', csa:'Need to confirm qty', del:550, toOrder:'', mag:'0780', dts:'2026-01-07', tr:'N', col:'N', pilote:'Hajar Akhazzan', shortComment:'APPRO/In Progress', keyWord:'PROBLEM', appComment:'APPRO/In Progress / SCH / Q55 / LR 23.02 : Waiting delivery date', pplComment:'', saComment:'Need to confirm qty', supplierCheckName:'PLASTIC OMNIUM AUTO EXT', totalReceived:0, ecartMag:550, dateAjout:'2026-01-27', cr:{'KK069':55}, mrd:{'2026_S07':55}, ph:{X2:55} },
 ];
 
 // Reception history data (per PN)
@@ -1425,6 +1464,11 @@ function initDashCharts() {
 // ════════════════════════════════════════════════════════════════
 function getFiltered() {
   let pts = [...ALL_PARTS];
+  // ── PERIMETER FILTER: non-admin sees only their own PNs ──
+  if(!IS_ADMIN && CU) {
+    const myName = CU.name;
+    pts = pts.filter(p => p.pilote && p.pilote.toLowerCase().includes(myName.split(' ')[0].toLowerCase()));
+  }
   const sup = document.getElementById('fSup')?.value;
   const phase = document.getElementById('fPhase')?.value;
   const mrd = document.getElementById('fMRD')?.value;
@@ -1437,6 +1481,27 @@ function getFiltered() {
   if(search) pts=pts.filter(p=>p.pn.includes(search)||p.desc.toLowerCase().includes(search)||p.supplier.toLowerCase().includes(search));
   if(PROJ_FILTER!=='ALL') pts=pts.filter(p=>p.proj===PROJ_FILTER);
   return pts;
+}
+
+function reassignPilote(pn, newPilote) {
+  if(!IS_ADMIN) { showToast('⚠ Admin only', 'error'); return; }
+  const p = ALL_PARTS.find(x=>x.pn===pn);
+  if(p && newPilote) {
+    const oldPilote = p.pilote;
+    p.pilote = newPilote;
+    showToast(`✓ PN ${pn} reassigned from ${oldPilote} to ${newPilote}`);
+    addLog(`Admin reassigned PN ${pn}: ${oldPilote} → ${newPilote}`);
+    renderNeeds(); renderSuppliers();
+  }
+}
+
+function bulkReassignSupplier(supplier, newPilote) {
+  if(!IS_ADMIN) { showToast('⚠ Admin only', 'error'); return; }
+  let count = 0;
+  ALL_PARTS.filter(p=>p.supplier===supplier).forEach(p=>{ p.pilote=newPilote; count++; });
+  showToast(`✓ ${count} PNs of ${supplier} assigned to ${newPilote}`);
+  addLog(`Admin bulk-reassigned: ${supplier} → ${newPilote} (${count} parts)`);
+  renderNeeds(); renderSuppliers(); renderPerimeters();
 }
 
 function renderNeeds() {
@@ -1556,20 +1621,27 @@ function openPartDetail(pn) {
             <tr><td>x-P PN</td><td class="mono">${p.xpPn||'—'}</td></tr>
             <tr><td>Description</td><td style="font-size:12px">${p.desc||'—'}</td></tr>
             <tr><td>Project</td><td><span class="bg ${p.proj==='L74'?'bg-ok':'bg-gold'}">${p.proj}</span></td></tr>
-            <tr><td>Area JIT</td><td>${p.area||'—'}</td></tr>
+            <tr><td>Area JIT</td><td class="mono">${p.area||'—'}</td></tr>
             <tr><td>Mag</td><td class="mono">${p.mag||'—'}</td></tr>
             <tr><td>DTS</td><td class="mono">${p.dts||'—'}</td></tr>
             <tr><td>Darwin</td><td><span class="bg ${p.darwin==='DARWIN'?'bg-done':'bg-pend'}">${p.darwin||'—'}</span></td></tr>
             <tr><td>Date Ajout</td><td class="mono">${p.dateAjout||'—'}</td></tr>
+            <tr><td style="color:var(--gold);font-weight:600">Ecart Magasin</td><td class="mono" style="color:${(p.ecartMag||0)>0?'var(--red)':'var(--green)'};font-weight:700">${(p.ecartMag||0)>0?'▲ '+p.ecartMag+' pcs missing':'✓ 0 — OK'}</td></tr>
           </table>
         </div>
         <div>
           <div class="flb">SUPPLIER INFO</div>
           <table class="dtl" style="width:100%;margin-bottom:12px">
             <tr><td>Supplier</td><td style="font-weight:700">${p.supplier||'—'}</td></tr>
-            <tr><td>SAP Check</td><td style="font-size:11px;color:var(--dim)">${p.supplierSAP||'—'}</td></tr>
-            <tr><td>CORAIL Check</td><td style="font-size:11px;color:var(--dim)">${p.supplierCORAIL||'—'}</td></tr>
-            <tr><td>Pilote</td><td>${p.pilote||'—'}</td></tr>
+            <tr><td>Supplier Check (SAP)</td><td style="font-size:11px">${p.supplierSAP||p.supplierCheckName||'—'}</td></tr>
+            <tr><td>Supplier Check (CORAIL)</td><td style="font-size:11px">${p.supplierCORAIL||'—'}</td></tr>
+            <tr><td>Pilote / PPL</td><td style="font-weight:600;color:var(--cyan)">${p.pilote||'—'}</td></tr>
+            ${IS_ADMIN?`<tr><td>Reassign To</td><td><select id="reassign-${p.pn}" onchange="reassignPilote('${p.pn}',this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:10px;border-radius:2px"><option value="">— Select —</option>${team.map(t=>`<option value="${t.name}" ${p.pilote===t.name?'selected':''}>${t.name}</option>`).join('')}</select></td></tr>`:''}
+          </table>
+          <div class="flb">PPL & SA COMMENTS</div>
+          <table class="dtl" style="width:100%;margin-bottom:12px">
+            <tr><td style="color:var(--cyan);font-weight:600">PPL Comment</td><td style="font-size:11px;color:var(--text)">${p.pplComment||'—'}</td></tr>
+            <tr><td style="color:var(--gold);font-weight:600">SA Comment</td><td style="font-size:11px;color:var(--text)">${p.saComment||p.csa||'—'}</td></tr>
           </table>
           <div class="flb">STATUS & PO</div>
           <table class="dtl" style="width:100%">
@@ -1577,7 +1649,9 @@ function openPartDetail(pn) {
             <tr><td>Open PO</td><td class="mono" style="color:var(--cyan)">${p.opo||'—'}</td></tr>
             <tr><td>PO (491/CPO)</td><td class="mono">${p.po||'—'}</td></tr>
             <tr><td>RDA Ref</td><td class="mono">${p.rda||'—'}</td></tr>
-            <tr><td>Total Delivery</td><td class="mono" style="color:var(--green)">${(p.del||0).toLocaleString()}</td></tr>
+            <tr><td>Total Delivery (ordered)</td><td class="mono" style="color:var(--cyan)">${(p.del||0).toLocaleString()}</td></tr>
+            <tr><td style="color:var(--green);font-weight:600">Total Received</td><td class="mono" style="color:var(--green);font-weight:700">${(p.totalReceived||0).toLocaleString()} pcs</td></tr>
+            <tr><td style="color:${(p.ecartMag||0)>0?'var(--red)':'var(--dim)'};font-weight:600">Écart Magasin</td><td class="mono" style="color:${(p.ecartMag||0)>0?'var(--red)':'var(--green)'};font-weight:700">${(p.ecartMag||0)>0?'▲ '+(p.ecartMag||0)+' pcs':'✓ 0'}</td></tr>
             <tr><td>To Order</td><td class="mono" style="color:var(--orange)">${p.toOrder||'—'}</td></tr>
             <tr><td>Transferred</td><td><span class="bg ${p.tr==='Y'?'bg-done':'bg-pend'}">${p.tr||'—'}</span></td></tr>
           </table>
@@ -2360,8 +2434,12 @@ function parseOrderingFile(wb, fileName, statusEl) {
     PROJ: 1, PN: 3, PNU: 4, XP_PN: 5, DESC: 6, COL_FLAG: 7,
     AREA: 8, SUPPLIER: 9, SUPPLIER_SAP: 10, SUPPLIER_CORAIL: 11, MAG: 12,
     PO: 13, OPO: 14, DARWIN: 17, STATUS_CORAIL: 28, DTS: 29,
-    TRANSFERRED: 30, TOTAL_DEL: 31, CAT_X1: 179, SHORT_CMT: 180,
-    KEYWORD: 181, APPRO_CMT: 182, TO_ORDER: 196, PLAQUE: 197,
+    TRANSFERRED: 30, TOTAL_DEL: 31, ECART_MAG: 36,
+    CAT_X1: 179, SHORT_CMT: 180,
+    KEYWORD: 181, APPRO_CMT: 182,
+    TOTAL_REC_X0: 187, TOTAL_REC_X1: 188, TOTAL_REC_X2: 189, TOTAL_REC_X3: 190,
+    SA_CMT: 193,
+    TO_ORDER: 196, PLAQUE: 197,
     ETA: 198, ETD: 200, LAST_REMINDER: 201, DATE_AJOUT: 203, PILOTE: 205
   };
 
@@ -2413,6 +2491,11 @@ function parseOrderingFile(wb, fileName, statusEl) {
       lastReminder: row[COL.LAST_REMINDER] ? String(row[COL.LAST_REMINDER]).trim() : '',
       dateAjout: fmtDate(row[COL.DATE_AJOUT]),
       pilote: row[COL.PILOTE] ? String(row[COL.PILOTE]).trim() : '',
+      ecartMag: parseFloat(row[COL.ECART_MAG]) || 0,
+      totalReceived: (parseFloat(row[COL.TOTAL_REC_X0])||0) + (parseFloat(row[COL.TOTAL_REC_X1])||0) + (parseFloat(row[COL.TOTAL_REC_X2])||0) + (parseFloat(row[COL.TOTAL_REC_X3])||0),
+      saComment: row[COL.SA_CMT] ? String(row[COL.SA_CMT]).trim() : '',
+      supplierCheckName: row[COL.SUPPLIER_SAP] ? String(row[COL.SUPPLIER_SAP]).trim() : '',
+      pplComment: '',
       cr: {}, mrd: {}, ph: {}
     };
 
@@ -2486,8 +2569,80 @@ function saveEditPart(pn){
 }
 
 // ════════════════════════════════════════════════════════════════
-//  EXPORTS
+//  MANUAL NEED ENTRY
 // ════════════════════════════════════════════════════════════════
+function openAddNeed() {
+  const pnSel = document.getElementById('an-pn2');
+  if(pnSel) {
+    pnSel.innerHTML = '<option value="">— Select PN —</option>';
+    const myParts = IS_ADMIN ? ALL_PARTS : ALL_PARTS.filter(p=>p.pilote && p.pilote.toLowerCase().includes((CU?.name||'').split(' ')[0].toLowerCase()));
+    myParts.forEach(p=>{ pnSel.innerHTML+=`<option value="${p.pn}">${p.pn} — ${p.desc.slice(0,35)}</option>`; });
+  }
+  const crSel = document.getElementById('an-cr2');
+  if(crSel) {
+    crSel.innerHTML = '<option value="">— Select CR —</option>';
+    [...counterMarks_L74,...counterMarks_D74].forEach(cr=>{ crSel.innerHTML+=`<option value="${cr}">${cr}</option>`; });
+  }
+  const mrdSel = document.getElementById('an-mrd2');
+  if(mrdSel) {
+    mrdSel.innerHTML = '<option value="">— Select MRD —</option>';
+    mrds.forEach(m=>{ mrdSel.innerHTML+=`<option value="${m}">${m}</option>`; });
+  }
+  openMo('mo-add-need');
+}
+function openBulkReassign() {
+  if(!IS_ADMIN) { showToast('⚠ Admin only','error'); return; }
+  const supSel = document.getElementById('br-sup');
+  const pilSel = document.getElementById('br-pilote');
+  if(supSel) {
+    supSel.innerHTML = '<option value="">— Select supplier —</option>';
+    [...new Set(ALL_PARTS.map(p=>p.supplier).filter(Boolean))].sort().forEach(s=>{ supSel.innerHTML+=`<option value="${s}">${s}</option>`; });
+  }
+  if(pilSel) {
+    pilSel.innerHTML = '<option value="">— Select officer —</option>';
+    team.forEach(t=>{ pilSel.innerHTML+=`<option value="${t.name}">${t.name} (${t.proj})</option>`; });
+  }
+  document.getElementById('br-preview').style.display='none';
+  openMo('mo-bulk-reassign');
+}
+function previewBulkReassign() {
+  const sup = document.getElementById('br-sup')?.value;
+  const pil = document.getElementById('br-pilote')?.value;
+  const prev = document.getElementById('br-preview');
+  if(!sup || !pil || !prev) return;
+  const pts = ALL_PARTS.filter(p=>p.supplier===sup);
+  prev.style.display='block';
+  prev.innerHTML = `<span style="color:var(--cyan)">Preview:</span> <strong>${pts.length} PNs</strong> of <strong>${sup}</strong> → <strong style="color:var(--gold)">${pil}</strong>`;
+}
+function dosBulkReassign() {
+  const sup = document.getElementById('br-sup')?.value;
+  const pil = document.getElementById('br-pilote')?.value;
+  if(!sup || !pil) { showToast('⚠ Select supplier and officer','error'); return; }
+  bulkReassignSupplier(sup, pil);
+  closeMo('mo-bulk-reassign');
+}
+function saveManualNeed() {
+  const pn = document.getElementById('an-pn2')?.value;
+  const cr = document.getElementById('an-cr2')?.value;
+  const mrd = document.getElementById('an-mrd2')?.value;
+  const qty = parseInt(document.getElementById('an-qty2')?.value)||0;
+  const phase = document.getElementById('an-phase2')?.value || 'X0';
+  if(!pn||!cr||!qty){ showToast('⚠ PN, Counter Mark & Qty required','error'); return; }
+  const p = ALL_PARTS.find(x=>x.pn===pn);
+  if(!p){ showToast('⚠ PN not found','error'); return; }
+  // Add to cr
+  p.cr[cr] = (p.cr[cr]||0) + qty;
+  // Add to mrd
+  if(mrd) p.mrd[mrd] = (p.mrd[mrd]||0) + qty;
+  // Add to phase
+  p.ph[phase] = (p.ph[phase]||0) + qty;
+  // Update CR_META
+  CR_META[cr] = { mrd: mrd||Object.keys(p.mrd)[0]||'UNK', phase, dd:'' };
+  closeMo('mo-add-need');
+  showToast(`✓ Need added: PN ${pn} / CR ${cr} / Q${qty}`);
+  addLog(`Manual need added: PN ${pn} → CR ${cr} / MRD ${mrd} / Phase ${phase} / Q${qty}`);
+  renderNeeds(); updateDashKPIs(); updateNeedsBadge();
+}
 function exportNeedsExcel() {
   if(typeof XLSX==='undefined'){ showToast('⚠ XLSX library not loaded','error'); return; }
   const data=ALL_PARTS.filter(p=>Object.values(p.cr||{}).some(q=>q>0)).map(p=>({PN:p.pn,Description:p.desc,Supplier:p.supplier,Plant:p.plant,Project:p.proj,TotalNeed:Object.values(p.cr||{}).reduce((a,q)=>a+q,0),OpenPO:p.opo||'',Status:p.sta||'',SaComment:p.csa||''}));
