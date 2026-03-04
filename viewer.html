@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProcureOS — File Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0D0F14;--surface:#13161E;--surface2:#1A1E29;--border:#2A2F3F;
+  --text:#E8EAF0;--muted:#8B91A8;--cyan:#00D4FF;--green:#00E5A0;
+  --orange:#FF9500;--red:#FF4757;--yellow:#FFD60A;--purple:#B66CFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;overflow:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+/* ── TOP BAR ── */
+#topbar{
+  height:50px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0;
+}
+.logo{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--cyan);letter-spacing:.08em;display:flex;align-items:center;gap:8px}
+.logo-box{width:24px;height:24px;background:var(--cyan);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#000}
+.sep{width:1px;height:22px;background:var(--border)}
+#file-badge{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;cursor:pointer;transition:all .15s}
+#file-badge:hover{border-color:var(--cyan);color:var(--cyan)}
+#stats-bar{margin-left:auto;display:flex;gap:10px;align-items:center}
+.stat-pill{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 9px}
+.stat-pill span{color:var(--text);font-weight:600}
+
+/* ── LAYOUT ── */
+#layout{display:flex;height:calc(100vh - 50px);overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sidebar{
+  width:300px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+#search-wrap{padding:12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.search-inp{
+  background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+  padding:8px 12px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px;
+  outline:none;width:100%;transition:border .15s;
+}
+.search-inp:focus{border-color:var(--cyan)}
+.search-inp::placeholder{color:var(--muted)}
+.filter-row{display:flex;gap:6px}
+.filter-btn{
+  flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  color:var(--muted);font-size:10px;font-family:'IBM Plex Mono',monospace;
+  padding:5px 8px;cursor:pointer;transition:all .15s;text-align:center;
+}
+.filter-btn.active{background:rgba(0,212,255,.12);color:var(--cyan);border-color:rgba(0,212,255,.4)}
+#pn-list{flex:1;overflow-y:auto;padding:6px}
+.pn-item{
+  padding:9px 11px;border-radius:7px;cursor:pointer;transition:background .1s;
+  border-bottom:1px solid rgba(42,47,63,.4);
+}
+.pn-item:last-child{border-bottom:none}
+.pn-item:hover{background:var(--surface2)}
+.pn-item.selected{background:rgba(0,212,255,.1);border-left:2px solid var(--cyan)}
+.pni-pn{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--cyan)}
+.pni-desc{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pni-meta{display:flex;gap:6px;margin-top:4px;align-items:center}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px}
+.tag-l74{background:rgba(0,212,255,.15);color:var(--cyan);border:1px solid rgba(0,212,255,.3)}
+.tag-d74{background:rgba(255,149,0,.15);color:var(--orange);border:1px solid rgba(255,149,0,.3)}
+.tag-comm{background:rgba(139,145,168,.12);color:var(--muted);border:1px solid rgba(139,145,168,.25)}
+.tag-spec{background:rgba(182,108,255,.15);color:var(--purple);border:1px solid rgba(182,108,255,.3)}
+
+/* ── MAIN ── */
+#main{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg)}
+
+/* ── UPLOAD SCREEN ── */
+#upload-screen{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:40px;
+}
+.drop-zone{
+  border:2px dashed var(--border);border-radius:14px;padding:60px 80px;text-align:center;
+  cursor:pointer;transition:all .2s;position:relative;max-width:560px;width:100%;
+}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--cyan);background:rgba(0,212,255,.04)}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-icon{font-size:52px;margin-bottom:16px;opacity:.35}
+.dz-title{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px}
+.dz-sub{font-size:12px;color:var(--muted)}
+.dz-formats{margin-top:14px;display:flex;gap:8px;justify-content:center}
+.fmt-badge{background:var(--surface2);border:1px solid var(--border);border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);padding:3px 8px}
+#upload-progress{width:100%;max-width:560px}
+.prog-bar{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-top:8px}
+.prog-fill{height:100%;background:var(--cyan);border-radius:2px;width:0;transition:width .4s ease}
+#prog-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-align:center;margin-top:6px}
+
+/* ── PN DETAIL ── */
+#pn-detail{flex:1;padding:20px;display:none;overflow-y:auto}
+#detail-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--muted);font-size:13px}
+
+/* info card */
+.detail-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px}
+.dh-pn{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--cyan);line-height:1}
+.dh-desc{font-size:13px;color:var(--text);margin-top:4px}
+.dh-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.dh-right{margin-left:auto;text-align:right}
+.dh-supplier{font-size:11px;color:var(--muted)}
+.dh-supplier strong{color:var(--text)}
+
+/* section */
+.section{margin-bottom:18px}
+.section-title{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.1em;
+  margin-bottom:10px;display:flex;align-items:center;gap:6px;
+}
+.section-title::before{content:'';width:3px;height:12px;background:var(--cyan);border-radius:2px;display:inline-block}
+
+/* info grid */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.info-cell{
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:11px 14px;
+}
+.ic-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;margin-bottom:4px}
+.ic-val{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);word-break:break-all}
+.ic-val.cyan{color:var(--cyan)}
+.ic-val.green{color:var(--green)}
+.ic-val.orange{color:var(--orange)}
+.ic-val.red{color:var(--red)}
+.ic-val.muted{color:var(--muted);font-weight:400}
+
+/* needs table */
+.needs-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+.needs-table{width:100%;border-collapse:collapse;font-size:11px;font-family:'IBM Plex Mono',monospace}
+.needs-table th{
+  background:var(--surface2);padding:8px 12px;text-align:left;
+  font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;
+  border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:5;
+}
+.needs-table td{
+  padding:8px 12px;border-bottom:1px solid rgba(42,47,63,.4);
+  color:var(--text);vertical-align:top;
+}
+.needs-table tr:last-child td{border-bottom:none}
+.needs-table tr:hover td{background:rgba(26,30,41,.5)}
+.needs-table td.num{color:var(--green);font-weight:600;text-align:right}
+.needs-table td.num.neg{color:var(--red)}
+.needs-table td.num.zero{color:var(--muted)}
+.needs-table td.date-col{color:var(--muted);font-size:10px}
+.period-badge{
+  display:inline-flex;align-items:center;background:rgba(0,212,255,.1);
+  color:var(--cyan);border:1px solid rgba(0,212,255,.25);border-radius:4px;
+  padding:1px 6px;font-size:9px;font-weight:600;
+}
+.period-badge.mrd{background:rgba(0,229,160,.1);color:var(--green);border-color:rgba(0,229,160,.25)}
+
+/* all columns table (scrollable) */
+.all-cols-wrap{overflow:auto;max-height:400px;border-radius:8px;border:1px solid var(--border)}
+.all-cols-table{border-collapse:collapse;font-size:11px}
+.all-cols-table th{background:var(--surface2);padding:7px 12px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
+.all-cols-table td{padding:7px 12px;border-bottom:1px solid rgba(42,47,63,.4);color:var(--text);font-size:11px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.all-cols-table tr:hover td{background:rgba(26,30,41,.5)}
+
+/* tabs */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;gap:0}
+.tab{padding:9px 16px;font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;background:transparent;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;font-family:'IBM Plex Sans',sans-serif}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tab:hover{color:var(--text)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* loading */
+#loading-overlay{
+  position:fixed;inset:0;background:rgba(13,15,20,.92);z-index:900;
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;
+}
+.spinner{width:32px;height:32px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+
+/* empty list */
+.empty-list{text-align:center;padding:40px 20px;color:var(--muted);font-size:12px}
+
+/* toast */
+#toasts{position:fixed;bottom:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px 14px;font-size:11px;min-width:240px;display:flex;align-items:center;gap:8px;transform:translateX(120%);transition:transform .28s cubic-bezier(.175,.885,.32,1.275);box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.toast.show{transform:translateX(0)}
+.toast.success{border-left:2px solid var(--green)}
+.toast.error{border-left:2px solid var(--red)}
+.toast.info{border-left:2px solid var(--cyan)}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .2s ease}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="logo"><div class="logo-box">P</div>ProcureOS</div>
+  <div class="sep"></div>
+  <div id="file-badge" onclick="document.getElementById('topbar-file').click()">📂 Upload file…</div>
+  <input type="file" id="topbar-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileInput(this.files[0])">
+  <div id="stats-bar">
+    <div class="stat-pill">PNs <span id="stat-pns">—</span></div>
+    <div class="stat-pill">Periods <span id="stat-periods">—</span></div>
+    <div class="stat-pill">File <span id="stat-file">none</span></div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div id="layout">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div id="search-wrap">
+      <input class="search-inp" id="pn-search" placeholder="🔍  Search PN or description…" oninput="filterList()">
+      <div class="filter-row">
+        <div class="filter-btn active" id="f-all" onclick="setFilter('all')">All</div>
+        <div class="filter-btn" id="f-l74" onclick="setFilter('l74')">L74</div>
+        <div class="filter-btn" id="f-d74" onclick="setFilter('d74')">D74</div>
+        <div class="filter-btn" id="f-comm" onclick="setFilter('comm')">Commun</div>
+      </div>
+    </div>
+    <div id="pn-list"><div class="empty-list">Upload a file to browse parts</div></div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="upload-screen">
+      <div class="drop-zone" id="drop-zone"
+        ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"
+        onclick="document.getElementById('file-inp').click()">
+        <input type="file" id="file-inp" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileInput(this.files[0])">
+        <div class="dz-icon">⬆</div>
+        <div class="dz-title">Drop your procurement file here</div>
+        <div class="dz-sub">Click to browse — the file is processed entirely in your browser</div>
+        <div class="dz-formats">
+          <span class="fmt-badge">.xlsx</span>
+          <span class="fmt-badge">.xls</span>
+          <span class="fmt-badge">.csv</span>
+        </div>
+      </div>
+      <div id="upload-progress" style="display:none">
+        <div id="prog-label">Reading file…</div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+      </div>
+    </div>
+
+    <div id="detail-empty" style="display:none">
+      <div style="font-size:32px;opacity:.25">◎</div>
+      <div>Select a part from the list</div>
+    </div>
+
+    <div id="pn-detail"></div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loading-msg">Processing file…</div>
+</div>
+
+<!-- TOASTS -->
+<div id="toasts"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+let allRows = [];       // parsed row objects
+let filteredPNs = [];   // [{pn, row}] for sidebar
+let currentFilter = 'all';
+let headerCols = [];    // [{idx, name}] full header
+let needsCols = [];     // [{idx, name, period, batch}] needs/period cols
+let infoCols = [];      // [{idx, name}] non-needs info cols
+
+// ── FILE HANDLING ──────────────────────────────────────
+function dzOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('drag-over')}
+function dzLeave(){document.getElementById('drop-zone').classList.remove('drag-over')}
+function dzDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if(f) handleFileInput(f);
+}
+
+function handleFileInput(file){
+  if(!file) return;
+  showLoading('Reading file…');
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      let wb;
+      if(ext === 'csv'){
+        wb = XLSX.read(e.target.result, {type:'string', raw:false});
+      } else {
+        wb = XLSX.read(e.target.result, {type:'binary', cellDates:true, raw:false});
+      }
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      setLoadingMsg('Parsing rows…');
+      setTimeout(()=>parseSheet(ws, file.name), 30);
+    } catch(err){
+      hideLoading();
+      toast('Failed to read file: '+err.message, 'error');
+    }
+  };
+  if(ext === 'csv') reader.readAsText(file);
+  else reader.readAsBinaryString(file);
+}
+
+// ── PARSE ─────────────────────────────────────────────
+function parseSheet(ws, filename){
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  const maxRow = range.e.r + 1;
+  const maxCol = range.e.c + 1;
+
+  // Find header row: the row that has "PN" in one cell
+  let headerRowIdx = -1;
+  let pnColIdx = -1;
+  for(let r = 0; r < Math.min(20, maxRow); r++){
+    for(let c = 0; c < Math.min(60, maxCol); c++){
+      const cell = ws[XLSX.utils.encode_cell({r,c})];
+      if(cell && String(cell.v||'').trim().toUpperCase() === 'PN'){
+        headerRowIdx = r;
+        pnColIdx = c;
+        break;
+      }
+    }
+    if(headerRowIdx >= 0) break;
+  }
+
+  if(headerRowIdx < 0){
+    hideLoading();
+    toast('Could not find header row (looking for "PN" column)', 'error');
+    return;
+  }
+
+  // Build header index
+  headerCols = [];
+  for(let c = 0; c < maxCol; c++){
+    const cell = ws[XLSX.utils.encode_cell({r:headerRowIdx, c})];
+    const name = cell ? String(cell.v||'').trim() : '';
+    headerCols.push({idx:c, name});
+  }
+
+  // Identify needs/period columns vs info columns
+  // Needs columns are the per-period/per-batch quantity columns
+  // They follow patterns like "Besoin L74 2025_S35", "Besoins S26", "To order ...", "Stock fin ...", "Dbproto ..."
+  const NEEDS_PATTERN = /besoin|to order|stock fin|dbproto/i;
+  const SKIP_PATTERN = /Besoins augmenté|Total de besoins|Total besoin avant|Total X[0-9]|Total needs/i;
+  needsCols = [];
+  infoCols = [];
+
+  for(let i = 0; i < headerCols.length; i++){
+    const n = headerCols[i].name;
+    if(!n) continue;
+    if(NEEDS_PATTERN.test(n) && !SKIP_PATTERN.test(n)){
+      needsCols.push({idx:i, name:n});
+    } else {
+      infoCols.push({idx:i, name:n});
+    }
+  }
+
+  // Parse data rows
+  setLoadingMsg('Loading parts data…');
+  allRows = [];
+  const dataStart = headerRowIdx + 1;
+
+  for(let r = dataStart; r < maxRow; r++){
+    const pnCell = ws[XLSX.utils.encode_cell({r, c:pnColIdx})];
+    const pnVal = pnCell ? String(pnCell.v||'').trim() : '';
+    if(!pnVal || pnVal === '' || pnVal === '#N/A') continue;
+
+    const row = {_rowNum: r+1};
+    for(let c = 0; c < Math.min(maxCol, headerCols.length); c++){
+      const key = headerCols[c].name || `_col${c}`;
+      const cell = ws[XLSX.utils.encode_cell({r, c})];
+      if(cell){
+        let v = cell.v;
+        // Format dates
+        if(cell.t === 'd' && v instanceof Date){
+          v = v.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+        } else if(cell.t === 'd'){
+          // SheetJS serial date
+          v = XLSX.SSF.format('DD/MM/YYYY', v);
+        }
+        row[key] = v !== null && v !== undefined ? v : '';
+      } else {
+        row[key] = '';
+      }
+    }
+    allRows.push(row);
+  }
+
+  setLoadingMsg('Building index…');
+  setTimeout(()=>{
+    buildUI(filename);
+    hideLoading();
+  }, 40);
+}
+
+function getVal(row, colName){
+  return row[colName] !== undefined ? row[colName] : '';
+}
+
+// ── BUILD UI ──────────────────────────────────────────
+function buildUI(filename){
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('detail-empty').style.display = 'flex';
+  document.getElementById('pn-detail').style.display = 'none';
+
+  document.getElementById('stat-pns').textContent = allRows.length;
+  document.getElementById('stat-periods').textContent = needsCols.length;
+  document.getElementById('stat-file').textContent = filename.split('/').pop().split('\\').pop();
+  document.getElementById('file-badge').textContent = '📂 ' + filename.split('/').pop().split('\\').pop().replace(/\.[^.]+$/, '');
+
+  filterList();
+  toast(`Loaded ${allRows.length} parts, ${needsCols.length} need columns`, 'success');
+}
+
+// ── SIDEBAR LIST ──────────────────────────────────────
+function setFilter(f){
+  currentFilter = f;
+  ['all','l74','d74','comm'].forEach(x=>{
+    document.getElementById('f-'+x).classList.toggle('active', x===f);
+  });
+  filterList();
+}
+
+function filterList(){
+  const q = (document.getElementById('pn-search').value||'').toLowerCase().trim();
+  const listEl = document.getElementById('pn-list');
+
+  if(!allRows.length){
+    listEl.innerHTML = '<div class="empty-list">Upload a file to browse parts</div>';
+    return;
+  }
+
+  let rows = allRows.filter(r=>{
+    const pn = String(getVal(r,'PN')||'').toLowerCase();
+    const desc = String(getVal(r,'Descrizione')||getVal(r,'Description Pièce')||'').toLowerCase();
+    const variant = String(getVal(r,'D74 / L74')||'').toLowerCase();
+    const type = String(getVal(r,'Type')||'').toLowerCase();
+
+    if(q && !pn.includes(q) && !desc.includes(q)) return false;
+
+    if(currentFilter === 'l74' && !variant.includes('l74')) return false;
+    if(currentFilter === 'd74' && !variant.includes('d74')) return false;
+    if(currentFilter === 'comm' && !type.includes('commun')) return false;
+    return true;
+  });
+
+  if(!rows.length){
+    listEl.innerHTML = '<div class="empty-list">No parts match your search</div>';
+    return;
+  }
+
+  listEl.innerHTML = rows.slice(0,500).map(r=>{
+    const pn = esc(String(getVal(r,'PN')||''));
+    const desc = esc(String(getVal(r,'Descrizione')||getVal(r,'Description Pièce')||'—').substring(0,60));
+    const variant = String(getVal(r,'D74 / L74')||'').toUpperCase();
+    const type = String(getVal(r,'Type')||'').toLowerCase();
+    const tagV = variant ? `<span class="tag tag-${variant.toLowerCase().replace('/','').replace(' ','')}">${variant}</span>` : '';
+    const tagT = type === 'commun' ? `<span class="tag tag-comm">COMMUN</span>` : type ? `<span class="tag tag-spec">${esc(type.toUpperCase())}</span>` : '';
+    return `<div class="pn-item" data-pn="${pn}" onclick="showPN(this,'${pn}')">
+      <div class="pni-pn">${pn}</div>
+      <div class="pni-desc">${desc}</div>
+      <div class="pni-meta">${tagV}${tagT}</div>
+    </div>`;
+  }).join('');
+
+  if(rows.length > 500){
+    listEl.innerHTML += `<div class="empty-list" style="font-size:10px">Showing 500 of ${rows.length} — refine search</div>`;
+  }
+}
+
+// ── PN DETAIL ─────────────────────────────────────────
+function showPN(el, pnStr){
+  document.querySelectorAll('.pn-item').forEach(x=>x.classList.remove('selected'));
+  if(el) el.classList.add('selected');
+
+  const row = allRows.find(r => String(getVal(r,'PN')||'') === pnStr);
+  if(!row){ toast('Part not found', 'error'); return; }
+
+  document.getElementById('detail-empty').style.display = 'none';
+  const detail = document.getElementById('pn-detail');
+  detail.style.display = 'block';
+  detail.innerHTML = buildDetailHTML(row);
+  detail.classList.add('fade-in');
+  detail.scrollTop = 0;
+  initTabs(detail);
+}
+
+function buildDetailHTML(row){
+  const pn = esc(String(getVal(row,'PN')||''));
+  const desc = esc(String(getVal(row,'Descrizione')||getVal(row,'Description Pièce')||'—'));
+  const variant = String(getVal(row,'D74 / L74')||'').toUpperCase();
+  const type = String(getVal(row,'Type')||'');
+  const supplier = esc(String(getVal(row,'SUPPLIER')||'').replace(/^\d+\s+/,''));
+  const area = esc(String(getVal(row,'Area_JIT')||getVal(row,'Area JIT')||'—'));
+  const mag = esc(String(getVal(row,'Mag')||'—'));
+  const totalDel = getVal(row,'Total Delivery');
+  const totalDelPos = getVal(row,'Total Delivery >0');
+  const dateStock = esc(String(getVal(row,'Date Stock')||'—'));
+  const statut = esc(String(getVal(row,'Statut (extract Corail)')||'—'));
+  const dts = esc(String(getVal(row,'DTS (extract Corail)')||'—'));
+  const commentSA = esc(String(getVal(row,'Commentaire SA ')||''));
+  const pnUncolored = esc(String(getVal(row,'P/N Uncolored')||'—'));
+  const xpPN = esc(String(getVal(row,'x-P PN')||'—'));
+  const colorato = esc(String(getVal(row,'Colorato')||'—'));
+  const ecart = fmtNum(getVal(row,'Ecart magasin'));
+  const openPO = esc(String(getVal(row,'Numb.open PO ')||'—'));
+
+  const tagV = variant ? `<span class="tag tag-${variant.toLowerCase().replace(/[^a-z0-9]/g,'')}">${variant}</span>` : '';
+  const tagT = type.toLowerCase()==='commun' ? `<span class="tag tag-comm">COMMUN</span>` : type ? `<span class="tag tag-spec">${esc(type.toUpperCase())}</span>` : '';
+
+  // ─ Build needs sections grouped by batch/period
+  const needsHTML = buildNeedsHTML(row);
+
+  // ─ Build all raw columns
+  const allColsHTML = buildAllColsHTML(row);
+
+  return `
+  <div class="detail-header">
+    <div>
+      <div class="dh-pn">${pn}</div>
+      <div class="dh-desc">${desc}</div>
+      <div class="dh-tags">${tagV}${tagT}</div>
+    </div>
+    <div class="dh-right">
+      <div class="dh-supplier"><strong>${supplier||'—'}</strong></div>
+      <div class="dh-supplier" style="margin-top:3px">Area: <strong>${area}</strong> · Mag: <strong>${mag}</strong></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="needs">Needs / Periods</button>
+    <button class="tab" data-tab="raw">All Columns</button>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div class="tab-panel active" data-panel="overview">
+    <div class="section">
+      <div class="section-title">Part Info</div>
+      <div class="info-grid">
+        <div class="info-cell"><div class="ic-label">PN (SCALARE)</div><div class="ic-val cyan">${pn}</div></div>
+        <div class="info-cell"><div class="ic-label">P/N Uncolored</div><div class="ic-val">${pnUncolored}</div></div>
+        <div class="info-cell"><div class="ic-label">x-P PN</div><div class="ic-val">${xpPN}</div></div>
+        <div class="info-cell"><div class="ic-label">Colorato</div><div class="ic-val">${colorato}</div></div>
+        <div class="info-cell"><div class="ic-label">Variant</div><div class="ic-val cyan">${variant||'—'}</div></div>
+        <div class="info-cell"><div class="ic-label">Type</div><div class="ic-val">${esc(type||'—')}</div></div>
+        <div class="info-cell"><div class="ic-label">Area JIT</div><div class="ic-val">${area}</div></div>
+        <div class="info-cell"><div class="ic-label">Mag</div><div class="ic-val">${mag}</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Supply & Delivery</div>
+      <div class="info-grid">
+        <div class="info-cell"><div class="ic-label">Supplier</div><div class="ic-val" style="font-size:11px">${supplier||'—'}</div></div>
+        <div class="info-cell"><div class="ic-label">Open PO</div><div class="ic-val green">${openPO}</div></div>
+        <div class="info-cell"><div class="ic-label">Total Delivery</div><div class="ic-val ${colorNum(totalDel)}">${fmtNum(totalDel)}</div></div>
+        <div class="info-cell"><div class="ic-label">Total Delivery >0</div><div class="ic-val ${colorNum(totalDelPos)}">${fmtNum(totalDelPos)}</div></div>
+        <div class="info-cell"><div class="ic-label">Écart Magasin</div><div class="ic-val ${colorNum(ecart)}">${ecart}</div></div>
+        <div class="info-cell"><div class="ic-label">Date Stock</div><div class="ic-val muted">${dateStock}</div></div>
+        <div class="info-cell"><div class="ic-label">Statut Corail</div><div class="ic-val">${statut}</div></div>
+        <div class="info-cell"><div class="ic-label">DTS Corail</div><div class="ic-val muted">${dts}</div></div>
+      </div>
+    </div>
+
+    ${commentSA ? `<div class="section">
+      <div class="section-title">SA Comment</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.6">${commentSA}</div>
+    </div>` : ''}
+  </div>
+
+  <!-- NEEDS TAB -->
+  <div class="tab-panel" data-panel="needs">
+    ${needsHTML}
+  </div>
+
+  <!-- RAW TAB -->
+  <div class="tab-panel" data-panel="raw">
+    ${allColsHTML}
+  </div>
+  `;
+}
+
+function buildNeedsHTML(row){
+  if(!needsCols.length) return '<div style="color:var(--muted);font-size:12px;padding:20px">No needs columns detected in this file.</div>';
+
+  // Group by a period identifier extracted from column name
+  // e.g. "Besoin L74 2025_S35" → period=2025_S35, type=Besoin, variant=L74
+  const grouped = {};
+
+  needsCols.forEach(col=>{
+    const val = row[col.name];
+    const numVal = parseFloat(String(val||'').replace(',','.'));
+    if(isNaN(numVal) && String(val||'') === '') return; // skip truly empty
+    if(isNaN(numVal) && String(val||'').includes('#')) return; // skip #N/A etc
+
+    // Extract period: look for S\d\d or SXXX or year_Sxx pattern
+    const periodMatch = col.name.match(/(\d{4}_S\d+|S\d{2}|S\d{4})/i);
+    const period = periodMatch ? periodMatch[1] : col.name.replace(/besoin|to order|stock fin|dbproto/gi,'').trim() || col.name;
+
+    if(!grouped[period]) grouped[period] = [];
+    grouped[period].push({col: col.name, val, numVal: isNaN(numVal) ? null : numVal});
+  });
+
+  const periods = Object.keys(grouped).sort((a,b)=>{
+    // sort by year_week
+    const pa = a.replace(/[^0-9]/g,'');
+    const pb = b.replace(/[^0-9]/g,'');
+    return pa.localeCompare(pb, undefined, {numeric:true});
+  });
+
+  if(!periods.length) return '<div style="color:var(--muted);font-size:12px;padding:20px">No needs data for this part.</div>';
+
+  let html = `
+  <div class="needs-wrap">
+    <table class="needs-table">
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Column</th>
+          <th style="text-align:right">Value</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  let lastPeriod = null;
+  periods.forEach(period=>{
+    grouped[period].forEach((item,i)=>{
+      const isFirst = i === 0;
+      const periodBadge = isFirst ? `<span class="period-badge">${esc(period)}</span>` : '';
+      const numClass = item.numVal === null ? '' : item.numVal < 0 ? 'neg' : item.numVal === 0 ? 'zero' : '';
+      const displayVal = item.numVal !== null ? item.numVal.toLocaleString() : esc(String(item.val||''));
+      html += `<tr>
+        <td>${periodBadge}</td>
+        <td style="color:var(--muted);font-size:10px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(item.col)}">${esc(item.col)}</td>
+        <td class="num ${numClass}">${displayVal}</td>
+      </tr>`;
+    });
+  });
+
+  html += `</tbody></table></div>`;
+
+  // Also show a summary: only besoin/needs columns grouped per period
+  const summaryItems = [];
+  periods.forEach(period=>{
+    const besoin = grouped[period].find(x=>/besoin/i.test(x.col));
+    const toOrder = grouped[period].find(x=>/to order/i.test(x.col));
+    const stockFin = grouped[period].find(x=>/stock fin/i.test(x.col));
+    summaryItems.push({period, besoin, toOrder, stockFin});
+  });
+
+  let summary = `
+  <div class="section" style="margin-bottom:14px">
+    <div class="section-title">Summary (Besoin / To Order / Stock fin)</div>
+    <div class="needs-wrap">
+      <table class="needs-table">
+        <thead><tr>
+          <th>Period</th>
+          <th style="text-align:right">Besoin</th>
+          <th style="text-align:right">To Order</th>
+          <th style="text-align:right">Stock Fin</th>
+        </tr></thead>
+        <tbody>
+          ${summaryItems.filter(x=>x.besoin||x.toOrder||x.stockFin).map(x=>`<tr>
+            <td><span class="period-badge">${esc(x.period)}</span></td>
+            <td class="num ${x.besoin&&x.besoin.numVal!==null?(x.besoin.numVal<0?'neg':x.besoin.numVal===0?'zero':''):''}">${x.besoin&&x.besoin.numVal!==null?x.besoin.numVal.toLocaleString():'—'}</td>
+            <td class="num ${x.toOrder&&x.toOrder.numVal!==null?(x.toOrder.numVal<0?'neg':x.toOrder.numVal===0?'zero':''):''}">${x.toOrder&&x.toOrder.numVal!==null?x.toOrder.numVal.toLocaleString():'—'}</td>
+            <td class="num ${x.stockFin&&x.stockFin.numVal!==null?(x.stockFin.numVal<0?'neg':x.stockFin.numVal===0?'zero':''):''}">${x.stockFin&&x.stockFin.numVal!==null?x.stockFin.numVal.toLocaleString():'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">All Needs Columns</div>
+    ${html}
+  </div>`;
+
+  return summary;
+}
+
+function buildAllColsHTML(row){
+  const entries = headerCols.filter(c=>c.name).map(c=>{
+    const val = row[c.name];
+    const display = val !== undefined && val !== '' && val !== null ? String(val) : '';
+    return {col:c.name, display};
+  }).filter(x=>x.display !== '');
+
+  if(!entries.length) return '<div style="color:var(--muted);font-size:12px;padding:20px">No data.</div>';
+
+  return `
+  <div class="all-cols-wrap">
+    <table class="all-cols-table">
+      <thead><tr><th style="min-width:260px">Column</th><th>Value</th></tr></thead>
+      <tbody>
+        ${entries.map(e=>`<tr>
+          <td style="color:var(--muted)" title="${esc(e.col)}">${esc(e.col)}</td>
+          <td title="${esc(e.display)}">${esc(e.display.substring(0,200))}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ── TABS ─────────────────────────────────────────────
+function initTabs(container){
+  container.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const t = btn.dataset.tab;
+      container.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
+      container.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.dataset.panel===t));
+    });
+  });
+}
+
+// ── HELPERS ───────────────────────────────────────────
+function fmtNum(v){
+  const n = parseFloat(String(v||'').replace(',','.'));
+  if(isNaN(n)) return String(v||'—');
+  return n.toLocaleString();
+}
+function colorNum(v){
+  const n = parseFloat(String(v||'').replace(',','.'));
+  if(isNaN(n)) return 'muted';
+  if(n < 0) return 'red';
+  if(n === 0) return 'muted';
+  return 'green';
+}
+function esc(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── LOADING ───────────────────────────────────────────
+function showLoading(msg){
+  document.getElementById('loading-overlay').style.display='flex';
+  document.getElementById('loading-msg').textContent=msg||'Loading…';
+}
+function setLoadingMsg(msg){document.getElementById('loading-msg').textContent=msg}
+function hideLoading(){document.getElementById('loading-overlay').style.display='none'}
+
+// ── TOAST ─────────────────────────────────────────────
+function toast(msg, type='info'){
+  const tc = document.getElementById('toasts');
+  const t = document.createElement('div');
+  const icons = {success:'✓', error:'✗', info:'ℹ'};
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span style="font-size:13px">${icons[type]||'ℹ'}</span><span style="flex:1;color:var(--text)">${esc(msg)}</span>`;
+  tc.appendChild(t);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('show')));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),350)}, 3500);
+}
+</script>
+</body>
+</html>
