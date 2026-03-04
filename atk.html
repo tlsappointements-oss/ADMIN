@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProcureOS</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #0D0F14;
+  --surface: #13161E;
+  --surface2: #1A1E29;
+  --border: #2A2F3F;
+  --text: #E8EAF0;
+  --muted: #8B91A8;
+  --cyan: #00D4FF;
+  --green: #00E5A0;
+  --orange: #FF9500;
+  --red: #FF4757;
+  --yellow: #FFD60A;
+  --sidebar-w: 220px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+/* Topbar */
+#topbar{
+  height:52px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;z-index:100;
+  position:relative;
+}
+#topbar .page-title{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--cyan);letter-spacing:0.08em;margin-right:auto}
+.stat-badge{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+.stat-badge span{color:var(--text);font-weight:600}
+
+/* Layout */
+#layout{display:flex;flex:1;overflow:hidden}
+
+/* Sidebar */
+#sidebar{
+  width:var(--sidebar-w);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-logo .logo-icon{width:28px;height:28px;background:var(--cyan);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:#000}
+.sidebar-logo .logo-text{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--text);letter-spacing:0.05em}
+.sidebar-logo .logo-ver{font-size:10px;color:var(--muted)}
+.sidebar-nav{flex:1;padding:10px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;cursor:pointer;
+  font-size:12px;font-weight:500;color:var(--muted);transition:all 0.15s;position:relative;user-select:none;
+}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:rgba(0,212,255,0.1);color:var(--cyan);border-left:2px solid var(--cyan)}
+.nav-item .nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-item .nav-label{flex:1}
+.nav-badge{background:var(--red);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+
+/* Main */
+#main{flex:1;overflow-y:auto;padding:24px}
+
+/* Cards / Surfaces */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px}
+.card-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title .ct-accent{width:3px;height:12px;background:var(--cyan);border-radius:2px;display:inline-block}
+
+/* Stat Cards */
+.stat-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.cyan::before{background:var(--cyan)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.orange::before{background:var(--orange)}
+.stat-card.yellow::before{background:var(--yellow)}
+.stat-card .sc-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'IBM Plex Mono',monospace;margin-bottom:8px}
+.stat-card .sc-value{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:700;color:var(--text);line-height:1}
+.stat-card .sc-sub{font-size:10px;color:var(--muted);margin-top:6px}
+.stat-card .sc-icon{position:absolute;right:16px;top:16px;font-size:20px;opacity:0.3}
+
+/* Grid layouts */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--surface2);padding:10px 14px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid rgba(42,47,63,0.5);transition:background 0.1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(26,30,41,0.8)}
+tbody td{padding:10px 14px;color:var(--text);vertical-align:middle}
+
+/* Tags / Badges */
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:0.05em;white-space:nowrap}
+.tag-ok,.tag-active{background:rgba(0,229,160,0.15);color:var(--green);border:1px solid rgba(0,229,160,0.3)}
+.tag-low,.tag-high{background:rgba(255,71,87,0.15);color:var(--red);border:1px solid rgba(255,71,87,0.3)}
+.tag-med{background:rgba(255,149,0,0.15);color:var(--orange);border:1px solid rgba(255,149,0,0.3)}
+.tag-pending{background:rgba(255,214,10,0.15);color:var(--yellow);border:1px solid rgba(255,214,10,0.3)}
+.tag-closed{background:rgba(139,145,168,0.15);color:var(--muted);border:1px solid rgba(139,145,168,0.3)}
+.tag-mrd{background:rgba(0,212,255,0.15);color:var(--cyan);border:1px solid rgba(0,212,255,0.3)}
+.tag-cm{background:rgba(255,214,10,0.15);color:var(--yellow);border:1px solid rgba(255,214,10,0.3)}
+
+/* Status dot */
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-green{background:var(--green);box-shadow:0 0 5px var(--green)}
+.dot-orange{background:var(--orange)}
+.dot-red{background:var(--red)}
+.dot-gray{background:var(--muted)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap}
+.btn-primary{background:var(--cyan);color:#000;font-weight:600}
+.btn-primary:hover{background:#00bceb;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);border-color:var(--muted)}
+.btn-danger{background:rgba(255,71,87,0.15);color:var(--red);border:1px solid rgba(255,71,87,0.3)}
+.btn-danger:hover{background:rgba(255,71,87,0.25)}
+.btn-sm{padding:4px 10px;font-size:11px;border-radius:5px}
+.btn-icon{padding:5px;width:28px;height:28px;justify-content:center;border-radius:5px}
+
+/* Inputs */
+.inp{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:12px;outline:none;transition:border 0.15s;width:100%}
+.inp:focus{border-color:var(--cyan)}
+.inp::placeholder{color:var(--muted)}
+select.inp option{background:var(--surface2)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.form-group label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-family:'IBM Plex Mono',monospace}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity 0.2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;transform:translateY(16px);transition:transform 0.2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text)}
+.modal-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px;transition:color 0.15s}
+.modal-close:hover{color:var(--text)}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* Toast */
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:12px;min-width:260px;max-width:360px;display:flex;align-items:center;gap:10px;pointer-events:all;transform:translateX(120%);transition:transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275);box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.toast.show{transform:translateX(0)}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+.toast.info{border-left:3px solid var(--cyan)}
+.toast-icon{font-size:14px;flex-shrink:0}
+.toast-msg{flex:1;color:var(--text);line-height:1.4}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar-spacer{flex:1}
+
+/* Progress bar */
+.prog-bar{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-top:4px}
+.prog-fill{height:100%;background:var(--cyan);border-radius:2px;transition:width 0.6s ease;width:0}
+
+/* Parts overview grid */
+.parts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.part-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;transition:border-color 0.15s}
+.part-card:hover{border-color:var(--muted)}
+.part-card.low{border-color:rgba(255,71,87,0.4)}
+.part-card .pc-pn{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--cyan);margin-bottom:3px}
+.part-card .pc-desc{font-size:11px;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.part-card .pc-cat{font-size:10px;color:var(--muted);margin-bottom:8px}
+.part-card .pc-stock{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab-btn{padding:10px 18px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;background:transparent;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;font-family:'IBM Plex Sans',sans-serif}
+.tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tab-btn:hover{color:var(--text)}
+
+/* Needs Matrix */
+.matrix-wrap{overflow:auto;max-height:calc(100vh - 260px);border-radius:8px;border:1px solid var(--border)}
+.matrix-table{border-collapse:collapse;font-size:11px;font-family:'IBM Plex Mono',monospace}
+.matrix-table th,.matrix-table td{padding:8px 12px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:nowrap}
+.matrix-table thead th{background:var(--surface2);color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;position:sticky;top:0;z-index:10}
+.matrix-table thead th:nth-child(1),.matrix-table thead th:nth-child(2){position:sticky;left:0;z-index:20;background:var(--surface2)}
+.matrix-table thead th:nth-child(2){left:110px}
+.matrix-table tbody td:nth-child(1),.matrix-table tbody td:nth-child(2){position:sticky;background:var(--surface);z-index:5}
+.matrix-table tbody td:nth-child(1){left:0}
+.matrix-table tbody td:nth-child(2){left:110px}
+.matrix-table tbody td:nth-child(1){font-weight:600;color:var(--cyan)}
+.matrix-cell{min-width:70px;text-align:center;cursor:pointer;transition:background 0.1s}
+.matrix-cell:hover{background:rgba(0,212,255,0.07)}
+.matrix-cell.zero{color:var(--muted)}
+.matrix-cell.low-qty{color:var(--orange)}
+.matrix-cell.has-qty{color:var(--green)}
+.matrix-cell.editing{padding:2px}
+.cell-input{width:60px;background:var(--surface2);border:1px solid var(--cyan);border-radius:4px;padding:3px 6px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;text-align:center;outline:none}
+.matrix-total{font-weight:600;color:var(--text);background:var(--surface2)!important;cursor:default!important}
+
+/* Upload zone */
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--cyan);background:rgba(0,212,255,0.05)}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-zone .dz-icon{font-size:40px;margin-bottom:12px;opacity:0.5}
+.drop-zone .dz-text{font-size:13px;color:var(--text);margin-bottom:6px}
+.drop-zone .dz-sub{font-size:11px;color:var(--muted)}
+
+/* Sync result */
+.sync-result{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:16px}
+.sync-result .sr-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(42,47,63,0.4);font-size:12px}
+.sync-result .sr-row:last-child{border-bottom:none}
+.sync-result .sr-key{color:var(--muted)}
+.sync-result .sr-val{font-family:'IBM Plex Mono',monospace;font-weight:600}
+
+/* Format guide */
+.fmt-table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:11px}
+.fmt-table th{background:var(--surface2);padding:8px;text-align:left;color:var(--cyan);border:1px solid var(--border)}
+.fmt-table td{padding:8px;color:var(--text);border:1px solid var(--border)}
+.fmt-table tr:nth-child(even) td{background:rgba(26,30,41,0.4)}
+
+/* Recent batches list */
+.batch-list-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(42,47,63,0.4)}
+.batch-list-item:last-child{border-bottom:none}
+.bli-id{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--cyan);min-width:120px}
+.bli-meta{flex:1;font-size:11px;color:var(--muted)}
+.bli-qty{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);min-width:60px;text-align:right}
+
+/* PN needs rows */
+.pn-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(42,47,63,0.3)}
+.pn-row:last-child{border-bottom:none}
+.pnr-label{font-family:'IBM Plex Mono',monospace;font-size:10px;min-width:140px;color:var(--muted)}
+.pnr-qty{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;min-width:50px;text-align:right;color:var(--text)}
+.pnr-bar{flex:1}
+
+/* Warning list */
+.warn-item{background:rgba(255,149,0,0.08);border:1px solid rgba(255,149,0,0.2);border-radius:5px;padding:6px 10px;font-size:11px;color:var(--orange);font-family:'IBM Plex Mono',monospace;margin-top:6px}
+
+/* Empty state */
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-state .es-icon{font-size:36px;margin-bottom:12px;opacity:0.4}
+.empty-state .es-text{font-size:13px;margin-bottom:6px;color:var(--text)}
+.empty-state .es-sub{font-size:11px}
+
+/* Pagination indicator */
+.page-info{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+
+/* Loading spinner */
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Animated counter */
+@keyframes countUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.count-anim{animation:countUp 0.4s ease}
+
+/* Slide in */
+@keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.page-section{animation:slideIn 0.25s ease}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div id="topbar">
+  <div class="page-title" id="topbar-title">◈ DASHBOARD</div>
+  <div class="stat-badge">PNs <span id="tb-pns">0</span></div>
+  <div class="stat-badge">Batches <span id="tb-batches">0</span></div>
+  <div class="stat-badge">Open Needs <span id="tb-needs">0</span></div>
+</div>
+
+<!-- Layout -->
+<div id="layout">
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">P</div>
+      <div>
+        <div class="logo-text">ProcureOS</div>
+        <div class="logo-ver">v3.0</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard" onclick="nav('dashboard')">
+        <span class="nav-icon">⬡</span><span class="nav-label">Dashboard</span>
+      </div>
+      <div class="nav-item" data-page="parts" onclick="nav('parts')">
+        <span class="nav-icon">◎</span><span class="nav-label">Parts Library</span>
+      </div>
+      <div class="nav-item" data-page="production" onclick="nav('production')">
+        <span class="nav-icon">▦</span><span class="nav-label">Production Plan</span>
+      </div>
+      <div class="nav-item" data-page="needs" onclick="nav('needs')">
+        <span class="nav-icon">⊞</span><span class="nav-label">Needs Matrix</span>
+        <span class="nav-badge" id="nav-needs-badge" style="display:none">0</span>
+      </div>
+      <div class="nav-item" data-page="sync" onclick="nav('sync')">
+        <span class="nav-icon">↻</span><span class="nav-label">Sync / Upload</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div>Last sync: <span id="sf-sync">—</span></div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main"></div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="modal-part" onclick="closeModalOutside(event,'modal-part')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-part-title">Add Part</div>
+      <button class="modal-close" onclick="closeModal('modal-part')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Part Number *</label><input class="inp" id="p-pn" placeholder="e.g. ENG-BOLT-M8"></div>
+      <div class="form-group"><label>Description *</label><input class="inp" id="p-desc" placeholder="Short description"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Category</label><input class="inp" id="p-cat" placeholder="e.g. Fasteners"></div>
+      <div class="form-group"><label>Unit</label>
+        <select class="inp" id="p-unit">
+          <option>PCS</option><option>KG</option><option>M</option><option>L</option><option>SET</option><option>BOX</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Current Stock</label><input class="inp" id="p-stock" type="number" value="0" min="0"></div>
+      <div class="form-group"><label>Min Stock</label><input class="inp" id="p-minstock" type="number" value="0" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Supplier</label><input class="inp" id="p-supplier" placeholder="Supplier name"></div>
+      <div class="form-group"><label>Unit Price</label><input class="inp" id="p-price" type="number" value="0" step="0.01" min="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-part')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePart()">Save Part</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-batch" onclick="closeModalOutside(event,'modal-batch')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-batch-title">Add Batch</div>
+      <button class="modal-close" onclick="closeModal('modal-batch')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Batch ID *</label><input class="inp" id="b-id" placeholder="e.g. MRD-2024-001"></div>
+      <div class="form-group"><label>Type</label>
+        <select class="inp" id="b-type"><option value="MRD">MRD</option><option value="CM">Counter Mark</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Name / Reference</label><input class="inp" id="b-name" placeholder="Optional label"></div>
+      <div class="form-group"><label>Date</label><input class="inp" id="b-date" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Priority</label>
+        <select class="inp" id="b-priority"><option>HIGH</option><option selected>MED</option><option>LOW</option></select>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select class="inp" id="b-status"><option>ACTIVE</option><option>PENDING</option><option>CLOSED</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-batch')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBatch()">Save Batch</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-needs" onclick="closeModalOutside(event,'modal-needs')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Manual Edit — Needs Entry</div>
+      <button class="modal-close" onclick="closeModal('modal-needs')">✕</button>
+    </div>
+    <div class="form-group"><label>Part Number *</label>
+      <select class="inp" id="ne-pn"></select>
+    </div>
+    <div class="form-group"><label>Batch *</label>
+      <select class="inp" id="ne-batch"></select>
+    </div>
+    <div class="form-group"><label>Quantity</label>
+      <input class="inp" id="ne-qty" type="number" value="0" min="0">
+    </div>
+    <div class="form-group"><label>Notes</label>
+      <input class="inp" id="ne-notes" placeholder="Optional notes">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-needs')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNeedEntry()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+// ===================== DATA LAYER =====================
+const KEY = 'pos3';
+let DB = {parts:[],batches:[],needs:{},syncHistory:[],prodTab:'MRD'};
+
+function load(){
+  try{const s=localStorage.getItem(KEY);if(s)DB=JSON.parse(s);}catch(e){}
+  if(!DB.needs)DB.needs={};
+  if(!DB.syncHistory)DB.syncHistory=[];
+  if(!DB.prodTab)DB.prodTab='MRD';
+}
+
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(DB));
+  updateTopbar();
+  updateSidebarBadge();
+}
+
+function seed(){
+  if(DB.parts.length>0)return;
+  DB.parts=[
+    {pn:'ENG-BOLT-M8',desc:'Hex Bolt M8x25',cat:'Fasteners',unit:'PCS',stock:500,minStock:100,supplier:'FastenerCo',price:0.12},
+    {pn:'ENG-GASKET-001',desc:'Engine Gasket Set',cat:'Seals',unit:'SET',stock:15,minStock:20,supplier:'SealPro',price:45.00},
+    {pn:'ELEC-CAP-10UF',desc:'Capacitor 10uF 50V',cat:'Electronics',unit:'PCS',stock:200,minStock:50,supplier:'ElecSupply',price:0.35},
+    {pn:'HYD-PIPE-12MM',desc:'Hydraulic Pipe 12mm',cat:'Hydraulics',unit:'M',stock:80,minStock:30,supplier:'HydroTech',price:8.50},
+    {pn:'BEAR-6205-ZZ',desc:'Deep Groove Bearing',cat:'Bearings',unit:'PCS',stock:42,minStock:10,supplier:'BearingWorld',price:12.00},
+    {pn:'FILTER-OIL-A1',desc:'Oil Filter Type A1',cat:'Filters',unit:'PCS',stock:8,minStock:15,supplier:'FilterMart',price:18.50},
+  ];
+  DB.batches=[
+    {id:'MRD-2024-001',name:'Q1 Main Run',type:'MRD',date:'2024-03-15',priority:'HIGH',status:'ACTIVE'},
+    {id:'MRD-2024-002',name:'Q2 Supplement',type:'MRD',date:'2024-06-01',priority:'MED',status:'PENDING'},
+    {id:'CM-ALPHA',name:'Alpha Counter Mark',type:'CM',date:'2024-04-10',priority:'HIGH',status:'ACTIVE'},
+  ];
+  DB.needs={
+    'ENG-BOLT-M8|MRD-2024-001':120,'ENG-BOLT-M8|MRD-2024-002':80,'ENG-BOLT-M8|CM-ALPHA':40,
+    'ENG-GASKET-001|MRD-2024-001':12,'ENG-GASKET-001|MRD-2024-002':8,'ENG-GASKET-001|CM-ALPHA':6,
+    'ELEC-CAP-10UF|MRD-2024-001':300,'ELEC-CAP-10UF|MRD-2024-002':200,'ELEC-CAP-10UF|CM-ALPHA':150,
+    'HYD-PIPE-12MM|MRD-2024-001':25,'HYD-PIPE-12MM|MRD-2024-002':15,'HYD-PIPE-12MM|CM-ALPHA':8,
+    'BEAR-6205-ZZ|MRD-2024-001':18,'BEAR-6205-ZZ|MRD-2024-002':12,'BEAR-6205-ZZ|CM-ALPHA':9,
+    'FILTER-OIL-A1|MRD-2024-001':7,'FILTER-OIL-A1|MRD-2024-002':5,'FILTER-OIL-A1|CM-ALPHA':3,
+  };
+}
+
+// ===================== HELPERS =====================
+function getNeedsCount(){return Object.values(DB.needs).reduce((a,b)=>a+(b||0),0)}
+function getTotalNeeds(batchId){
+  return Object.entries(DB.needs).filter(([k])=>k.endsWith('|'+batchId)).reduce((a,[,v])=>a+(v||0),0);
+}
+function getPNTotal(pn){
+  return Object.entries(DB.needs).filter(([k])=>k.startsWith(pn+'|')).reduce((a,[,v])=>a+(v||0),0);
+}
+function needKey(pn,bid){return pn+'|'+bid}
+function qty(pn,bid){return DB.needs[needKey(pn,bid)]||0}
+function fmtDate(d){if(!d)return '—';try{return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}catch(e){return d}}
+function fmtTime(t){if(!t)return '—';try{return new Date(t).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return t}}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+function updateTopbar(){
+  document.getElementById('tb-pns').textContent=DB.parts.length;
+  document.getElementById('tb-batches').textContent=DB.batches.length;
+  document.getElementById('tb-needs').textContent=getNeedsCount();
+  const last=DB.syncHistory[0];
+  document.getElementById('sf-sync').textContent=last?fmtTime(last.time):'—';
+}
+function updateSidebarBadge(){
+  const c=getNeedsCount();
+  const b=document.getElementById('nav-needs-badge');
+  b.textContent=c;b.style.display=c>0?'':'none';
+}
+
+// ===================== NAVIGATION =====================
+let currentPage='dashboard';
+function nav(page){
+  currentPage=page;
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.classList.toggle('active',el.dataset.page===page);
+  });
+  const titles={dashboard:'◈ DASHBOARD',parts:'◎ PARTS LIBRARY',production:'▦ PRODUCTION PLAN',needs:'⊞ NEEDS MATRIX',sync:'↻ SYNC / UPLOAD'};
+  document.getElementById('topbar-title').textContent=titles[page]||page.toUpperCase();
+  renderPage(page);
+}
+
+function renderPage(page){
+  const main=document.getElementById('main');
+  main.innerHTML='';
+  main.scrollTop=0;
+  const div=document.createElement('div');
+  div.className='page-section';
+  div.style.animation='slideIn 0.25s ease';
+  if(page==='dashboard')div.innerHTML=renderDashboard();
+  else if(page==='parts')div.innerHTML=renderParts();
+  else if(page==='production')div.innerHTML=renderProduction();
+  else if(page==='needs')div.innerHTML=renderNeeds();
+  else if(page==='sync')div.innerHTML=renderSync();
+  main.appendChild(div);
+  if(page==='dashboard')initDashboard();
+  if(page==='parts')initParts();
+  if(page==='needs')initNeeds();
+}
+
+// ===================== MODAL HELPERS =====================
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function closeModalOutside(e,id){if(e.target.id===id)closeModal(id)}
+
+// ===================== TOAST =====================
+function toast(msg,type='info'){
+  const tc=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  const icons={success:'✓',error:'✗',info:'ℹ'};
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span class="toast-icon">${icons[type]||'ℹ'}</span><span class="toast-msg">${esc(msg)}</span>`;
+  tc.appendChild(t);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('show')));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),350)},3200);
+}
+
+// ===================== DASHBOARD =====================
+function renderDashboard(){
+  const openNeeds=getNeedsCount();
+  const lastSync=DB.syncHistory[0];
+  const recentBatches=DB.batches.slice(-6).reverse();
+
+  // Top PNs
+  const pnTotals=DB.parts.map(p=>({pn:p.pn,desc:p.desc,total:getPNTotal(p.pn)}))
+    .filter(x=>x.total>0).sort((a,b)=>b.total-a.total).slice(0,6);
+  const maxPNTotal=pnTotals.length?pnTotals[0].total:1;
+
+  return `
+  <div class="stat-cards">
+    <div class="stat-card cyan">
+      <div class="sc-label">Total PNs</div>
+      <div class="sc-value">${DB.parts.length}</div>
+      <div class="sc-sub">${DB.parts.filter(p=>p.stock<p.minStock).length} below min stock</div>
+      <div class="sc-icon">◎</div>
+    </div>
+    <div class="stat-card green">
+      <div class="sc-label">Active Batches</div>
+      <div class="sc-value">${DB.batches.filter(b=>b.status==='ACTIVE').length}</div>
+      <div class="sc-sub">${DB.batches.length} total batches</div>
+      <div class="sc-icon">▦</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="sc-label">Open Needs</div>
+      <div class="sc-value">${openNeeds}</div>
+      <div class="sc-sub">across ${DB.batches.length} batches</div>
+      <div class="sc-icon">⊞</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="sc-label">Last Sync</div>
+      <div class="sc-value" style="font-size:16px;padding-top:6px">${lastSync?fmtTime(lastSync.time):'—'}</div>
+      <div class="sc-sub">${lastSync?lastSync.file:'No syncs yet'}</div>
+      <div class="sc-icon">↻</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><span class="ct-accent"></span>Recent Batches</div>
+      ${recentBatches.length?recentBatches.map(b=>{
+        const total=getTotalNeeds(b.id);
+        const dotClass=b.status==='ACTIVE'?'dot-green':b.status==='PENDING'?'dot-orange':'dot-gray';
+        return `<div class="batch-list-item">
+          <span class="dot ${dotClass}"></span>
+          <span class="bli-id">${esc(b.id)}</span>
+          <span class="bli-meta">${esc(b.name||'—')} · <span class="tag tag-${b.type.toLowerCase()}" style="font-size:9px;padding:1px 5px">${b.type}</span></span>
+          <span class="bli-qty">${total} units</span>
+        </div>`;
+      }).join(''):'<div class="empty-state"><div class="es-icon">▦</div><div class="es-sub">No batches yet</div></div>'}
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-accent"></span>Top Needs by PN</div>
+      ${pnTotals.length?pnTotals.map(x=>`
+        <div class="pn-row">
+          <span class="pnr-label">${esc(x.pn)}</span>
+          <div class="pnr-bar"><div class="prog-bar"><div class="prog-fill" data-w="${Math.round(x.total/maxPNTotal*100)}"></div></div></div>
+          <span class="pnr-qty">${x.total}</span>
+        </div>`).join(''):'<div class="empty-state"><div class="es-sub">No needs data</div></div>'}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="ct-accent"></span>Parts Overview</div>
+    <div class="parts-grid" id="parts-grid-dash">
+      ${DB.parts.map(p=>{
+        const low=p.stock<p.minStock;
+        return `<div class="part-card${low?' low':''}">
+          <div class="pc-pn">${esc(p.pn)}</div>
+          <div class="pc-desc">${esc(p.desc)}</div>
+          <div class="pc-cat">${esc(p.cat||'—')}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="pc-stock" style="color:${low?'var(--red)':'var(--green)'}">${p.stock} ${esc(p.unit)}</span>
+            <span class="tag ${low?'tag-low':'tag-ok'}">${low?'LOW':'OK'}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function initDashboard(){
+  document.querySelectorAll('.prog-fill').forEach(el=>{
+    const w=el.dataset.w||0;
+    setTimeout(()=>el.style.width=w+'%',100);
+  });
+}
+
+// ===================== PARTS LIBRARY =====================
+let partEditIdx=-1;
+let partsSearch='',partsCatFilter='All';
+
+function renderParts(){
+  const cats=['All',...new Set(DB.parts.map(p=>p.cat).filter(Boolean))];
+  const filtered=DB.parts.filter(p=>{
+    const s=partsSearch.toLowerCase();
+    const matchS=!s||(p.pn+p.desc).toLowerCase().includes(s);
+    const matchC=partsCatFilter==='All'||p.cat===partsCatFilter;
+    return matchS&&matchC;
+  });
+
+  return `
+  <div class="toolbar">
+    <input class="inp" style="width:220px" placeholder="🔍 Search PN or description..." id="parts-search" value="${esc(partsSearch)}" oninput="partsSearch=this.value;renderPage('parts')">
+    <select class="inp" style="width:160px" id="parts-cat-filter" onchange="partsCatFilter=this.value;renderPage('parts')">
+      ${cats.map(c=>`<option${c===partsCatFilter?' selected':''}>${esc(c)}</option>`).join('')}
+    </select>
+    <div class="toolbar-spacer"></div>
+    <button class="btn btn-ghost" onclick="exportPartsCSV()">↓ Export CSV</button>
+    <button class="btn btn-primary" onclick="openPartModal(-1)">+ Add Part</button>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Part Number</th><th>Description</th><th>Category</th><th>Unit</th>
+        <th>Stock</th><th>Min Stock</th><th>Supplier</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${filtered.length?filtered.map((p,i)=>{
+          const realIdx=DB.parts.indexOf(p);
+          const low=p.stock<p.minStock;
+          return `<tr>
+            <td><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cyan)">${esc(p.pn)}</span></td>
+            <td>${esc(p.desc)}</td>
+            <td><span style="font-size:11px;color:var(--muted)">${esc(p.cat||'—')}</span></td>
+            <td><span style="font-family:'IBM Plex Mono',monospace;font-size:10px">${esc(p.unit)}</span></td>
+            <td><span style="font-family:'IBM Plex Mono',monospace;color:${low?'var(--red)':'var(--green)'}">${p.stock}</span></td>
+            <td><span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">${p.minStock}</span></td>
+            <td style="font-size:11px;color:var(--muted)">${esc(p.supplier||'—')}</td>
+            <td><span class="tag ${low?'tag-low':'tag-ok'}">${low?'LOW':'OK'}</span></td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-ghost btn-sm" onclick="openPartModal(${realIdx})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deletePart(${realIdx})">Del</button>
+              </div>
+            </td>
+          </tr>`;
+        }).join(''):`<tr><td colspan="9"><div class="empty-state"><div class="es-icon">◎</div><div class="es-text">No parts found</div></div></td></tr>`}
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top:10px" class="page-info">${filtered.length} of ${DB.parts.length} parts</div>`;
+}
+
+function initParts(){
+  // keep filter state
+}
+
+function openPartModal(idx){
+  partEditIdx=idx;
+  const p=idx>=0?DB.parts[idx]:{};
+  document.getElementById('modal-part-title').textContent=idx>=0?'Edit Part':'Add Part';
+  document.getElementById('p-pn').value=p.pn||'';
+  document.getElementById('p-pn').disabled=idx>=0;
+  document.getElementById('p-desc').value=p.desc||'';
+  document.getElementById('p-cat').value=p.cat||'';
+  document.getElementById('p-unit').value=p.unit||'PCS';
+  document.getElementById('p-stock').value=p.stock||0;
+  document.getElementById('p-minstock').value=p.minStock||0;
+  document.getElementById('p-supplier').value=p.supplier||'';
+  document.getElementById('p-price').value=p.price||0;
+  openModal('modal-part');
+}
+
+function savePart(){
+  const pn=document.getElementById('p-pn').value.trim();
+  const desc=document.getElementById('p-desc').value.trim();
+  if(!pn||!desc){toast('Part Number and Description are required','error');return;}
+  if(partEditIdx<0&&DB.parts.find(p=>p.pn===pn)){toast('Part Number already exists','error');return;}
+  const part={
+    pn,desc,
+    cat:document.getElementById('p-cat').value.trim(),
+    unit:document.getElementById('p-unit').value,
+    stock:parseFloat(document.getElementById('p-stock').value)||0,
+    minStock:parseFloat(document.getElementById('p-minstock').value)||0,
+    supplier:document.getElementById('p-supplier').value.trim(),
+    price:parseFloat(document.getElementById('p-price').value)||0,
+  };
+  if(partEditIdx>=0)DB.parts[partEditIdx]=part;
+  else DB.parts.push(part);
+  save();closeModal('modal-part');
+  toast(partEditIdx>=0?'Part updated':'Part added','success');
+  renderPage('parts');
+}
+
+function deletePart(idx){
+  const p=DB.parts[idx];
+  if(!confirm(`Delete part ${p.pn}? This will also remove all its needs data.`))return;
+  // Remove needs
+  Object.keys(DB.needs).filter(k=>k.startsWith(p.pn+'|')).forEach(k=>delete DB.needs[k]);
+  DB.parts.splice(idx,1);
+  save();toast('Part deleted','success');renderPage('parts');
+}
+
+function exportPartsCSV(){
+  const rows=[['Part Number','Description','Category','Unit','Stock','Min Stock','Supplier','Unit Price']];
+  DB.parts.forEach(p=>rows.push([p.pn,p.desc,p.cat,p.unit,p.stock,p.minStock,p.supplier,p.price]));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  download('parts_export.csv','text/csv',csv);
+  toast('CSV exported','success');
+}
+
+// ===================== PRODUCTION PLAN =====================
+let batchEditIdx=-1;
+
+function renderProduction(){
+  const tab=DB.prodTab||'MRD';
+  const filtered=DB.batches.filter(b=>tab==='MRD'?b.type==='MRD':b.type==='CM');
+  return `
+  <div class="tabs">
+    <button class="tab-btn${tab==='MRD'?' active':''}" onclick="setProdTab('MRD')">MRD Batches</button>
+    <button class="tab-btn${tab==='CM'?' active':''}" onclick="setProdTab('CM')">Counter Marks</button>
+  </div>
+  <div class="toolbar">
+    <div class="toolbar-spacer"></div>
+    <button class="btn btn-primary" onclick="openBatchModal(-1,'${tab}')">+ Add ${tab==='MRD'?'MRD':'Counter Mark'}</button>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Batch ID</th><th>Type</th><th>Name / Ref</th><th>Date</th><th>Priority</th><th>Status</th><th>Total Needs</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${filtered.length?filtered.map(b=>{
+          const realIdx=DB.batches.indexOf(b);
+          const total=getTotalNeeds(b.id);
+          const priClass=b.priority==='HIGH'?'tag-high':b.priority==='LOW'?'tag-low':'tag-med';
+          const staClass=b.status==='ACTIVE'?'tag-active':b.status==='PENDING'?'tag-pending':'tag-closed';
+          return `<tr>
+            <td><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--cyan)">${esc(b.id)}</span></td>
+            <td><span class="tag tag-${b.type.toLowerCase()}">${b.type}</span></td>
+            <td style="color:var(--muted);font-size:11px">${esc(b.name||'—')}</td>
+            <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${fmtDate(b.date)}</td>
+            <td><span class="tag ${priClass}">${b.priority}</span></td>
+            <td><span class="tag ${staClass}">${b.status}</span></td>
+            <td><span style="font-family:'IBM Plex Mono',monospace;font-weight:600">${total}</span></td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-ghost btn-sm" onclick="openBatchModal(${realIdx})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteBatch(${realIdx})">Del</button>
+              </div>
+            </td>
+          </tr>`;
+        }).join(''):`<tr><td colspan="8"><div class="empty-state"><div class="es-icon">▦</div><div class="es-text">No ${tab} batches</div><div class="es-sub">Add one to get started</div></div></td></tr>`}
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top:10px" class="page-info">${filtered.length} ${tab} batches</div>`;
+}
+
+function setProdTab(t){DB.prodTab=t;save();renderPage('production')}
+
+function openBatchModal(idx,defaultType){
+  batchEditIdx=idx;
+  const b=idx>=0?DB.batches[idx]:{};
+  document.getElementById('modal-batch-title').textContent=idx>=0?'Edit Batch':'Add Batch';
+  document.getElementById('b-id').value=b.id||'';
+  document.getElementById('b-id').disabled=idx>=0;
+  document.getElementById('b-type').value=b.type||(defaultType||'MRD');
+  document.getElementById('b-name').value=b.name||'';
+  document.getElementById('b-date').value=b.date||new Date().toISOString().split('T')[0];
+  document.getElementById('b-priority').value=b.priority||'MED';
+  document.getElementById('b-status').value=b.status||'ACTIVE';
+  openModal('modal-batch');
+}
+
+function saveBatch(){
+  const id=document.getElementById('b-id').value.trim();
+  if(!id){toast('Batch ID is required','error');return;}
+  if(batchEditIdx<0&&DB.batches.find(b=>b.id===id)){toast('Batch ID already exists','error');return;}
+  const batch={
+    id,
+    type:document.getElementById('b-type').value,
+    name:document.getElementById('b-name').value.trim(),
+    date:document.getElementById('b-date').value,
+    priority:document.getElementById('b-priority').value,
+    status:document.getElementById('b-status').value,
+  };
+  if(batchEditIdx>=0){
+    const oldId=DB.batches[batchEditIdx].id;
+    DB.batches[batchEditIdx]=batch;
+  } else DB.batches.push(batch);
+  save();closeModal('modal-batch');
+  toast(batchEditIdx>=0?'Batch updated':'Batch added','success');
+  renderPage('production');
+}
+
+function deleteBatch(idx){
+  const b=DB.batches[idx];
+  if(!confirm(`Delete batch ${b.id}? This removes all related needs entries.`))return;
+  Object.keys(DB.needs).filter(k=>k.endsWith('|'+b.id)).forEach(k=>delete DB.needs[k]);
+  DB.batches.splice(idx,1);
+  save();toast('Batch deleted','success');renderPage('production');
+}
+
+// ===================== NEEDS MATRIX =====================
+let nmBatchFilter='ALL',nmStatusFilter='ALL',nmPNSearch='';
+
+function renderNeeds(){
+  const pns=DB.parts.filter(p=>{
+    if(nmPNSearch&&!p.pn.toLowerCase().includes(nmPNSearch.toLowerCase()))return false;
+    if(nmStatusFilter==='HAS'){const t=getPNTotal(p.pn);if(!t)return false;}
+    if(nmStatusFilter==='ZERO'){const t=getPNTotal(p.pn);if(t)return false;}
+    return true;
+  });
+  const batches=nmBatchFilter==='ALL'?DB.batches:DB.batches.filter(b=>b.id===nmBatchFilter);
+
+  return `
+  <div class="toolbar">
+    <input class="inp" style="width:180px" placeholder="🔍 PN search..." value="${esc(nmPNSearch)}" oninput="nmPNSearch=this.value;renderPage('needs')">
+    <select class="inp" style="width:200px" onchange="nmBatchFilter=this.value;renderPage('needs')">
+      <option value="ALL"${nmBatchFilter==='ALL'?' selected':''}>All Batches</option>
+      ${DB.batches.map(b=>`<option value="${esc(b.id)}"${nmBatchFilter===b.id?' selected':''}>${esc(b.id)}</option>`).join('')}
+    </select>
+    <select class="inp" style="width:150px" onchange="nmStatusFilter=this.value;renderPage('needs')">
+      <option value="ALL"${nmStatusFilter==='ALL'?' selected':''}>All PNs</option>
+      <option value="HAS"${nmStatusFilter==='HAS'?' selected':''}>Has Needs</option>
+      <option value="ZERO"${nmStatusFilter==='ZERO'?' selected':''}>Zero Needs</option>
+    </select>
+    <div class="toolbar-spacer"></div>
+    <button class="btn btn-ghost" onclick="openNeedsModal()">✎ Manual Edit</button>
+    <button class="btn btn-primary" onclick="nav('sync')">↻ Sync File</button>
+  </div>
+  <div class="matrix-wrap" id="matrix-wrap">
+    <table class="matrix-table" id="matrix-table">
+      <thead>
+        <tr>
+          <th style="min-width:110px">PN</th>
+          <th style="min-width:180px">Description</th>
+          ${batches.map(b=>`<th style="min-width:90px"><div style="display:flex;flex-direction:column;gap:2px"><span class="tag tag-${b.type.toLowerCase()}" style="font-size:9px;padding:1px 5px">${b.type}</span><span>${esc(b.id)}</span></div></th>`).join('')}
+          <th style="min-width:70px;color:var(--text)">TOTAL</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${pns.length?pns.map(p=>{
+          const rowTotal=batches.reduce((s,b)=>s+qty(p.pn,b.id),0);
+          return `<tr>
+            <td>${esc(p.pn)}</td>
+            <td style="color:var(--muted);font-size:11px">${esc(p.desc)}</td>
+            ${batches.map(b=>{
+              const q=qty(p.pn,b.id);
+              const cls=q===0?'zero':q<10?'low-qty':'has-qty';
+              return `<td class="matrix-cell ${cls}" data-pn="${esc(p.pn)}" data-bid="${esc(b.id)}" ondblclick="startCellEdit(this,event)">${q||0}</td>`;
+            }).join('')}
+            <td class="matrix-total">${rowTotal}</td>
+          </tr>`;
+        }).join(''):`<tr><td colspan="${batches.length+3}"><div class="empty-state"><div class="es-icon">⊞</div><div class="es-text">No data to show</div></div></td></tr>`}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function initNeeds(){}
+
+function startCellEdit(cell,e){
+  e.stopPropagation();
+  if(cell.classList.contains('matrix-total'))return;
+  const pn=cell.dataset.pn;
+  const bid=cell.dataset.bid;
+  const current=qty(pn,bid);
+  cell.classList.add('editing');
+  const inp=document.createElement('input');
+  inp.className='cell-input';
+  inp.type='number';inp.min='0';
+  inp.value=current;
+  cell.innerHTML='';cell.appendChild(inp);
+  inp.focus();inp.select();
+
+  function commit(){
+    const val=Math.max(0,parseInt(inp.value)||0);
+    if(val===0)delete DB.needs[needKey(pn,bid)];
+    else DB.needs[needKey(pn,bid)]=val;
+    save();
+    const cls=val===0?'zero':val<10?'low-qty':'has-qty';
+    cell.className=`matrix-cell ${cls}`;
+    cell.innerHTML=val||0;
+    cell.dataset.pn=pn;cell.dataset.bid=bid;
+    cell.ondblclick=(ev)=>startCellEdit(cell,ev);
+    // update row total
+    const row=cell.parentElement;
+    const cells=[...row.querySelectorAll('.matrix-cell')];
+    const total=cells.reduce((s,c)=>s+(parseInt(c.textContent)||0),0);
+    row.querySelector('.matrix-total').textContent=total;
+    updateTopbar();updateSidebarBadge();
+  }
+
+  inp.addEventListener('blur',commit);
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter')inp.blur();
+    if(e.key==='Escape'){cell.innerHTML=current;cell.classList.remove('editing');cell.ondblclick=(ev)=>startCellEdit(cell,ev);}
+  });
+}
+
+function openNeedsModal(){
+  const pnSel=document.getElementById('ne-pn');
+  const bSel=document.getElementById('ne-batch');
+  pnSel.innerHTML=DB.parts.map(p=>`<option value="${esc(p.pn)}">${esc(p.pn)} — ${esc(p.desc)}</option>`).join('');
+  bSel.innerHTML=DB.batches.map(b=>`<option value="${esc(b.id)}">${esc(b.id)}</option>`).join('');
+  document.getElementById('ne-qty').value=0;
+  document.getElementById('ne-notes').value='';
+  openModal('modal-needs');
+}
+
+function saveNeedEntry(){
+  const pn=document.getElementById('ne-pn').value;
+  const bid=document.getElementById('ne-batch').value;
+  const q=Math.max(0,parseInt(document.getElementById('ne-qty').value)||0);
+  if(!pn||!bid){toast('Select PN and Batch','error');return;}
+  if(q===0)delete DB.needs[needKey(pn,bid)];
+  else DB.needs[needKey(pn,bid)]=q;
+  save();closeModal('modal-needs');
+  toast('Need entry saved','success');
+  if(currentPage==='needs')renderPage('needs');
+}
+
+// ===================== SYNC / UPLOAD =====================
+function renderSync(){
+  const hist=[...DB.syncHistory].slice(0,30);
+  return `
+  <div class="grid-2" style="align-items:start">
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title"><span class="ct-accent"></span>Upload Sync File</div>
+        <div class="drop-zone" id="drop-zone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)" onclick="document.getElementById('file-inp').click()">
+          <input type="file" id="file-inp" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this.files[0])">
+          <div class="dz-icon">⬆</div>
+          <div class="dz-text">Drop file here or click to browse</div>
+          <div class="dz-sub">Accepts .xlsx, .xls, .csv</div>
+        </div>
+        <div id="sync-result-area"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-accent"></span>File Format Guide</div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px">First column must be <code style="background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--cyan)">PN</code>. Other columns are Batch IDs. Values are quantities.</p>
+      <table class="fmt-table">
+        <thead><tr><th>PN</th><th>MRD-2024-001</th><th>MRD-2024-002</th><th>CM-ALPHA</th></tr></thead>
+        <tbody>
+          <tr><td>ENG-BOLT-M8</td><td>120</td><td>80</td><td>40</td></tr>
+          <tr><td>ENG-GASKET-001</td><td>12</td><td>8</td><td>6</td></tr>
+          <tr><td>ELEC-CAP-10UF</td><td>300</td><td>200</td><td>150</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Rules:</div>
+        <ul style="font-size:11px;color:var(--muted);padding-left:16px;display:flex;flex-direction:column;gap:5px">
+          <li>Column header <code style="color:var(--cyan)">PN</code> is case-insensitive</li>
+          <li>Unknown PNs are skipped with a warning</li>
+          <li>Unknown batch IDs are auto-created as MRD</li>
+          <li>Existing quantities are overwritten</li>
+          <li>Empty or zero cells clear the need</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="ct-accent"></span>Sync History</div>
+    ${hist.length?`<div class="tbl-wrap"><table>
+      <thead><tr><th>Time</th><th>File</th><th>PNs Updated</th><th>Batches</th><th>Warnings</th><th>Method</th></tr></thead>
+      <tbody>
+        ${hist.map(h=>`<tr>
+          <td style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">${fmtTime(h.time)}</td>
+          <td style="font-size:11px;color:var(--cyan)">${esc(h.file)}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;font-weight:600">${h.pns}</td>
+          <td style="font-family:'IBM Plex Mono',monospace">${h.batches}</td>
+          <td style="color:${h.warns>0?'var(--orange)':'var(--muted)'};font-family:'IBM Plex Mono',monospace">${h.warns}</td>
+          <td><span class="tag ${h.method==='File'?'tag-active':'tag-mrd'}" style="font-size:9px">${esc(h.method)}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`:`<div class="empty-state"><div class="es-icon">↻</div><div class="es-text">No sync history</div><div class="es-sub">Upload a file to get started</div></div>`}
+  </div>`;
+}
+
+function dzOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('drag-over')}
+function dzLeave(e){document.getElementById('drop-zone').classList.remove('drag-over')}
+function dzDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f)handleFile(f);
+}
+
+function handleFile(file){
+  if(!file)return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  const reader=new FileReader();
+  reader.onload=function(e){
+    let rows;
+    if(ext==='csv'){
+      rows=parseCSV(e.target.result);
+    } else {
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    }
+    processSyncRows(rows,file.name);
+  };
+  if(ext==='csv')reader.readAsText(file);
+  else reader.readAsBinaryString(file);
+}
+
+function parseCSV(text){
+  return text.split('\n').map(row=>row.split(',').map(c=>c.replace(/^"|"$/g,'').trim()));
+}
+
+function processSyncRows(rows,filename){
+  if(!rows||rows.length<2){toast('File is empty or invalid','error');return;}
+  const header=rows[0].map(h=>String(h).trim());
+  const pnCol=header.findIndex(h=>h.toLowerCase()==='pn');
+  if(pnCol<0){toast('No PN column found','error');return;}
+
+  const batchCols=header.map((h,i)=>i!==pnCol?{idx:i,id:h.trim()}:null).filter(Boolean);
+  let warns=[];
+  let pnsUpdated=new Set();
+  let newBatches=new Set();
+
+  // Auto-create unknown batches
+  batchCols.forEach(bc=>{
+    if(!DB.batches.find(b=>b.id===bc.id)){
+      DB.batches.push({id:bc.id,name:'',type:'MRD',date:new Date().toISOString().split('T')[0],priority:'MED',status:'ACTIVE'});
+      newBatches.add(bc.id);
+    }
+  });
+
+  for(let ri=1;ri<rows.length;ri++){
+    const row=rows[ri];
+    if(!row||!row[pnCol])continue;
+    const pn=String(row[pnCol]).trim();
+    if(!pn)continue;
+    const part=DB.parts.find(p=>p.pn===pn);
+    if(!part){warns.push(`Row ${ri+1}: Unknown PN "${pn}" skipped`);continue;}
+
+    batchCols.forEach(bc=>{
+      const rawVal=row[bc.idx];
+      const val=rawVal===''||rawVal===null||rawVal===undefined?0:parseInt(rawVal)||0;
+      const k=needKey(pn,bc.id);
+      if(val===0)delete DB.needs[k];
+      else DB.needs[k]=val;
+    });
+    pnsUpdated.add(pn);
+  }
+
+  const histEntry={time:new Date().toISOString(),file:filename,pns:pnsUpdated.size,batches:newBatches.size,warns:warns.length,method:'File'};
+  DB.syncHistory.unshift(histEntry);
+  if(DB.syncHistory.length>30)DB.syncHistory=DB.syncHistory.slice(0,30);
+
+  save();
+  toast(`Sync complete: ${pnsUpdated.size} PNs, ${newBatches.size} new batches, ${warns.length} warnings`,'success');
+
+  // Show result
+  const area=document.getElementById('sync-result-area');
+  if(area){
+    area.innerHTML=`
+    <div class="sync-result">
+      <div class="sr-row"><span class="sr-key">File</span><span class="sr-val" style="color:var(--cyan)">${esc(filename)}</span></div>
+      <div class="sr-row"><span class="sr-key">PNs Updated</span><span class="sr-val" style="color:var(--green)">${pnsUpdated.size}</span></div>
+      <div class="sr-row"><span class="sr-key">New Batches</span><span class="sr-val">${newBatches.size}</span></div>
+      <div class="sr-row"><span class="sr-key">Warnings</span><span class="sr-val" style="color:${warns.length?'var(--orange)':'var(--muted)'}">${warns.length}</span></div>
+    </div>
+    ${warns.map(w=>`<div class="warn-item">⚠ ${esc(w)}</div>`).join('')}`;
+  }
+
+  // Refresh sync history table
+  renderPage('sync');
+}
+
+// ===================== DOWNLOAD =====================
+function download(filename,mime,content){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download=filename;a.click();
+}
+
+// ===================== INIT =====================
+load();
+seed();
+save();
+nav('dashboard');
+</script>
+</body>
+</html>
