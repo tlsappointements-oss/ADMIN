@@ -9,13 +9,15 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0D0F14;--surf:#13161E;--surf2:#1A1E29;--border:#252A38;
+  --bg:#0D0F14;--surf:#13161E;--surf2:#1A1E29;--surf3:#1F2433;--border:#252A38;
   --text:#E2E5F0;--muted:#636A85;--dim:#2E3348;
-  --cyan:#00D4FF;--green:#00E5A0;--red:#FF4757;--orange:#FF9500;
+  --cyan:#00D4FF;--green:#00E5A0;--red:#FF4757;--orange:#FF9500;--yellow:#FFD60A;--purple:#B66CFF;
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px}
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--dim);border-radius:3px}
-#top{height:46px;background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;z-index:10}
+
+/* TOP */
+#top{height:46px;background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
 .logo{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--cyan);letter-spacing:.15em;display:flex;align-items:center;gap:6px}
 .logo-sq{width:18px;height:18px;background:var(--cyan);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;color:#000}
 .sep{width:1px;height:18px;background:var(--border)}
@@ -24,8 +26,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .stats{margin-left:auto;display:flex;gap:6px}
 .stat{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);background:var(--surf2);border:1px solid var(--border);border-radius:3px;padding:2px 7px}
 .stat b{color:var(--text)}
+
+/* LAYOUT */
 #wrap{display:flex;height:calc(100vh - 46px);overflow:hidden}
-#side{width:260px;flex-shrink:0;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column}
+
+/* SIDEBAR */
+#side{width:255px;flex-shrink:0;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column}
 #side-head{padding:8px 10px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
 #srch{background:var(--surf2);border:1px solid var(--border);border-radius:5px;padding:6px 9px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;width:100%}
 #srch:focus{border-color:var(--cyan)}
@@ -44,39 +50,87 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .tag-l74{background:rgba(0,212,255,.12);color:var(--cyan);border:1px solid rgba(0,212,255,.2)}
 .tag-d74{background:rgba(255,149,0,.12);color:var(--orange);border:1px solid rgba(255,149,0,.2)}
 .tag-com{background:rgba(99,106,133,.12);color:var(--muted);border:1px solid rgba(99,106,133,.25)}
-.empty{text-align:center;padding:28px 12px;color:var(--dim);font-size:10px;line-height:1.7}
+.empty-msg{text-align:center;padding:28px 12px;color:var(--dim);font-size:10px;line-height:1.7}
+
+/* MAIN */
 #main{flex:1;overflow:hidden;display:flex;flex-direction:column}
 #upload-screen{flex:1;display:flex;align-items:center;justify-content:center}
-.dz{border:2px dashed var(--dim);border-radius:10px;padding:50px 64px;text-align:center;cursor:pointer;transition:.2s;max-width:480px;width:100%}
+.dz{border:2px dashed var(--dim);border-radius:10px;padding:50px 60px;text-align:center;cursor:pointer;transition:.2s;max-width:480px;width:100%}
 .dz:hover,.dz.over{border-color:var(--cyan);background:rgba(0,212,255,.02)}
-.dz-icon{font-size:36px;opacity:.25;margin-bottom:12px}
-.dz-title{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
-.dz-sub{font-size:11px;color:var(--muted);margin-bottom:10px}
+.dz-icon{font-size:36px;opacity:.2;margin-bottom:14px}
+.dz-title{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}
+.dz-sub{font-size:11px;color:var(--muted);margin-bottom:12px}
 .dz-exts{display:flex;gap:6px;justify-content:center}
 .ext{background:var(--surf2);border:1px solid var(--border);border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);padding:2px 6px}
 #nosel{flex:1;display:none;align-items:center;justify-content:center;flex-direction:column;gap:5px;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10px}
+
+/* DETAIL PANEL */
 #detail{flex:1;display:none;overflow:hidden;flex-direction:column}
-.det-bar{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surf);display:flex;align-items:center;gap:10px;flex-shrink:0}
-.det-pn{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;color:var(--cyan)}
-.det-desc{font-size:11px;color:var(--muted);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.det-sup{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)}
-.tbl-container{flex:1;overflow:auto}
-table.dt{border-collapse:collapse;width:100%}
-table.dt thead th{position:sticky;top:0;z-index:5;background:var(--surf2);border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:var(--muted);padding:7px 10px;text-align:left;white-space:nowrap}
-table.dt tbody tr:hover td{background:rgba(26,30,41,.5)}
-table.dt td{padding:5px 10px;border-bottom:1px solid rgba(37,42,56,.45);vertical-align:top}
-td.ci{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);text-align:right;width:36px;min-width:36px;padding-right:8px;border-right:1px solid rgba(46,51,72,.8)}
-td.cn{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);min-width:200px;max-width:340px;word-break:break-word;white-space:normal;line-height:1.4;padding-right:14px}
-td.cv{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);min-width:100px;max-width:500px;word-break:break-word;white-space:pre-wrap;line-height:1.45}
-td.cv.pos{color:var(--green)}
-td.cv.neg{color:var(--red)}
-td.cv.zero{color:var(--dim)}
-td.cv.na{color:var(--dim);font-style:italic}
-td.cv.empty{color:rgba(46,51,72,.8);font-size:9px}
-#loading{position:fixed;inset:0;background:rgba(13,15,20,.92);z-index:999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+
+/* PN header strip */
+.pn-bar{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surf);flex-shrink:0}
+.pn-bar-row1{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.pn-bar-pn{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:700;color:var(--cyan)}
+.pn-bar-tags{display:flex;gap:4px}
+.pn-bar-row2{font-size:11px;color:var(--text);margin-bottom:2px}
+.pn-bar-sup{font-size:10px;color:var(--muted)}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surf);flex-shrink:0}
+.tab{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;color:var(--muted);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;transition:.15s}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+
+/* TAB CONTENT */
+.tab-pane{flex:1;overflow-y:auto;display:none;padding:0}
+.tab-pane.on{display:block}
+
+/* ── NEEDS TAB ── */
+.needs-section{margin:12px 16px}
+.needs-section-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.needs-section-title::before{content:'';width:3px;height:10px;background:var(--cyan);border-radius:2px;display:inline-block}
+
+/* Period needs table */
+.needs-tbl{border-collapse:collapse;width:100%;font-size:11px;font-family:'IBM Plex Mono',monospace}
+.needs-tbl th{background:var(--surf2);padding:6px 10px;text-align:left;font-size:9px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2}
+.needs-tbl th.period-col{color:var(--yellow);min-width:110px}
+.needs-tbl td{padding:5px 10px;border-bottom:1px solid rgba(37,42,56,.5);vertical-align:middle;white-space:nowrap}
+.needs-tbl tr:hover td{background:rgba(26,30,41,.6)}
+.period-cell{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--yellow)}
+.num-pos{color:var(--green);font-weight:600}
+.num-neg{color:var(--red);font-weight:600}
+.num-zero{color:var(--dim)}
+.num-empty{color:rgba(46,51,72,.9);font-size:9px}
+
+/* Countermarks sub-table inside a period row */
+.cm-wrap{margin-top:2px;display:flex;flex-wrap:wrap;gap:4px;max-width:600px}
+.cm-chip{font-family:'IBM Plex Mono',monospace;font-size:9px;border-radius:3px;padding:2px 6px;display:inline-flex;align-items:center;gap:4px}
+.cm-chip.pos{background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);color:var(--green)}
+.cm-chip.neg{background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.2);color:var(--red)}
+.cm-chip.zero{background:rgba(46,51,72,.4);border:1px solid rgba(46,51,72,.8);color:var(--dim)}
+.cm-name{color:var(--muted);margin-right:2px}
+
+/* ── INFO TAB ── */
+.info-tbl{border-collapse:collapse;width:100%;font-size:11px;font-family:'IBM Plex Mono',monospace}
+.info-tbl th{background:var(--surf2);padding:6px 10px;text-align:left;font-size:9px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2}
+.info-tbl td{padding:5px 10px;border-bottom:1px solid rgba(37,42,56,.45);vertical-align:top}
+.info-tbl tr:hover td{background:rgba(26,30,41,.5)}
+td.ic{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);text-align:right;width:32px;padding-right:7px;border-right:1px solid rgba(46,51,72,.6)}
+td.in{font-size:10px;color:var(--muted);min-width:180px;max-width:300px;word-break:break-word;white-space:normal;line-height:1.4;padding-right:12px}
+td.iv{font-size:11px;color:var(--text);max-width:480px;word-break:break-word;white-space:pre-wrap;line-height:1.45}
+td.iv.pos{color:var(--green)}
+td.iv.neg{color:var(--red)}
+td.iv.zero{color:var(--dim)}
+td.iv.na{color:var(--dim);font-style:italic}
+td.iv.empty{color:rgba(46,51,72,.9);font-size:9px}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:rgba(13,15,20,.93);z-index:999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 .spin{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:sp .6s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
+
+/* TOAST */
 #toasts{position:fixed;bottom:12px;right:12px;z-index:9999;display:flex;flex-direction:column;gap:6px}
 .toast{background:var(--surf2);border:1px solid var(--border);border-radius:5px;padding:8px 12px;font-size:10px;min-width:200px;display:flex;align-items:center;gap:6px;transform:translateX(120%);transition:transform .22s cubic-bezier(.18,.89,.32,1.28);box-shadow:0 4px 16px rgba(0,0,0,.4)}
 .toast.in{transform:none}
@@ -86,6 +140,7 @@ td.cv.empty{color:rgba(46,51,72,.8);font-size:9px}
 </style>
 </head>
 <body>
+
 <div id="top">
   <div class="logo"><div class="logo-sq">P</div>PROCUREOS</div>
   <div class="sep"></div>
@@ -97,6 +152,7 @@ td.cv.empty{color:rgba(46,51,72,.8);font-size:9px}
     <div class="stat"><b id="s-file">No file</b></div>
   </div>
 </div>
+
 <div id="wrap">
   <div id="side">
     <div id="side-head">
@@ -108,8 +164,9 @@ td.cv.empty{color:rgba(46,51,72,.8);font-size:9px}
         <div class="fb" id="f-com" onclick="setFilt('com')">Commun</div>
       </div>
     </div>
-    <div id="pnlist"><div class="empty">Upload a file to browse parts</div></div>
+    <div id="pnlist"><div class="empty-msg">Upload a file to browse parts</div></div>
   </div>
+
   <div id="main">
     <div id="upload-screen">
       <div class="dz" id="dz"
@@ -117,47 +174,83 @@ td.cv.empty{color:rgba(46,51,72,.8);font-size:9px}
         onclick="document.getElementById('fi').click()">
         <div class="dz-icon">📂</div>
         <div class="dz-title">Drop your procurement file here</div>
-        <div class="dz-sub">Every column shown exactly as-is — nothing removed or changed</div>
+        <div class="dz-sub">All needs, countermarks, periods — exactly from your Excel file</div>
         <div class="dz-exts"><span class="ext">.xlsx</span><span class="ext">.xls</span><span class="ext">.csv</span></div>
       </div>
     </div>
     <div id="nosel"><span style="font-size:22px;opacity:.15">◎</span>Select a part from the list</div>
     <div id="detail">
-      <div class="det-bar">
-        <span class="det-pn" id="d-pn">—</span>
-        <span class="det-desc" id="d-desc">—</span>
-        <span class="det-sup" id="d-sup"></span>
+      <!-- PN header -->
+      <div class="pn-bar">
+        <div class="pn-bar-row1">
+          <span class="pn-bar-pn" id="d-pn"></span>
+          <div class="pn-bar-tags" id="d-tags"></div>
+        </div>
+        <div class="pn-bar-row2" id="d-desc"></div>
+        <div class="pn-bar-sup" id="d-sup"></div>
       </div>
-      <div class="tbl-container">
-        <table class="dt">
-          <thead><tr>
-            <th style="width:36px">#</th>
-            <th style="min-width:200px;max-width:340px">Column Name</th>
-            <th>Value</th>
-          </tr></thead>
-          <tbody id="tbl-body"></tbody>
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab on" id="tab-needs" onclick="switchTab('needs')">📋 Needs &amp; Periods</div>
+        <div class="tab" id="tab-marks" onclick="switchTab('marks')">🔖 Countermarks</div>
+        <div class="tab" id="tab-info" onclick="switchTab('info')">ℹ All Columns</div>
+      </div>
+      <!-- Needs pane -->
+      <div class="tab-pane on" id="pane-needs">
+        <div class="needs-section">
+          <div class="needs-section-title">Needs by Period</div>
+          <table class="needs-tbl" id="needs-table">
+            <thead>
+              <tr>
+                <th class="period-col">Period</th>
+                <th>Besoin</th>
+                <th>Dbproto</th>
+                <th>Besoins + DB</th>
+                <th>To Order</th>
+                <th>Stock Fin</th>
+              </tr>
+            </thead>
+            <tbody id="needs-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Countermarks pane -->
+      <div class="tab-pane" id="pane-marks">
+        <div class="needs-section" style="padding-top:12px">
+          <div class="needs-section-title">Countermarks per Period</div>
+          <div id="marks-body"></div>
+        </div>
+      </div>
+      <!-- All columns pane -->
+      <div class="tab-pane" id="pane-info">
+        <table class="info-tbl">
+          <thead><tr><th style="width:32px">#</th><th style="min-width:180px">Column Name</th><th>Value</th></tr></thead>
+          <tbody id="info-body"></tbody>
         </table>
       </div>
     </div>
   </div>
 </div>
+
 <div id="loading"><div class="spin"></div><div class="lbl" id="lbl">Loading…</div></div>
 <div id="toasts"></div>
 
 <script>
 // ─── STATE ───────────────────────────────────────────────────────────
-let HEADERS = [];  // [{idx, name}]  — exact header names from file
-let ROWS    = [];  // [{_pn:string, _raw:{colIdx:displayString}}]
-let FILT    = 'all';
-let SEL     = null;
-let CI      = {};  // colName -> colIdx, for known columns
+let HEADERS  = [];  // [{idx, name}]
+let ROWS     = [];  // [{_pn, _raw:{colIdx->displayStr}}]
+let PERIODS  = [];  // [{label, besoin_idx, dbproto_idx, total_idx, toorder_idx, stockfin_idx, marks:[{name,qty_idx,stock_idx}]}]
+let FILT     = 'all';
+let SEL      = null;
+let CI       = {};  // name -> idx
+let ACTIVE_TAB = 'needs';
 
-// ─── DRAG / FILE ─────────────────────────────────────────────────────
+// ─── DRAG / LOAD ─────────────────────────────────────────────────────
 function doDrag(e, t) {
   e.preventDefault();
   const d = document.getElementById('dz');
-  if (t === 'over') d.classList.add('over');
-  else if (t === 'out') d.classList.remove('over');
+  if (t==='over') d.classList.add('over');
+  else if (t==='out') d.classList.remove('over');
   else { d.classList.remove('over'); loadFile(e.dataTransfer.files[0]); }
 }
 
@@ -168,266 +261,343 @@ function loadFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      let wb;
-      if (ext === 'csv') {
-        wb = XLSX.read(e.target.result, { type: 'string' });
-      } else {
-        // raw:true keeps numbers as numbers (no locale formatting)
-        // cellDates:true so date serial numbers become JS Date objects
-        wb = XLSX.read(e.target.result, { type: 'binary', raw: true, cellDates: true });
-      }
+      const wb = ext === 'csv'
+        ? XLSX.read(e.target.result, {type:'string'})
+        : XLSX.read(e.target.result, {type:'binary', raw:true, cellDates:true});
       setLbl('Parsing…');
       setTimeout(() => parseWB(wb, file.name), 30);
-    } catch (err) {
-      hideLoad();
-      toast('Failed to read: ' + err.message, 'er');
-    }
+    } catch(err) { hideLoad(); toast('Failed: '+err.message,'er'); }
   };
-  if (ext === 'csv') reader.readAsText(file);
+  if (ext==='csv') reader.readAsText(file);
   else reader.readAsBinaryString(file);
 }
 
 // ─── PARSE ───────────────────────────────────────────────────────────
 function parseWB(wb, fname) {
   const ws = wb.Sheets[wb.SheetNames[0]];
-  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-  const maxR = range.e.r + 1;
-  const maxC = range.e.c + 1;
+  const range = XLSX.utils.decode_range(ws['!ref']||'A1');
+  const maxR = range.e.r+1, maxC = range.e.c+1;
 
-  // Find the header row: scan for a cell whose value === "PN"
+  // Find header row (contains "PN")
   let hRow = -1, pnCol = -1;
-  scan:
-  for (let r = 0; r < Math.min(25, maxR); r++) {
-    for (let c = 0; c < Math.min(20, maxC); c++) {
-      const cell = ws[XLSX.utils.encode_cell({ r, c })];
-      if (cell && String(cell.v ?? '').trim() === 'PN') {
-        hRow = r;
-        pnCol = c;
-        break scan;
-      }
+  outer: for (let r=0; r<Math.min(25,maxR); r++) {
+    for (let c=0; c<Math.min(20,maxC); c++) {
+      const cell = ws[XLSX.utils.encode_cell({r,c})];
+      if (cell && String(cell.v??'').trim()==='PN') { hRow=r; pnCol=c; break outer; }
     }
   }
-  if (hRow < 0) { hideLoad(); toast('Cannot find "PN" column in file', 'er'); return; }
+  if (hRow<0) { hideLoad(); toast('Cannot find "PN" column','er'); return; }
 
-  // Build HEADERS from that row — exact names, nothing changed
+  // Build headers — exact names
   HEADERS = [];
-  for (let c = 0; c < maxC; c++) {
-    const cell = ws[XLSX.utils.encode_cell({ r: hRow, c })];
-    const name = cell ? String(cell.v ?? '').trim() : '';
-    HEADERS.push({ idx: c, name });
+  for (let c=0; c<maxC; c++) {
+    const cell = ws[XLSX.utils.encode_cell({r:hRow, c})];
+    HEADERS.push({ idx:c, name: cell ? String(cell.v??'').trim() : '' });
   }
-
-  // Map known column names to indices
   CI = {};
-  HEADERS.forEach(h => { if (h.name) CI[h.name] = h.idx; });
+  HEADERS.forEach(h => { if(h.name) CI[h.name] = h.idx; });
 
-  setLbl('Loading ' + (maxR - hRow - 1) + ' rows…');
+  // Detect period structure from headers
+  PERIODS = detectPeriods(HEADERS);
 
-  // Read all data rows
+  setLbl('Loading rows…');
   ROWS = [];
-  for (let r = hRow + 1; r < maxR; r++) {
-    const pnCell = ws[XLSX.utils.encode_cell({ r, c: pnCol })];
-    if (!pnCell) continue;
-    const rawPN = pnCell.v;
-    if (rawPN === null || rawPN === undefined) continue;
-    const pnStr = String(rawPN).trim();
-    if (!pnStr || pnStr === '#N/A') continue;
-
-    // Read every column — store as display string, preserving exact value
+  for (let r=hRow+1; r<maxR; r++) {
+    const pnCell = ws[XLSX.utils.encode_cell({r, c:pnCol})];
+    if (!pnCell || pnCell.v===null || pnCell.v===undefined) continue;
+    const pnStr = String(pnCell.v).trim();
+    if (!pnStr || pnStr==='#N/A') continue;
     const raw = {};
-    for (let c = 0; c < maxC && c < HEADERS.length; c++) {
-      const cell = ws[XLSX.utils.encode_cell({ r, c })];
-      if (!cell || cell.v === null || cell.v === undefined) {
-        raw[c] = '';
-        continue;
-      }
-      raw[c] = formatCell(cell);
+    for (let c=0; c<maxC && c<HEADERS.length; c++) {
+      const cell = ws[XLSX.utils.encode_cell({r,c})];
+      raw[c] = cell ? fmtCell(cell) : '';
     }
-
-    ROWS.push({ _pn: pnStr, _raw: raw });
+    ROWS.push({ _pn:pnStr, _raw:raw });
   }
 
-  // Update UI
   document.getElementById('upload-screen').style.display = 'none';
   document.getElementById('nosel').style.display = 'flex';
   document.getElementById('s-parts').textContent = ROWS.length;
   document.getElementById('s-cols').textContent = HEADERS.length;
-  const shortName = fname.replace(/\.[^.]+$/, '').substring(0, 24);
-  document.getElementById('s-file').textContent = shortName;
-  document.getElementById('upbtn-label').textContent = shortName.substring(0, 18) + (shortName.length > 18 ? '…' : '');
-
-  SEL = null;
-  hideLoad();
-  renderList();
-  toast(ROWS.length + ' parts · ' + HEADERS.length + ' columns', 'ok');
+  const sn = fname.replace(/\.[^.]+$/,'').substring(0,24);
+  document.getElementById('s-file').textContent = sn;
+  document.getElementById('upbtn-label').textContent = sn.substring(0,18)+(sn.length>18?'…':'');
+  SEL = null; hideLoad(); renderList();
+  toast(ROWS.length+' parts · '+HEADERS.length+' cols · '+PERIODS.length+' periods', 'ok');
 }
 
-// Format a single cell value for display
-function formatCell(cell) {
-  if (!cell || cell.v === null || cell.v === undefined) return '';
-  // Date
-  if (cell.t === 'd' || cell.v instanceof Date) {
-    const d = cell.v instanceof Date ? cell.v : new Date(cell.v);
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+// ─── DETECT PERIODS ──────────────────────────────────────────────────
+// A "period" = a group of columns for one week, identified by:
+// Besoin* <period>, Dbproto <period>, (Besoins+DB) <period>, To order <period>, Stock fin <period>
+// Plus countermark columns (KR, KK, X0, XO) that appear between consecutive period groups
+function detectPeriods(headers) {
+  const periods = [];
+  const hnames = headers.map(h => h.name);
+
+  // Find all "besoin" columns that include a period label
+  const besoinRe = /besoin[s]?\s*(l74|d74|x[12]|dbproto)?\s*([\d_]+_?s\d+|s\d+)/i;
+  const toorderRe = /to\s*order[s]?\s*([\d_]+_?s\d+|s\d+)/i;
+  const stockfinRe = /stock\s*fin\s*([\d_]+_?s\d+|s\d+)/i;
+  const dbprotoRe  = /dbproto\s*([\d_]+_?s\d+|s\d+)/i;
+  const totalRe    = /\(besoins?\s*\+\s*db\s*proto\)\s*([\d_]+_?s\d+|s\d+)/i;
+
+  // Build a map of period_label -> {besoin, dbproto, total, toorder, stockfin, mark_cols:[]}
+  const pmap = new Map();
+
+  headers.forEach((h, i) => {
+    const n = h.name.replace(/\n/g,' ').trim();
+    let m;
+
+    // Extract period key from column name
+    const periodKey = extractPeriod(n);
+    if (!periodKey) return;
+
+    if (!pmap.has(periodKey)) pmap.set(periodKey, { label:periodKey, besoin_idx:null, dbproto_idx:null, total_idx:null, toorder_idx:null, stockfin_idx:null, marks:[] });
+    const p = pmap.get(periodKey);
+
+    const nl = n.toLowerCase();
+    if (nl.includes('stock fin')) { if (p.stockfin_idx===null) p.stockfin_idx=i; }
+    else if (/to\s*order/i.test(n) && !nl.includes('total')) { if (p.toorder_idx===null) p.toorder_idx=i; }
+    else if (/\(besoins?\s*\+\s*db/i.test(n)) { if (p.total_idx===null) p.total_idx=i; }
+    else if (/dbproto/i.test(n)) { if (p.dbproto_idx===null) p.dbproto_idx=i; }
+    else if (/besoin/i.test(n)) { if (p.besoin_idx===null) p.besoin_idx=i; }
+  });
+
+  // Now find countermarks: columns named KR### KK### X0_### XO_### near each period
+  // Strategy: for each period, find its column range and collect marks in that range
+  const plist = Array.from(pmap.values());
+
+  // Sort periods by first non-null column index
+  plist.sort((a,b) => {
+    const ai = firstIdx(a), bi = firstIdx(b);
+    return ai - bi;
+  });
+
+  // For each period, find countermarks = columns between this period's besoin and next period's besoin
+  const markRe = /^(KR|KK|X0_|XO_)/i;
+  for (let pi=0; pi<plist.length; pi++) {
+    const p = plist[pi];
+    const start = firstIdx(p);
+    const end   = pi+1 < plist.length ? firstIdx(plist[pi+1]) : headers.length;
+    p.marks = [];
+    for (let ci=start; ci<end && ci<headers.length; ci++) {
+      const n = headers[ci].name;
+      if (markRe.test(n)) {
+        // Check if there's a "qty" version (positive) and "stock" version (negative) — they come in pairs
+        // Just record all of them
+        p.marks.push({ name:n, col_idx:ci });
+      }
     }
   }
-  // Formula error
-  if (cell.t === 'e') {
-    return cell.w || '#ERR';
+
+  return plist.filter(p => firstIdx(p) >= 0);
+}
+
+function extractPeriod(name) {
+  // Extract period like "2025_S35", "S26", "S14", etc.
+  const m = name.match(/(\d{4}_S\d+|S\d+)/i);
+  return m ? m[1].toUpperCase() : null;
+}
+
+function firstIdx(p) {
+  return p.besoin_idx ?? p.dbproto_idx ?? p.total_idx ?? p.toorder_idx ?? p.stockfin_idx ?? -1;
+}
+
+function fmtCell(cell) {
+  if (!cell || cell.v===null || cell.v===undefined) return '';
+  if (cell.t==='d' || cell.v instanceof Date) {
+    const d = cell.v instanceof Date ? cell.v : new Date(cell.v);
+    if (!isNaN(d.getTime())) return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
   }
-  // Boolean
-  if (cell.t === 'b') {
-    return cell.v ? 'TRUE' : 'FALSE';
-  }
-  // Number: use raw value (no locale formatting)
-  if (cell.t === 'n') {
-    return String(cell.v);
-  }
-  // String / anything else
-  return String(cell.v ?? '').trim();
+  if (cell.t==='e') return cell.w || '#ERR';
+  if (cell.t==='b') return cell.v ? 'TRUE':'FALSE';
+  return String(cell.v).trim();
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────────
 function setFilt(f) {
   FILT = f;
-  ['all','l74','d74','com'].forEach(k => document.getElementById('f-' + k).classList.toggle('on', k === f));
+  ['all','l74','d74','com'].forEach(k => document.getElementById('f-'+k).classList.toggle('on',k===f));
   renderList();
 }
-
-function colVal(row, name) {
-  const idx = CI[name];
-  return idx !== undefined ? (row._raw[idx] ?? '') : '';
-}
+function cv(row, name) { const i=CI[name]; return i!=null?(row._raw[i]??''):''; }
 
 function renderList() {
-  const q = (document.getElementById('srch').value || '').toLowerCase();
+  const q = (document.getElementById('srch').value||'').toLowerCase();
   const list = document.getElementById('pnlist');
-
-  if (!ROWS.length) {
-    list.innerHTML = '<div class="empty">Upload a file to browse parts</div>';
-    return;
-  }
-
+  if (!ROWS.length) { list.innerHTML='<div class="empty-msg">Upload a file to browse parts</div>'; return; }
   const filtered = ROWS.filter(r => {
-    const pn      = r._pn.toLowerCase();
-    const desc    = (colVal(r,'Descrizione') || colVal(r,'Description Pièce') || '').toLowerCase();
-    const variant = (colVal(r,'D74 / L74') || '').toUpperCase();
-    const type    = (colVal(r,'Type') || '').toLowerCase();
-
+    const pn   = r._pn.toLowerCase();
+    const desc = (cv(r,'Descrizione')||cv(r,'Description Pièce')||'').toLowerCase();
+    const var_ = (cv(r,'D74 / L74')||'').toUpperCase();
+    const typ  = (cv(r,'Type')||'').toLowerCase();
     if (q && !pn.includes(q) && !desc.includes(q)) return false;
-    if (FILT === 'l74' && !variant.includes('L74')) return false;
-    if (FILT === 'd74' && !variant.includes('D74')) return false;
-    if (FILT === 'com' && !type.includes('commun')) return false;
+    if (FILT==='l74' && !var_.includes('L74')) return false;
+    if (FILT==='d74' && !var_.includes('D74')) return false;
+    if (FILT==='com' && !typ.includes('commun')) return false;
     return true;
   });
-
-  if (!filtered.length) {
-    list.innerHTML = '<div class="empty">No parts match</div>';
-    return;
-  }
-
-  const MAX = 500;
-  list.innerHTML = filtered.slice(0, MAX).map(r => {
-    const variant = (colVal(r,'D74 / L74') || '').toUpperCase();
-    const type    = (colVal(r,'Type') || '');
-    const desc    = (colVal(r,'Descrizione') || colVal(r,'Description Pièce') || '').substring(0, 52);
+  if (!filtered.length) { list.innerHTML='<div class="empty-msg">No parts match</div>'; return; }
+  const MAX=500;
+  list.innerHTML = filtered.slice(0,MAX).map(r => {
+    const var_ = (cv(r,'D74 / L74')||'').toUpperCase();
+    const typ  = cv(r,'Type')||'';
+    const desc = (cv(r,'Descrizione')||cv(r,'Description Pièce')||'').substring(0,52);
     const tags = [
-      variant.includes('L74') ? '<span class="tag tag-l74">L74</span>' : '',
-      variant.includes('D74') ? '<span class="tag tag-d74">D74</span>' : '',
-      type.toLowerCase() === 'commun' ? '<span class="tag tag-com">COMMUN</span>' : '',
+      var_.includes('L74')?'<span class="tag tag-l74">L74</span>':'',
+      var_.includes('D74')?'<span class="tag tag-d74">D74</span>':'',
+      typ.toLowerCase()==='commun'?'<span class="tag tag-com">COMMUN</span>':'',
     ].join('');
-    const sel = SEL === r._pn ? ' sel' : '';
+    const sel = SEL===r._pn?' sel':'';
     return `<div class="pn-item${sel}" onclick="showPN(${JSON.stringify(r._pn)})">
       <div class="pn-num">${esc(r._pn)}</div>
-      <div class="pn-desc">${esc(desc) || '—'}</div>
+      <div class="pn-desc">${esc(desc)||'—'}</div>
       <div class="pn-tags">${tags}</div>
     </div>`;
   }).join('');
-
-  if (filtered.length > MAX) {
-    list.innerHTML += `<div class="empty" style="font-size:9px">Showing ${MAX} of ${filtered.length} — refine search</div>`;
-  }
+  if (filtered.length>MAX) list.innerHTML+=`<div class="empty-msg" style="font-size:9px">Showing ${MAX}/${filtered.length} — refine search</div>`;
 }
 
 // ─── DETAIL ──────────────────────────────────────────────────────────
+function switchTab(t) {
+  ACTIVE_TAB = t;
+  ['needs','marks','info'].forEach(k => {
+    document.getElementById('tab-'+k).classList.toggle('on',k===t);
+    document.getElementById('pane-'+k).classList.toggle('on',k===t);
+  });
+}
+
 function showPN(pn) {
-  SEL = pn;
-  renderList();
+  SEL = pn; renderList();
+  const rows = ROWS.filter(r=>r._pn===pn);
+  if (!rows.length) return;
+  const row = rows[0];
 
-  const matches = ROWS.filter(r => r._pn === pn);
-  if (!matches.length) return;
-
-  const row = matches[0];
-
-  // Update header bar
+  // Header bar
   document.getElementById('d-pn').textContent = pn;
-  document.getElementById('d-desc').textContent =
-    colVal(row, 'Descrizione') || colVal(row, 'Description Pièce') || '—';
-  const sup = (colVal(row, 'SUPPLIER') || '').replace(/^\d+\s+/, '');
-  document.getElementById('d-sup').textContent = sup ? '🏭 ' + sup.substring(0, 40) : '';
+  document.getElementById('d-desc').textContent = cv(row,'Descrizione')||cv(row,'Description Pièce')||'—';
+  const sup = (cv(row,'SUPPLIER')||'').replace(/^\d+\s+/,'');
+  document.getElementById('d-sup').textContent = sup ? '🏭 '+sup.substring(0,60) : '';
+  const var_ = (cv(row,'D74 / L74')||'').toUpperCase();
+  const typ  = cv(row,'Type')||'';
+  document.getElementById('d-tags').innerHTML = [
+    var_.includes('L74')?'<span class="tag tag-l74">L74</span>':'',
+    var_.includes('D74')?'<span class="tag tag-d74">D74</span>':'',
+    typ.toLowerCase()==='commun'?'<span class="tag tag-com">COMMUN</span>':'',
+  ].join('');
 
-  // Build table: every single column in order
-  const html = HEADERS.map((h, i) => {
-    const val = row._raw[h.idx] ?? '';
-    const name = h.name || '';
-
-    let cls = 'cv';
-    if (!val) {
-      cls += ' empty';
-    } else if (/^#(N\/A|REF!|VALUE!|NAME\?|DIV\/0!|NULL!)$/.test(val)) {
-      cls += ' na';
-    } else {
-      const num = parseFloat(val);
-      if (!isNaN(num) && String(num) === val) {
-        cls += num > 0 ? ' pos' : num < 0 ? ' neg' : ' zero';
-      }
-    }
-
-    const displayVal  = val === '' ? '—' : esc(val.length > 800 ? val.substring(0, 800) + '…' : val);
-    const displayName = name
-      ? esc(name)
-      : `<span style="color:var(--dim);font-size:9px">col_${h.idx + 1}</span>`;
-
-    return `<tr>
-      <td class="ci">${i + 1}</td>
-      <td class="cn">${displayName}</td>
-      <td class="${cls}">${displayVal}</td>
-    </tr>`;
-  }).join('');
-
-  const tbody = document.getElementById('tbl-body');
-  let prefix = '';
-  if (matches.length > 1) {
-    prefix = `<tr><td colspan="3" style="padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--orange);background:rgba(255,149,0,.05);border-bottom:1px solid var(--border)">${matches.length} rows found for PN ${esc(pn)} — showing first</td></tr>`;
-  }
-  tbody.innerHTML = prefix + html;
+  // ── Needs tab
+  buildNeeds(row);
+  // ── Marks tab
+  buildMarks(row);
+  // ── Info tab
+  buildInfo(row);
 
   document.getElementById('nosel').style.display = 'none';
-  const det = document.getElementById('detail');
-  det.style.display = 'flex';
-  det.querySelector('.tbl-container').scrollTop = 0;
+  document.getElementById('detail').style.display = 'flex';
+}
+
+function numVal(row, idx) {
+  if (idx===null||idx===undefined) return null;
+  const v = row._raw[idx];
+  if (v===''||v===undefined||v===null) return null;
+  const n = parseFloat(v);
+  return isNaN(n) ? null : n;
+}
+function rawVal(row, idx) {
+  if (idx===null||idx===undefined) return '';
+  return row._raw[idx]??'';
+}
+
+function numCell(v, cls='') {
+  if (v===null||v==='') return `<td class="num-empty">—</td>`;
+  const n = typeof v==='number'?v:parseFloat(v);
+  if (isNaN(n)) return `<td>${esc(String(v))}</td>`;
+  const c = n>0?'num-pos':n<0?'num-neg':'num-zero';
+  return `<td class="${c} ${cls}">${n}</td>`;
+}
+
+function buildNeeds(row) {
+  const tbody = document.getElementById('needs-body');
+  if (!PERIODS.length) { tbody.innerHTML='<tr><td colspan="6" class="num-empty" style="padding:16px">No period columns detected in this file</td></tr>'; return; }
+
+  const html = PERIODS.map(p => {
+    const besoin   = numVal(row, p.besoin_idx);
+    const dbproto  = numVal(row, p.dbproto_idx);
+    const total    = numVal(row, p.total_idx);
+    const toorder  = numVal(row, p.toorder_idx);
+    const stockfin = numVal(row, p.stockfin_idx);
+
+    // Only show rows that have at least one non-null, non-zero value
+    const hasData = [besoin,dbproto,total,toorder,stockfin].some(v=>v!==null&&v!==0);
+
+    return `<tr style="${!hasData?'opacity:.35':''}">
+      <td class="period-cell">${esc(p.label)}</td>
+      ${numCell(besoin)}
+      ${numCell(dbproto)}
+      ${numCell(total)}
+      ${numCell(toorder)}
+      ${numCell(stockfin)}
+    </tr>`;
+  }).join('');
+  tbody.innerHTML = html;
+}
+
+function buildMarks(row) {
+  const container = document.getElementById('marks-body');
+  if (!PERIODS.length) { container.innerHTML='<div class="empty-msg">No period data</div>'; return; }
+
+  const html = PERIODS.map(p => {
+    const chips = p.marks.map(m => {
+      const v = rawVal(row, m.col_idx);
+      if (v===''||v==='0') return '';
+      const n = parseFloat(v);
+      const cls = isNaN(n)?'zero':n>0?'pos':n<0?'neg':'zero';
+      return `<span class="cm-chip ${cls}"><span class="cm-name">${esc(m.name)}</span>${esc(v)}</span>`;
+    }).filter(Boolean).join('');
+
+    if (!chips) return '';
+    return `<div style="margin-bottom:12px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:var(--yellow);margin-bottom:6px;letter-spacing:.08em">${esc(p.label)}</div>
+      <div class="cm-wrap">${chips}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  container.innerHTML = html || '<div class="empty-msg">No countermark data for this part</div>';
+}
+
+function buildInfo(row) {
+  const tbody = document.getElementById('info-body');
+  const html = HEADERS.map((h,i) => {
+    const val = row._raw[h.idx]??'';
+    const name = h.name||'';
+    let cls = 'iv';
+    if (!val) cls+=' empty';
+    else if (/^#(N\/A|REF!|VALUE!|NAME\?|DIV\/0!)$/.test(val)) cls+=' na';
+    else {
+      const n = parseFloat(val);
+      if (!isNaN(n)&&String(n)===val) cls+=n>0?' pos':n<0?' neg':' zero';
+    }
+    const dv = val===''?'—':esc(val.length>600?val.substring(0,600)+'…':val);
+    const dn = name?esc(name):`<span style="color:var(--dim);font-size:9px">col_${h.idx+1}</span>`;
+    return `<tr><td class="ic">${i+1}</td><td class="in">${dn}</td><td class="${cls}">${dv}</td></tr>`;
+  }).join('');
+  tbody.innerHTML = html;
 }
 
 // ─── UTILS ───────────────────────────────────────────────────────────
-function esc(s) {
-  return String(s || '')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
-function showLoad(m) { document.getElementById('loading').style.display = 'flex'; setLbl(m); }
-function setLbl(m)   { document.getElementById('lbl').textContent = m; }
-function hideLoad()  { document.getElementById('loading').style.display = 'none'; }
-function toast(msg, type = 'nfo') {
-  const tc = document.getElementById('toasts');
-  const t  = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<span>${{ok:'✓',er:'✗',nfo:'ℹ'}[type]}</span><span>${esc(msg)}</span>`;
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function showLoad(m){document.getElementById('loading').style.display='flex';setLbl(m)}
+function setLbl(m){document.getElementById('lbl').textContent=m}
+function hideLoad(){document.getElementById('loading').style.display='none'}
+function toast(msg,type='nfo'){
+  const tc=document.getElementById('toasts');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span>${{ok:'✓',er:'✗',nfo:'ℹ'}[type]}</span><span>${esc(msg)}</span>`;
   tc.appendChild(t);
-  requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('in')));
-  setTimeout(() => { t.classList.remove('in'); setTimeout(() => t.remove(), 300); }, 4000);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('in')));
+  setTimeout(()=>{t.classList.remove('in');setTimeout(()=>t.remove(),300)},4000);
 }
 </script>
 </body>
