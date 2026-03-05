@@ -14,9 +14,7 @@
   --cyan:#00D4FF;--green:#00E5A0;--red:#FF4757;--orange:#FF9500;
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px}
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--dim);border-radius:3px}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--dim);border-radius:3px}
 #top{height:46px;background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;z-index:10}
 .logo{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--cyan);letter-spacing:.15em;display:flex;align-items:center;gap:6px}
 .logo-sq{width:18px;height:18px;background:var(--cyan);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;color:#000}
@@ -67,14 +65,14 @@ table.dt{border-collapse:collapse;width:100%}
 table.dt thead th{position:sticky;top:0;z-index:5;background:var(--surf2);border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:var(--muted);padding:7px 10px;text-align:left;white-space:nowrap}
 table.dt tbody tr:hover td{background:rgba(26,30,41,.5)}
 table.dt td{padding:5px 10px;border-bottom:1px solid rgba(37,42,56,.45);vertical-align:top}
-td.ci{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);text-align:right;width:36px;min-width:36px;padding-right:8px;border-right:1px solid var(--dim)}
+td.ci{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim);text-align:right;width:36px;min-width:36px;padding-right:8px;border-right:1px solid rgba(46,51,72,.8)}
 td.cn{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);min-width:200px;max-width:340px;word-break:break-word;white-space:normal;line-height:1.4;padding-right:14px}
-td.cv{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);min-width:120px;max-width:500px;word-break:break-word;white-space:pre-wrap;line-height:1.45}
+td.cv{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);min-width:100px;max-width:500px;word-break:break-word;white-space:pre-wrap;line-height:1.45}
 td.cv.pos{color:var(--green)}
 td.cv.neg{color:var(--red)}
 td.cv.zero{color:var(--dim)}
 td.cv.na{color:var(--dim);font-style:italic}
-td.cv.empty{color:var(--dim);font-style:italic;font-size:9px}
+td.cv.empty{color:rgba(46,51,72,.8);font-size:9px}
 #loading{position:fixed;inset:0;background:rgba(13,15,20,.92);z-index:999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 .spin{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:sp .6s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -119,7 +117,7 @@ td.cv.empty{color:var(--dim);font-style:italic;font-size:9px}
         onclick="document.getElementById('fi').click()">
         <div class="dz-icon">📂</div>
         <div class="dz-title">Drop your procurement file here</div>
-        <div class="dz-sub">Every column is shown exactly as it is in the file — nothing removed or changed</div>
+        <div class="dz-sub">Every column shown exactly as-is — nothing removed or changed</div>
         <div class="dz-exts"><span class="ext">.xlsx</span><span class="ext">.xls</span><span class="ext">.csv</span></div>
       </div>
     </div>
@@ -134,7 +132,7 @@ td.cv.empty{color:var(--dim);font-style:italic;font-size:9px}
         <table class="dt">
           <thead><tr>
             <th style="width:36px">#</th>
-            <th style="min-width:200px">Column Name</th>
+            <th style="min-width:200px;max-width:340px">Column Name</th>
             <th>Value</th>
           </tr></thead>
           <tbody id="tbl-body"></tbody>
@@ -145,140 +143,292 @@ td.cv.empty{color:var(--dim);font-style:italic;font-size:9px}
 </div>
 <div id="loading"><div class="spin"></div><div class="lbl" id="lbl">Loading…</div></div>
 <div id="toasts"></div>
+
 <script>
-let HEADERS=[],ROWS=[],FILT='all',SEL=null,CI={};
-function doDrag(e,t){e.preventDefault();const d=document.getElementById('dz');if(t==='over')d.classList.add('over');else if(t==='out')d.classList.remove('over');else{d.classList.remove('over');loadFile(e.dataTransfer.files[0]);}}
-function loadFile(file){
-  if(!file)return;
+// ─── STATE ───────────────────────────────────────────────────────────
+let HEADERS = [];  // [{idx, name}]  — exact header names from file
+let ROWS    = [];  // [{_pn:string, _raw:{colIdx:displayString}}]
+let FILT    = 'all';
+let SEL     = null;
+let CI      = {};  // colName -> colIdx, for known columns
+
+// ─── DRAG / FILE ─────────────────────────────────────────────────────
+function doDrag(e, t) {
+  e.preventDefault();
+  const d = document.getElementById('dz');
+  if (t === 'over') d.classList.add('over');
+  else if (t === 'out') d.classList.remove('over');
+  else { d.classList.remove('over'); loadFile(e.dataTransfer.files[0]); }
+}
+
+function loadFile(file) {
+  if (!file) return;
   showLoad('Reading file…');
-  const ext=file.name.split('.').pop().toLowerCase();
-  const r=new FileReader();
-  r.onload=e=>{
-    try{
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
       let wb;
-      if(ext==='csv')wb=XLSX.read(e.target.result,{type:'string'});
-      else wb=XLSX.read(e.target.result,{type:'binary',cellDates:true,raw:false});
+      if (ext === 'csv') {
+        wb = XLSX.read(e.target.result, { type: 'string' });
+      } else {
+        // raw:true keeps numbers as numbers (no locale formatting)
+        // cellDates:true so date serial numbers become JS Date objects
+        wb = XLSX.read(e.target.result, { type: 'binary', raw: true, cellDates: true });
+      }
       setLbl('Parsing…');
-      setTimeout(()=>parseWB(wb,file.name),30);
-    }catch(err){hideLoad();toast('Failed: '+err.message,'er');}
+      setTimeout(() => parseWB(wb, file.name), 30);
+    } catch (err) {
+      hideLoad();
+      toast('Failed to read: ' + err.message, 'er');
+    }
   };
-  if(ext==='csv')r.readAsText(file);else r.readAsBinaryString(file);
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsBinaryString(file);
 }
-function parseWB(wb,fname){
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  const range=XLSX.utils.decode_range(ws['!ref']||'A1');
-  const maxR=range.e.r+1,maxC=range.e.c+1;
-  let hRow=-1,pnCol=-1;
-  outer:for(let r=0;r<Math.min(20,maxR);r++){
-    for(let c=0;c<Math.min(100,maxC);c++){
-      const cell=ws[XLSX.utils.encode_cell({r,c})];
-      if(cell&&String(cell.v||'').trim()==='PN'){hRow=r;pnCol=c;break outer;}
+
+// ─── PARSE ───────────────────────────────────────────────────────────
+function parseWB(wb, fname) {
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  const maxR = range.e.r + 1;
+  const maxC = range.e.c + 1;
+
+  // Find the header row: scan for a cell whose value === "PN"
+  let hRow = -1, pnCol = -1;
+  scan:
+  for (let r = 0; r < Math.min(25, maxR); r++) {
+    for (let c = 0; c < Math.min(20, maxC); c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (cell && String(cell.v ?? '').trim() === 'PN') {
+        hRow = r;
+        pnCol = c;
+        break scan;
+      }
     }
   }
-  if(hRow<0){hideLoad();toast('Cannot find "PN" column','er');return;}
-  HEADERS=[];
-  for(let c=0;c<maxC;c++){
-    const cell=ws[XLSX.utils.encode_cell({r:hRow,c})];
-    HEADERS.push({idx:c,name:cell?String(cell.v??'').trim():''});
+  if (hRow < 0) { hideLoad(); toast('Cannot find "PN" column in file', 'er'); return; }
+
+  // Build HEADERS from that row — exact names, nothing changed
+  HEADERS = [];
+  for (let c = 0; c < maxC; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r: hRow, c })];
+    const name = cell ? String(cell.v ?? '').trim() : '';
+    HEADERS.push({ idx: c, name });
   }
-  CI={};
-  HEADERS.forEach(h=>{if(h.name)CI[h.name]=h.idx;});
-  setLbl('Loading rows…');
-  ROWS=[];
-  for(let r=hRow+1;r<maxR;r++){
-    const pnCell=ws[XLSX.utils.encode_cell({r,c:pnCol})];
-    if(!pnCell||pnCell.v===null||pnCell.v===undefined)continue;
-    const pnVal=String(pnCell.v).trim();
-    if(!pnVal||pnVal==='#N/A')continue;
-    const raw={};
-    for(let c=0;c<maxC&&c<HEADERS.length;c++){
-      const cell=ws[XLSX.utils.encode_cell({r,c})];
-      if(!cell||cell.v===null||cell.v===undefined){raw[c]='';continue;}
-      let v=cell.v;
-      if(cell.t==='d'&&v instanceof Date)v=v.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
-      raw[c]=String(v);
+
+  // Map known column names to indices
+  CI = {};
+  HEADERS.forEach(h => { if (h.name) CI[h.name] = h.idx; });
+
+  setLbl('Loading ' + (maxR - hRow - 1) + ' rows…');
+
+  // Read all data rows
+  ROWS = [];
+  for (let r = hRow + 1; r < maxR; r++) {
+    const pnCell = ws[XLSX.utils.encode_cell({ r, c: pnCol })];
+    if (!pnCell) continue;
+    const rawPN = pnCell.v;
+    if (rawPN === null || rawPN === undefined) continue;
+    const pnStr = String(rawPN).trim();
+    if (!pnStr || pnStr === '#N/A') continue;
+
+    // Read every column — store as display string, preserving exact value
+    const raw = {};
+    for (let c = 0; c < maxC && c < HEADERS.length; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (!cell || cell.v === null || cell.v === undefined) {
+        raw[c] = '';
+        continue;
+      }
+      raw[c] = formatCell(cell);
     }
-    ROWS.push({_pn:pnVal,_raw:raw});
+
+    ROWS.push({ _pn: pnStr, _raw: raw });
   }
-  document.getElementById('upload-screen').style.display='none';
-  document.getElementById('nosel').style.display='flex';
-  document.getElementById('s-parts').textContent=ROWS.length;
-  document.getElementById('s-cols').textContent=HEADERS.length;
-  const sn=fname.replace(/\.[^.]+$/,'').substring(0,22);
-  document.getElementById('s-file').textContent=sn;
-  document.getElementById('upbtn-label').textContent=sn.substring(0,18)+(sn.length>18?'…':'');
-  SEL=null;hideLoad();renderList();
-  toast(ROWS.length+' parts · '+HEADERS.length+' columns loaded','ok');
+
+  // Update UI
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('nosel').style.display = 'flex';
+  document.getElementById('s-parts').textContent = ROWS.length;
+  document.getElementById('s-cols').textContent = HEADERS.length;
+  const shortName = fname.replace(/\.[^.]+$/, '').substring(0, 24);
+  document.getElementById('s-file').textContent = shortName;
+  document.getElementById('upbtn-label').textContent = shortName.substring(0, 18) + (shortName.length > 18 ? '…' : '');
+
+  SEL = null;
+  hideLoad();
+  renderList();
+  toast(ROWS.length + ' parts · ' + HEADERS.length + ' columns', 'ok');
 }
-function setFilt(f){
-  FILT=f;
-  ['all','l74','d74','com'].forEach(k=>document.getElementById('f-'+k).classList.toggle('on',k===f));
+
+// Format a single cell value for display
+function formatCell(cell) {
+  if (!cell || cell.v === null || cell.v === undefined) return '';
+  // Date
+  if (cell.t === 'd' || cell.v instanceof Date) {
+    const d = cell.v instanceof Date ? cell.v : new Date(cell.v);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+  }
+  // Formula error
+  if (cell.t === 'e') {
+    return cell.w || '#ERR';
+  }
+  // Boolean
+  if (cell.t === 'b') {
+    return cell.v ? 'TRUE' : 'FALSE';
+  }
+  // Number: use raw value (no locale formatting)
+  if (cell.t === 'n') {
+    return String(cell.v);
+  }
+  // String / anything else
+  return String(cell.v ?? '').trim();
+}
+
+// ─── SIDEBAR ─────────────────────────────────────────────────────────
+function setFilt(f) {
+  FILT = f;
+  ['all','l74','d74','com'].forEach(k => document.getElementById('f-' + k).classList.toggle('on', k === f));
   renderList();
 }
-function col(row,name){return row._raw[CI[name]]??'';}
-function renderList(){
-  const q=(document.getElementById('srch').value||'').toLowerCase();
-  const list=document.getElementById('pnlist');
-  if(!ROWS.length){list.innerHTML='<div class="empty">Upload a file to browse parts</div>';return;}
-  const filtered=ROWS.filter(r=>{
-    const pn=r._pn.toLowerCase();
-    const desc=(col(r,'Descrizione')||col(r,'Description Pièce')||'').toLowerCase();
-    const variant=col(r,'D74 / L74').toUpperCase();
-    const type=col(r,'Type').toLowerCase();
-    if(q&&!pn.includes(q)&&!desc.includes(q))return false;
-    if(FILT==='l74'&&!variant.includes('L74'))return false;
-    if(FILT==='d74'&&!variant.includes('D74'))return false;
-    if(FILT==='com'&&!type.includes('commun'))return false;
+
+function colVal(row, name) {
+  const idx = CI[name];
+  return idx !== undefined ? (row._raw[idx] ?? '') : '';
+}
+
+function renderList() {
+  const q = (document.getElementById('srch').value || '').toLowerCase();
+  const list = document.getElementById('pnlist');
+
+  if (!ROWS.length) {
+    list.innerHTML = '<div class="empty">Upload a file to browse parts</div>';
+    return;
+  }
+
+  const filtered = ROWS.filter(r => {
+    const pn      = r._pn.toLowerCase();
+    const desc    = (colVal(r,'Descrizione') || colVal(r,'Description Pièce') || '').toLowerCase();
+    const variant = (colVal(r,'D74 / L74') || '').toUpperCase();
+    const type    = (colVal(r,'Type') || '').toLowerCase();
+
+    if (q && !pn.includes(q) && !desc.includes(q)) return false;
+    if (FILT === 'l74' && !variant.includes('L74')) return false;
+    if (FILT === 'd74' && !variant.includes('D74')) return false;
+    if (FILT === 'com' && !type.includes('commun')) return false;
     return true;
   });
-  if(!filtered.length){list.innerHTML='<div class="empty">No parts match</div>';return;}
-  const MAX=500;
-  list.innerHTML=filtered.slice(0,MAX).map(r=>{
-    const variant=col(r,'D74 / L74').toUpperCase();
-    const type=col(r,'Type');
-    const desc=(col(r,'Descrizione')||col(r,'Description Pièce')||'').substring(0,52);
-    const tags=[
-      variant.includes('L74')?'<span class="tag tag-l74">L74</span>':'',
-      variant.includes('D74')?'<span class="tag tag-d74">D74</span>':'',
-      type.toLowerCase()==='commun'?'<span class="tag tag-com">COMMUN</span>':'',
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">No parts match</div>';
+    return;
+  }
+
+  const MAX = 500;
+  list.innerHTML = filtered.slice(0, MAX).map(r => {
+    const variant = (colVal(r,'D74 / L74') || '').toUpperCase();
+    const type    = (colVal(r,'Type') || '');
+    const desc    = (colVal(r,'Descrizione') || colVal(r,'Description Pièce') || '').substring(0, 52);
+    const tags = [
+      variant.includes('L74') ? '<span class="tag tag-l74">L74</span>' : '',
+      variant.includes('D74') ? '<span class="tag tag-d74">D74</span>' : '',
+      type.toLowerCase() === 'commun' ? '<span class="tag tag-com">COMMUN</span>' : '',
     ].join('');
-    const sel=SEL===r._pn?' sel':'';
-    return`<div class="pn-item${sel}" onclick="showPN(${JSON.stringify(r._pn)})"><div class="pn-num">${esc(r._pn)}</div><div class="pn-desc">${esc(desc)||'—'}</div><div class="pn-tags">${tags}</div></div>`;
+    const sel = SEL === r._pn ? ' sel' : '';
+    return `<div class="pn-item${sel}" onclick="showPN(${JSON.stringify(r._pn)})">
+      <div class="pn-num">${esc(r._pn)}</div>
+      <div class="pn-desc">${esc(desc) || '—'}</div>
+      <div class="pn-tags">${tags}</div>
+    </div>`;
   }).join('');
-  if(filtered.length>MAX)list.innerHTML+=`<div class="empty" style="font-size:9px">Showing ${MAX}/${filtered.length} — refine search</div>`;
+
+  if (filtered.length > MAX) {
+    list.innerHTML += `<div class="empty" style="font-size:9px">Showing ${MAX} of ${filtered.length} — refine search</div>`;
+  }
 }
-function showPN(pn){
-  SEL=pn;renderList();
-  const rows=ROWS.filter(r=>r._pn===pn);
-  if(!rows.length)return;
-  const first=rows[0];
-  document.getElementById('d-pn').textContent=pn;
-  document.getElementById('d-desc').textContent=col(first,'Descrizione')||col(first,'Description Pièce')||'—';
-  const sup=col(first,'SUPPLIER').replace(/^\d+\s+/,'');
-  document.getElementById('d-sup').textContent=sup?'🏭 '+sup.substring(0,40):'';
-  const html=HEADERS.map((h,i)=>{
-    const val=first._raw[h.idx]??'';
-    const name=h.name||'';
-    let cls='cv';
-    if(!val)cls+=' empty';
-    else if(val==='#N/A'||val==='#REF!'||val==='#VALUE!'||val==='#NAME?')cls+=' na';
-    else{const n=Number(val.replace(',','.'));if(!isNaN(n)&&val.trim()!==''){if(n>0)cls+=' pos';else if(n<0)cls+=' neg';else cls+=' zero';}}
-    const dv=val===''?'—':esc(val.length>600?val.substring(0,600)+'…':val);
-    const dn=name?esc(name):`<span style="color:var(--dim);font-size:9px">col_${h.idx+1}</span>`;
-    return`<tr><td class="ci">${i+1}</td><td class="cn">${dn}</td><td class="${cls}">${dv}</td></tr>`;
+
+// ─── DETAIL ──────────────────────────────────────────────────────────
+function showPN(pn) {
+  SEL = pn;
+  renderList();
+
+  const matches = ROWS.filter(r => r._pn === pn);
+  if (!matches.length) return;
+
+  const row = matches[0];
+
+  // Update header bar
+  document.getElementById('d-pn').textContent = pn;
+  document.getElementById('d-desc').textContent =
+    colVal(row, 'Descrizione') || colVal(row, 'Description Pièce') || '—';
+  const sup = (colVal(row, 'SUPPLIER') || '').replace(/^\d+\s+/, '');
+  document.getElementById('d-sup').textContent = sup ? '🏭 ' + sup.substring(0, 40) : '';
+
+  // Build table: every single column in order
+  const html = HEADERS.map((h, i) => {
+    const val = row._raw[h.idx] ?? '';
+    const name = h.name || '';
+
+    let cls = 'cv';
+    if (!val) {
+      cls += ' empty';
+    } else if (/^#(N\/A|REF!|VALUE!|NAME\?|DIV\/0!|NULL!)$/.test(val)) {
+      cls += ' na';
+    } else {
+      const num = parseFloat(val);
+      if (!isNaN(num) && String(num) === val) {
+        cls += num > 0 ? ' pos' : num < 0 ? ' neg' : ' zero';
+      }
+    }
+
+    const displayVal  = val === '' ? '—' : esc(val.length > 800 ? val.substring(0, 800) + '…' : val);
+    const displayName = name
+      ? esc(name)
+      : `<span style="color:var(--dim);font-size:9px">col_${h.idx + 1}</span>`;
+
+    return `<tr>
+      <td class="ci">${i + 1}</td>
+      <td class="cn">${displayName}</td>
+      <td class="${cls}">${displayVal}</td>
+    </tr>`;
   }).join('');
-  const tbody=document.getElementById('tbl-body');
-  tbody.innerHTML=(rows.length>1?`<tr><td colspan="3" style="padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--orange);background:rgba(255,149,0,.06);border-bottom:1px solid var(--border)">${rows.length} rows found for this PN — showing first row</td></tr>`:'') + html;
-  document.getElementById('nosel').style.display='none';
-  const det=document.getElementById('detail');
-  det.style.display='flex';
-  det.querySelector('.tbl-container').scrollTop=0;
+
+  const tbody = document.getElementById('tbl-body');
+  let prefix = '';
+  if (matches.length > 1) {
+    prefix = `<tr><td colspan="3" style="padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--orange);background:rgba(255,149,0,.05);border-bottom:1px solid var(--border)">${matches.length} rows found for PN ${esc(pn)} — showing first</td></tr>`;
+  }
+  tbody.innerHTML = prefix + html;
+
+  document.getElementById('nosel').style.display = 'none';
+  const det = document.getElementById('detail');
+  det.style.display = 'flex';
+  det.querySelector('.tbl-container').scrollTop = 0;
 }
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function showLoad(m){document.getElementById('loading').style.display='flex';setLbl(m);}
-function setLbl(m){document.getElementById('lbl').textContent=m;}
-function hideLoad(){document.getElementById('loading').style.display='none';}
-function toast(msg,type='nfo'){const tc=document.getElementById('toasts');const t=document.createElement('div');t.className=`toast ${type}`;t.innerHTML=`<span>${{ok:'✓',er:'✗',nfo:'ℹ'}[type]}</span><span>${esc(msg)}</span>`;tc.appendChild(t);requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('in')));setTimeout(()=>{t.classList.remove('in');setTimeout(()=>t.remove(),300);},3500);}
+
+// ─── UTILS ───────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+function showLoad(m) { document.getElementById('loading').style.display = 'flex'; setLbl(m); }
+function setLbl(m)   { document.getElementById('lbl').textContent = m; }
+function hideLoad()  { document.getElementById('loading').style.display = 'none'; }
+function toast(msg, type = 'nfo') {
+  const tc = document.getElementById('toasts');
+  const t  = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${{ok:'✓',er:'✗',nfo:'ℹ'}[type]}</span><span>${esc(msg)}</span>`;
+  tc.appendChild(t);
+  requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('in')));
+  setTimeout(() => { t.classList.remove('in'); setTimeout(() => t.remove(), 300); }, 4000);
+}
 </script>
 </body>
 </html>
