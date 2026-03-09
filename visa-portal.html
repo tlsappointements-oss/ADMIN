@@ -205,23 +205,83 @@
   .toast.success{border-left-color:var(--green);}
   .toast.error{border-left-color:var(--red);}
 
-  ::-webkit-scrollbar{width:6px;}
-  ::-webkit-scrollbar-track{background:transparent;}
-  ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:3px;}
-
-  @media(max-width:768px){
-    .page{padding:20px;}
-    .stats-grid{grid-template-columns:repeat(2,1fr);}
-    .countries-grid{grid-template-columns:repeat(2,1fr);}
-    .form-grid{grid-template-columns:1fr;}
-    .admin-layout{grid-template-columns:1fr;}
-    .admin-sidebar{position:relative;height:auto;}
-    .admin-kpi-grid{grid-template-columns:repeat(2,1fr);}
-    .admin-chart-row{grid-template-columns:1fr;}
-    .navbar{padding:0 16px;}
-    .nav-name{display:none;}
-    .step-label{display:none;}
+  /* ══════════════════════════════
+     Z VISA STICKER — Schengen Style
+  ══════════════════════════════ */
+  .z-visa-wrap{display:flex;justify-content:center;padding:32px 0;}
+  .z-visa{
+    width:420px;min-height:280px;
+    background: linear-gradient(135deg,#f5e6d3 0%,#f0dcc4 30%,#ecdcc8 60%,#e8d4b8 100%);
+    border-radius:8px;
+    position:relative;overflow:hidden;
+    font-family:'Arial Narrow','Arial',sans-serif;
+    box-shadow:0 8px 40px rgba(0,0,0,0.35),inset 0 0 0 1px rgba(0,0,0,0.1);
+    border:1.5px solid rgba(100,70,20,0.3);
+    color:#1a0a00;
   }
+  /* Security guilloche background pattern */
+  .z-visa::before{
+    content:'';position:absolute;inset:0;
+    background-image:
+      repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(140,90,20,0.06) 3px,rgba(140,90,20,0.06) 4px),
+      repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(140,90,20,0.06) 3px,rgba(140,90,20,0.06) 4px),
+      repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(160,100,20,0.04) 5px,rgba(160,100,20,0.04) 6px),
+      repeating-linear-gradient(-45deg,transparent,transparent 5px,rgba(160,100,20,0.04) 5px,rgba(160,100,20,0.04) 6px);
+    pointer-events:none;z-index:0;
+  }
+  /* Watermark Z pattern */
+  .z-visa::after{
+    content:'Z Z Z Z Z Z Z Z Z Z\AZ Z Z Z Z Z Z Z Z Z\AZ Z Z Z Z Z Z Z Z Z\AZ Z Z Z Z Z Z Z Z Z\AZ Z Z Z Z Z Z Z Z Z';
+    white-space:pre;
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:28px;font-weight:900;letter-spacing:8px;
+    color:rgba(180,120,30,0.07);
+    pointer-events:none;z-index:0;
+    line-height:1.8;
+    padding:10px;
+  }
+  .z-visa-inner{position:relative;z-index:1;padding:12px 14px;}
+  .z-visa-header{
+    background:linear-gradient(90deg,#1a3a6b 0%,#0d2650 50%,#1a3a6b 100%);
+    margin:-12px -14px 10px;padding:6px 14px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .z-visa-header-title{
+    font-size:13px;font-weight:900;letter-spacing:3px;color:#e8c97a;
+    text-transform:uppercase;
+  }
+  .z-visa-header-sub{font-size:9px;color:rgba(255,255,255,0.6);letter-spacing:1.5px;text-transform:uppercase;}
+  .z-visa-header-num{font-size:11px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:1px;}
+  .z-visa-body{display:grid;grid-template-columns:1fr 80px;gap:10px;}
+  .z-visa-fields{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;}
+  .z-visa-field{margin-bottom:4px;}
+  .z-visa-label{font-size:6.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#7a4a10;opacity:0.8;line-height:1;margin-bottom:1px;}
+  .z-visa-value{font-size:10.5px;font-weight:700;color:#0a0500;letter-spacing:0.3px;border-bottom:0.5px solid rgba(120,70,10,0.25);padding-bottom:2px;min-height:14px;}
+  .z-visa-photo{width:80px;height:100px;border:1.5px solid rgba(100,60,10,0.4);object-fit:cover;border-radius:2px;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999;text-align:center;overflow:hidden;}
+  .z-visa-photo img{width:100%;height:100%;object-fit:cover;}
+  .z-visa-remarks{margin-top:6px;}
+  .z-visa-remarks-label{font-size:6.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#7a4a10;opacity:0.8;margin-bottom:2px;}
+  .z-visa-remarks-val{font-size:9.5px;font-weight:700;color:#0a0500;border-bottom:0.5px solid rgba(120,70,10,0.25);min-height:13px;padding-bottom:2px;}
+  .z-visa-mrz{
+    margin:8px -14px -12px;padding:5px 14px 6px;
+    background:rgba(0,0,0,0.06);
+    border-top:0.5px solid rgba(100,60,10,0.2);
+  }
+  .z-visa-mrz-line{
+    font-family:'Courier New',monospace;font-size:7.5px;font-weight:700;
+    letter-spacing:1.5px;color:#2a1000;opacity:0.7;line-height:1.6;
+    word-break:break-all;
+  }
+  .z-visa-issued-row{display:flex;gap:12px;margin-top:4px;}
+  .z-visa-emblem{
+    position:absolute;right:110px;top:50%;transform:translateY(-50%);
+    width:55px;height:55px;opacity:0.06;
+    font-size:50px;line-height:1;text-align:center;pointer-events:none;
+  }
+
+  @keyframes visaReveal{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+  .z-visa{animation:visaReveal 0.5s ease-out;}
 </style>
 </head>
 <body>
@@ -486,6 +546,7 @@
         <div class="admin-nav-item" onclick="adminNav('payments',this)"><span class="admin-nav-icon">💰</span> Payments</div>
         <div class="admin-nav-item" onclick="adminNav('countries',this)"><span class="admin-nav-icon">🌍</span> Countries</div>
         <div class="admin-sidebar-title">System</div>
+        <div class="admin-nav-item" onclick="adminNav('visas',this)"><span class="admin-nav-icon">🪪</span> Issue Z Visa</div>
         <div class="admin-nav-item" onclick="adminNav('reports',this)"><span class="admin-nav-icon">📈</span> Reports</div>
         <div class="admin-nav-item" onclick="adminNav('settings',this)"><span class="admin-nav-icon">⚙️</span> Settings</div>
       </div>
@@ -1056,7 +1117,7 @@ function setupAdminUI() {
 function adminNav(section, el) {
   document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
   el.classList.add('active');
-  ({dashboard:renderAdminDashboard, applications:renderAdminApplications, appointments:renderAdminAppointments, users:renderAdminUsers, payments:renderAdminPayments, countries:renderAdminCountries, reports:renderAdminReports, settings:renderAdminSettings})[section]();
+  ({dashboard:renderAdminDashboard, applications:renderAdminApplications, appointments:renderAdminAppointments, users:renderAdminUsers, payments:renderAdminPayments, countries:renderAdminCountries, visas:renderAdminVisas, reports:renderAdminReports, settings:renderAdminSettings})[section]();
 }
 
 async function renderAdminDashboard() {
@@ -1452,6 +1513,488 @@ function showToast(msg, type='') {
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(() => t.className = `toast ${type}`, 3500);
 }
+
+// ════════════════════════════════════════════
+// Z VISA — SCHENGEN-STYLE STICKER SYSTEM
+// ════════════════════════════════════════════
+
+// ── Pad string for MRZ ──
+function mrzPad(str, len, fill='<') {
+  const s = (str||'').toUpperCase().replace(/[^A-Z0-9]/g,'<').substring(0,len);
+  return s.padEnd(len, fill);
+}
+
+// ── Build MRZ lines (Schengen TD3-like format) ──
+function buildMRZ(v) {
+  const docType  = 'VZ'; // Visa Z
+  const country  = 'ZMA'; // Z-Morocco issuing
+  const surname  = mrzPad(v.surname, 10);
+  const given    = mrzPad(v.givenNames.replace(/\s+/g,'<'), 10);
+  const nameLine = mrzPad(`${docType}${country}${mrzPad(v.number,9)}`, 44);
+  const line2    = mrzPad(`${mrzPad(v.passportNo,9)}${mrzPad(v.nationality,3)}${mrzPad(v.dob.replace(/-/g,'').slice(2),6)}${mrzPad(v.gender||'M',1)}${mrzPad(v.validUntil.replace(/-/g,'').slice(2),6)}`, 44);
+  return [nameLine, `${surname}<<${given}<<<<<<<<<<<`.substring(0,44).padEnd(44,'<'), line2];
+}
+
+// ── Render Z Visa sticker HTML ──
+function renderZVisa(v) {
+  const mrz   = buildMRZ(v);
+  const photo = v.photoUrl
+    ? `<img src="${v.photoUrl}" alt="Photo" style="width:100%;height:100%;object-fit:cover">`
+    : `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#aaa;font-size:9px;gap:4px"><span style="font-size:24px">👤</span>PHOTO</div>`;
+
+  // Country flag for header
+  const flagHtml = v.countryCode
+    ? `<img src="https://flagcdn.com/w20/${v.countryCode.toLowerCase()}.png" style="width:20px;height:auto;border-radius:2px;vertical-align:middle;margin-right:6px">`
+    : '';
+
+  return `
+  <div class="z-visa-wrap" id="visa-sticker-${v.ref||'preview'}">
+    <div class="z-visa">
+      <div class="z-visa-emblem">🏛</div>
+      <div class="z-visa-inner">
+        <div class="z-visa-header">
+          <div>
+            <div class="z-visa-header-title">${flagHtml}Z VISA — ${(v.country||'EUROPE').toUpperCase()}</div>
+            <div class="z-visa-header-sub">Zone Z · Official Travel Document</div>
+          </div>
+          <div class="z-visa-header-num">${v.number||'ZMA-000000'}</div>
+        </div>
+        <div class="z-visa-body">
+          <div>
+            <div class="z-visa-fields">
+              <div class="z-visa-field" style="grid-column:span 2">
+                <div class="z-visa-label">VALID FOR / VALABLE POUR</div>
+                <div class="z-visa-value" style="font-size:9px">${(v.validFor||'SCHENGEN STATES').toUpperCase()}</div>
+              </div>
+              <div class="z-visa-field">
+                <div class="z-visa-label">FROM / DU</div>
+                <div class="z-visa-value">${v.validFrom||'—'}</div>
+              </div>
+              <div class="z-visa-field">
+                <div class="z-visa-label">UNTIL / AU</div>
+                <div class="z-visa-value">${v.validUntil||'—'}</div>
+              </div>
+              <div class="z-visa-field">
+                <div class="z-visa-label">TYPE</div>
+                <div class="z-visa-value">${v.visaTypeCode||'C'}</div>
+              </div>
+              <div class="z-visa-field">
+                <div class="z-visa-label">NR OF ENTRIES</div>
+                <div class="z-visa-value">${v.entries||'SINGLE'}</div>
+              </div>
+              <div class="z-visa-field">
+                <div class="z-visa-label">DURATION OF STAY / DURÉE</div>
+                <div class="z-visa-value">${v.duration||'—'} DAYS</div>
+              </div>
+              <div class="z-visa-field">
+                <div class="z-visa-label">ISSUED IN / DÉLIVRÉ À</div>
+                <div class="z-visa-value">${v.issuedIn||'CASABLANCA'}</div>
+              </div>
+              <div class="z-visa-field">
+                <div class="z-visa-label">ON / LE</div>
+                <div class="z-visa-value">${v.issuedOn||'—'}</div>
+              </div>
+            </div>
+            <div class="z-visa-issued-row">
+              <div class="z-visa-field" style="flex:1">
+                <div class="z-visa-label">SURNAME / NOM</div>
+                <div class="z-visa-value">${(v.surname||'—').toUpperCase()}</div>
+              </div>
+            </div>
+            <div class="z-visa-issued-row">
+              <div class="z-visa-field" style="flex:1">
+                <div class="z-visa-label">GIVEN NAMES / PRÉNOMS</div>
+                <div class="z-visa-value">${(v.givenNames||'—').toUpperCase()}</div>
+              </div>
+            </div>
+            <div class="z-visa-issued-row">
+              <div class="z-visa-field" style="flex:1">
+                <div class="z-visa-label">PASSPORT NO / N° PASSEPORT</div>
+                <div class="z-visa-value">${v.passportNo||'—'}</div>
+              </div>
+              <div class="z-visa-field" style="flex:1">
+                <div class="z-visa-label">NATIONALITY / NATIONALITÉ</div>
+                <div class="z-visa-value">${(v.nationality||'—').toUpperCase()}</div>
+              </div>
+            </div>
+            <div class="z-visa-remarks">
+              <div class="z-visa-remarks-label">REMARKS / OBSERVATIONS</div>
+              <div class="z-visa-remarks-val">${v.remarks||''}</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div class="z-visa-photo">${photo}</div>
+            <div style="font-size:7px;color:#7a4a10;text-align:center;font-weight:700;letter-spacing:0.5px">HOLDER / TITULAIRE</div>
+          </div>
+        </div>
+        <div class="z-visa-mrz">
+          ${mrz.map(l=>`<div class="z-visa-mrz-line">${l}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Admin: Issue Z Visa panel ──
+async function renderAdminVisas() {
+  const c = document.getElementById('admin-content');
+  c.innerHTML = `
+    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Issue Z Visa</div>
+    <div style="font-size:14px;color:#aaa;margin-bottom:28px">Fill in the visa details — the sticker preview updates live</div>
+    <div style="display:grid;grid-template-columns:1fr 480px;gap:28px;align-items:flex-start">
+
+      <!-- FORM -->
+      <div>
+        <div class="admin-table-card">
+          <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:20px">🔍 Load Applicant</h3>
+          <div style="display:flex;gap:10px">
+            <input id="visa-load-ref" class="search-admin" style="flex:1" placeholder="Paste Reference No. (e.g. VMA-2026-12345)">
+            <button onclick="loadApplicantForVisa()" style="padding:10px 20px;background:#0a1628;color:#c9973a;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px">Load →</button>
+          </div>
+          <div id="visa-load-status" style="margin-top:10px;font-size:13px;color:#aaa"></div>
+        </div>
+
+        <div class="admin-table-card" style="margin-top:0">
+          <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:20px">📋 Visa Details</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            ${[
+              ['visa-number','Visa Number','ZMA-000001','text'],
+              ['visa-surname','Surname / Nom','','text'],
+              ['visa-given','Given Names / Prénoms','','text'],
+              ['visa-passport','Passport No.','','text'],
+              ['visa-nationality','Nationality','Moroccan','text'],
+              ['visa-dob','Date of Birth','','date'],
+              ['visa-from','Valid From','','date'],
+              ['visa-until','Valid Until','','date'],
+              ['visa-issued-in','Issued In','Casablanca','text'],
+              ['visa-issued-on','Issued On','','date'],
+            ].map(([id,lbl,ph,type])=>`
+              <div>
+                <label style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#666;margin-bottom:6px;display:block">${lbl}</label>
+                <input id="${id}" type="${type}" placeholder="${ph}" oninput="updateVisaPreview()" style="width:100%;padding:10px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:13px;font-family:'DM Sans',sans-serif;outline:none" onfocus="this.style.borderColor='#c9973a'" onblur="this.style.borderColor='transparent'">
+              </div>`).join('')}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px">
+            <div>
+              <label style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#666;margin-bottom:6px;display:block">Type</label>
+              <select id="visa-type-code" onchange="updateVisaPreview()" style="width:100%;padding:10px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:13px;outline:none;cursor:pointer">
+                <option value="C">C — Short Stay</option>
+                <option value="D">D — Long Stay</option>
+                <option value="A">A — Airport Transit</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#666;margin-bottom:6px;display:block">Nr of Entries</label>
+              <select id="visa-entries" onchange="updateVisaPreview()" style="width:100%;padding:10px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:13px;outline:none;cursor:pointer">
+                <option value="SINGLE">Single</option>
+                <option value="DOUBLE">Double</option>
+                <option value="MULT">Multiple</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#666;margin-bottom:6px;display:block">Duration (days)</label>
+              <input id="visa-duration" type="number" value="30" min="1" max="90" oninput="updateVisaPreview()" style="width:100%;padding:10px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:13px;outline:none" onfocus="this.style.borderColor='#c9973a'" onblur="this.style.borderColor='transparent'">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+            <div>
+              <label style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#666;margin-bottom:6px;display:block">Valid For</label>
+              <input id="visa-valid-for" value="Z ZONE + SCHENGEN STATES" oninput="updateVisaPreview()" style="width:100%;padding:10px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:13px;outline:none" onfocus="this.style.borderColor='#c9973a'" onblur="this.style.borderColor='transparent'">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#666;margin-bottom:6px;display:block">Gender</label>
+              <select id="visa-gender" onchange="updateVisaPreview()" style="width:100%;padding:10px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:13px;outline:none;cursor:pointer">
+                <option value="M">M — Male</option>
+                <option value="F">F — Female</option>
+                <option value="X">X — Unspecified</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:14px">
+            <label style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#666;margin-bottom:6px;display:block">Remarks / Observations</label>
+            <input id="visa-remarks" placeholder="Optional notes on the visa" oninput="updateVisaPreview()" style="width:100%;padding:10px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:13px;outline:none" onfocus="this.style.borderColor='#c9973a'" onblur="this.style.borderColor='transparent'">
+          </div>
+          <div style="margin-top:14px">
+            <label style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#666;margin-bottom:8px;display:block">Applicant Photo</label>
+            <div style="display:flex;align-items:center;gap:14px">
+              <div id="visa-photo-preview" style="width:70px;height:88px;background:#f0f2f7;border-radius:6px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden">👤</div>
+              <div>
+                <label style="padding:10px 18px;background:#0a1628;color:#c9973a;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:inline-block">
+                  📷 Upload Photo
+                  <input type="file" accept="image/*" style="display:none" onchange="handleVisaPhoto(this)">
+                </label>
+                <div style="font-size:11px;color:#aaa;margin-top:6px">JPG, PNG — passport style, white background</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="visa-issue-error" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;font-size:13px;color:#991b1b;margin-bottom:16px"></div>
+        <button id="visa-issue-btn" onclick="issueVisa()" style="width:100%;padding:16px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1px;font-family:'Playfair Display',serif">🪪 ISSUE Z VISA</button>
+      </div>
+
+      <!-- LIVE PREVIEW -->
+      <div style="position:sticky;top:90px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#aaa;text-align:center;margin-bottom:16px">Live Preview</div>
+        <div id="visa-preview-container"></div>
+        <div style="text-align:center;margin-top:16px">
+          <button onclick="printVisaPreview()" style="padding:10px 20px;background:#0a1628;color:#c9973a;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🖨 Print Preview</button>
+        </div>
+      </div>
+
+    </div>`;
+
+  // Render empty preview
+  updateVisaPreview();
+}
+
+// ── Visa photo upload ──
+window.handleVisaPhoto = function(input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    window._visaPhotoUrl = e.target.result;
+    document.getElementById('visa-photo-preview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`;
+    updateVisaPreview();
+  };
+  reader.readAsDataURL(input.files[0]);
+};
+
+// ── Load applicant data into form ──
+window.loadApplicantForVisa = async function() {
+  const ref = document.getElementById('visa-load-ref').value.trim().toUpperCase();
+  const status = document.getElementById('visa-load-status');
+  if (!ref) return;
+  status.innerHTML = '<span style="color:#aaa">Searching...</span>';
+  try {
+    const q = query(collection(db,'applications'), where('ref','==',ref));
+    const snap = await getDocs(q);
+    if (snap.empty) { status.innerHTML = '<span style="color:#d64045">❌ No application found</span>'; return; }
+    const a = snap.docs[0].data();
+    window._visaAppDocId = snap.docs[0].id;
+    window._visaCountry  = { name: a.country, code: a.countryCode };
+    // Prefill form
+    const set = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
+    set('visa-surname',   a.lastName  || a.applicant?.split(' ').slice(-1)[0] || '');
+    set('visa-given',     a.firstName || a.applicant?.split(' ').slice(0,-1).join(' ') || '');
+    set('visa-passport',  a.passport  || '');
+    set('visa-nationality', a.nationality || 'Moroccan');
+    set('visa-dob',       a.dob || '');
+    set('visa-issued-on', new Date().toISOString().split('T')[0]);
+    const today = new Date();
+    const until = new Date(today); until.setMonth(until.getMonth()+3);
+    set('visa-from',  today.toISOString().split('T')[0]);
+    set('visa-until', until.toISOString().split('T')[0]);
+    status.innerHTML = `<span style="color:#2d9e6b">✅ Loaded: ${a.applicant} — ${a.country}</span>`;
+    updateVisaPreview();
+  } catch(e) {
+    status.innerHTML = `<span style="color:#d64045">Error: ${e.message}</span>`;
+  }
+};
+
+// ── Collect form into visa data object ──
+function collectVisaForm() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  return {
+    number:      g('visa-number') || 'ZMA-' + Math.floor(100000+Math.random()*900000),
+    surname:     g('visa-surname'),
+    givenNames:  g('visa-given'),
+    passportNo:  g('visa-passport'),
+    nationality: g('visa-nationality'),
+    dob:         g('visa-dob'),
+    validFrom:   g('visa-from'),
+    validUntil:  g('visa-until'),
+    issuedIn:    g('visa-issued-in') || 'Casablanca',
+    issuedOn:    g('visa-issued-on'),
+    visaTypeCode:g('visa-type-code') || 'C',
+    entries:     g('visa-entries')   || 'SINGLE',
+    duration:    g('visa-duration')  || '30',
+    validFor:    g('visa-valid-for') || 'Z ZONE + SCHENGEN STATES',
+    gender:      g('visa-gender')    || 'M',
+    remarks:     g('visa-remarks'),
+    country:     window._visaCountry?.name || '',
+    countryCode: window._visaCountry?.code || '',
+    photoUrl:    window._visaPhotoUrl || '',
+  };
+}
+
+// ── Live preview update ──
+window.updateVisaPreview = function() {
+  const container = document.getElementById('visa-preview-container');
+  if (!container) return;
+  const v = collectVisaForm();
+  container.innerHTML = renderZVisa(v);
+};
+
+// ── Issue visa: save to Firestore & mark application approved ──
+window.issueVisa = async function() {
+  const btn    = document.getElementById('visa-issue-btn');
+  const errEl  = document.getElementById('visa-issue-error');
+  errEl.style.display = 'none';
+  const v = collectVisaForm();
+  if (!v.surname || !v.givenNames) { errEl.textContent = 'Surname and given names are required.'; errEl.style.display='block'; return; }
+  if (!v.validFrom || !v.validUntil) { errEl.textContent = 'Valid From and Valid Until dates are required.'; errEl.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = '⏳ Issuing...';
+  try {
+    const visaData = { ...v, issuedAt: serverTimestamp(), status: 'issued' };
+    // Save visa to Firestore
+    const visaRef = await addDoc(collection(db,'visas'), visaData);
+    // If linked to an application, update it to approved + attach visa ID
+    if (window._visaAppDocId) {
+      await updateDoc(doc(db,'applications', window._visaAppDocId), {
+        status: 'approved',
+        visaId: visaRef.id,
+        visaNumber: v.number,
+      });
+    }
+    showToast('🪪 Z Visa issued successfully! Applicant can now view it.', 'success');
+    btn.disabled = false; btn.textContent = '🪪 ISSUE Z VISA';
+    // Show success on preview
+    document.getElementById('visa-preview-container').insertAdjacentHTML('afterend',
+      `<div style="text-align:center;margin-top:12px;padding:12px;background:#d1fae5;border-radius:10px;font-size:13px;font-weight:600;color:#065f46">
+        ✅ Visa Issued · ID: ${visaRef.id.slice(0,8).toUpperCase()}
+       </div>`);
+  } catch(e) {
+    errEl.textContent = 'Failed: ' + e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = '🪪 ISSUE Z VISA';
+  }
+};
+
+// ── Print visa sticker ──
+window.printVisaPreview = function() {
+  const v = collectVisaForm();
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Z Visa — ${v.number}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#f0f0f0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px;font-family:Arial,sans-serif}
+    .page-title{font-family:'Playfair Display',serif;font-size:22px;color:#0a1628;margin-bottom:24px;text-align:center}
+    .z-visa{width:420px;min-height:280px;background:linear-gradient(135deg,#f5e6d3 0%,#f0dcc4 30%,#ecdcc8 60%,#e8d4b8 100%);border-radius:8px;position:relative;overflow:hidden;font-family:'Arial Narrow','Arial',sans-serif;box-shadow:0 8px 40px rgba(0,0,0,0.35),inset 0 0 0 1px rgba(0,0,0,0.1);border:1.5px solid rgba(100,70,20,0.3);color:#1a0a00}
+    .z-visa::before{content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(140,90,20,0.06) 3px,rgba(140,90,20,0.06) 4px),repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(140,90,20,0.06) 3px,rgba(140,90,20,0.06) 4px),repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(160,100,20,0.04) 5px,rgba(160,100,20,0.04) 6px);pointer-events:none;z-index:0}
+    .z-visa-inner{position:relative;z-index:1;padding:12px 14px}
+    .z-visa-header{background:linear-gradient(90deg,#1a3a6b 0%,#0d2650 50%,#1a3a6b 100%);margin:-12px -14px 10px;padding:6px 14px;display:flex;align-items:center;justify-content:space-between}
+    .z-visa-header-title{font-size:13px;font-weight:900;letter-spacing:3px;color:#e8c97a;text-transform:uppercase}
+    .z-visa-header-sub{font-size:9px;color:rgba(255,255,255,0.6);letter-spacing:1.5px;text-transform:uppercase}
+    .z-visa-header-num{font-size:11px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:1px}
+    .z-visa-body{display:grid;grid-template-columns:1fr 80px;gap:10px}
+    .z-visa-fields{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+    .z-visa-field{margin-bottom:4px}
+    .z-visa-label{font-size:6.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#7a4a10;opacity:0.8;line-height:1;margin-bottom:1px}
+    .z-visa-value{font-size:10.5px;font-weight:700;color:#0a0500;letter-spacing:0.3px;border-bottom:0.5px solid rgba(120,70,10,0.25);padding-bottom:2px;min-height:14px}
+    .z-visa-photo{width:80px;height:100px;border:1.5px solid rgba(100,60,10,0.4);object-fit:cover;border-radius:2px;background:#ddd;overflow:hidden}
+    .z-visa-photo img{width:100%;height:100%;object-fit:cover}
+    .z-visa-remarks-label{font-size:6.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#7a4a10;opacity:0.8;margin-bottom:2px}
+    .z-visa-remarks-val{font-size:9.5px;font-weight:700;color:#0a0500;border-bottom:0.5px solid rgba(120,70,10,0.25);min-height:13px;padding-bottom:2px}
+    .z-visa-issued-row{display:flex;gap:12px;margin-top:4px}
+    .z-visa-mrz{margin:8px -14px -12px;padding:5px 14px 6px;background:rgba(0,0,0,0.06);border-top:0.5px solid rgba(100,60,10,0.2)}
+    .z-visa-mrz-line{font-family:'Courier New',monospace;font-size:7.5px;font-weight:700;letter-spacing:1.5px;color:#2a1000;opacity:0.7;line-height:1.6;word-break:break-all}
+    @media print{body{background:white;padding:0}.page-title{display:none}button{display:none}}
+  </style></head><body>
+  <div class="page-title">Z Visa · ${v.number}</div>
+  ${renderZVisa(v).replace('class="z-visa-wrap"','class="z-visa-wrap" style="padding:0"')}
+  <button onclick="window.print()" style="margin-top:28px;padding:14px 32px;background:#c9973a;color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">🖨 Print / Save as PDF</button>
+  </body></html>`;
+  const w = window.open('','_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+};
+
+// ── Applicant track: fetch and show visa if issued ──
+async function loadVisaForApplicant(appDocId) {
+  try {
+    const appSnap = await getDoc(doc(db,'applications', appDocId));
+    const appData = appSnap.data();
+    if (!appData?.visaId) return null;
+    const visaSnap = await getDoc(doc(db,'visas', appData.visaId));
+    return visaSnap.exists() ? { id: visaSnap.id, ...visaSnap.data() } : null;
+  } catch { return null; }
+}
+
+// ── Patch loadUserApplications to also show visa sticker ──
+const _origLoadUserApps = loadUserApplications;
+async function loadUserApplications() {
+  const el = document.getElementById('applications-list');
+  el.innerHTML = `<div class="empty-state"><div class="loader-spin" style="margin:0 auto 12px"></div><div>Loading your applications...</div></div>`;
+  try {
+    const q = query(collection(db,'applications'), where('uid','==',currentUser.uid));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div>No applications yet.</div><div style="margin-top:8px"><button class="btn-nav btn-next" onclick="showPage('apply')">Start an Application</button></div></div>`;
+      return;
+    }
+    const docs = snap.docs.sort((a,b) => {
+      return (b.data().createdAt?.toMillis?.() || 0) - (a.data().createdAt?.toMillis?.() || 0);
+    });
+    const statusIcon = {pending:'🟡',approved:'🟢',processing:'🔵',rejected:'🔴'};
+    let html = '';
+    for (const d of docs) {
+      const a = d.data();
+      const flagHtml = a.countryCode ? flagImg(a.countryCode, 'sm') : '';
+      const apptInfo = (a.appointmentDate && a.appointmentDate !== 'TBD')
+        ? `<div style="margin-top:8px;padding:10px 14px;background:#f0f7ff;border-radius:8px;border-left:3px solid #3b82f6;font-size:13px;color:#1e40af">
+            📅 Appointment: <strong>${a.appointmentDate}</strong> at <strong>${a.appointmentSlot}</strong>
+           </div>` : '';
+
+      // ── Visa sticker if issued ──
+      let visaHtml = '';
+      if (a.status === 'approved' && a.visaId) {
+        try {
+          const visaSnap = await getDoc(doc(db,'visas', a.visaId));
+          if (visaSnap.exists()) {
+            const v = visaSnap.data();
+            visaHtml = `
+              <div style="margin-top:20px;border-top:2px dashed #e0e0e0;padding-top:20px">
+                <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#0a1628;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+                  🪪 Your Z Visa has been issued
+                  <span style="font-size:11px;background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-family:'DM Sans',sans-serif;font-weight:600">APPROVED</span>
+                </div>
+                ${renderZVisa(v)}
+                <div style="display:flex;gap:10px;margin-top:12px;justify-content:center">
+                  <button onclick="window.__printVisa('${a.visaId}')" style="padding:10px 22px;background:#0a1628;color:#c9973a;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🖨 Print Visa</button>
+                </div>
+              </div>`;
+            // Store for print
+            window.__visaCache = window.__visaCache || {};
+            window.__visaCache[a.visaId] = v;
+          }
+        } catch(e) { console.warn('Visa load error', e); }
+      }
+
+      html += `<div class="app-card ${a.status}" style="flex-direction:column;align-items:flex-start;gap:12px">
+        <div style="display:flex;width:100%;justify-content:space-between;align-items:flex-start">
+          <div class="app-info">
+            <h4 style="display:flex;align-items:center;gap:8px">${flagHtml} ${a.country} — ${a.visaType}</h4>
+            <p>Submitted: ${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'} · ${a.applicant}</p>
+          </div>
+          <div style="text-align:right">
+            <span class="status-badge ${a.status}">${statusIcon[a.status]||'⚪'} ${a.status}</span>
+            <div class="app-ref">${a.ref}</div>
+          </div>
+        </div>
+        ${apptInfo}
+        ${visaHtml}
+      </div>`;
+    }
+    el.innerHTML = html;
+  } catch (e) {
+    console.error('Track error:', e);
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>Could not load applications.<br><small style="color:#aaa">${e.message}</small></div></div>`;
+  }
+}
+
+// ── Print visa from applicant view ──
+window.__printVisa = function(visaId) {
+  const v = window.__visaCache?.[visaId];
+  if (!v) { showToast('Visa data not loaded yet', 'error'); return; }
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Z Visa</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#f0f0f0;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:40px;font-family:Arial,sans-serif}.z-visa{width:420px;min-height:280px;background:linear-gradient(135deg,#f5e6d3 0%,#f0dcc4 30%,#ecdcc8 60%,#e8d4b8 100%);border-radius:8px;position:relative;overflow:hidden;font-family:'Arial Narrow','Arial',sans-serif;box-shadow:0 8px 40px rgba(0,0,0,0.35),inset 0 0 0 1px rgba(0,0,0,0.1);border:1.5px solid rgba(100,70,20,0.3);color:#1a0a00}.z-visa::before{content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(140,90,20,0.06) 3px,rgba(140,90,20,0.06) 4px),repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(140,90,20,0.06) 3px,rgba(140,90,20,0.06) 4px);pointer-events:none;z-index:0}.z-visa-inner{position:relative;z-index:1;padding:12px 14px}.z-visa-header{background:linear-gradient(90deg,#1a3a6b 0%,#0d2650 50%,#1a3a6b 100%);margin:-12px -14px 10px;padding:6px 14px;display:flex;align-items:center;justify-content:space-between}.z-visa-header-title{font-size:13px;font-weight:900;letter-spacing:3px;color:#e8c97a;text-transform:uppercase}.z-visa-header-sub{font-size:9px;color:rgba(255,255,255,0.6);letter-spacing:1.5px;text-transform:uppercase}.z-visa-header-num{font-size:11px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:1px}.z-visa-body{display:grid;grid-template-columns:1fr 80px;gap:10px}.z-visa-fields{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}.z-visa-field{margin-bottom:4px}.z-visa-label{font-size:6.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#7a4a10;opacity:0.8;line-height:1;margin-bottom:1px}.z-visa-value{font-size:10.5px;font-weight:700;color:#0a0500;letter-spacing:0.3px;border-bottom:0.5px solid rgba(120,70,10,0.25);padding-bottom:2px;min-height:14px}.z-visa-photo{width:80px;height:100px;border:1.5px solid rgba(100,60,10,0.4);border-radius:2px;background:#ddd;overflow:hidden}.z-visa-photo img{width:100%;height:100%;object-fit:cover}.z-visa-remarks-label{font-size:6.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#7a4a10;opacity:0.8;margin-bottom:2px}.z-visa-remarks-val{font-size:9.5px;font-weight:700;color:#0a0500;border-bottom:0.5px solid rgba(120,70,10,0.25);min-height:13px;padding-bottom:2px}.z-visa-issued-row{display:flex;gap:12px;margin-top:4px}.z-visa-mrz{margin:8px -14px -12px;padding:5px 14px 6px;background:rgba(0,0,0,0.06);border-top:0.5px solid rgba(100,60,10,0.2)}.z-visa-mrz-line{font-family:'Courier New',monospace;font-size:7.5px;font-weight:700;letter-spacing:1.5px;color:#2a1000;opacity:0.7;line-height:1.6;word-break:break-all}@media print{body{background:white;padding:0}button{display:none}}</style>
+  </head><body>
+  ${renderZVisa(v).replace('class="z-visa-wrap"','class="z-visa-wrap" style="padding:0"')}
+  <button onclick="window.print()" style="margin-top:28px;padding:14px 32px;background:#c9973a;color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">🖨 Print / Save PDF</button>
+  </body></html>`;
+  const w = window.open('','_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+};
 </script>
 </body>
 </html>
