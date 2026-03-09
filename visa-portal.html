@@ -630,7 +630,7 @@
 <div class="toast" id="toast"></div>
 
 <!-- ════════════════════════════════════════════
-     FIREBASE SDK (compat — works everywhere)
+     FIREBASE SDK (compat)
 ════════════════════════════════════════════ -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -638,48 +638,56 @@
 <script>
 // ── Firebase config ──
 const firebaseConfig = {
-  apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
-  authDomain: "cars-website-558c0.firebaseapp.com",
-  projectId: "cars-website-558c0",
-  storageBucket: "cars-website-558c0.firebasestorage.app",
+  apiKey:            "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
+  authDomain:        "cars-website-558c0.firebaseapp.com",
+  projectId:         "cars-website-558c0",
+  storageBucket:     "cars-website-558c0.firebasestorage.app",
   messagingSenderId: "142475379783",
-  appId: "1:142475379783:web:2849d07fb6eb8da4715d62",
-  measurementId: "G-53ZQY6XJJR"
+  appId:             "1:142475379783:web:2849d07fb6eb8da4715d62",
+  measurementId:     "G-53ZQY6XJJR"
 };
 
-firebase.initializeApp(firebaseConfig);
+// ── Initialize (guard against duplicate init on hot-reload) ──
+let _fbApp;
+try {
+  _fbApp = firebase.app();
+} catch(e) {
+  _fbApp = firebase.initializeApp(firebaseConfig);
+}
+
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// ── Firestore helpers (compat API) ──
-const collection    = (dbRef, path)           => dbRef.collection(path);
-const addDoc        = (ref, data)             => ref.add(data);
-const getDocs       = (ref)                   => ref.get();
-const getDoc        = (ref)                   => ref.get();
-const doc           = (dbRef, path, id)       => {
-  // Handle both doc(db, 'collection', 'id') and doc(db, 'collection/id') forms
+// ── Enable offline persistence so Firestore works even with intermittent connectivity ──
+db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+  // persistence not supported in this browser — non-fatal
+  console.warn('Firestore persistence unavailable:', err.code);
+});
+
+// ── Firestore helpers (compat API — mirrors modular API used elsewhere) ──
+const collection      = (dbRef, path)       => dbRef.collection(path);
+const addDoc          = (ref, data)         => ref.add(data);
+const getDocs         = (ref)               => ref.get();
+const getDoc          = (ref)               => ref.get();
+const doc             = (dbRef, path, id)   => {
   if (id !== undefined) return dbRef.collection(path).doc(id);
-  // path like 'applications/abc123'
   const parts = path.split('/');
   if (parts.length === 2) return dbRef.collection(parts[0]).doc(parts[1]);
   return dbRef.doc(path);
 };
-const updateDoc     = (ref, data)             => ref.update(data);
-const setDoc        = (ref, data)             => ref.set(data);
-const query         = (ref, ...constraints)   => constraints.reduce((r,c) => c(r), ref);
-const where         = (f, op, v)              => r => r.where(f, op, v);
-const orderBy       = (f, dir='asc')          => r => r.orderBy(f, dir);
-const serverTimestamp = ()                    => firebase.firestore.FieldValue.serverTimestamp();
+const updateDoc       = (ref, data)         => ref.update(data);
+const setDoc          = (ref, data)         => ref.set(data);
+const query           = (ref, ...cs)        => cs.reduce((r, c) => c(r), ref);
+const where           = (f, op, v)          => r => r.where(f, op, v);
+const orderBy         = (f, dir = 'asc')    => r => r.orderBy(f, dir);
+const serverTimestamp = ()                  => firebase.firestore.FieldValue.serverTimestamp();
 
-// Compat getDocs returns QuerySnapshot — .docs, .empty work the same
-// getDoc returns DocumentSnapshot — .exists(), .data(), .id work the same
-
-// ── Auth helpers (compat API mirrors modular API) ──
-const createUserWithEmailAndPassword = (a,e,p) => a.createUserWithEmailAndPassword(e,p);
-const signInWithEmailAndPassword     = (a,e,p) => a.signInWithEmailAndPassword(e,p);
-const signOut                        = (a)     => a.signOut();
-const onAuthStateChanged             = (a,cb,err) => a.onAuthStateChanged(cb, err);
-const updateProfile                  = (u,d)   => u.updateProfile(d);
+// ── Auth helpers ──
+const createUserWithEmailAndPassword = (a, e, p) => a.createUserWithEmailAndPassword(e, p);
+const signInWithEmailAndPassword     = (a, e, p) => a.signInWithEmailAndPassword(e, p);
+const signOut                        = (a)       => a.signOut();
+const onAuthStateChanged             = (a, cb, errCb) => a.onAuthStateChanged(cb, errCb);
+const updateProfile                  = (u, d)    => u.updateProfile(d);
 
 // ── Constants ──
 const COUNTRIES=[{name:'France',flag:'🇫🇷',fee:80,days:'15 working days',code:'FR'},{name:'Spain',flag:'🇪🇸',fee:80,days:'10 working days',code:'ES'},{name:'Germany',flag:'🇩🇪',fee:80,days:'15 working days',code:'DE'},{name:'Italy',flag:'🇮🇹',fee:80,days:'15 working days',code:'IT'},{name:'Netherlands',flag:'🇳🇱',fee:80,days:'15 working days',code:'NL'},{name:'Belgium',flag:'🇧🇪',fee:80,days:'12 working days',code:'BE'},{name:'Portugal',flag:'🇵🇹',fee:80,days:'15 working days',code:'PT'},{name:'Austria',flag:'🇦🇹',fee:80,days:'15 working days',code:'AT'},{name:'Switzerland',flag:'🇨🇭',fee:90,days:'10 working days',code:'CH'},{name:'Sweden',flag:'🇸🇪',fee:80,days:'15 working days',code:'SE'},{name:'Norway',flag:'🇳🇴',fee:90,days:'15 working days',code:'NO'},{name:'Denmark',flag:'🇩🇰',fee:80,days:'15 working days',code:'DK'},{name:'Finland',flag:'🇫🇮',fee:80,days:'15 working days',code:'FI'},{name:'Greece',flag:'🇬🇷',fee:80,days:'10 working days',code:'GR'},{name:'Czech Republic',flag:'🇨🇿',fee:80,days:'15 working days',code:'CZ'},{name:'Poland',flag:'🇵🇱',fee:80,days:'15 working days',code:'PL'},{name:'Hungary',flag:'🇭🇺',fee:80,days:'15 working days',code:'HU'},{name:'Romania',flag:'🇷🇴',fee:80,days:'20 working days',code:'RO'},{name:'Croatia',flag:'🇭🇷',fee:80,days:'15 working days',code:'HR'},{name:'Luxembourg',flag:'🇱🇺',fee:80,days:'15 working days',code:'LU'},{name:'Ireland',flag:'🇮🇪',fee:100,days:'8 weeks',code:'IE'},{name:'Malta',flag:'🇲🇹',fee:80,days:'15 working days',code:'MT'},{name:'Slovakia',flag:'🇸🇰',fee:80,days:'15 working days',code:'SK'},{name:'Slovenia',flag:'🇸🇮',fee:80,days:'15 working days',code:'SI'},{name:'Estonia',flag:'🇪🇪',fee:80,days:'15 working days',code:'EE'},{name:'Latvia',flag:'🇱🇻',fee:80,days:'15 working days',code:'LV'}];
@@ -724,19 +732,21 @@ window.showToast         = showToast;
 // AUTH STATE OBSERVER — runs on every page load
 // ────────────────────────────────────────────
 
-// Safety timeout: if Firebase never responds in 8s, show the auth screen anyway
+// ────────────────────────────────────────────
+// AUTH STATE OBSERVER
+// ────────────────────────────────────────────
+
+// If Firebase SDK scripts fail to load or auth never resolves within 5s,
+// drop the loading overlay and show the login screen so the user isn't stuck.
 const _loadingTimeout = setTimeout(() => {
   const ol = document.getElementById('loading-overlay');
   if (ol && !ol.classList.contains('hidden')) {
-    console.warn('Firebase timeout — showing auth screen');
-    document.getElementById('loading-overlay').innerHTML = `
-      <div class="loader-logo" style="font-size:28px">VisaMa</div>
-      <div style="font-size:13px;color:#d64045;margin-top:16px;max-width:300px;text-align:center">
-        ⚠️ Could not connect to services.<br>Check your internet connection and refresh the page.
-      </div>
-      <button onclick="location.reload()" style="margin-top:20px;padding:12px 28px;background:#c9973a;color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">↻ Retry</button>`;
+    console.warn('Firebase auth timeout — falling through to login');
+    hideLoading();
+    showAuth();
+    setTimeout(() => showToast('⚠️ Could not reach authentication service. Check your connection.', 'error'), 300);
   }
-}, 8000);
+}, 5000);
 
 onAuthStateChanged(auth, async (user) => {
   clearTimeout(_loadingTimeout);
@@ -752,12 +762,11 @@ onAuthStateChanged(auth, async (user) => {
     showAuth();
   }
 }, (error) => {
-  // Firebase auth error (bad config, network, etc.)
   clearTimeout(_loadingTimeout);
-  console.error('Auth error:', error);
+  console.error('Firebase auth error:', error);
   hideLoading();
   showAuth();
-  setTimeout(() => showToast('Connection error: ' + error.message, 'error'), 500);
+  setTimeout(() => showToast('Connection error: ' + error.message, 'error'), 300);
 });
 
 function hideLoading() {
