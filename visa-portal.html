@@ -560,17 +560,13 @@
 <div class="toast" id="toast"></div>
 
 <!-- ════════════════════════════════════════════
-     FIREBASE SDK + APP LOGIC
+     FIREBASE SDK (compat — works everywhere)
 ════════════════════════════════════════════ -->
-<script type="module">
-// ── Firebase imports ──
-import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile }
-                                   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, query, where, orderBy, serverTimestamp, setDoc }
-                                   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-// ── Firebase config (from your firebase.js) ──
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
+// ── Firebase config ──
 const firebaseConfig = {
   apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
   authDomain: "cars-website-558c0.firebaseapp.com",
@@ -581,9 +577,39 @@ const firebaseConfig = {
   measurementId: "G-53ZQY6XJJR"
 };
 
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ── Firestore helpers (compat API) ──
+const collection    = (dbRef, path)           => dbRef.collection(path);
+const addDoc        = (ref, data)             => ref.add(data);
+const getDocs       = (ref)                   => ref.get();
+const getDoc        = (ref)                   => ref.get();
+const doc           = (dbRef, path, id)       => {
+  // Handle both doc(db, 'collection', 'id') and doc(db, 'collection/id') forms
+  if (id !== undefined) return dbRef.collection(path).doc(id);
+  // path like 'applications/abc123'
+  const parts = path.split('/');
+  if (parts.length === 2) return dbRef.collection(parts[0]).doc(parts[1]);
+  return dbRef.doc(path);
+};
+const updateDoc     = (ref, data)             => ref.update(data);
+const setDoc        = (ref, data)             => ref.set(data);
+const query         = (ref, ...constraints)   => constraints.reduce((r,c) => c(r), ref);
+const where         = (f, op, v)              => r => r.where(f, op, v);
+const orderBy       = (f, dir='asc')          => r => r.orderBy(f, dir);
+const serverTimestamp = ()                    => firebase.firestore.FieldValue.serverTimestamp();
+
+// Compat getDocs returns QuerySnapshot — .docs, .empty work the same
+// getDoc returns DocumentSnapshot — .exists(), .data(), .id work the same
+
+// ── Auth helpers (compat API mirrors modular API) ──
+const createUserWithEmailAndPassword = (a,e,p) => a.createUserWithEmailAndPassword(e,p);
+const signInWithEmailAndPassword     = (a,e,p) => a.signInWithEmailAndPassword(e,p);
+const signOut                        = (a)     => a.signOut();
+const onAuthStateChanged             = (a,cb,err) => a.onAuthStateChanged(cb, err);
+const updateProfile                  = (u,d)   => u.updateProfile(d);
 
 // ── Constants ──
 const COUNTRIES=[{name:'France',flag:'🇫🇷',fee:80,days:'15 working days',code:'FR'},{name:'Spain',flag:'🇪🇸',fee:80,days:'10 working days',code:'ES'},{name:'Germany',flag:'🇩🇪',fee:80,days:'15 working days',code:'DE'},{name:'Italy',flag:'🇮🇹',fee:80,days:'15 working days',code:'IT'},{name:'Netherlands',flag:'🇳🇱',fee:80,days:'15 working days',code:'NL'},{name:'Belgium',flag:'🇧🇪',fee:80,days:'12 working days',code:'BE'},{name:'Portugal',flag:'🇵🇹',fee:80,days:'15 working days',code:'PT'},{name:'Austria',flag:'🇦🇹',fee:80,days:'15 working days',code:'AT'},{name:'Switzerland',flag:'🇨🇭',fee:90,days:'10 working days',code:'CH'},{name:'Sweden',flag:'🇸🇪',fee:80,days:'15 working days',code:'SE'},{name:'Norway',flag:'🇳🇴',fee:90,days:'15 working days',code:'NO'},{name:'Denmark',flag:'🇩🇰',fee:80,days:'15 working days',code:'DK'},{name:'Finland',flag:'🇫🇮',fee:80,days:'15 working days',code:'FI'},{name:'Greece',flag:'🇬🇷',fee:80,days:'10 working days',code:'GR'},{name:'Czech Republic',flag:'🇨🇿',fee:80,days:'15 working days',code:'CZ'},{name:'Poland',flag:'🇵🇱',fee:80,days:'15 working days',code:'PL'},{name:'Hungary',flag:'🇭🇺',fee:80,days:'15 working days',code:'HU'},{name:'Romania',flag:'🇷🇴',fee:80,days:'20 working days',code:'RO'},{name:'Croatia',flag:'🇭🇷',fee:80,days:'15 working days',code:'HR'},{name:'Luxembourg',flag:'🇱🇺',fee:80,days:'15 working days',code:'LU'},{name:'Ireland',flag:'🇮🇪',fee:100,days:'8 weeks',code:'IE'},{name:'Malta',flag:'🇲🇹',fee:80,days:'15 working days',code:'MT'},{name:'Slovakia',flag:'🇸🇰',fee:80,days:'15 working days',code:'SK'},{name:'Slovenia',flag:'🇸🇮',fee:80,days:'15 working days',code:'SI'},{name:'Estonia',flag:'🇪🇪',fee:80,days:'15 working days',code:'EE'},{name:'Latvia',flag:'🇱🇻',fee:80,days:'15 working days',code:'LV'}];
@@ -627,7 +653,23 @@ window.showToast         = showToast;
 // ────────────────────────────────────────────
 // AUTH STATE OBSERVER — runs on every page load
 // ────────────────────────────────────────────
+
+// Safety timeout: if Firebase never responds in 8s, show the auth screen anyway
+const _loadingTimeout = setTimeout(() => {
+  const ol = document.getElementById('loading-overlay');
+  if (ol && !ol.classList.contains('hidden')) {
+    console.warn('Firebase timeout — showing auth screen');
+    document.getElementById('loading-overlay').innerHTML = `
+      <div class="loader-logo" style="font-size:28px">VisaMa</div>
+      <div style="font-size:13px;color:#d64045;margin-top:16px;max-width:300px;text-align:center">
+        ⚠️ Could not connect to services.<br>Check your internet connection and refresh the page.
+      </div>
+      <button onclick="location.reload()" style="margin-top:20px;padding:12px 28px;background:#c9973a;color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">↻ Retry</button>`;
+  }
+}, 8000);
+
 onAuthStateChanged(auth, async (user) => {
+  clearTimeout(_loadingTimeout);
   if (user) {
     currentUser = user;
     isAdmin = user.email.toLowerCase().endsWith('@visa.com');
@@ -639,6 +681,13 @@ onAuthStateChanged(auth, async (user) => {
     hideLoading();
     showAuth();
   }
+}, (error) => {
+  // Firebase auth error (bad config, network, etc.)
+  clearTimeout(_loadingTimeout);
+  console.error('Auth error:', error);
+  hideLoading();
+  showAuth();
+  setTimeout(() => showToast('Connection error: ' + error.message, 'error'), 500);
 });
 
 function hideLoading() {
