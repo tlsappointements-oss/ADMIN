@@ -790,6 +790,102 @@ function nextStep(step) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ════════════════════════════════════════════
+// PDF GENERATION — called after appointment booking
+// ════════════════════════════════════════════
+function generateAppointmentPDF(appData) {
+  const now = new Date().toLocaleString('en-GB');
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Appointment Confirmation — ${appData.ref}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;600&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:#fff;color:#0a1628;padding:50px}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #c9973a;padding-bottom:24px;margin-bottom:32px}
+  .logo{font-family:'Playfair Display',serif;font-size:30px;color:#c9973a}
+  .logo-sub{font-size:11px;letter-spacing:3px;color:#888;margin-top:4px}
+  .badge{background:#0a1628;color:#c9973a;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;letter-spacing:1px}
+  h2{font-family:'Playfair Display',serif;font-size:22px;color:#0a1628;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #eee}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:30px}
+  .field{background:#f8f9fc;border-radius:8px;padding:14px 16px}
+  .field-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:4px}
+  .field-value{font-size:15px;font-weight:600;color:#0a1628}
+  .appt-box{background:linear-gradient(135deg,#0a1628,#1a3a6b);color:white;border-radius:16px;padding:28px;margin-bottom:28px}
+  .appt-box h3{font-family:'Playfair Display',serif;font-size:18px;color:#c9973a;margin-bottom:18px}
+  .appt-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1);font-size:14px}
+  .appt-row:last-child{border-bottom:none}
+  .appt-label{color:rgba(255,255,255,0.6)}
+  .appt-val{font-weight:600;color:white}
+  .instructions{background:#fffbf3;border:2px solid #c9973a;border-radius:12px;padding:20px;margin-bottom:28px}
+  .instructions h3{font-size:14px;font-weight:700;color:#0a1628;margin-bottom:12px}
+  .instructions li{font-size:13px;color:#555;margin-bottom:6px;padding-left:16px;list-style:none}
+  .instructions li::before{content:'•';color:#c9973a;font-weight:700;margin-right:8px}
+  .footer{display:flex;justify-content:space-between;align-items:center;padding-top:20px;border-top:1px solid #eee;font-size:12px;color:#aaa}
+  .ref-big{font-family:'Playfair Display',serif;font-size:20px;color:#c9973a;font-weight:700}
+  @media print{body{padding:20px}button{display:none!important}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><div class="logo">VisaMa</div><div class="logo-sub">EUROPEAN VISA SERVICES · MOROCCO</div></div>
+  <div class="badge">✅ CONFIRMED</div>
+</div>
+
+<h2>Applicant Information</h2>
+<div class="grid">
+  <div class="field"><div class="field-label">Full Name</div><div class="field-value">${appData.firstName} ${appData.lastName}</div></div>
+  <div class="field"><div class="field-label">Reference Number</div><div class="field-value" style="color:#c9973a">${appData.ref}</div></div>
+  <div class="field"><div class="field-label">Email Address</div><div class="field-value">${appData.email}</div></div>
+  <div class="field"><div class="field-label">Phone</div><div class="field-value">${appData.phone||'—'}</div></div>
+  <div class="field"><div class="field-label">Destination</div><div class="field-value">${appData.countryFlag||''} ${appData.country}</div></div>
+  <div class="field"><div class="field-label">Visa Type</div><div class="field-value">${appData.visaType}</div></div>
+  <div class="field"><div class="field-label">Passport Number</div><div class="field-value">${appData.passport||'—'}</div></div>
+  <div class="field"><div class="field-label">CIN</div><div class="field-value">${appData.cin||'—'}</div></div>
+</div>
+
+<div class="appt-box">
+  <h3>📅 Appointment Details</h3>
+  <div class="appt-row"><span class="appt-label">Date</span><span class="appt-val">${appData.appointmentDate}</span></div>
+  <div class="appt-row"><span class="appt-label">Time Slot</span><span class="appt-val">${appData.appointmentSlot}</span></div>
+  <div class="appt-row"><span class="appt-label">Center</span><span class="appt-val">VisaMa Processing Center — Casablanca</span></div>
+  <div class="appt-row"><span class="appt-label">Service Type</span><span class="appt-val">Biometrics & Document Submission</span></div>
+  <div class="appt-row"><span class="appt-label">Total Paid</span><span class="appt-val" style="color:#c9973a;font-size:18px">€${appData.totalFee}</span></div>
+</div>
+
+<div class="instructions">
+  <h3>⚠️ Important Instructions</h3>
+  <ul>
+    <li>Arrive <strong>15 minutes before</strong> your scheduled appointment time</li>
+    <li>Bring this confirmation document (printed or on phone)</li>
+    <li>Bring your <strong>original passport</strong> and all uploaded documents</li>
+    <li>Wear formal attire — casual wear may result in rescheduling</li>
+    <li>This appointment is <strong>non-transferable</strong> and <strong>non-refundable</strong></li>
+    <li>Contact support@visama.ma at least 48h in advance to reschedule</li>
+  </ul>
+</div>
+
+<div class="footer">
+  <div><span class="ref-big">${appData.ref}</span><br>Generated: ${now}</div>
+  <div style="text-align:right">support@visama.ma<br>visama.ma · +212 5 22 XX XX XX</div>
+</div>
+
+<div style="text-align:center;margin-top:28px">
+  <button onclick="window.print()" style="padding:14px 32px;background:#c9973a;color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">🖨️ Print / Save as PDF</button>
+  <button onclick="window.close()" style="padding:14px 32px;background:#f0f2f7;color:#0a1628;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-left:12px">Close</button>
+</div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (win) setTimeout(() => URL.revokeObjectURL(url), 60000);
+  else showToast('Pop-up blocked — please allow pop-ups to view your PDF', 'error');
+}
+
 // ── Submit to Firestore ──
 async function submitApplication() {
   if (!selectedCountry) { showToast('Please select a country', 'error'); return; }
@@ -826,7 +922,11 @@ async function submitApplication() {
     document.querySelectorAll('[id^="apply-step-"]').forEach(s => s.style.display = 'none');
     document.getElementById('apply-success').style.display = 'block';
     document.querySelectorAll('.step-indicator .step').forEach(s => s.className = 'step done');
-    showToast('Application submitted & saved! 🎉', 'success');
+    showToast('Application submitted! Generating your appointment confirmation... 📄', 'success');
+    // Auto-generate PDF confirmation
+    if (selectedDate && selectedSlot) {
+      setTimeout(() => generateAppointmentPDF(appData), 800);
+    }
   } catch (e) {
     console.error(e);
     showToast('Failed to submit. Check your connection.', 'error');
@@ -853,30 +953,46 @@ function resetApplicationForm() {
 // ── Load user's applications from Firestore ──
 async function loadUserApplications() {
   const el = document.getElementById('applications-list');
-  el.innerHTML = `<div class="empty-state"><div class="loader-spin" style="margin:0 auto 12px"></div><div>Loading applications...</div></div>`;
+  el.innerHTML = `<div class="empty-state"><div class="loader-spin" style="margin:0 auto 12px"></div><div>Loading your applications...</div></div>`;
   try {
-    const q = query(collection(db,'applications'), where('uid','==',currentUser.uid), orderBy('createdAt','desc'));
+    // Use simple single-field query (no composite index needed) then sort client-side
+    const q = query(collection(db,'applications'), where('uid','==',currentUser.uid));
     const snap = await getDocs(q);
     if (snap.empty) {
       el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div>No applications yet.</div><div style="margin-top:8px"><button class="btn-nav btn-next" onclick="showPage('apply')">Start an Application</button></div></div>`;
       return;
     }
-    el.innerHTML = snap.docs.map(d => {
+    // Sort by createdAt descending client-side
+    const docs = snap.docs.sort((a,b) => {
+      const ta = a.data().createdAt?.toMillis?.() || 0;
+      const tb = b.data().createdAt?.toMillis?.() || 0;
+      return tb - ta;
+    });
+    const statusIcon = {pending:'🟡',approved:'🟢',processing:'🔵',rejected:'🔴'};
+    el.innerHTML = docs.map(d => {
       const a = d.data();
-      return `<div class="app-card ${a.status}">
-        <div class="app-info">
-          <h4>${a.countryFlag||''} ${a.country} — ${a.visaType}</h4>
-          <p>Submitted: ${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'} · ${a.applicant}</p>
+      const apptInfo = (a.appointmentDate && a.appointmentDate !== 'TBD')
+        ? `<div style="margin-top:8px;padding:10px 14px;background:#f0f7ff;border-radius:8px;border-left:3px solid #3b82f6;font-size:13px;color:#1e40af">
+            📅 Appointment: <strong>${a.appointmentDate}</strong> at <strong>${a.appointmentSlot}</strong>
+           </div>`
+        : '';
+      return `<div class="app-card ${a.status}" style="flex-direction:column;align-items:flex-start;gap:12px">
+        <div style="display:flex;width:100%;justify-content:space-between;align-items:flex-start">
+          <div class="app-info">
+            <h4>${a.countryFlag||''} ${a.country} — ${a.visaType}</h4>
+            <p>Submitted: ${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'} · ${a.applicant}</p>
+          </div>
+          <div style="text-align:right">
+            <span class="status-badge ${a.status}">${statusIcon[a.status]||'⚪'} ${a.status}</span>
+            <div class="app-ref">${a.ref}</div>
+          </div>
         </div>
-        <div style="text-align:right">
-          <span class="status-badge ${a.status}">${{pending:'🟡',approved:'🟢',processing:'🔵',rejected:'🔴'}[a.status]||'⚪'} ${a.status}</span>
-          <div class="app-ref">${a.ref}</div>
-        </div>
+        ${apptInfo}
       </div>`;
     }).join('');
   } catch (e) {
-    console.error(e);
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>Could not load applications.</div></div>`;
+    console.error('Track error:', e);
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>Could not load applications.<br><small style="color:#aaa">${e.message}</small></div></div>`;
   }
 }
 
@@ -968,6 +1084,9 @@ async function renderAdminApplications() {
   c.innerHTML = `<div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">All Applications</div><div style="font-size:14px;color:#aaa;margin-bottom:24px">Live from Firestore</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
   try {
     const snap = await getDocs(query(collection(db,'applications'), orderBy('createdAt','desc')));
+    // Cache all docs for modal access
+    window._adminAppDocs = {};
+    snap.docs.forEach(d => { window._adminAppDocs[d.id] = { id: d.id, ...d.data() }; });
     const rows = snap.docs.map(d => {
       const a = d.data();
       return `<tr id="row-${d.id}">
@@ -978,7 +1097,7 @@ async function renderAdminApplications() {
         <td style="font-size:13px;color:#aaa">${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</td>
         <td><span class="status-badge ${a.status}" id="badge-${d.id}">${a.status}</span></td>
         <td style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="action-btn view">View</button>
+          <button class="action-btn view" onclick="openEditModal('${d.id}')">✏️ Edit</button>
           <button class="action-btn approve" onclick="updateAppStatus('${d.id}','approved',this)">Approve</button>
           <button class="action-btn reject"  onclick="updateAppStatus('${d.id}','rejected',this)">Reject</button>
         </td>
@@ -999,6 +1118,120 @@ async function renderAdminApplications() {
     c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>${e.message}</div></div>`;
   }
 }
+
+// ════════════════════════════════════════════
+// ADMIN EDIT MODAL — edit applicant + appointment, saves to Firestore
+// Applicant track view reads fresh from Firestore → updates instantly
+// ════════════════════════════════════════════
+window.openEditModal = function(docId) {
+  const a = window._adminAppDocs?.[docId];
+  if (!a) { showToast('Application data not loaded. Please refresh the page.', 'error'); return; }
+  document.getElementById('edit-modal')?.remove();
+
+  const slotOptions = ['TBD','09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00']
+    .map(s => `<option value="${s}" ${(a.appointmentSlot||'TBD')===s?'selected':''}>${s}</option>`).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:20px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;box-shadow:0 40px 80px rgba(0,0,0,0.5)">
+      <div style="background:linear-gradient(135deg,#0a1628,#1a3a6b);padding:28px 32px;border-radius:20px 20px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#c9973a">Edit Application</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px">${a.ref} · ${a.applicant}</div>
+        </div>
+        <button onclick="document.getElementById('edit-modal').remove()" style="background:rgba(255,255,255,0.1);border:none;color:white;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="padding:28px 32px">
+
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:10px">Application Status</div>
+        <select id="edit-status" style="width:100%;padding:12px 16px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:14px;margin-bottom:24px;outline:none;cursor:pointer">
+          <option value="pending"    ${a.status==='pending'?'selected':''}>🟡 Pending</option>
+          <option value="processing" ${a.status==='processing'?'selected':''}>🔵 Processing</option>
+          <option value="approved"   ${a.status==='approved'?'selected':''}>🟢 Approved</option>
+          <option value="rejected"   ${a.status==='rejected'?'selected':''}>🔴 Rejected</option>
+        </select>
+
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:10px">Applicant Details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
+          ${[['edit-first','First Name',a.firstName||''],['edit-last','Last Name',a.lastName||''],['edit-email','Email',a.email||''],['edit-phone','Phone',a.phone||''],['edit-passport','Passport No.',a.passport||''],['edit-cin','CIN',a.cin||'']].map(([id,lbl,val])=>`
+          <div>
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#666;margin-bottom:6px;display:block">${lbl}</label>
+            <input id="${id}" value="${val}" style="width:100%;padding:11px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s" onfocus="this.style.borderColor='#c9973a'" onblur="this.style.borderColor='transparent'">
+          </div>`).join('')}
+        </div>
+
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:10px">📅 Appointment — changes reflect immediately in applicant view</div>
+        <div style="background:linear-gradient(135deg,#fffbf3,#fff8ec);border:2px solid #f0e0b0;border-radius:14px;padding:20px;margin-bottom:24px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div>
+              <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#666;margin-bottom:6px;display:block">Appointment Date</label>
+              <input id="edit-appt-date" value="${a.appointmentDate||''}" placeholder="e.g. December 20" style="width:100%;padding:11px 14px;background:white;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:14px;font-family:'DM Sans',sans-serif;outline:none" onfocus="this.style.borderColor='#c9973a'" onblur="this.style.borderColor='transparent'">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#666;margin-bottom:6px;display:block">Time Slot</label>
+              <select id="edit-appt-slot" style="width:100%;padding:11px 14px;background:white;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer">${slotOptions}</select>
+            </div>
+          </div>
+          <div style="margin-top:12px;padding:10px 14px;background:rgba(201,151,58,0.1);border-radius:8px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px">
+            <span>💡</span> Saving will instantly update what the applicant sees on their Track page
+          </div>
+        </div>
+
+        <div id="edit-modal-error" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;font-size:13px;color:#991b1b;margin-bottom:16px"></div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button onclick="document.getElementById('edit-modal').remove()" style="padding:13px 24px;background:#f0f2f7;color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Cancel</button>
+          <button onclick="generatePDFFromAdmin('${docId}')" style="padding:13px 24px;background:#0a1628;color:#c9973a;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">📄 PDF</button>
+          <button id="edit-save-btn" onclick="saveApplicationEdit('${docId}')" style="padding:13px 32px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💾 Save Changes</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+};
+
+window.saveApplicationEdit = async function(docId) {
+  const btn   = document.getElementById('edit-save-btn');
+  const errEl = document.getElementById('edit-modal-error');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = '⏳ Saving...';
+  try {
+    const first = document.getElementById('edit-first').value.trim();
+    const last  = document.getElementById('edit-last').value.trim();
+    const updates = {
+      status:          document.getElementById('edit-status').value,
+      firstName:       first,
+      lastName:        last,
+      applicant:       [first,last].filter(Boolean).join(' ') || window._adminAppDocs[docId].applicant,
+      email:           document.getElementById('edit-email').value.trim(),
+      phone:           document.getElementById('edit-phone').value.trim(),
+      passport:        document.getElementById('edit-passport').value.trim(),
+      cin:             document.getElementById('edit-cin').value.trim(),
+      appointmentDate: document.getElementById('edit-appt-date').value.trim() || 'TBD',
+      appointmentSlot: document.getElementById('edit-appt-slot').value,
+    };
+    await updateDoc(doc(db, 'applications', docId), updates);
+    // Update local cache
+    window._adminAppDocs[docId] = { ...window._adminAppDocs[docId], ...updates };
+    document.getElementById('edit-modal').remove();
+    // Refresh row badge
+    const badge = document.getElementById(`badge-${docId}`);
+    if (badge) { badge.className = `status-badge ${updates.status}`; badge.textContent = updates.status; }
+    showToast('✅ Saved to Firestore — applicant view updated automatically', 'success');
+  } catch(e) {
+    errEl.textContent = 'Save failed: ' + e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = '💾 Save Changes';
+  }
+};
+
+window.generatePDFFromAdmin = function(docId) {
+  const a = window._adminAppDocs?.[docId];
+  if (a) generateAppointmentPDF(a);
+  else showToast('No data found for PDF', 'error');
+};
 
 // ── Update application status in Firestore ──
 async function updateAppStatus(docId, newStatus, btn) {
