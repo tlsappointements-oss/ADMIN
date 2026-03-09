@@ -804,9 +804,11 @@ function generateAppointmentPDF(appData) {
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;600&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'DM Sans',sans-serif;background:#fff;color:#0a1628;padding:50px}
-  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #c9973a;padding-bottom:24px;margin-bottom:32px}
-  .logo{font-family:'Playfair Display',serif;font-size:30px;color:#c9973a}
-  .logo-sub{font-size:11px;letter-spacing:3px;color:#888;margin-top:4px}
+  .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #c9973a;padding-bottom:24px;margin-bottom:32px}
+  .header-left{display:flex;align-items:center;gap:18px}
+  .country-flag-big{font-size:64px;line-height:1}
+  .country-name{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:#0a1628;line-height:1.1}
+  .country-sub{font-size:11px;letter-spacing:3px;color:#888;margin-top:5px;text-transform:uppercase}
   .badge{background:#0a1628;color:#c9973a;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;letter-spacing:1px}
   h2{font-family:'Playfair Display',serif;font-size:22px;color:#0a1628;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #eee}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:30px}
@@ -830,7 +832,13 @@ function generateAppointmentPDF(appData) {
 </head>
 <body>
 <div class="header">
-  <div><div class="logo">VisaMa</div><div class="logo-sub">EUROPEAN VISA SERVICES · MOROCCO</div></div>
+  <div class="header-left">
+    <div class="country-flag-big">${appData.countryFlag||'🌍'}</div>
+    <div>
+      <div class="country-name">${appData.country} Visa</div>
+      <div class="country-sub">Appointment Confirmation Letter</div>
+    </div>
+  </div>
   <div class="badge">✅ CONFIRMED</div>
 </div>
 
@@ -869,7 +877,7 @@ function generateAppointmentPDF(appData) {
 
 <div class="footer">
   <div><span class="ref-big">${appData.ref}</span><br>Generated: ${now}</div>
-  <div style="text-align:right">support@visama.ma<br>visama.ma · +212 5 22 XX XX XX</div>
+  <div style="text-align:right">${appData.countryFlag||''} ${appData.country} Visa Application<br>Processed via VisaMa · Casablanca, Morocco</div>
 </div>
 
 <div style="text-align:center;margin-top:28px">
