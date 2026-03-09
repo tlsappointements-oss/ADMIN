@@ -356,24 +356,6 @@
 </head>
 <body>
 
-<!-- Early stubs: buttons work even before Firebase scripts finish loading -->
-<script>
-  function handleLogin() {
-    if (window._handleLogin) { window._handleLogin(); return; }
-    var e = document.getElementById('login-error');
-    e.textContent = 'Still loading, please try again in a moment.';
-    e.classList.add('show');
-  }
-  function handleRegister() {
-    if (window._handleRegister) { window._handleRegister(); return; }
-    var e = document.getElementById('reg-error');
-    e.textContent = 'Still loading, please try again in a moment.';
-    e.classList.add('show');
-  }
-  function switchAuthTab(t) { if (window._switchAuthTab) window._switchAuthTab(t); }
-  function handleLogout()   { if (window._handleLogout)  window._handleLogout(); }
-</script>
-
 <!-- LOADING -->
 <div id="loading-overlay" style="display:none!important">
   <div class="loader-logo">VisaMa</div>
@@ -650,9 +632,11 @@
 <!-- ════════════════════════════════════════════
      FIREBASE SDK (compat — works everywhere)
 ════════════════════════════════════════════ -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>window.firebase = window.firebase || null;</script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" onerror="console.warn('Firebase app SDK failed to load')"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" onerror="console.warn('Firebase auth SDK failed to load')"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" onerror="console.warn('Firebase firestore SDK failed to load')"></script>
+<script>if (!window.firebase) { window.firebase = { initializeApp: () => ({}), auth: () => ({}), firestore: () => ({}) }; }</script>
 <script>
 // ── Firebase config ──
 const firebaseConfig = {
@@ -665,9 +649,24 @@ const firebaseConfig = {
   measurementId: "G-53ZQY6XJJR"
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db   = firebase.firestore();
+let auth, db;
+try {
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db   = firebase.firestore();
+} catch(e) {
+  console.error('Firebase failed to initialize:', e);
+  // Create dummy stubs so the rest of the script does not crash
+  auth = {
+    onAuthStateChanged: (cb, err) => { setTimeout(() => cb(null), 0); return () => {}; },
+    signInWithEmailAndPassword: () => Promise.reject({ code: 'auth/network-request-failed' }),
+    createUserWithEmailAndPassword: () => Promise.reject({ code: 'auth/network-request-failed' }),
+    signOut: () => Promise.resolve()
+  };
+  db = {
+    collection: () => ({ add: () => Promise.resolve(), get: () => Promise.resolve({ docs: [], forEach: () => {} }), doc: () => ({ get: () => Promise.resolve({ exists: false, data: () => ({}) }), set: () => Promise.resolve(), update: () => Promise.resolve() }) }),
+  };
+}
 
 // ── Firestore helpers (compat API) ──
 const collection    = (dbRef, path)           => dbRef.collection(path);
@@ -719,11 +718,6 @@ let selectedDate    = null;
 let selectedSlot    = null;
 
 // ── Expose globals for inline onclick handlers ──
-// Also wire up the early stubs defined before Firebase loaded
-window._switchAuthTab  = switchAuthTab;
-window._handleLogin    = handleLogin;
-window._handleRegister = handleRegister;
-window._handleLogout   = handleLogout;
 window.switchAuthTab  = switchAuthTab;
 window.handleLogin    = handleLogin;
 window.handleRegister = handleRegister;
