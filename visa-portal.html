@@ -632,16 +632,9 @@
 <!-- ════════════════════════════════════════════
      FIREBASE SDK (compat — works everywhere)
 ════════════════════════════════════════════ -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" onerror="window._firebaseFailed=true"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" onerror="window._firebaseFailed=true"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" onerror="window._firebaseFailed=true"></script>
-<script>
-if (window._firebaseFailed || typeof firebase === 'undefined') {
-  document.getElementById('loading-overlay').classList.add('hidden');
-  setTimeout(() => document.getElementById('loading-overlay').style.display='none', 600);
-  document.getElementById('auth-screen').classList.add('show');
-}
-</script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
 // ── Firebase config ──
 const firebaseConfig = {
@@ -731,15 +724,19 @@ window.showToast         = showToast;
 // AUTH STATE OBSERVER — runs on every page load
 // ────────────────────────────────────────────
 
-// Safety timeout: if Firebase never responds in 4s, show auth screen anyway
+// Safety timeout: if Firebase never responds in 8s, show the auth screen anyway
 const _loadingTimeout = setTimeout(() => {
   const ol = document.getElementById('loading-overlay');
   if (ol && !ol.classList.contains('hidden')) {
-    console.warn('Firebase timeout — falling back to auth screen');
-    hideLoading();
-    showAuth();
+    console.warn('Firebase timeout — showing auth screen');
+    document.getElementById('loading-overlay').innerHTML = `
+      <div class="loader-logo" style="font-size:28px">VisaMa</div>
+      <div style="font-size:13px;color:#d64045;margin-top:16px;max-width:300px;text-align:center">
+        ⚠️ Could not connect to services.<br>Check your internet connection and refresh the page.
+      </div>
+      <button onclick="location.reload()" style="margin-top:20px;padding:12px 28px;background:#c9973a;color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">↻ Retry</button>`;
   }
-}, 4000);
+}, 8000);
 
 onAuthStateChanged(auth, async (user) => {
   clearTimeout(_loadingTimeout);
