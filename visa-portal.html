@@ -356,15 +356,33 @@
 </head>
 <body>
 
+<!-- Early stubs: buttons work even before Firebase scripts finish loading -->
+<script>
+  function handleLogin() {
+    if (window._handleLogin) { window._handleLogin(); return; }
+    var e = document.getElementById('login-error');
+    e.textContent = 'Still loading, please try again in a moment.';
+    e.classList.add('show');
+  }
+  function handleRegister() {
+    if (window._handleRegister) { window._handleRegister(); return; }
+    var e = document.getElementById('reg-error');
+    e.textContent = 'Still loading, please try again in a moment.';
+    e.classList.add('show');
+  }
+  function switchAuthTab(t) { if (window._switchAuthTab) window._switchAuthTab(t); }
+  function handleLogout()   { if (window._handleLogout)  window._handleLogout(); }
+</script>
+
 <!-- LOADING -->
-<div id="loading-overlay">
+<div id="loading-overlay" style="display:none!important">
   <div class="loader-logo">VisaMa</div>
   <div class="loader-spin"></div>
   <div class="loader-text">Connecting to services...</div>
 </div>
 
 <!-- AUTH -->
-<div id="auth-screen">
+<div id="auth-screen" class="show">
   <div class="auth-card">
     <div class="auth-logo">
       <div style="font-size:40px;margin-bottom:8px">🇲🇦</div>
@@ -701,6 +719,11 @@ let selectedDate    = null;
 let selectedSlot    = null;
 
 // ── Expose globals for inline onclick handlers ──
+// Also wire up the early stubs defined before Firebase loaded
+window._switchAuthTab  = switchAuthTab;
+window._handleLogin    = handleLogin;
+window._handleRegister = handleRegister;
+window._handleLogout   = handleLogout;
 window.switchAuthTab  = switchAuthTab;
 window.handleLogin    = handleLogin;
 window.handleRegister = handleRegister;
@@ -724,39 +747,24 @@ window.showToast         = showToast;
 // AUTH STATE OBSERVER — runs on every page load
 // ────────────────────────────────────────────
 
-// Safety timeout: if Firebase never responds in 8s, show the auth screen anyway
-const _loadingTimeout = setTimeout(() => {
-  const ol = document.getElementById('loading-overlay');
-  if (ol && !ol.classList.contains('hidden')) {
-    console.warn('Firebase timeout — showing auth screen');
-    document.getElementById('loading-overlay').innerHTML = `
-      <div class="loader-logo" style="font-size:28px">VisaMa</div>
-      <div style="font-size:13px;color:#d64045;margin-top:16px;max-width:300px;text-align:center">
-        ⚠️ Could not connect to services.<br>Check your internet connection and refresh the page.
-      </div>
-      <button onclick="location.reload()" style="margin-top:20px;padding:12px 28px;background:#c9973a;color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">↻ Retry</button>`;
-  }
-}, 8000);
+// Show auth screen immediately — don't block on Firebase loading
+hideLoading();
+showAuth();
 
+// Then let Firebase silently resolve auth state in the background
 onAuthStateChanged(auth, async (user) => {
-  clearTimeout(_loadingTimeout);
   if (user) {
     currentUser = user;
     isAdmin = user.email.toLowerCase().endsWith('@visa.com');
-    hideLoading();
     enterApp();
   } else {
     currentUser = null;
     isAdmin = false;
-    hideLoading();
-    showAuth();
+    showAuth(); // ensure auth screen is shown if not already
   }
 }, (error) => {
   // Firebase auth error (bad config, network, etc.)
-  clearTimeout(_loadingTimeout);
   console.error('Auth error:', error);
-  hideLoading();
-  showAuth();
   setTimeout(() => showToast('Connection error: ' + error.message, 'error'), 500);
 });
 
