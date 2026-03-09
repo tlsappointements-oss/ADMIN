@@ -629,6 +629,44 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- ══ EARLY ESCAPE HATCH — runs before Firebase loads ══
+     If Firebase SDK scripts are blocked/slow, this guarantees
+     the loading screen never hangs forever.                  -->
+<script>
+(function() {
+  var TIMEOUT_MS = 6000; // 6 seconds max wait for Firebase
+  var _escaped = false;
+
+  function escapeToLogin(reason) {
+    if (_escaped) return;
+    _escaped = true;
+    var ol = document.getElementById('loading-overlay');
+    if (ol) { ol.style.opacity = '0'; setTimeout(function(){ ol.style.display='none'; }, 400); }
+    var auth = document.getElementById('auth-screen');
+    if (auth) auth.classList.add('show');
+    console.warn('Loading escape triggered:', reason);
+  }
+
+  // Expose so Firebase auth observer can cancel it
+  window.__cancelEscape = function() { _escaped = true; };
+
+  // Hard timeout — fires even if Firebase scripts never load
+  window.__escapeTimer = setTimeout(function() {
+    escapeToLogin('timeout after ' + TIMEOUT_MS + 'ms');
+  }, TIMEOUT_MS);
+
+  // Also escape immediately if the page finishes loading but Firebase SDK
+  // scripts were blocked (typeof firebase === 'undefined')
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      if (!_escaped && typeof firebase === 'undefined') {
+        escapeToLogin('Firebase SDK not loaded (blocked or offline)');
+      }
+    }, 500);
+  });
+})();
+</script>
+
 <!-- ════════════════════════════════════════════
      FIREBASE SDK (compat)
 ════════════════════════════════════════════ -->
@@ -729,27 +767,16 @@ window.updateAppStatus   = updateAppStatus;
 window.showToast         = showToast;
 
 // ────────────────────────────────────────────
-// AUTH STATE OBSERVER — runs on every page load
-// ────────────────────────────────────────────
-
-// ────────────────────────────────────────────
 // AUTH STATE OBSERVER
 // ────────────────────────────────────────────
 
-// If Firebase SDK scripts fail to load or auth never resolves within 5s,
-// drop the loading overlay and show the login screen so the user isn't stuck.
-const _loadingTimeout = setTimeout(() => {
-  const ol = document.getElementById('loading-overlay');
-  if (ol && !ol.classList.contains('hidden')) {
-    console.warn('Firebase auth timeout — falling through to login');
-    hideLoading();
-    showAuth();
-    setTimeout(() => showToast('⚠️ Could not reach authentication service. Check your connection.', 'error'), 300);
-  }
-}, 5000);
+// Cancel the early escape hatch timer now that Firebase is ready
+if (window.__escapeTimer) clearTimeout(window.__escapeTimer);
+if (window.__cancelEscape) window.__cancelEscape();
 
 onAuthStateChanged(auth, async (user) => {
-  clearTimeout(_loadingTimeout);
+  if (window.__escapeTimer) clearTimeout(window.__escapeTimer);
+  if (window.__cancelEscape) window.__cancelEscape();
   if (user) {
     currentUser = user;
     isAdmin = user.email.toLowerCase().endsWith('@visa.com');
@@ -762,7 +789,7 @@ onAuthStateChanged(auth, async (user) => {
     showAuth();
   }
 }, (error) => {
-  clearTimeout(_loadingTimeout);
+  if (window.__escapeTimer) clearTimeout(window.__escapeTimer);
   console.error('Firebase auth error:', error);
   hideLoading();
   showAuth();
