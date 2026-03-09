@@ -357,14 +357,14 @@
 <body>
 
 <!-- LOADING -->
-<div id="loading-overlay" style="display:none!important">
+<div id="loading-overlay">
   <div class="loader-logo">VisaMa</div>
   <div class="loader-spin"></div>
   <div class="loader-text">Connecting to services...</div>
 </div>
 
 <!-- AUTH -->
-<div id="auth-screen" class="show">
+<div id="auth-screen">
   <div class="auth-card">
     <div class="auth-logo">
       <div style="font-size:40px;margin-bottom:8px">🇲🇦</div>
@@ -724,24 +724,39 @@ window.showToast         = showToast;
 // AUTH STATE OBSERVER — runs on every page load
 // ────────────────────────────────────────────
 
-// Show auth screen immediately — don't block on Firebase loading
-hideLoading();
-showAuth();
+// Safety timeout: if Firebase never responds in 8s, show the auth screen anyway
+const _loadingTimeout = setTimeout(() => {
+  const ol = document.getElementById('loading-overlay');
+  if (ol && !ol.classList.contains('hidden')) {
+    console.warn('Firebase timeout — showing auth screen');
+    document.getElementById('loading-overlay').innerHTML = `
+      <div class="loader-logo" style="font-size:28px">VisaMa</div>
+      <div style="font-size:13px;color:#d64045;margin-top:16px;max-width:300px;text-align:center">
+        ⚠️ Could not connect to services.<br>Check your internet connection and refresh the page.
+      </div>
+      <button onclick="location.reload()" style="margin-top:20px;padding:12px 28px;background:#c9973a;color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">↻ Retry</button>`;
+  }
+}, 8000);
 
-// Then let Firebase silently resolve auth state in the background
 onAuthStateChanged(auth, async (user) => {
+  clearTimeout(_loadingTimeout);
   if (user) {
     currentUser = user;
     isAdmin = user.email.toLowerCase().endsWith('@visa.com');
+    hideLoading();
     enterApp();
   } else {
     currentUser = null;
     isAdmin = false;
-    showAuth(); // ensure auth screen is shown if not already
+    hideLoading();
+    showAuth();
   }
 }, (error) => {
   // Firebase auth error (bad config, network, etc.)
+  clearTimeout(_loadingTimeout);
   console.error('Auth error:', error);
+  hideLoading();
+  showAuth();
   setTimeout(() => showToast('Connection error: ' + error.message, 'error'), 500);
 });
 
