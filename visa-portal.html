@@ -208,98 +208,145 @@
   /* ═══════════════════════════════════════════════════
      Z VISA — PIXEL-PERFECT SCHENGEN STICKER REPLICA
      Real card: 85.6mm × 53.98mm landscape (ID-1 / CR-80)
-     Screen render: 680px × 430px
+     Screen render: 756px × 477px
   ═══════════════════════════════════════════════════ */
-  /* ══ SCHENGEN VISA — exact replica ══ */
-  .z-visa-wrap{display:flex;justify-content:center;align-items:center;padding:28px 8px;}
+  .z-visa-wrap{display:flex;justify-content:center;align-items:center;padding:32px 8px;overflow-x:auto;}
 
-  /* Schengen visa sticker: 756x533px */
+  /* Card size */
   .zvisa{
     position:relative;overflow:hidden;
-    width:756px;height:533px;
-    border-radius:4px;
-    box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 0 0 1px rgba(0,0,0,.15);
+    width:756px;height:477px;
+    border-radius:8px;
+    box-shadow:0 24px 64px rgba(0,0,0,.55),0 0 0 1.5px rgba(0,0,0,.2);
     font-family:Arial,Helvetica,sans-serif;
-    animation:zvReveal .45s cubic-bezier(.22,1,.36,1);
+    animation:zvReveal .5s cubic-bezier(.22,1,.36,1);
     flex-shrink:0;
     background:#a8c8a0;
   }
-  @keyframes zvReveal{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
-  .zvisa-bg{position:absolute;inset:0;z-index:0;}
-  .zvisa-bg svg{width:100%;height:100%;}
+  @keyframes zvReveal{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 
-  /* Top holographic rainbow strip */
+  /* Background layer */
+  .zvisa-bg{position:absolute;inset:0;z-index:0;}
+  .zvisa-bg svg{width:100%;height:100%;display:block;}
+
+  /* ── TOP HOLOGRAPHIC RAINBOW STRIP ── */
   .zvisa-top-holo{
-    position:absolute;top:0;left:0;right:0;height:44px;z-index:5;
+    position:absolute;top:0;left:0;right:0;height:46px;z-index:6;
     background:linear-gradient(90deg,
-      #e87070 0%,#e8a050 8%,#e8d850 16%,#78c850 24%,#50b8d8 32%,
-      #7078e0 40%,#c060d0 48%,#e87070 56%,#e8a050 64%,#e8d850 72%,
-      #78c850 80%,#50b8d8 88%,#7078e0 96%,#c060d0 100%
+      #e06060 0%,#e09040 7%,#e0c840 14%,#70c040 21%,#48b0d0 28%,
+      #6070d8 35%,#b858c8 42%,#e06060 49%,#e09040 56%,#e0c840 63%,
+      #70c040 70%,#48b0d0 77%,#6070d8 84%,#b858c8 91%,#e06060 100%
     );
-    display:flex;align-items:center;padding:0 12px;gap:10px;
+    display:flex;align-items:center;padding:0 14px 0 10px;gap:0;
   }
-  .zvisa-word{display:flex;align-items:center;gap:3px;margin-left:8px;}
+
+  /* Dark tile blocks left of VISA */
+  .zvisa-tiles{display:flex;gap:2px;margin-right:3px;}
+  .zvisa-tile{width:16px;height:30px;border-radius:2px;opacity:.85;}
+
+  /* VISA colored letter blocks */
+  .zvisa-word{display:flex;gap:2px;}
   .zvisa-letter{
-    width:28px;height:28px;border-radius:3px;
+    width:30px;height:30px;border-radius:3px;
     display:flex;align-items:center;justify-content:center;
-    font-size:18px;font-weight:900;color:#fff;
-    text-shadow:0 1px 3px rgba(0,0,0,.4);
-    font-family:Arial Black,Arial,sans-serif;
+    font-size:19px;font-weight:900;color:#fff;
+    text-shadow:0 1px 4px rgba(0,0,0,.5);
+    font-family:'Arial Black',Arial,sans-serif;
+    letter-spacing:0;
   }
+
+  /* Right side of top bar: barcode + number */
+  .zvisa-topright{
+    margin-left:auto;display:flex;flex-direction:column;
+    align-items:flex-end;gap:1px;
+  }
+  .zvisa-barcode{opacity:.9;}
   .zvisa-number-top{
-    margin-left:auto;font-size:15px;font-weight:700;
-    color:#1a1a1a;letter-spacing:1px;font-family:'Courier New',monospace;
+    font-size:14px;font-weight:700;color:#111;
+    letter-spacing:1.5px;font-family:'Courier New',monospace;
+    line-height:1;
   }
+
+  /* ── LEFT COLUMN: Emblem + Photo ── */
+  /* EU Emblem — anchored bottom-left, overlaps wave area */
   .zvisa-emblem{
-    position:absolute;left:0;bottom:0;z-index:4;
-    width:178px;height:200px;
+    position:absolute;left:0;bottom:0;z-index:5;
+    width:172px;height:192px;
   }
+  .zvisa-emblem svg{width:100%;height:100%;display:block;}
+
+  /* Photo box */
   .zvisa-photo{
-    position:absolute;left:48px;top:52px;z-index:4;
-    width:128px;height:160px;
-    background:#c8d8e8;border:2px solid #8aa8c0;
-    overflow:hidden;display:flex;align-items:center;justify-content:center;
+    position:absolute;left:42px;top:54px;z-index:5;
+    width:132px;height:165px;
+    background:#bccfdf;
+    border:2px solid rgba(100,140,180,.6);
+    overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
   }
   .zvisa-photo img{width:100%;height:100%;object-fit:cover;display:block;}
   .zvisa-photo-ph{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:6px;width:100%;height:100%;background:#c0d4e8;
+    gap:4px;width:100%;height:100%;background:#bdd0e0;
   }
+
+  /* Vertical separator line */
+  .zvisa-sep{
+    position:absolute;left:194px;top:46px;bottom:30px;z-index:4;
+    width:1px;background:rgba(255,255,255,.55);
+  }
+
+  /* ── RIGHT COLUMN: Fields ── */
   .zvisa-fields{
-    position:absolute;left:200px;top:44px;right:0;z-index:4;
+    position:absolute;left:196px;top:46px;right:0;z-index:4;
     display:flex;flex-direction:column;
+    bottom:30px;
   }
+
   .zvf-row{
     display:flex;align-items:stretch;
-    border-bottom:1px solid rgba(255,255,255,.5);
-    background:rgba(255,255,255,.18);min-height:38px;
+    border-bottom:1px solid rgba(255,255,255,.45);
+    background:rgba(255,255,255,.16);
+    flex:1;min-height:0;
   }
-  .zvf-row:first-child{border-top:1px solid rgba(255,255,255,.5);}
+  .zvf-row:first-child{border-top:1px solid rgba(255,255,255,.45);}
+
+  .zvf-row-validfor{
+    background:rgba(255,255,255,.22);
+    flex:0 0 auto;min-height:36px;max-height:36px;
+  }
+
   .zvf-cell{
     display:flex;flex-direction:column;justify-content:center;
-    padding:3px 8px;flex:1;min-width:0;
-    border-right:1px solid rgba(255,255,255,.4);
+    padding:2px 8px;flex:1;min-width:0;
+    border-right:1px solid rgba(255,255,255,.38);
   }
   .zvf-cell:last-child{border-right:none;}
+
   .zvf-lbl{
-    font-size:7px;font-weight:700;letter-spacing:.5px;
-    text-transform:uppercase;color:#1a2a1a;
-    line-height:1.2;margin-bottom:1px;font-family:Arial,sans-serif;
-  }
-  .zvf-val{
-    font-size:13px;font-weight:900;color:#000;
-    line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-size:6.8px;font-weight:700;letter-spacing:.6px;
+    text-transform:uppercase;color:#0a1a0a;
+    line-height:1.25;margin-bottom:1px;
     font-family:Arial,Helvetica,sans-serif;
   }
-  .zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1px;font-size:12px;}
+  .zvf-val{
+    font-size:13px;font-weight:900;color:#050e05;
+    line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-family:Arial,Helvetica,sans-serif;
+  }
+  .zvf-val-lg{font-size:15px;font-weight:900;letter-spacing:.3px;}
+  .zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1px;font-size:11.5px;}
+
+  /* ── MRZ zone ── */
   .zvisa-mrz{
-    position:absolute;bottom:6px;left:200px;right:8px;z-index:5;
-    display:flex;flex-direction:column;gap:1px;
+    position:absolute;bottom:4px;left:196px;right:6px;z-index:6;
+    display:flex;flex-direction:column;gap:0;
   }
   .zvisa-mrz-line{
     font-family:'Courier New',monospace;
-    font-size:7.5px;letter-spacing:2.5px;color:#111;
-    white-space:nowrap;overflow:hidden;line-height:1.4;
+    font-size:7px;letter-spacing:2.2px;color:#0a0a0a;
+    white-space:nowrap;overflow:hidden;line-height:1.45;
+    opacity:.85;
   }
 </style>
 </head>
@@ -2232,11 +2279,8 @@ async function loadUserApplications() {
   }
 }
 
-};
-</script>
-</body>
-</html>// ════════════════════════════════════════════
-// SCHENGEN VISA STICKER — exact replica
+// ════════════════════════════════════════════
+// SCHENGEN VISA STICKER — pixel-perfect replica
 // ════════════════════════════════════════════
 
 function mrzPad(str, len, fill='<') {
@@ -2263,114 +2307,194 @@ function renderZVisa(v) {
   };
 
   const photo = v.photoUrl
-    ? `<img src="${v.photoUrl}" alt="Photo">`
+    ? `<img src="${v.photoUrl}" alt="Photo" style="width:100%;height:100%;object-fit:cover;display:block">`
     : `<div class="zvisa-photo-ph">
-        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#7090b0" stroke-width="1.2">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#7090b0" stroke-width="1.3">
           <circle cx="12" cy="8" r="4.5"/><path d="M3 21c0-5 4-8.5 9-8.5s9 3.5 9 8.5"/>
         </svg>
-        <span style="font-size:13px;font-weight:900;letter-spacing:3px;color:#7090b0">PHOTO</span>
+        <span style="font-size:11px;font-weight:900;letter-spacing:3px;color:#6080a0;margin-top:4px">PHOTO</span>
       </div>`;
 
-  const letterColors = ['#c03030','#c07020','#c0a020','#2878b0'];
+  // ── Holographic top bar: VISA blocks + barcode + number ──
+  const letterColors = [
+    {bg:'#2244aa',shadow:'#1a3388'},
+    {bg:'#1a3a88',shadow:'#122a66'},
+    {bg:'#2255bb',shadow:'#1a3a88'},
+    {bg:'#1a3080',shadow:'#102060'}
+  ];
   const visaLetters = ['V','I','S','A'].map((l,i)=>
-    `<div class="zvisa-letter" style="background:${letterColors[i]}">${l}</div>`
+    `<div class="zvisa-letter" style="background:${letterColors[i].bg};box-shadow:inset 0 -2px 0 ${letterColors[i].shadow}">${l}</div>`
   ).join('');
 
-  // Build star polygon points
+  // barcode stripes
+  const barcodeStripes = Array.from({length:18},(_,i)=>{
+    const w = i%3===0 ? 3 : i%3===1 ? 1.5 : 2;
+    const x = i*5.5;
+    return `<rect x="${x}" y="2" width="${w}" height="18" fill="#111" rx="0.3"/>`;
+  }).join('');
+  const barcodeSVG = `<svg width="110" height="22" viewBox="0 0 110 22" style="display:block">${barcodeStripes}</svg>`;
+
+  // ── EU Emblem ──
   function starPts(cx, cy, r) {
     const pts = [];
     for (let j=0;j<5;j++) {
       const oa=(j*72-90)*Math.PI/180, ia=(j*72-90+36)*Math.PI/180;
-      pts.push(`${cx+r*Math.cos(oa)},${cy+r*Math.sin(oa)}`);
-      pts.push(`${cx+r*.38*Math.cos(ia)},${cy+r*.38*Math.sin(ia)}`);
+      pts.push(`${(cx+r*Math.cos(oa)).toFixed(1)},${(cy+r*Math.sin(oa)).toFixed(1)}`);
+      pts.push(`${(cx+r*.4*Math.cos(ia)).toFixed(1)},${(cy+r*.4*Math.sin(ia)).toFixed(1)}`);
     }
     return pts.join(' ');
   }
 
+  // Outer decorative ring layers (concentric, like the original)
+  const ringLayers = [
+    {r:85, fill:'#1a6b3a', opacity:1},
+    {r:78, fill:'#2a8a4a', opacity:1},
+    {r:72, fill:'#1e7a40', opacity:1},
+    {r:66, fill:'#258545', opacity:1},
+    {r:60, fill:'#1a6b3a', opacity:1},
+    {r:54, fill:'#2d9e55', opacity:1},
+  ].map(l=>`<circle cx="89" cy="100" r="${l.r}" fill="${l.fill}" opacity="${l.opacity}"/>`).join('');
+
+  // Gold decorative ring around the globe
+  const goldRing = `<circle cx="89" cy="100" r="52" fill="none" stroke="#FFD700" stroke-width="3"/>`;
+
+  // Stars (12, like EU flag)
   const starsRing = Array.from({length:12},(_,i)=>{
-    const a=(i*30-90)*Math.PI/180, r=62;
-    const cx=89+r*Math.cos(a), cy=130+r*Math.sin(a);
-    return `<polygon points="${starPts(cx,cy,9)}" fill="#FFD700"/>`;
+    const a=(i*30-90)*Math.PI/180, r=64;
+    const cx=89+r*Math.cos(a), cy=100+r*Math.sin(a);
+    return `<polygon points="${starPts(cx,cy,8)}" fill="#FFD700"/>`;
   }).join('');
 
-  const emblemSVG = `<svg viewBox="0 0 178 200" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="89" cy="130" r="75" fill="#2d7a3a" opacity=".85"/>
+  // Globe detail
+  const globeDetail = `
+    <circle cx="89" cy="100" r="36" fill="#1a4488" stroke="#FFD700" stroke-width="2"/>
+    <circle cx="89" cy="100" r="36" fill="none" stroke="#FFD700" stroke-width="2"/>
+    <ellipse cx="89" cy="100" rx="18" ry="36" fill="none" stroke="#FFD700" stroke-width="1.5"/>
+    <ellipse cx="89" cy="100" rx="30" ry="36" fill="none" stroke="#FFD700" stroke-width="1"/>
+    <line x1="53" y1="100" x2="125" y2="100" stroke="#FFD700" stroke-width="1.5"/>
+    <line x1="57" y1="83"  x2="121" y2="83"  stroke="#FFD700" stroke-width="1"/>
+    <line x1="57" y1="117" x2="121" y2="117" stroke="#FFD700" stroke-width="1"/>
+    <line x1="62" y1="70"  x2="116" y2="70"  stroke="#FFD700" stroke-width=".8"/>
+    <line x1="62" y1="130" x2="116" y2="130" stroke="#FFD700" stroke-width=".8"/>
+  `;
+
+  const emblemSVG = `<svg viewBox="0 0 178 185" xmlns="http://www.w3.org/2000/svg">
+    ${ringLayers}
+    ${goldRing}
     ${starsRing}
-    <circle cx="89" cy="130" r="36" fill="none" stroke="#FFD700" stroke-width="2.5"/>
-    <ellipse cx="89" cy="130" rx="20" ry="36" fill="none" stroke="#FFD700" stroke-width="1.8"/>
-    <line x1="53" y1="130" x2="125" y2="130" stroke="#FFD700" stroke-width="1.8"/>
-    <line x1="60" y1="112" x2="118" y2="112" stroke="#FFD700" stroke-width="1.2"/>
-    <line x1="60" y1="148" x2="118" y2="148" stroke="#FFD700" stroke-width="1.2"/>
+    ${globeDetail}
   </svg>`;
 
-  // Wave rows for bottom section
-  const waveColors = ['#d4a870','#d4b860','#b4d060','#70c890','#70b8d0','#9080d0','#c070c0','#d06090','#e07070','#d09050'];
-  const waveLines = Array.from({length:52},(_,i)=>{
-    const y=340+i*3.6;
-    const c=waveColors[i%waveColors.length];
-    const amp=3+Math.sin(i*.35)*2.5, freq=.009;
-    const pts=Array.from({length:39},(_,j)=>`${j*20},${y+amp*Math.sin(j*20*freq+i*.25)}`).join(' ');
-    return `<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2.2" stroke-opacity=".8"/>`;
+  // ── Background SVG ──
+  // Upper part: pastel mint-green gradient with subtle grid
+  // Lower part (~35%): warm horizontal wave stripes (tan/sandy + colorful)
+
+  // Wave stripe colors matching the reference photo (tan/beige + colorful)
+  const waveColors = [
+    '#c8a870','#d4b878','#bec870','#88c888','#70b8c8',
+    '#9888c8','#b870b8','#c87088','#d88070','#c89060',
+    '#c8a870','#d4b878','#bec870','#88c888','#70b8c8'
+  ];
+  const waveLines = Array.from({length:55},(_,i)=>{
+    const y = 345 + i * 3.5;
+    const c = waveColors[i % waveColors.length];
+    const amp = 2.5 + Math.sin(i * 0.4) * 1.8;
+    const pts = Array.from({length:42},(_,j)=>`${j*18},${y + amp*Math.sin(j*18*0.008 + i*0.28)}`).join(' ');
+    return `<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2.4" stroke-opacity=".85"/>`;
   }).join('');
 
-  const bg = `<svg viewBox="0 0 756 533" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+  // Pastel background with subtle rainbow sheen
+  const bgSVG = `<svg viewBox="0 0 756 540" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" width="100%" height="100%">
     <defs>
-      <linearGradient id="bgG" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#c0dab8"/>
-        <stop offset="50%" stop-color="#98c8b0"/>
-        <stop offset="100%" stop-color="#a8c8a8"/>
+      <linearGradient id="vbg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%"   stop-color="#b8ddb0"/>
+        <stop offset="40%"  stop-color="#90c8b0"/>
+        <stop offset="75%"  stop-color="#a0ccc8"/>
+        <stop offset="100%" stop-color="#a8c8a0"/>
+      </linearGradient>
+      <linearGradient id="holo" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%"   stop-color="#ffa0a0" stop-opacity=".18"/>
+        <stop offset="20%"  stop-color="#ffffa0" stop-opacity=".12"/>
+        <stop offset="40%"  stop-color="#a0ffa0" stop-opacity=".14"/>
+        <stop offset="60%"  stop-color="#a0e0ff" stop-opacity=".16"/>
+        <stop offset="80%"  stop-color="#e0a0ff" stop-opacity=".14"/>
+        <stop offset="100%" stop-color="#ffa0e0" stop-opacity=".10"/>
       </linearGradient>
     </defs>
-    <rect width="756" height="533" fill="url(#bgG)"/>
-    ${Array.from({length:76},(_,i)=>`<line x1="${i*10}" y1="44" x2="${i*10}" y2="340" stroke="rgba(255,255,255,.1)" stroke-width=".4"/>`).join('')}
-    ${Array.from({length:30},(_,i)=>`<line x1="0" y1="${44+i*10}" x2="756" y2="${44+i*10}" stroke="rgba(255,255,255,.1)" stroke-width=".4"/>`).join('')}
+    <rect width="756" height="540" fill="url(#vbg)"/>
+    <rect width="756" height="540" fill="url(#holo)"/>
+    <!-- subtle vertical security lines in field area -->
+    ${Array.from({length:72},(_,i)=>`<line x1="${210+i*7.5}" y1="44" x2="${210+i*7.5}" y2="345" stroke="rgba(255,255,255,.07)" stroke-width=".6"/>`).join('')}
+    ${Array.from({length:28},(_,i)=>`<line x1="210" y1="${44+i*10.8}" x2="756" y2="${44+i*10.8}" stroke="rgba(255,255,255,.07)" stroke-width=".6"/>`).join('')}
+    <!-- wave stripes bottom -->
     ${waveLines}
   </svg>`;
-
-  const printCSS = '.zvisa{position:relative;overflow:hidden;width:756px;height:533px;border-radius:4px;font-family:Arial,Helvetica,sans-serif;background:#a8c8a0}';
 
   return `
   <div class="z-visa-wrap" id="visa-sticker-${v.ref||'preview'}">
     <div class="zvisa">
-      <div class="zvisa-bg">${bg}</div>
+      <!-- Background -->
+      <div class="zvisa-bg">${bgSVG}</div>
+
+      <!-- Top holographic rainbow strip -->
       <div class="zvisa-top-holo">
+        <!-- Dark tile blocks before VISA letters -->
+        <div class="zvisa-tiles">
+          <div class="zvisa-tile" style="background:#223366"></div>
+          <div class="zvisa-tile" style="background:#1a2a55"></div>
+          <div class="zvisa-tile" style="background:#2a3a77"></div>
+        </div>
+        <!-- VISA colored letters -->
         <div class="zvisa-word">${visaLetters}</div>
-        <div class="zvisa-number-top">${(v.number||'0000000000').toUpperCase()}</div>
+        <!-- Barcode + number -->
+        <div class="zvisa-topright">
+          <div class="zvisa-barcode">${barcodeSVG}</div>
+          <div class="zvisa-number-top">${(v.number||'0123456789').toUpperCase()}</div>
+        </div>
       </div>
+
+      <!-- Left: EU emblem overlapping bottom -->
       <div class="zvisa-emblem">${emblemSVG}</div>
+
+      <!-- Left: Photo -->
       <div class="zvisa-photo">${photo}</div>
+
+      <!-- Vertical separator -->
+      <div class="zvisa-sep"></div>
+
+      <!-- Right: Data fields -->
       <div class="zvisa-fields">
-        <div class="zvf-row">
+        <div class="zvf-row zvf-row-validfor">
           <div class="zvf-cell">
-            <div class="zvf-lbl">VALID FOR</div>
-            <div class="zvf-val">${(v.validFor||'ETATS SCHENGEN').toUpperCase()}</div>
+            <span class="zvf-lbl">VALID FOR</span>
+            <span class="zvf-val zvf-val-lg">${(v.validFor||'ETATS SCHENGEN').toUpperCase()}</span>
           </div>
         </div>
         <div class="zvf-row">
-          <div class="zvf-cell">
+          <div class="zvf-cell" style="flex:1">
             <div class="zvf-lbl">FROM</div>
             <div class="zvf-val">${fd(v.validFrom)}</div>
           </div>
-          <div class="zvf-cell">
+          <div class="zvf-cell" style="flex:1">
             <div class="zvf-lbl">UNTIL</div>
             <div class="zvf-val">${fd(v.validUntil)}</div>
           </div>
         </div>
         <div class="zvf-row">
-          <div class="zvf-cell" style="flex:.8">
+          <div class="zvf-cell" style="flex:.75">
             <div class="zvf-lbl">TYPE<br>OF VISA</div>
-            <div class="zvf-val" style="font-size:20px">${v.visaTypeCode||'C'}</div>
+            <div class="zvf-val" style="font-size:22px;line-height:1">${v.visaTypeCode||'C'}</div>
           </div>
-          <div class="zvf-cell" style="flex:1">
+          <div class="zvf-cell" style="flex:1.1">
             <div class="zvf-lbl">NUMBER<br>OF ENTRIES</div>
-            <div class="zvf-val">${(v.entries||'01').toUpperCase()}</div>
+            <div class="zvf-val">${(v.entries||'').toUpperCase()}</div>
           </div>
-          <div class="zvf-cell" style="flex:1">
+          <div class="zvf-cell" style="flex:1.1">
             <div class="zvf-lbl">DURATION<br>OF STAY</div>
             <div class="zvf-val" style="font-size:18px">${v.duration||''}</div>
           </div>
-          <div class="zvf-cell" style="flex:.45;justify-content:flex-end;padding-bottom:5px">
-            <div class="zvf-val" style="font-size:9px;font-weight:700;align-self:flex-end">DAYS</div>
+          <div class="zvf-cell" style="flex:.38;align-items:flex-end;padding-bottom:6px">
+            <div class="zvf-lbl" style="font-size:7.5px;font-weight:900">DAYS</div>
           </div>
         </div>
         <div class="zvf-row">
@@ -2380,11 +2504,11 @@ function renderZVisa(v) {
           </div>
         </div>
         <div class="zvf-row">
-          <div class="zvf-cell" style="flex:.7">
+          <div class="zvf-cell" style="flex:.65">
             <div class="zvf-lbl">ON</div>
             <div class="zvf-val">${fd(v.issuedOn)}</div>
           </div>
-          <div class="zvf-cell" style="flex:1.3">
+          <div class="zvf-cell" style="flex:1.35">
             <div class="zvf-lbl">NUMBER<br>OF PASSPORT</div>
             <div class="zvf-val mono">${(v.passportNo||'').toUpperCase()}</div>
           </div>
@@ -2395,19 +2519,25 @@ function renderZVisa(v) {
             <div class="zvf-val">${v.surname ? (v.surname+', '+(v.givenNames||'')).toUpperCase() : ''}</div>
           </div>
         </div>
-        <div class="zvf-row">
+        <div class="zvf-row" style="border-bottom:none">
           <div class="zvf-cell">
             <div class="zvf-lbl">REMARKS</div>
             <div class="zvf-val" style="font-size:11px;font-weight:400">${v.remarks||''}&nbsp;</div>
           </div>
         </div>
       </div>
+
+      <!-- MRZ at bottom -->
       <div class="zvisa-mrz">
         <div class="zvisa-mrz-line">${mrz[0]}</div>
         <div class="zvisa-mrz-line">${mrz[1]}</div>
         <div class="zvisa-mrz-line">${mrz[2]}</div>
       </div>
     </div>
-  </div>
-  <style id="zvisa-print-css-data" style="display:none">${printCSS}</style>`;
+  </div>`;
 }
+
+};
+</script>
+</body>
+</html>
