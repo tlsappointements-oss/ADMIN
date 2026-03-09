@@ -419,7 +419,8 @@
 
       <div id="apply-step-6" style="display:none">
         <div class="payment-summary">
-          <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:20px">💳 Payment Summary</div>
+          <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:6px">💳 Payment Summary</div>
+          <div id="pay-country-name" style="font-size:22px;font-weight:700;margin-bottom:20px;opacity:0.9"></div>
           <div class="payment-row"><span>Visa Fee (Embassy)</span><span id="pay-visa-fee">€80.00</span></div>
           <div class="payment-row"><span>Service Fee (VisaMa)</span><span>€25.00</span></div>
           <div class="payment-row"><span>Biometric Fee</span><span>€10.00</span></div>
@@ -526,6 +527,15 @@ const db   = getFirestore(app);
 // ── Constants ──
 const COUNTRIES=[{name:'France',flag:'🇫🇷',fee:80,days:'15 working days',code:'FR'},{name:'Spain',flag:'🇪🇸',fee:80,days:'10 working days',code:'ES'},{name:'Germany',flag:'🇩🇪',fee:80,days:'15 working days',code:'DE'},{name:'Italy',flag:'🇮🇹',fee:80,days:'15 working days',code:'IT'},{name:'Netherlands',flag:'🇳🇱',fee:80,days:'15 working days',code:'NL'},{name:'Belgium',flag:'🇧🇪',fee:80,days:'12 working days',code:'BE'},{name:'Portugal',flag:'🇵🇹',fee:80,days:'15 working days',code:'PT'},{name:'Austria',flag:'🇦🇹',fee:80,days:'15 working days',code:'AT'},{name:'Switzerland',flag:'🇨🇭',fee:90,days:'10 working days',code:'CH'},{name:'Sweden',flag:'🇸🇪',fee:80,days:'15 working days',code:'SE'},{name:'Norway',flag:'🇳🇴',fee:90,days:'15 working days',code:'NO'},{name:'Denmark',flag:'🇩🇰',fee:80,days:'15 working days',code:'DK'},{name:'Finland',flag:'🇫🇮',fee:80,days:'15 working days',code:'FI'},{name:'Greece',flag:'🇬🇷',fee:80,days:'10 working days',code:'GR'},{name:'Czech Republic',flag:'🇨🇿',fee:80,days:'15 working days',code:'CZ'},{name:'Poland',flag:'🇵🇱',fee:80,days:'15 working days',code:'PL'},{name:'Hungary',flag:'🇭🇺',fee:80,days:'15 working days',code:'HU'},{name:'Romania',flag:'🇷🇴',fee:80,days:'20 working days',code:'RO'},{name:'Croatia',flag:'🇭🇷',fee:80,days:'15 working days',code:'HR'},{name:'Luxembourg',flag:'🇱🇺',fee:80,days:'15 working days',code:'LU'},{name:'Ireland',flag:'🇮🇪',fee:100,days:'8 weeks',code:'IE'},{name:'Malta',flag:'🇲🇹',fee:80,days:'15 working days',code:'MT'},{name:'Slovakia',flag:'🇸🇰',fee:80,days:'15 working days',code:'SK'},{name:'Slovenia',flag:'🇸🇮',fee:80,days:'15 working days',code:'SI'},{name:'Estonia',flag:'🇪🇪',fee:80,days:'15 working days',code:'EE'},{name:'Latvia',flag:'🇱🇻',fee:80,days:'15 working days',code:'LV'}];
 const DOCS=['Valid Passport (min. 6 months validity)','National ID (CIN)','Passport-size Photo (white background)','Bank Statements (last 3 months)','Proof of Accommodation','Return Flight Ticket','Travel Insurance (min. €30,000 coverage)','Employment Certificate or Business Registration'];
+
+// ── Flag image helper ──
+// Uses flagcdn.com — free, reliable flag images by ISO 2-letter code
+function flagImg(code, width=28) {
+  return `<img src="https://flagcdn.com/w${width}/${code.toLowerCase()}.png" alt="${code}" style="width:${width}px;height:auto;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.2);vertical-align:middle;flex-shrink:0">`;
+}
+function flagImgBig(code, width=80) {
+  return `<img src="https://flagcdn.com/w${width}/${code.toLowerCase()}.png" alt="${code}" style="width:${width}px;height:auto;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.25)">`;
+}
 
 // ── State ──
 let currentUser = null;
@@ -702,8 +712,10 @@ function showPage(page, el) {
 function renderHomeCountries() {
   document.getElementById('home-countries').innerHTML = COUNTRIES.map(c =>
     `<div class="country-card" onclick="startApply('${c.code}')">
-      <div class="country-flag">${c.flag}</div>
-      <div class="country-name">${c.name}</div>
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:8px">
+        ${flagImg(c.code, 36)}
+        <span style="font-size:15px;font-weight:600;color:var(--navy)">${c.name}</span>
+      </div>
       <div class="country-fee">€${c.fee} visa fee</div>
       <div class="country-days">${c.days}</div>
     </div>`).join('');
@@ -711,8 +723,10 @@ function renderHomeCountries() {
 function renderApplyCountries() {
   document.getElementById('apply-countries').innerHTML = COUNTRIES.map(c =>
     `<div class="country-card" data-code="${c.code}" onclick="selectCountry('${c.code}',this)">
-      <div class="country-flag">${c.flag}</div>
-      <div class="country-name">${c.name}</div>
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:8px">
+        ${flagImg(c.code, 36)}
+        <span style="font-size:15px;font-weight:600;color:var(--navy)">${c.name}</span>
+      </div>
       <div class="country-fee">€${c.fee}</div>
       <div class="country-days">${c.days}</div>
     </div>`).join('');
@@ -724,6 +738,9 @@ function selectCountry(code, el) {
   const fee = selectedCountry.fee;
   document.getElementById('pay-visa-fee').textContent = `€${fee}.00`;
   document.getElementById('pay-total').textContent    = `€${fee + 35}.00`;
+  // Update payment header with flag + country name if element exists
+  const payCountryEl = document.getElementById('pay-country-name');
+  if (payCountryEl) payCountryEl.innerHTML = `<span style="display:flex;align-items:center;gap:10px">${flagImg(selectedCountry.code, 32)} ${selectedCountry.name}</span>`;
 }
 function selectCountryByCode(code) {
   const el = document.querySelector(`#apply-countries [data-code="${code}"]`);
@@ -833,7 +850,7 @@ function generateAppointmentPDF(appData) {
 <body>
 <div class="header">
   <div class="header-left">
-    <div class="country-flag-big">${appData.countryFlag||'🌍'}</div>
+    <div class="country-flag-big"><img src="https://flagcdn.com/w80/${(appData.countryCode||'eu').toLowerCase()}.png" alt="${appData.country}" style="width:80px;height:auto;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.2)"></div>
     <div>
       <div class="country-name">${appData.country} Visa</div>
       <div class="country-sub">Appointment Confirmation Letter</div>
@@ -848,7 +865,7 @@ function generateAppointmentPDF(appData) {
   <div class="field"><div class="field-label">Reference Number</div><div class="field-value" style="color:#c9973a">${appData.ref}</div></div>
   <div class="field"><div class="field-label">Email Address</div><div class="field-value">${appData.email}</div></div>
   <div class="field"><div class="field-label">Phone</div><div class="field-value">${appData.phone||'—'}</div></div>
-  <div class="field"><div class="field-label">Destination</div><div class="field-value">${appData.countryFlag||''} ${appData.country}</div></div>
+  <div class="field"><div class="field-label">Destination</div><div class="field-value" style="display:flex;align-items:center;gap:10px"><img src="https://flagcdn.com/w28/${(appData.countryCode||'eu').toLowerCase()}.png" alt="${appData.country}" style="width:28px;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.2)"> ${appData.country}</div></div>
   <div class="field"><div class="field-label">Visa Type</div><div class="field-value">${appData.visaType}</div></div>
   <div class="field"><div class="field-label">Passport Number</div><div class="field-value">${appData.passport||'—'}</div></div>
   <div class="field"><div class="field-label">CIN</div><div class="field-value">${appData.cin||'—'}</div></div>
@@ -877,7 +894,7 @@ function generateAppointmentPDF(appData) {
 
 <div class="footer">
   <div><span class="ref-big">${appData.ref}</span><br>Generated: ${now}</div>
-  <div style="text-align:right">${appData.countryFlag||''} ${appData.country} Visa Application<br>Processed via VisaMa · Casablanca, Morocco</div>
+  <div style="text-align:right;display:flex;align-items:center;gap:8px;justify-content:flex-end"><img src="https://flagcdn.com/w24/${(appData.countryCode||'eu').toLowerCase()}.png" alt="${appData.country}" style="width:24px;border-radius:2px"> ${appData.country} Visa Application<br>Processed via VisaMa · Casablanca, Morocco</div>
 </div>
 
 <div style="text-align:center;margin-top:28px">
@@ -979,6 +996,7 @@ async function loadUserApplications() {
     const statusIcon = {pending:'🟡',approved:'🟢',processing:'🔵',rejected:'🔴'};
     el.innerHTML = docs.map(d => {
       const a = d.data();
+      const flagHtml = a.countryCode ? flagImg(a.countryCode, 22) : '';
       const apptInfo = (a.appointmentDate && a.appointmentDate !== 'TBD')
         ? `<div style="margin-top:8px;padding:10px 14px;background:#f0f7ff;border-radius:8px;border-left:3px solid #3b82f6;font-size:13px;color:#1e40af">
             📅 Appointment: <strong>${a.appointmentDate}</strong> at <strong>${a.appointmentSlot}</strong>
@@ -987,7 +1005,7 @@ async function loadUserApplications() {
       return `<div class="app-card ${a.status}" style="flex-direction:column;align-items:flex-start;gap:12px">
         <div style="display:flex;width:100%;justify-content:space-between;align-items:flex-start">
           <div class="app-info">
-            <h4>${a.countryFlag||''} ${a.country} — ${a.visaType}</h4>
+            <h4 style="display:flex;align-items:center;gap:8px">${flagHtml} ${a.country} — ${a.visaType}</h4>
             <p>Submitted: ${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'} · ${a.applicant}</p>
           </div>
           <div style="text-align:right">
@@ -1018,7 +1036,7 @@ async function searchApplication() {
     }
     const a = snap.docs[0].data();
     el.innerHTML = `<div class="app-card ${a.status}">
-      <div class="app-info"><h4>${a.countryFlag||''} ${a.country} — ${a.visaType}</h4><p>Applicant: ${a.applicant} · Submitted: ${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</p></div>
+      <div class="app-info"><h4>${a.countryCode?flagImg(a.countryCode,22):''} ${a.country} — ${a.visaType}</h4><p>Applicant: ${a.applicant} · Submitted: ${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</p></div>
       <div style="text-align:right"><span class="status-badge ${a.status}">${{pending:'🟡',approved:'🟢',processing:'🔵',rejected:'🔴'}[a.status]||'⚪'} ${a.status}</span><div class="app-ref">${a.ref}</div></div>
     </div>`;
   } catch (e) {
@@ -1079,7 +1097,7 @@ async function renderAdminDashboard() {
       <div class="admin-table-card">
         <div class="admin-table-header"><h3>Recent Applications (live from Firestore)</h3><button class="action-btn view" onclick="adminNav('applications',document.querySelectorAll('.admin-nav-item')[1])">View All</button></div>
         ${all.length ? `<table><thead><tr><th>Ref #</th><th>Applicant</th><th>Country</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-          ${snap.docs.slice(0,8).map(d=>{const a=d.data();return`<tr><td style="font-weight:600;color:#c9973a">${a.ref}</td><td>${a.applicant}</td><td>${a.countryFlag||''} ${a.country}</td><td style="font-size:13px;color:#aaa">${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</td><td><span class="status-badge ${a.status}">${a.status}</span></td><td style="display:flex;gap:6px">${a.status==='pending'||a.status==='processing'?`<button class="action-btn approve" onclick="updateAppStatus('${d.id}','approved',this)">Approve</button><button class="action-btn reject" onclick="updateAppStatus('${d.id}','rejected',this)">Reject</button>`:'<button class="action-btn view">View</button>'}</td></tr>`;}).join('')}
+          ${snap.docs.slice(0,8).map(d=>{const a=d.data();return`<tr><td style="font-weight:600;color:#c9973a">${a.ref}</td><td>${a.applicant}</td><td>${a.countryCode?flagImg(a.countryCode,22):''} ${a.country}</td><td style="font-size:13px;color:#aaa">${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</td><td><span class="status-badge ${a.status}">${a.status}</span></td><td style="display:flex;gap:6px">${a.status==='pending'||a.status==='processing'?`<button class="action-btn approve" onclick="updateAppStatus('${d.id}','approved',this)">Approve</button><button class="action-btn reject" onclick="updateAppStatus('${d.id}','rejected',this)">Reject</button>`:'<button class="action-btn view">View</button>'}</td></tr>`;}).join('')}
         </tbody></table>` : '<div class="empty-state"><div class="empty-icon">📭</div><div>No applications yet.</div></div>'}
       </div>`;
   } catch(e) {
@@ -1100,7 +1118,7 @@ async function renderAdminApplications() {
       return `<tr id="row-${d.id}">
         <td style="font-weight:600;color:#c9973a">${a.ref}</td>
         <td><div style="font-weight:600">${a.applicant}</div><div style="font-size:12px;color:#aaa">${a.email}</div></td>
-        <td>${a.countryFlag||''} ${a.country}</td>
+        <td>${a.countryCode?flagImg(a.countryCode,22):''} ${a.country}</td>
         <td style="font-size:13px">${a.visaType}</td>
         <td style="font-size:13px;color:#aaa">${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</td>
         <td><span class="status-badge ${a.status}" id="badge-${d.id}">${a.status}</span></td>
@@ -1266,7 +1284,7 @@ async function renderAdminAppointments() {
     const snap = await getDocs(query(collection(db,'applications'), where('appointmentSlot','!=','TBD'), orderBy('appointmentSlot')));
     const rows = snap.docs.map(d => {
       const a = d.data();
-      return `<tr><td style="font-weight:700;font-size:15px">${a.appointmentSlot}</td><td style="font-weight:600">${a.applicant}</td><td>${a.countryFlag||''} ${a.country}</td><td><span style="font-size:12px;padding:4px 10px;border-radius:6px;background:#dbeafe;color:#1e40af;font-weight:600">Biometrics</span></td><td style="font-size:13px;color:#c9973a">${a.ref}</td><td><span class="status-badge ${a.status}">${a.status}</span></td></tr>`;
+      return `<tr><td style="font-weight:700;font-size:15px">${a.appointmentSlot}</td><td style="font-weight:600">${a.applicant}</td><td>${a.countryCode?flagImg(a.countryCode,22):''} ${a.country}</td><td><span style="font-size:12px;padding:4px 10px;border-radius:6px;background:#dbeafe;color:#1e40af;font-weight:600">Biometrics</span></td><td style="font-size:13px;color:#c9973a">${a.ref}</td><td><span class="status-badge ${a.status}">${a.status}</span></td></tr>`;
     }).join('');
     c.innerHTML = `
       <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Appointments</div>
@@ -1331,7 +1349,7 @@ async function renderAdminPayments() {
       <div class="admin-table-card">
         <div class="admin-table-header"><h3>Transaction History</h3></div>
         ${all.length ? `<table><thead><tr><th>Ref #</th><th>Applicant</th><th>Country</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead><tbody>
-          ${snap.docs.map((d,i)=>{const a=d.data();return`<tr><td style="font-weight:600;font-size:12px;color:#666">TXN-${100001+i}</td><td>${a.applicant}</td><td>${a.countryFlag||''} ${a.country}</td><td style="font-weight:700;color:#2d9e6b">€${a.totalFee||115}</td><td style="color:#aaa;font-size:13px">${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</td><td><span class="status-badge ${a.status==='rejected'?'rejected':'approved'}">${a.status==='rejected'?'Refunded':'Paid'}</span></td></tr>`;}).join('')}
+          ${snap.docs.map((d,i)=>{const a=d.data();return`<tr><td style="font-weight:600;font-size:12px;color:#666">TXN-${100001+i}</td><td>${a.applicant}</td><td>${a.countryCode?flagImg(a.countryCode,22):''} ${a.country}</td><td style="font-weight:700;color:#2d9e6b">€${a.totalFee||115}</td><td style="color:#aaa;font-size:13px">${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</td><td><span class="status-badge ${a.status==='rejected'?'rejected':'approved'}">${a.status==='rejected'?'Refunded':'Paid'}</span></td></tr>`;}).join('')}
         </tbody></table>` : '<div class="empty-state"><div class="empty-icon">💸</div><div>No transactions yet.</div></div>'}
       </div>`;
   } catch(e) {
