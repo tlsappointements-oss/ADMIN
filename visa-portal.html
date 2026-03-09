@@ -630,43 +630,112 @@
 <div class="toast" id="toast"></div>
 
 <!-- ════════════════════════════════════════════
-     FIREBASE SDK (compat — works everywhere)
+     FIREBASE — loaded asynchronously so it never blocks the page
 ════════════════════════════════════════════ -->
-<script>window.firebase = window.firebase || null;</script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" onerror="console.warn('Firebase app SDK failed to load')"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" onerror="console.warn('Firebase auth SDK failed to load')"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" onerror="console.warn('Firebase firestore SDK failed to load')"></script>
-<script>if (!window.firebase) { window.firebase = { initializeApp: () => ({}), auth: () => ({}), firestore: () => ({}) }; }</script>
 <script>
-// ── Firebase config ──
-const firebaseConfig = {
-  apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
-  authDomain: "cars-website-558c0.firebaseapp.com",
-  projectId: "cars-website-558c0",
-  storageBucket: "cars-website-558c0.firebasestorage.app",
-  messagingSenderId: "142475379783",
-  appId: "1:142475379783:web:2849d07fb6eb8da4715d62",
-  measurementId: "G-53ZQY6XJJR"
-};
+// Load Firebase dynamically — non-blocking
+(function() {
+  var FIREBASE_VERSION = '10.7.1';
+  var scripts = [
+    'https://www.gstatic.com/firebasejs/' + FIREBASE_VERSION + '/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/' + FIREBASE_VERSION + '/firebase-auth-compat.js',
+    'https://www.gstatic.com/firebasejs/' + FIREBASE_VERSION + '/firebase-firestore-compat.js'
+  ];
+  var loaded = 0;
+  var failed = false;
 
-let auth, db;
-try {
-  firebase.initializeApp(firebaseConfig);
-  auth = firebase.auth();
-  db   = firebase.firestore();
-} catch(e) {
-  console.error('Firebase failed to initialize:', e);
-  // Create dummy stubs so the rest of the script does not crash
+  function onAllLoaded() {
+    try {
+      var firebaseConfig = {
+        apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
+        authDomain: "cars-website-558c0.firebaseapp.com",
+        projectId: "cars-website-558c0",
+        storageBucket: "cars-website-558c0.firebasestorage.app",
+        messagingSenderId: "142475379783",
+        appId: "1:142475379783:web:2849d07fb6eb8da4715d62"
+      };
+      firebase.initializeApp(firebaseConfig);
+      window._firebaseAuth = firebase.auth();
+      window._firebaseDb   = firebase.firestore();
+      console.log('Firebase ready');
+      if (window._onFirebaseReady) window._onFirebaseReady();
+    } catch(e) {
+      console.error('Firebase init failed:', e);
+      useFallback();
+    }
+  }
+
+  function useFallback() {
+    console.warn('Using offline fallback auth');
+    window._firebaseAuth = null;
+    window._firebaseDb   = null;
+    if (window._onFirebaseReady) window._onFirebaseReady();
+  }
+
+  // Set a 5s timeout — if Firebase hasn't loaded, use fallback
+  var timeout = setTimeout(function() {
+    if (!window._firebaseAuth && !failed) {
+      failed = true;
+      console.warn('Firebase load timed out, using fallback');
+      useFallback();
+    }
+  }, 5000);
+
+  scripts.forEach(function(src) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.async = false; // preserve load order but don't block page render
+    s.onload = function() {
+      loaded++;
+      if (loaded === scripts.length && !failed) {
+        clearTimeout(timeout);
+        onAllLoaded();
+      }
+    };
+    s.onerror = function() {
+      if (!failed) {
+        failed = true;
+        clearTimeout(timeout);
+        useFallback();
+      }
+    };
+    document.head.appendChild(s);
+  });
+})();
+</script>
+<script>
+// All app code runs once Firebase is ready (or fallback is set)
+window._onFirebaseReady = function() {
+
+// ── Use auth/db injected by the async Firebase loader ──
+let auth = window._firebaseAuth;
+let db   = window._firebaseDb;
+
+// If Firebase failed entirely, use local stubs so UI still works
+if (!auth) {
   auth = {
-    onAuthStateChanged: (cb, err) => { setTimeout(() => cb(null), 0); return () => {}; },
+    onAuthStateChanged: (cb) => { setTimeout(() => cb(null), 0); return () => {}; },
     signInWithEmailAndPassword: () => Promise.reject({ code: 'auth/network-request-failed' }),
     createUserWithEmailAndPassword: () => Promise.reject({ code: 'auth/network-request-failed' }),
     signOut: () => Promise.resolve()
   };
+}
+if (!db) {
   db = {
-    collection: () => ({ add: () => Promise.resolve(), get: () => Promise.resolve({ docs: [], forEach: () => {} }), doc: () => ({ get: () => Promise.resolve({ exists: false, data: () => ({}) }), set: () => Promise.resolve(), update: () => Promise.resolve() }) }),
+    collection: (p) => ({
+      add: () => Promise.resolve({ id: 'local-' + Date.now() }),
+      get: () => Promise.resolve({ docs: [], empty: true, forEach: () => {} }),
+      doc: (id) => ({
+        get:    () => Promise.resolve({ exists: false, data: () => ({}), id }),
+        set:    () => Promise.resolve(),
+        update: () => Promise.resolve()
+      }),
+      where: () => ({ get: () => Promise.resolve({ docs: [], empty: true }) }),
+      orderBy: function() { return this; }
+    })
   };
 }
+
 
 // ── Firestore helpers (compat API) ──
 const collection    = (dbRef, path)           => dbRef.collection(path);
@@ -686,7 +755,7 @@ const setDoc        = (ref, data)             => ref.set(data);
 const query         = (ref, ...constraints)   => constraints.reduce((r,c) => c(r), ref);
 const where         = (f, op, v)              => r => r.where(f, op, v);
 const orderBy       = (f, dir='asc')          => r => r.orderBy(f, dir);
-const serverTimestamp = ()                    => firebase.firestore.FieldValue.serverTimestamp();
+const serverTimestamp = () => (window.firebase && window.firebase.firestore) ? window.firebase.firestore.FieldValue.serverTimestamp() : new Date();
 
 // Compat getDocs returns QuerySnapshot — .docs, .empty work the same
 // getDoc returns DocumentSnapshot — .exists(), .data(), .id work the same
