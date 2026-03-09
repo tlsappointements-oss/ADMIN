@@ -629,231 +629,85 @@
 
 <div class="toast" id="toast"></div>
 
-
 <!-- ════════════════════════════════════════════
-     FIREBASE SDK (compat)
+     FIREBASE SDK (compat — works everywhere)
 ════════════════════════════════════════════ -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" onerror="window._firebaseFailed=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" onerror="window._firebaseFailed=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" onerror="window._firebaseFailed=true"></script>
 <script>
-// ══════════════════════════════════════════════════════════════
-//  RESILIENT BACKEND
-//  Tries Firebase first. If unreachable (blocked network, quota,
-//  etc.) falls back to localStorage automatically — silently,
-//  with no user-facing error. Data saved locally syncs to
-//  Firebase next time the connection is available.
-// ══════════════════════════════════════════════════════════════
-
-// ── Detect if Firebase SDK loaded ──
-const _firebaseAvailable = (typeof firebase !== 'undefined');
-
-// ── Firebase init (only if SDK loaded) ──
-let _fbAuth = null;
-let _fbDb   = null;
-
-if (_firebaseAvailable) {
-  try {
-    let _app;
-    try { _app = firebase.app(); } catch(e) { _app = firebase.initializeApp({ apiKey:"AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs", authDomain:"cars-website-558c0.firebaseapp.com", projectId:"cars-website-558c0", storageBucket:"cars-website-558c0.firebasestorage.app", messagingSenderId:"142475379783", appId:"1:142475379783:web:2849d07fb6eb8da4715d62" }); }
-    _fbAuth = firebase.auth();
-    _fbDb   = firebase.firestore();
-    _fbDb.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-  } catch(e) { console.warn('Firebase init failed:', e); }
+if (window._firebaseFailed || typeof firebase === 'undefined') {
+  document.getElementById('loading-overlay').classList.add('hidden');
+  setTimeout(() => document.getElementById('loading-overlay').style.display='none', 600);
+  document.getElementById('auth-screen').classList.add('show');
 }
-
-// ── Promise with timeout helper ──
-function _withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
-  ]);
-}
-
-// ══════════════════════════════════════════════════════════════
-//  LOCAL FALLBACK — localStorage, same data shape as Firestore
-// ══════════════════════════════════════════════════════════════
-const _LS = {
-  _read(col)       { try { return JSON.parse(localStorage.getItem('vm_'+col)||'{}'); } catch{ return {}; } },
-  _write(col, d)   { try { localStorage.setItem('vm_'+col, JSON.stringify(d)); } catch(e){} },
-  _ts()            { return { toDate:()=>new Date(), toMillis:()=>Date.now(), _local:true }; },
-  _snap(col, id, d){ return { id, exists:()=>!!d, data:()=>d||null }; },
-  add(col, data) {
-    const store = this._read(col), id = 'lc_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-    store[id] = { ...data, _id:id, createdAt: this._ts() };
-    this._write(col, store);
-    return Promise.resolve({ id });
-  },
-  set(col, id, data) {
-    const store = this._read(col);
-    store[id] = { ...data, _id:id };
-    this._write(col, store);
-    return Promise.resolve();
-  },
-  update(col, id, data) {
-    const store = this._read(col);
-    if (!store[id]) store[id] = { _id:id };
-    store[id] = { ...store[id], ...data };
-    this._write(col, store);
-    return Promise.resolve();
-  },
-  get(col, id) {
-    const store = this._read(col), d = store[id];
-    return Promise.resolve(this._snap(col, id, d));
-  },
-  query(col, filters=[]) {
-    let docs = Object.values(this._read(col));
-    for (const {f,op,v} of filters) {
-      docs = docs.filter(d => op==='==' ? d[f]===v : op==='!=' ? d[f]!==v : true);
-    }
-    return Promise.resolve({ empty: docs.length===0, docs: docs.map(d => ({ id:d._id, data:()=>d, exists:()=>true })) });
-  }
+</script>
+<script>
+// ── Firebase config ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
+  authDomain: "cars-website-558c0.firebaseapp.com",
+  projectId: "cars-website-558c0",
+  storageBucket: "cars-website-558c0.firebasestorage.app",
+  messagingSenderId: "142475379783",
+  appId: "1:142475379783:web:2849d07fb6eb8da4715d62",
+  measurementId: "G-53ZQY6XJJR"
 };
 
-// ── Local Auth ──
-const _LA = (() => {
-  const UK = 'vm_users', SK = 'vm_session';
-  const _u  = () => { try{ return JSON.parse(localStorage.getItem(UK)||'{}'); }catch{ return {}; } };
-  const _su = u  => localStorage.setItem(UK, JSON.stringify(u));
-  const _s  = () => { try{ return JSON.parse(localStorage.getItem(SK)||'null'); }catch{ return null; } };
-  const _ss = s  => localStorage.setItem(SK, s ? JSON.stringify(s) : 'null');
-  const _h  = s  => { let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h)^s.charCodeAt(i); return (h>>>0).toString(36); };
-  // Pre-seed admin
-  const users = _u();
-  if (!users['admin@visa.com']) { users['admin@visa.com'] = { uid:'admin_001', email:'admin@visa.com', displayName:'Admin', passwordHash:_h('admin123'), role:'admin' }; _su(users); }
-  return {
-    session: () => _s(),
-    login(email, pass) {
-      const u = _u()[email.toLowerCase()];
-      if (!u) return Promise.reject({ code:'auth/user-not-found' });
-      if (u.passwordHash !== _h(pass)) return Promise.reject({ code:'auth/wrong-password' });
-      const obj = { uid:u.uid, email:u.email, displayName:u.displayName||email.split('@')[0] };
-      _ss(obj); return Promise.resolve({ user: obj });
-    },
-    register(email, pass, name) {
-      const users = _u();
-      if (users[email.toLowerCase()]) return Promise.reject({ code:'auth/email-already-in-use' });
-      const uid = 'u_'+Date.now(), obj = { uid, email:email.toLowerCase(), displayName:name, passwordHash:_h(pass) };
-      users[email.toLowerCase()] = obj; _su(users); _ss(obj);
-      return Promise.resolve({ user: { ...obj, updateProfile: ()=>Promise.resolve() } });
-    },
-    logout() { _ss(null); return Promise.resolve(); },
-    updateProfile(user, data) {
-      const users = _u(); if (users[user.email]) { users[user.email]={...users[user.email],...data}; _su(users); }
-      _ss({...(_s()||{}),...data}); return Promise.resolve();
-    }
-  };
-})();
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
 
-// ── Connection probe: can we reach Firebase Auth? ──
-let _fbOnline = false; // assume offline until proven otherwise
-const _probeFirebase = () => {
-  if (!_firebaseAvailable || !_fbAuth) return Promise.resolve(false);
-  return _withTimeout(
-    new Promise(resolve => {
-      const unsub = _fbAuth.onAuthStateChanged(() => { unsub(); resolve(true); }, () => resolve(false));
-    }), 4000
-  ).catch(() => false);
+// ── Firestore helpers (compat API) ──
+const collection    = (dbRef, path)           => dbRef.collection(path);
+const addDoc        = (ref, data)             => ref.add(data);
+const getDocs       = (ref)                   => ref.get();
+const getDoc        = (ref)                   => ref.get();
+const doc           = (dbRef, path, id)       => {
+  // Handle both doc(db, 'collection', 'id') and doc(db, 'collection/id') forms
+  if (id !== undefined) return dbRef.collection(path).doc(id);
+  // path like 'applications/abc123'
+  const parts = path.split('/');
+  if (parts.length === 2) return dbRef.collection(parts[0]).doc(parts[1]);
+  return dbRef.doc(path);
 };
+const updateDoc     = (ref, data)             => ref.update(data);
+const setDoc        = (ref, data)             => ref.set(data);
+const query         = (ref, ...constraints)   => constraints.reduce((r,c) => c(r), ref);
+const where         = (f, op, v)              => r => r.where(f, op, v);
+const orderBy       = (f, dir='asc')          => r => r.orderBy(f, dir);
+const serverTimestamp = ()                    => firebase.firestore.FieldValue.serverTimestamp();
 
-// ══════════════════════════════════════════════════════════════
-//  UNIFIED API — identical signatures, works online + offline
-// ══════════════════════════════════════════════════════════════
+// Compat getDocs returns QuerySnapshot — .docs, .empty work the same
+// getDoc returns DocumentSnapshot — .exists(), .data(), .id work the same
 
-// Firestore helpers
-function _colRef(path, filters=[]) {
-  return {
-    _path: path, _filters: filters,
-    where(f, op, v) { return _colRef(path, [...filters, {f,op,v}]); },
-    orderBy()       { return this; },
-    get() {
-      if (_fbOnline && _fbDb) {
-        let ref = _fbDb.collection(path);
-        for (const {f,op,v} of filters) ref = ref.where(f,op,v);
-        return _withTimeout(ref.get(), 5000).catch(() => _LS.query(path, filters));
-      }
-      return _LS.query(path, filters);
-    },
-    add(data) {
-      if (_fbOnline && _fbDb) return _withTimeout(_fbDb.collection(path).add(data), 5000).catch(() => _LS.add(path, data));
-      return _LS.add(path, data);
-    },
-    doc(id) { return _docRef(path, id); }
-  };
-}
-function _docRef(path, id) {
-  return {
-    get() {
-      if (_fbOnline && _fbDb) return _withTimeout(_fbDb.collection(path).doc(id).get(), 5000).catch(() => _LS.get(path, id));
-      return _LS.get(path, id);
-    },
-    set(data) {
-      if (_fbOnline && _fbDb) { _withTimeout(_fbDb.collection(path).doc(id).set(data), 5000).catch(() => _LS.set(path, id, data)); return _LS.set(path, id, data); }
-      return _LS.set(path, id, data);
-    },
-    update(data) {
-      if (_fbOnline && _fbDb) { _withTimeout(_fbDb.collection(path).doc(id).update(data), 5000).catch(() => _LS.update(path, id, data)); return _LS.update(path, id, data); }
-      return _LS.update(path, id, data);
-    }
-  };
-}
-
-const collection      = (_db, path)     => _colRef(path);
-const addDoc          = (ref, data)     => ref.add(data);
-const getDocs         = (ref)           => ref.get();
-const getDoc          = (ref)           => ref.get();
-const doc             = (_db, path, id) => { if(id!==undefined) return _docRef(path,id); const p=path.split('/'); return p.length===2?_docRef(p[0],p[1]):_docRef(path,''); };
-const updateDoc       = (ref, data)     => ref.update(data);
-const setDoc          = (ref, data)     => ref.set(data);
-const query           = (ref,...cs)     => cs.reduce((r,c)=>typeof c==='function'?c(r):r, ref);
-const where           = (f,op,v)        => ref => ref.where ? ref.where(f,op,v) : ref;
-const orderBy         = ()              => ref => ref;
-const serverTimestamp = ()              => (_fbOnline && _fbDb) ? firebase.firestore.FieldValue.serverTimestamp() : _LS._ts();
-
-// Auth functions — try Firebase, fall back to local
-const createUserWithEmailAndPassword = async (a, email, pass) => {
-  if (_fbOnline && _fbAuth) {
-    try { return await _withTimeout(_fbAuth.createUserWithEmailAndPassword(email, pass), 5000); }
-    catch(e) { if (e.message!=='timeout') throw e; }
-  }
-  return _LA.register(email, pass, '');
-};
-const signInWithEmailAndPassword = async (a, email, pass) => {
-  if (_fbOnline && _fbAuth) {
-    try { return await _withTimeout(_fbAuth.signInWithEmailAndPassword(email, pass), 5000); }
-    catch(e) { if (e.message!=='timeout') throw e; }
-  }
-  return _LA.login(email, pass);
-};
-const signOut = async (a) => {
-  if (_fbOnline && _fbAuth) { try { await _fbAuth.signOut(); } catch(e){} }
-  return _LA.logout();
-};
-const updateProfile = async (user, data) => {
-  if (_fbOnline && user && user.updateProfile) { try { await _withTimeout(user.updateProfile(data), 5000); } catch(e){} }
-  return _LA.updateProfile(user, data);
-};
-const onAuthStateChanged = (a, cb, errCb) => {}; // handled below in boot sequence
-
-// Auth object stub
-const auth = { signOut: () => signOut(null) };
-const db   = null; // not used directly — all calls go via helpers
+// ── Auth helpers (compat API mirrors modular API) ──
+const createUserWithEmailAndPassword = (a,e,p) => a.createUserWithEmailAndPassword(e,p);
+const signInWithEmailAndPassword     = (a,e,p) => a.signInWithEmailAndPassword(e,p);
+const signOut                        = (a)     => a.signOut();
+const onAuthStateChanged             = (a,cb,err) => a.onAuthStateChanged(cb, err);
+const updateProfile                  = (u,d)   => u.updateProfile(d);
 
 // ── Constants ──
 const COUNTRIES=[{name:'France',flag:'🇫🇷',fee:80,days:'15 working days',code:'FR'},{name:'Spain',flag:'🇪🇸',fee:80,days:'10 working days',code:'ES'},{name:'Germany',flag:'🇩🇪',fee:80,days:'15 working days',code:'DE'},{name:'Italy',flag:'🇮🇹',fee:80,days:'15 working days',code:'IT'},{name:'Netherlands',flag:'🇳🇱',fee:80,days:'15 working days',code:'NL'},{name:'Belgium',flag:'🇧🇪',fee:80,days:'12 working days',code:'BE'},{name:'Portugal',flag:'🇵🇹',fee:80,days:'15 working days',code:'PT'},{name:'Austria',flag:'🇦🇹',fee:80,days:'15 working days',code:'AT'},{name:'Switzerland',flag:'🇨🇭',fee:90,days:'10 working days',code:'CH'},{name:'Sweden',flag:'🇸🇪',fee:80,days:'15 working days',code:'SE'},{name:'Norway',flag:'🇳🇴',fee:90,days:'15 working days',code:'NO'},{name:'Denmark',flag:'🇩🇰',fee:80,days:'15 working days',code:'DK'},{name:'Finland',flag:'🇫🇮',fee:80,days:'15 working days',code:'FI'},{name:'Greece',flag:'🇬🇷',fee:80,days:'10 working days',code:'GR'},{name:'Czech Republic',flag:'🇨🇿',fee:80,days:'15 working days',code:'CZ'},{name:'Poland',flag:'🇵🇱',fee:80,days:'15 working days',code:'PL'},{name:'Hungary',flag:'🇭🇺',fee:80,days:'15 working days',code:'HU'},{name:'Romania',flag:'🇷🇴',fee:80,days:'20 working days',code:'RO'},{name:'Croatia',flag:'🇭🇷',fee:80,days:'15 working days',code:'HR'},{name:'Luxembourg',flag:'🇱🇺',fee:80,days:'15 working days',code:'LU'},{name:'Ireland',flag:'🇮🇪',fee:100,days:'8 weeks',code:'IE'},{name:'Malta',flag:'🇲🇹',fee:80,days:'15 working days',code:'MT'},{name:'Slovakia',flag:'🇸🇰',fee:80,days:'15 working days',code:'SK'},{name:'Slovenia',flag:'🇸🇮',fee:80,days:'15 working days',code:'SI'},{name:'Estonia',flag:'🇪🇪',fee:80,days:'15 working days',code:'EE'},{name:'Latvia',flag:'🇱🇻',fee:80,days:'15 working days',code:'LV'}];
 const DOCS=['Valid Passport (min. 6 months validity)','National ID (CIN)','Passport-size Photo (white background)','Bank Statements (last 3 months)','Proof of Accommodation','Return Flight Ticket','Travel Insurance (min. €30,000 coverage)','Employment Certificate or Business Registration'];
 
+// ── Flag image helper ──
+// flagcdn.com only serves valid widths: 20, 40, 80, 160, 320, 640
 function flagImg(code, size='sm') {
-  const w = size==='lg'?80:size==='md'?40:20;
-  return `<img src="https://flagcdn.com/w${w}/${code.toLowerCase()}.png" alt="${code}" style="width:${w}px;height:auto;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.15);vertical-align:middle;flex-shrink:0;display:inline-block">`;
+  const w = size === 'lg' ? 80 : size === 'md' ? 40 : 20;
+  const px = size === 'lg' ? 80 : size === 'md' ? 40 : 20;
+  return `<img src="https://flagcdn.com/w${w}/${code.toLowerCase()}.png" alt="${code}" style="width:${px}px;height:auto;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.15);vertical-align:middle;flex-shrink:0;display:inline-block">`;
 }
 
+// ── State ──
 let currentUser = null;
 let isAdmin     = false;
 let selectedCountry = null;
 let selectedDate    = null;
 let selectedSlot    = null;
 
+// ── Expose globals for inline onclick handlers ──
 window.switchAuthTab  = switchAuthTab;
 window.handleLogin    = handleLogin;
 window.handleRegister = handleRegister;
@@ -873,46 +727,41 @@ window.adminNav          = adminNav;
 window.updateAppStatus   = updateAppStatus;
 window.showToast         = showToast;
 
-// ════════════════════════════════════════════
-//  BOOT SEQUENCE — probe Firebase then start
-// ════════════════════════════════════════════
-(async function boot() {
-  if (window.__escapeTimer) clearTimeout(window.__escapeTimer);
-  if (window.__cancelEscape) window.__cancelEscape();
+// ────────────────────────────────────────────
+// AUTH STATE OBSERVER — runs on every page load
+// ────────────────────────────────────────────
 
-  // Check if Firebase Auth responds within 4 seconds
-  _fbOnline = await _probeFirebase();
-  console.log('Firebase online:', _fbOnline);
-
-  let user = null;
-
-  if (_fbOnline && _fbAuth) {
-    // Get current Firebase user (already resolved from probe)
-    user = _fbAuth.currentUser;
-    // Subscribe to future auth changes
-    _fbAuth.onAuthStateChanged(fbUser => {
-      if (fbUser) {
-        currentUser = fbUser;
-        isAdmin = fbUser.email.toLowerCase().endsWith('@visa.com');
-      } else {
-        currentUser = null; isAdmin = false;
-      }
-    });
-  } else {
-    // Use local session
-    user = _LA.session();
+// Safety timeout: if Firebase never responds in 4s, show auth screen anyway
+const _loadingTimeout = setTimeout(() => {
+  const ol = document.getElementById('loading-overlay');
+  if (ol && !ol.classList.contains('hidden')) {
+    console.warn('Firebase timeout — falling back to auth screen');
+    hideLoading();
+    showAuth();
   }
+}, 4000);
 
+onAuthStateChanged(auth, async (user) => {
+  clearTimeout(_loadingTimeout);
   if (user) {
     currentUser = user;
     isAdmin = user.email.toLowerCase().endsWith('@visa.com');
     hideLoading();
     enterApp();
   } else {
+    currentUser = null;
+    isAdmin = false;
     hideLoading();
     showAuth();
   }
-})();
+}, (error) => {
+  // Firebase auth error (bad config, network, etc.)
+  clearTimeout(_loadingTimeout);
+  console.error('Auth error:', error);
+  hideLoading();
+  showAuth();
+  setTimeout(() => showToast('Connection error: ' + error.message, 'error'), 500);
+});
 
 function hideLoading() {
   const ol = document.getElementById('loading-overlay');
@@ -946,7 +795,7 @@ function switchAuthTab(tab) {
   document.getElementById('reg-error').classList.remove('show');
 }
 
-// ── Login ──
+// ── Login with Firebase Auth ──
 async function handleLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-pass').value;
@@ -956,18 +805,15 @@ async function handleLogin() {
   if (!email || !pass) { showAuthError(errEl, 'Please enter email and password.'); return; }
   btn.disabled = true; btn.textContent = 'Signing in...';
   try {
-    const cred = await signInWithEmailAndPassword(null, email, pass);
-    currentUser = cred.user;
-    isAdmin = currentUser.email.toLowerCase().endsWith('@visa.com');
-    hideLoading();
-    enterApp();
+    await signInWithEmailAndPassword(auth, email, pass);
+    // onAuthStateChanged will handle the rest
   } catch (e) {
     showAuthError(errEl, friendlyAuthError(e.code));
     btn.disabled = false; btn.textContent = 'Sign In →';
   }
 }
 
-// ── Register ──
+// ── Register with Firebase Auth + save user to Firestore ──
 async function handleRegister() {
   const name  = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
@@ -980,18 +826,15 @@ async function handleRegister() {
   if (pass.length < 6)          { showAuthError(errEl, 'Password must be at least 6 characters.'); return; }
   btn.disabled = true; btn.textContent = 'Creating account...';
   try {
-    const cred = await createUserWithEmailAndPassword(null, email, pass);
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
     await updateProfile(cred.user, { displayName: name });
-    // Save extra profile info
-    await setDoc(doc(null, 'users', cred.user.uid), {
+    // Save extra user info to Firestore
+    await setDoc(doc(db, 'users', cred.user.uid), {
       uid: cred.user.uid, name, email, phone,
       role: email.endsWith('@visa.com') ? 'admin' : 'user',
       createdAt: serverTimestamp()
     });
-    currentUser = { ...cred.user, displayName: name };
-    isAdmin = email.endsWith('@visa.com');
-    hideLoading();
-    enterApp();
+    // onAuthStateChanged handles the rest
   } catch (e) {
     showAuthError(errEl, friendlyAuthError(e.code));
     btn.disabled = false; btn.textContent = 'Create Account →';
@@ -999,9 +842,8 @@ async function handleRegister() {
 }
 
 async function handleLogout() {
-  await signOut(null);
-  currentUser = null; isAdmin = false;
-  showAuth();
+  await signOut(auth);
+  // onAuthStateChanged → showAuth()
 }
 
 function showAuthError(el, msg) {
