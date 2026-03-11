@@ -205,259 +205,169 @@
   .toast.success{border-left-color:var(--green);}
   .toast.error{border-left-color:var(--red);}
 
-  /* ═══════════════════════════════════════════════════════════════
-     Z VISA — PREMIUM SCHENGEN STICKER  |  105mm × 74mm → 756×533px
-  ═══════════════════════════════════════════════════════════════ */
-  .z-visa-wrap{
-    display:flex;justify-content:center;align-items:center;
-    padding:36px 12px;
-  }
+  /* ═══════════════════════════════════════════════════
+     Z VISA — SCHENGEN STICKER  |  756px × 553px
+  ═══════════════════════════════════════════════════ */
+  .z-visa-wrap{display:flex;justify-content:center;align-items:center;padding:28px 8px;}
 
   .zvisa{
     position:relative;overflow:hidden;
-    width:756px;height:533px;
+    width:756px;height:553px;
     border-radius:2px;
-    box-shadow:
-      0 2px 0 rgba(255,255,255,.15) inset,
-      0 32px 80px rgba(0,0,0,.65),
-      0 8px 24px rgba(0,0,0,.4),
-      0 0 0 1px rgba(0,0,0,.35);
+    box-shadow:0 24px 64px rgba(0,0,0,.6),0 4px 16px rgba(0,0,0,.4),inset 0 0 0 1px rgba(0,0,0,.25);
     font-family:Arial,Helvetica,sans-serif;
-    animation:zvReveal .55s cubic-bezier(.16,1,.3,1) both;
+    animation:zvReveal .5s cubic-bezier(.22,1,.36,1);
     flex-shrink:0;
-    background:#e8d5c4;
-    image-rendering:crisp-edges;
+    background:#e8d9c8;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+    color-adjust:exact;
   }
-  @keyframes zvReveal{
-    from{opacity:0;transform:translateY(16px) scale(.95) rotateX(4deg)}
-    to{opacity:1;transform:none}
-  }
+  @keyframes zvReveal{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
 
-  /* ── LAYER STACK ── */
-  .zvisa-bg,
-  .zvisa-guilloches,
-  .zvisa-grain,
-  .zvisa-wm,
-  .zvisa-left-bar,
-  .zvisa-holo,
-  .zvisa-header,
-  .zvisa-photo-box,
-  .zvisa-photo-label,
-  .zvisa-fields,
-  .zvisa-mrz-strip{ position:absolute; }
+  /* ── LAYERS ── */
+  .zvisa-bg{position:absolute;inset:0;z-index:0;}
+  .zvisa-bg svg{width:100%;height:100%;display:block;}
 
-  /* 0 — parchment + coarse paper grain */
-  .zvisa-bg{ inset:0; z-index:0; }
-  .zvisa-bg svg{ width:100%; height:100%; display:block; }
-
-  /* 1 — guilloche wave layers */
-  .zvisa-guilloches{ inset:0; z-index:1; pointer-events:none; }
-  .zvisa-guilloches svg{ width:100%; height:100%; display:block; }
-
-  /* 2 — subtle film grain */
-  .zvisa-grain{
-    inset:0; z-index:2; pointer-events:none; opacity:.55;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
-    background-size:200px 200px;
-    mix-blend-mode:multiply;
-  }
-
-  /* 3 — EU circle-of-stars watermark */
+  /* EU watermark */
   .zvisa-wm{
-    left:50%;top:56%;transform:translate(-50%,-50%);
-    z-index:3; opacity:.055; pointer-events:none;
+    position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);
+    z-index:1;opacity:.055;pointer-events:none;
   }
 
-  /* 4 — left security bar (dark blue) */
-  .zvisa-left-bar{
-    left:0;top:0;bottom:0;width:6px;z-index:8;
-    background:linear-gradient(180deg,#0f2554 0%,#1b3d8a 35%,#0f2554 65%,#1b3d8a 100%);
-  }
-
-  /* 5 — right holographic OVD strip */
+  /* ── HOLOGRAPHIC STRIP — right edge ── */
   .zvisa-holo{
-    right:0;top:0;bottom:0;width:28px;z-index:8;
-    background:
-      repeating-linear-gradient(175deg,
-        rgba(255,30,30,.8)    0px ,rgba(255,30,30,.8)    2px,
-        rgba(255,180,0,.75)   2px ,rgba(255,180,0,.75)   4px,
-        rgba(20,210,100,.7)   4px ,rgba(20,210,100,.7)   6px,
-        rgba(20,140,255,.75)  6px ,rgba(20,140,255,.75)  8px,
-        rgba(200,30,255,.7)   8px ,rgba(200,30,255,.7)  10px,
-        rgba(255,30,30,.8)   10px ,rgba(255,30,30,.8)   12px,
-        rgba(255,180,0,.75)  12px ,rgba(255,180,0,.75)  14px,
-        rgba(20,210,100,.7)  14px ,rgba(20,210,100,.7)  16px,
-        rgba(20,140,255,.75) 16px ,rgba(20,140,255,.75) 18px,
-        rgba(200,30,255,.7)  18px ,rgba(200,30,255,.7)  20px
-      );
-    border-left:1.5px solid rgba(255,255,255,.4);
-    box-shadow:inset -1px 0 0 rgba(0,0,0,.3);
+    position:absolute;right:0;top:0;bottom:0;width:26px;z-index:8;
+    background:repeating-linear-gradient(172deg,
+      #ff2222 0px,#ff2222 2px,
+      #ffcc00 2px,#ffcc00 4px,
+      #22dd88 4px,#22dd88 6px,
+      #2299ff 6px,#2299ff 8px,
+      #cc22ff 8px,#cc22ff 10px,
+      #ff2222 10px,#ff2222 12px,
+      #ffcc00 12px,#ffcc00 14px,
+      #22dd88 14px,#22dd88 16px,
+      #2299ff 16px,#2299ff 18px,
+      #cc22ff 18px,#cc22ff 20px
+    );
+    border-left:1.5px solid rgba(255,255,255,.5);
   }
-  .zvisa-holo::before{
+  .zvisa-holo::after{
     content:'';position:absolute;inset:0;
-    background:linear-gradient(180deg,
-      rgba(255,255,255,.22) 0%,
-      rgba(255,255,255,.04) 30%,
-      rgba(255,255,255,.12) 60%,
-      rgba(255,255,255,.02) 100%);
+    background:linear-gradient(180deg,rgba(255,255,255,.35) 0%,rgba(255,255,255,.05) 40%,rgba(255,255,255,.2) 75%,rgba(255,255,255,.05) 100%);
+  }
+
+  /* ── HEADER BAND ── */
+  .zvisa-header{
+    position:absolute;top:0;left:0;right:26px;height:60px;z-index:6;
+    background:#1a3a6e;
+    display:flex;align-items:center;padding:0 16px 0 10px;gap:0;
+    border-bottom:2.5px solid #0b1e3e;
+  }
+  .zvisa-eu-badge{flex-shrink:0;margin-right:10px;position:relative;}
+  .zvisa-eu-text{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-size:9px;font-weight:900;color:#FFD700;
+    font-family:Arial,sans-serif;letter-spacing:.5px;
+    text-shadow:0 0 4px rgba(0,0,0,.6);
     pointer-events:none;
   }
-  /* OVD text running vertically */
-  .zvisa-holo::after{
-    content:'SCHENGEN VISA';
-    position:absolute;left:50%;top:50%;
-    transform:translate(-50%,-50%) rotate(90deg);
-    font-size:5px;font-weight:900;letter-spacing:3px;
-    color:rgba(255,255,255,.35);white-space:nowrap;
-    font-family:Arial,sans-serif;
+  .zvisa-title{
+    font-size:30px;font-weight:900;letter-spacing:10px;color:#fff;
+    margin-right:auto;text-transform:uppercase;padding-left:4px;
+    text-shadow:0 1px 3px rgba(0,0,0,.5);
   }
+  .zvisa-issuing{font-size:11px;font-weight:700;letter-spacing:2.5px;color:#fff;text-transform:uppercase;text-align:right;line-height:1.5;}
+  .zvisa-issuing span{display:block;font-size:7.5px;opacity:.65;letter-spacing:1.5px;margin-top:1px;}
 
-  /* 6 — NAVY HEADER BAND */
-  .zvisa-header{
-    top:0;left:6px;right:28px;height:58px;z-index:7;
-    background:linear-gradient(180deg,#1e4494 0%,#163070 60%,#10245a 100%);
-    display:flex;align-items:center;
-    padding:0 14px 0 12px;
-    border-bottom:2px solid #0a1836;
-    box-shadow:0 2px 8px rgba(0,0,0,.4);
-  }
-  .zvisa-eu-badge{
-    flex-shrink:0;
-    width:44px;height:44px;
-    background:radial-gradient(circle,rgba(255,255,255,.08) 0%,transparent 70%);
-    display:flex;align-items:center;justify-content:center;
-    margin-right:10px;
-  }
-  .zvisa-title-block{ flex:1; }
-  .zvisa-title-visa{
-    font-size:30px;font-weight:900;letter-spacing:11px;
-    color:#fff;text-transform:uppercase;line-height:1;
-    text-shadow:0 1px 4px rgba(0,0,0,.5);
-  }
-  .zvisa-title-sub{
-    font-size:7px;letter-spacing:3.5px;color:rgba(255,255,255,.55);
-    text-transform:uppercase;margin-top:1px;font-weight:400;
-  }
-  .zvisa-header-right{ text-align:right;flex-shrink:0; }
-  .zvisa-header-country{
-    font-size:14px;font-weight:900;letter-spacing:3px;
-    color:#fff;text-transform:uppercase;line-height:1;
-  }
-  .zvisa-header-schengen{
-    font-size:7px;letter-spacing:2.5px;color:rgba(255,255,255,.6);
-    text-transform:uppercase;margin-top:2px;
-    border-top:1px solid rgba(255,255,255,.2);padding-top:2px;
-  }
-
-  /* 7 — PHOTO BOX */
-  .zvisa-photo-box{
-    left:16px;top:68px;z-index:6;
-    width:124px;height:164px;
-    background:linear-gradient(145deg,#d0c0b4,#c4b0a4);
-    border:1px solid rgba(0,0,0,.3);
-    border-bottom:none;
+  /* ── PHOTO BOX ── */
+  .zvisa-photo{
+    position:absolute;left:12px;top:70px;z-index:5;
+    width:122px;height:163px;
+    background:#c8b8a8;  /* warm parchment tone — blends with bg */
+    border:1px solid rgba(0,0,0,.28);
     overflow:hidden;
     display:flex;align-items:center;justify-content:center;
-    box-shadow:inset 0 0 8px rgba(0,0,0,.18),1px 1px 0 rgba(255,255,255,.12);
   }
-  .zvisa-photo-box img{ width:100%;height:100%;object-fit:cover;display:block; }
+  .zvisa-photo img{
+    width:100%;height:100%;object-fit:cover;display:block;
+    /* blend photo edges into parchment */
+    mix-blend-mode:multiply;
+  }
   .zvisa-photo-ph{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:6px;width:100%;height:100%;
-    background:linear-gradient(145deg,#cfc0b4,#c0b0a4);
+    gap:4px;width:100%;height:100%;
+    background:#c8b8a8;
   }
-  .zvisa-photo-ph svg{ opacity:.45; }
-  .zvisa-photo-ph span{
-    font-size:6.5px;color:#888;letter-spacing:2px;
-    font-family:Arial,sans-serif;font-weight:600;text-transform:uppercase;
-  }
+  .zvisa-photo-ph span{font-size:6.5px;color:#7a6a5a;letter-spacing:2px;font-family:Arial,sans-serif;font-weight:700;text-transform:uppercase;}
 
-  /* photo caption bar */
+  /* holder label below photo */
   .zvisa-photo-label{
-    left:16px;top:232px;width:124px;z-index:6;
-    background:rgba(0,0,0,.07);
-    border:1px solid rgba(0,0,0,.2);
-    border-top:none;
-    padding:3px 0;
-    text-align:center;
-    font-size:5.5px;color:#444;font-style:italic;
-    font-family:Arial,sans-serif;line-height:1.5;
+    position:absolute;left:12px;top:233px;width:122px;z-index:5;
+    background:rgba(0,0,0,.08);
+    border:1px solid rgba(0,0,0,.18);border-top:none;
+    text-align:center;font-size:5.5px;color:#333;font-style:italic;
+    font-family:Arial,sans-serif;padding:3px 2px;line-height:1.6;
   }
 
-  /* 8 — DATA FIELDS TABLE */
+  /* ── FIELDS TABLE ── */
   .zvisa-fields{
-    left:150px;top:60px;right:30px;bottom:64px;
-    z-index:6;
+    position:absolute;
+    left:146px;top:62px;right:28px;bottom:72px;
+    z-index:5;
     display:flex;flex-direction:column;
-    border:1px solid rgba(0,0,0,.2);
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+    border:1px solid rgba(0,0,0,.18);
   }
-  .zvf-row{
-    display:flex;flex:1;min-height:0;
-    border-bottom:1px solid rgba(0,0,0,.16);
-  }
-  .zvf-row:last-child{ border-bottom:none; }
+  .zvf-row{display:flex;flex:1;min-height:0;border-bottom:1px solid rgba(0,0,0,.15);}
+  .zvf-row:last-child{border-bottom:none;}
   .zvf-cell{
     display:flex;flex-direction:column;justify-content:center;
     padding:2px 6px 2px 5px;
     flex:1;min-width:0;
-    border-right:1px solid rgba(0,0,0,.14);
-    background:rgba(255,255,255,.04);
-    position:relative;
+    border-right:1px solid rgba(0,0,0,.15);
   }
-  .zvf-cell:last-child{ border-right:none; }
-  /* alternating subtle tint every other cell */
-  .zvf-cell.tint{ background:rgba(0,0,60,.025); }
-
-  /* bilingual italic micro-label */
+  .zvf-cell:last-child{border-right:none;}
   .zvf-lbl{
-    font-size:5px;font-weight:400;color:#2a2420;
-    line-height:1.25;margin-bottom:1px;
-    white-space:nowrap;font-family:Arial,sans-serif;
-    font-style:italic;opacity:.75;
+    font-size:5px;font-weight:400;color:#1a1a1a;line-height:1.3;
+    margin-bottom:1px;white-space:nowrap;font-family:Arial,sans-serif;
+    font-style:italic;opacity:.7;
   }
-  /* main value */
   .zvf-val{
-    font-size:12px;font-weight:700;color:#060606;
+    font-size:12px;font-weight:700;color:#000;
     letter-spacing:.05px;line-height:1.15;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     font-family:Arial,sans-serif;
   }
-  .zvf-val.lg{ font-size:14px; }
-  .zvf-val.xl{ font-size:22px;font-weight:900;letter-spacing:-1px; }
-  .zvf-val.mono{
-    font-family:'Courier New',monospace;
-    letter-spacing:1.8px;font-size:11px;
-  }
-  /* type code badge */
-  .zvf-type-badge{
+  .zvf-val.big{font-size:22px;font-weight:900;}
+  .zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1.5px;font-size:11px;}
+  .zvf-type{
     display:inline-flex;align-items:center;justify-content:center;
-    width:28px;height:28px;
-    border:2.5px solid #1e4494;border-radius:3px;
-    font-size:20px;font-weight:900;color:#1e4494;
-    font-family:Arial,sans-serif;
-    background:rgba(255,255,255,.5);
-    line-height:1;
+    width:30px;height:30px;
+    border:2.5px solid #1a3a6e;border-radius:3px;
+    font-size:20px;font-weight:900;color:#1a3a6e;
+    font-family:Arial,sans-serif;background:rgba(255,255,255,.55);
   }
 
-  /* 9 — MRZ STRIP */
-  .zvisa-mrz-strip{
-    bottom:0;left:6px;right:28px;height:62px;z-index:7;
-    background:rgba(255,255,255,.52);
-    border-top:2px solid rgba(0,0,0,.25);
+  /* ── MRZ STRIP — full width, taller, high contrast ── */
+  .zvisa-mrz{
+    position:absolute;bottom:0;left:0;right:0;height:70px;z-index:6;
+    background:#e2d4c2;
+    border-top:2px solid rgba(0,0,0,.3);
     display:flex;flex-direction:column;justify-content:center;
-    padding:4px 10px 4px 8px;gap:0;
-    backdrop-filter:blur(1px);
+    padding:4px 10px 4px 8px;gap:1px;
+  }
+  /* faint horizontal rules between MRZ lines */
+  .zvisa-mrz::before{
+    content:'';position:absolute;left:8px;right:8px;top:50%;
+    border-top:1px solid rgba(0,0,0,.08);pointer-events:none;
   }
   .zvisa-mrz-line{
     font-family:'Courier New',monospace;
-    font-size:9.5px;font-weight:400;letter-spacing:2.8px;
-    color:#000;line-height:1.75;
+    font-size:10px;font-weight:700;letter-spacing:3px;
+    color:#000;line-height:1.8;
     white-space:nowrap;overflow:hidden;
-    text-shadow:none;
+    display:block;
   }
-  /* first MRZ line slightly bolder */
-  .zvisa-mrz-line:first-child{ font-weight:600; }
 </style>
 </head>
 <body>
@@ -1849,252 +1759,249 @@ function buildMRZ(v) {
 function renderZVisa(v) {
   const mrz = buildMRZ(v);
 
-  // Format date  DD.MM.YYYY
   const fd = d => {
-    if (!d) return '— — —';
+    if (!d) return '- - -';
     try {
       const dt = new Date(d+'T12:00:00');
-      return String(dt.getDate()).padStart(2,'0') + '.' +
-             String(dt.getMonth()+1).padStart(2,'0') + '.' +
-             dt.getFullYear();
+      return String(dt.getDate()).padStart(2,'0')+'.'+String(dt.getMonth()+1).padStart(2,'0')+'.'+dt.getFullYear();
     } catch { return d; }
   };
 
-  // ── PHOTO ──
+  // ── PHOTO — warm placeholder blends with parchment; uploaded photo uses multiply blend ──
   const photo = v.photoUrl
-    ? `<img src="${v.photoUrl}" alt="Photo">`
+    ? `<img src="${v.photoUrl}" alt="Photo" style="width:100%;height:100%;object-fit:cover;display:block;mix-blend-mode:multiply;">`
     : `<div class="zvisa-photo-ph">
-        <svg width="52" height="58" viewBox="0 0 52 58" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="26" cy="20" rx="12" ry="14" fill="#a09088"/>
-          <path d="M2 58c0-15 10-23 24-23s24 8 24 23" fill="#a09088"/>
+        <svg width="50" height="56" viewBox="0 0 50 56" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="25" cy="19" rx="11" ry="13" fill="#9a8878"/>
+          <path d="M2 56c0-14 9.5-22 23-22s23 8 23 22" fill="#9a8878"/>
         </svg>
         <span>PHOTO</span>
       </div>`;
 
-  // ── EU 12-STAR BADGE (header) ──
-  const star5=(cx,cy,r)=>{const p=[];for(let i=0;i<5;i++){const oa=(i*72-90)*Math.PI/180,ia=(i*72-90+36)*Math.PI/180;p.push(`${cx+r*Math.cos(oa)},${cy+r*Math.sin(oa)}`);p.push(`${cx+r*.38*Math.cos(ia)},${cy+r*.38*Math.sin(ia)}`);}return`<polygon points="${p.join(' ')}" fill="#FFD700"/>`;};
-  const euBadge=`<svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,215,0,.3)" stroke-width=".5"/>
-    ${Array.from({length:12},(_,i)=>{const a=(i*30-90)*Math.PI/180,r=16;return star5(22+r*Math.cos(a),22+r*Math.sin(a),4.8);}).join('')}
+  // ── EU BADGE: 12 gold stars in a ring + "EU" text centred ──
+  const star5=(cx,cy,r)=>{
+    const p=[];
+    for(let i=0;i<5;i++){
+      const oa=(i*72-90)*Math.PI/180, ia=(i*72-90+36)*Math.PI/180;
+      p.push(`${cx+r*Math.cos(oa)},${cy+r*Math.sin(oa)}`);
+      p.push(`${cx+r*.38*Math.cos(ia)},${cy+r*.38*Math.sin(ia)}`);
+    }
+    return `<polygon points="${p.join(' ')}" fill="#FFD700"/>`;
+  };
+  const euSVG=`<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+    ${Array.from({length:12},(_,i)=>{const a=(i*30-90)*Math.PI/180,r=18;return star5(24+r*Math.cos(a),24+r*Math.sin(a),4.2);}).join('')}
+    <text x="24" y="28" text-anchor="middle" font-family="Arial" font-size="10" font-weight="900" fill="#FFD700" letter-spacing="0.5">EU</text>
   </svg>`;
 
-  // ── EU LARGE WATERMARK ──
+  // ── EU watermark (large, behind everything) ──
   const wm=`<svg width="340" height="340" viewBox="0 0 340 340" xmlns="http://www.w3.org/2000/svg">
     ${Array.from({length:12},(_,i)=>{
       const a=(i*30-90)*Math.PI/180,R=128,cx=170+R*Math.cos(a),cy=170+R*Math.sin(a);
       const p=[];for(let j=0;j<5;j++){const oa=(j*72-90)*Math.PI/180,ia=(j*72-90+36)*Math.PI/180;p.push(`${cx+21*Math.cos(oa)},${cy+21*Math.sin(oa)}`);p.push(`${cx+8*Math.cos(ia)},${cy+8*Math.sin(ia)}`);}
       return `<polygon points="${p.join(' ')}" fill="#0a2060"/>`;
     }).join('')}
-    <text x="170" y="184" text-anchor="middle" font-family="Arial" font-size="48" font-weight="900" fill="#0a2060" opacity=".9">EU</text>
+    <text x="170" y="186" text-anchor="middle" font-family="Arial" font-size="52" font-weight="900" fill="#0a2060">EU</text>
   </svg>`;
 
-  // ── VISA TYPE ──
-  const typeCode = (v.visaTypeCode||'C').toUpperCase();
-
-  // ── PARCHMENT BACKGROUND ──
-  // Three layers: base paper, micro-grid, colour waves
-  const bg=`<svg viewBox="0 0 756 533" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+  // ── GUILLOCHE BACKGROUND — warm parchment + coloured wave bands ──
+  const guilloche=`<svg viewBox="0 0 756 553" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
     <defs>
-      <linearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#ecdcc8"/>
-        <stop offset="50%" stop-color="#e8d5c0"/>
-        <stop offset="100%" stop-color="#e0cdb8"/>
+      <linearGradient id="parch" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#ede0cc"/>
+        <stop offset="50%" stop-color="#e8d9c4"/>
+        <stop offset="100%" stop-color="#e0d0b8"/>
       </linearGradient>
     </defs>
-    <rect width="756" height="533" fill="url(#pg)"/>
+    <rect width="756" height="553" fill="url(#parch)"/>
+    <!-- micro grid -->
+    ${Array.from({length:76},(_,i)=>`<line x1="${i*10}" y1="62" x2="${i*10}" y2="483" stroke="rgba(110,60,20,.04)" stroke-width=".3"/>`).join('')}
+    ${Array.from({length:44},(_,i)=>`<line x1="0" y1="${62+i*10}" x2="730" y2="${62+i*10}" stroke="rgba(110,60,20,.04)" stroke-width=".3"/>`).join('')}
+    <!-- INDIGO waves — upper -->
+    ${Array.from({length:24},(_,i)=>{const y=74+i*7,a=14,f=.013,ph=i*.42;const pts=Array.from({length:43},(_,j)=>`${j*17.5},${y+a*Math.sin(j*17.5*f+ph)}`).join(' ');return `<polyline points="${pts}" fill="none" stroke="rgba(20,40,165,${.13-i*.005})" stroke-width="${1.4-i*.025}"/>`;}).join('')}
+    <!-- CRIMSON waves — mid-upper -->
+    ${Array.from({length:20},(_,i)=>{const y=226+i*8,a=16,f=.016,ph=i*.38+1.1;const pts=Array.from({length:43},(_,j)=>`${j*17.5},${y+a*Math.sin(j*17.5*f+ph)}`).join(' ');return `<polyline points="${pts}" fill="none" stroke="rgba(180,18,55,${.11-i*.005})" stroke-width="${1.3-i*.025}"/>`;}).join('')}
+    <!-- TEAL waves — centre -->
+    ${Array.from({length:20},(_,i)=>{const y=318+i*7,a=13,f=.015,ph=i*.44+2.3;const pts=Array.from({length:43},(_,j)=>`${j*17.5},${y+a*Math.sin(j*17.5*f+ph)}`).join(' ');return `<polyline points="${pts}" fill="none" stroke="rgba(0,128,108,${.10-i*.004})" stroke-width="${1.2-i*.024}"/>`;}).join('')}
+    <!-- AMBER waves — lower (above MRZ) -->
+    ${Array.from({length:16},(_,i)=>{const y=408+i*5.5,a=9,f=.019,ph=i*.5+0.7;const pts=Array.from({length:43},(_,j)=>`${j*17.5},${y+a*Math.sin(j*17.5*f+ph)}`).join(' ');return `<polyline points="${pts}" fill="none" stroke="rgba(190,95,0,${.09-i*.005})" stroke-width="${1.1-i*.024}"/>`;}).join('')}
+    <!-- diagonal security lines -->
+    ${Array.from({length:36},(_,i)=>`<line x1="${i*20}" y1="62" x2="${i*20+240}" y2="483" stroke="rgba(55,18,4,.015)" stroke-width=".38"/>`).join('')}
+    ${Array.from({length:30},(_,i)=>`<line x1="${730-i*24}" y1="62" x2="${730-i*24-190}" y2="483" stroke="rgba(18,8,55,.012)" stroke-width=".32"/>`).join('')}
+    <!-- large background arc rosettes -->
+    <path d="M70,270 Q210,120 380,205 Q550,290 660,168" fill="none" stroke="rgba(25,45,145,.045)" stroke-width="22"/>
+    <path d="M70,270 Q210,390 380,318 Q550,248 660,366" fill="none" stroke="rgba(25,45,145,.045)" stroke-width="22"/>
+    <path d="M70,270 Q290,158 490,270 Q680,378 730,270" fill="none" stroke="rgba(175,25,55,.03)" stroke-width="16"/>
   </svg>`;
 
-  // ── GUILLOCHE WAVES ──
-  // 5 colour bands × 20 lines each, plus cross-hatch micro-pattern
-  const waves=`<svg viewBox="0 0 756 533" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-    <defs>
-      <clipPath id="bodyClip"><rect x="6" y="60" width="722" height="411"/></clipPath>
-    </defs>
-    <g clip-path="url(#bodyClip)">
+  const typeCode=(v.visaTypeCode||'C').toUpperCase();
+  const countryUpper=(v.country||'SCHENGEN').toUpperCase();
 
-    <!-- micro vertical grid -->
-    ${Array.from({length:72},(_,i)=>`<line x1="${6+i*10}" y1="60" x2="${6+i*10}" y2="471" stroke="rgba(100,50,20,.04)" stroke-width=".3"/>`).join('')}
-    <!-- micro horizontal grid -->
-    ${Array.from({length:42},(_,i)=>`<line x1="6" y1="${60+i*10}" x2="728" y2="${60+i*10}" stroke="rgba(100,50,20,.04)" stroke-width=".3"/>`).join('')}
-
-    <!-- DEEP INDIGO — upper -->
-    ${Array.from({length:22},(_,i)=>{
-      const y=72+i*7.5,a=14,f=.013,ph=i*.42;
-      const pts=Array.from({length:42},(_,j)=>`${6+j*17},${y+a*Math.sin(j*17*f+ph)}`).join(' ');
-      return `<polyline points="${pts}" fill="none" stroke="rgba(20,40,160,${.12-i*.005})" stroke-width="${1.4-i*.028}"/>`;
-    }).join('')}
-
-    <!-- CRIMSON — mid-upper -->
-    ${Array.from({length:20},(_,i)=>{
-      const y=220+i*8,a=16,f=.016,ph=i*.38+1.1;
-      const pts=Array.from({length:42},(_,j)=>`${6+j*17},${y+a*Math.sin(j*17*f+ph)}`).join(' ');
-      return `<polyline points="${pts}" fill="none" stroke="rgba(185,20,60,${.11-i*.005})" stroke-width="${1.3-i*.028}"/>`;
-    }).join('')}
-
-    <!-- TEAL — centre -->
-    ${Array.from({length:20},(_,i)=>{
-      const y=310+i*7.5,a=14,f=.014,ph=i*.44+2.3;
-      const pts=Array.from({length:42},(_,j)=>`${6+j*17},${y+a*Math.sin(j*17*f+ph)}`).join(' ');
-      return `<polyline points="${pts}" fill="none" stroke="rgba(0,130,110,${.10-i*.005})" stroke-width="${1.25-i*.025}"/>`;
-    }).join('')}
-
-    <!-- AMBER — lower -->
-    ${Array.from({length:16},(_,i)=>{
-      const y=408+i*6,a=10,f=.018,ph=i*.5+0.6;
-      const pts=Array.from({length:42},(_,j)=>`${6+j*17},${y+a*Math.sin(j*17*f+ph)}`).join(' ');
-      return `<polyline points="${pts}" fill="none" stroke="rgba(195,100,0,${.09-i*.005})" stroke-width="${1.15-i*.025}"/>`;
-    }).join('')}
-
-    <!-- security diagonal hatching -->
-    ${Array.from({length:36},(_,i)=>`<line x1="${6+i*20}" y1="60" x2="${6+i*20+240}" y2="471" stroke="rgba(60,20,5,.016)" stroke-width=".4"/>`).join('')}
-    ${Array.from({length:30},(_,i)=>`<line x1="${728-i*24}" y1="60" x2="${728-i*24-180}" y2="471" stroke="rgba(20,10,60,.012)" stroke-width=".35"/>`).join('')}
-
-    <!-- large arc rosettes — decorative background element -->
-    <path d="M80,265 Q200,120 370,200 Q540,280 640,165" fill="none" stroke="rgba(30,50,150,.04)" stroke-width="18"/>
-    <path d="M80,265 Q200,380 370,310 Q540,240 640,355" fill="none" stroke="rgba(30,50,150,.04)" stroke-width="18"/>
-    <path d="M80,265 Q300,160 500,265 Q680,365 728,265" fill="none" stroke="rgba(180,30,60,.03)" stroke-width="14"/>
-    </g>
-  </svg>`;
-
-  // ── PRINT CSS (fully self-contained) ──
-  const printCSS=`.z-visa-wrap{display:flex;justify-content:center;padding:30px;background:#777}.zvisa{position:relative;overflow:hidden;width:756px;height:533px;border-radius:2px;box-shadow:0 30px 80px rgba(0,0,0,.65);font-family:Arial,sans-serif;background:#e8d5c0}.zvisa-bg,.zvisa-guilloches,.zvisa-grain,.zvisa-wm,.zvisa-left-bar,.zvisa-holo,.zvisa-header,.zvisa-photo-box,.zvisa-photo-label,.zvisa-fields,.zvisa-mrz-strip{position:absolute}.zvisa-bg{inset:0;z-index:0}.zvisa-bg svg{width:100%;height:100%;display:block}.zvisa-guilloches{inset:0;z-index:1;pointer-events:none}.zvisa-guilloches svg{width:100%;height:100%;display:block}.zvisa-grain{inset:0;z-index:2;pointer-events:none;opacity:.5;mix-blend-mode:multiply}.zvisa-wm{left:50%;top:56%;transform:translate(-50%,-50%);z-index:3;opacity:.055;pointer-events:none}.zvisa-left-bar{left:0;top:0;bottom:0;width:6px;z-index:8;background:linear-gradient(180deg,#0f2554 0%,#1b3d8a 35%,#0f2554 65%,#1b3d8a 100%)}.zvisa-holo{right:0;top:0;bottom:0;width:28px;z-index:8;background:repeating-linear-gradient(175deg,rgba(255,30,30,.8) 0px,rgba(255,30,30,.8) 2px,rgba(255,180,0,.75) 2px,rgba(255,180,0,.75) 4px,rgba(20,210,100,.7) 4px,rgba(20,210,100,.7) 6px,rgba(20,140,255,.75) 6px,rgba(20,140,255,.75) 8px,rgba(200,30,255,.7) 8px,rgba(200,30,255,.7) 10px,rgba(255,30,30,.8) 10px,rgba(255,30,30,.8) 12px,rgba(255,180,0,.75) 12px,rgba(255,180,0,.75) 14px,rgba(20,210,100,.7) 14px,rgba(20,210,100,.7) 16px,rgba(20,140,255,.75) 16px,rgba(20,140,255,.75) 18px,rgba(200,30,255,.7) 18px,rgba(200,30,255,.7) 20px);border-left:1.5px solid rgba(255,255,255,.4)}.zvisa-header{top:0;left:6px;right:28px;height:58px;z-index:7;background:linear-gradient(180deg,#1e4494 0%,#163070 60%,#10245a 100%);display:flex;align-items:center;padding:0 14px 0 12px;border-bottom:2px solid #0a1836}.zvisa-eu-badge{flex-shrink:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin-right:10px}.zvisa-title-block{flex:1}.zvisa-title-visa{font-size:30px;font-weight:900;letter-spacing:11px;color:#fff;text-transform:uppercase;line-height:1}.zvisa-title-sub{font-size:7px;letter-spacing:3.5px;color:rgba(255,255,255,.55);text-transform:uppercase;margin-top:1px}.zvisa-header-right{text-align:right;flex-shrink:0}.zvisa-header-country{font-size:14px;font-weight:900;letter-spacing:3px;color:#fff;text-transform:uppercase;line-height:1}.zvisa-header-schengen{font-size:7px;letter-spacing:2.5px;color:rgba(255,255,255,.6);text-transform:uppercase;margin-top:2px;border-top:1px solid rgba(255,255,255,.2);padding-top:2px}.zvisa-photo-box{left:16px;top:68px;z-index:6;width:124px;height:164px;background:#cfc0b4;border:1px solid rgba(0,0,0,.3);border-bottom:none;overflow:hidden;display:flex;align-items:center;justify-content:center}.zvisa-photo-box img{width:100%;height:100%;object-fit:cover;display:block}.zvisa-photo-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;height:100%;background:#cfc0b4}.zvisa-photo-ph span{font-size:6.5px;color:#888;letter-spacing:2px;font-family:Arial,sans-serif;font-weight:600;text-transform:uppercase}.zvisa-photo-label{left:16px;top:232px;width:124px;z-index:6;background:rgba(0,0,0,.07);border:1px solid rgba(0,0,0,.2);border-top:none;padding:3px 0;text-align:center;font-size:5.5px;color:#444;font-style:italic;font-family:Arial,sans-serif;line-height:1.5}.zvisa-fields{left:150px;top:60px;right:30px;bottom:64px;z-index:6;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.2)}.zvf-row{display:flex;flex:1;min-height:0;border-bottom:1px solid rgba(0,0,0,.16)}.zvf-row:last-child{border-bottom:none}.zvf-cell{display:flex;flex-direction:column;justify-content:center;padding:2px 6px 2px 5px;flex:1;min-width:0;border-right:1px solid rgba(0,0,0,.14);background:rgba(255,255,255,.04)}.zvf-cell:last-child{border-right:none}.zvf-cell.tint{background:rgba(0,0,60,.025)}.zvf-lbl{font-size:5px;font-weight:400;color:#2a2420;line-height:1.25;margin-bottom:1px;white-space:nowrap;font-family:Arial,sans-serif;font-style:italic;opacity:.75}.zvf-val{font-size:12px;font-weight:700;color:#060606;letter-spacing:.05px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Arial,sans-serif}.zvf-val.lg{font-size:14px}.zvf-val.xl{font-size:22px;font-weight:900;letter-spacing:-1px}.zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1.8px;font-size:11px}.zvf-type-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:2.5px solid #1e4494;border-radius:3px;font-size:20px;font-weight:900;color:#1e4494;font-family:Arial,sans-serif;background:rgba(255,255,255,.5);line-height:1}.zvisa-mrz-strip{bottom:0;left:6px;right:28px;height:62px;z-index:7;background:rgba(255,255,255,.52);border-top:2px solid rgba(0,0,0,.25);display:flex;flex-direction:column;justify-content:center;padding:4px 10px 4px 8px;gap:0}.zvisa-mrz-line{font-family:'Courier New',monospace;font-size:9.5px;font-weight:400;letter-spacing:2.8px;color:#000;line-height:1.75;white-space:nowrap;overflow:hidden}.zvisa-mrz-line:first-child{font-weight:600}@media print{body{background:white;padding:0}.print-btn{display:none}}`;
+  // ── PRINT CSS — fully self-contained, forces colour printing ──
+  const printCSS=`
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{background:#888;display:flex;align-items:flex-start;justify-content:center;padding:30px;min-height:100vh;}
+    @media print{
+      html,body{background:white!important;padding:0!important;}
+      .print-btn{display:none!important;}
+      *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}
+    }
+    .z-visa-wrap{display:flex;justify-content:center;align-items:center;padding:0;}
+    .zvisa{position:relative;overflow:hidden;width:756px;height:553px;border-radius:2px;
+      box-shadow:0 24px 64px rgba(0,0,0,.6);font-family:Arial,Helvetica,sans-serif;
+      background:#e8d9c8;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;}
+    .zvisa-bg{position:absolute;inset:0;z-index:0;}
+    .zvisa-bg svg{width:100%;height:100%;display:block;}
+    .zvisa-wm{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);z-index:1;opacity:.055;pointer-events:none;}
+    .zvisa-holo{position:absolute;right:0;top:0;bottom:0;width:26px;z-index:8;
+      background:repeating-linear-gradient(172deg,#ff2222 0px,#ff2222 2px,#ffcc00 2px,#ffcc00 4px,#22dd88 4px,#22dd88 6px,#2299ff 6px,#2299ff 8px,#cc22ff 8px,#cc22ff 10px,#ff2222 10px,#ff2222 12px,#ffcc00 12px,#ffcc00 14px,#22dd88 14px,#22dd88 16px,#2299ff 16px,#2299ff 18px,#cc22ff 18px,#cc22ff 20px);
+      border-left:1.5px solid rgba(255,255,255,.5);}
+    .zvisa-holo::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.35) 0%,rgba(255,255,255,.05) 40%,rgba(255,255,255,.2) 75%,rgba(255,255,255,.05) 100%);}
+    .zvisa-header{position:absolute;top:0;left:0;right:26px;height:60px;z-index:6;background:#1a3a6e;display:flex;align-items:center;padding:0 16px 0 10px;border-bottom:2.5px solid #0b1e3e;}
+    .zvisa-eu-badge{flex-shrink:0;margin-right:10px;position:relative;}
+    .zvisa-title{font-size:30px;font-weight:900;letter-spacing:10px;color:#fff;margin-right:auto;text-transform:uppercase;padding-left:4px;}
+    .zvisa-issuing{font-size:11px;font-weight:700;letter-spacing:2.5px;color:#fff;text-transform:uppercase;text-align:right;line-height:1.5;}
+    .zvisa-issuing span{display:block;font-size:7.5px;opacity:.65;letter-spacing:1.5px;margin-top:1px;}
+    .zvisa-photo{position:absolute;left:12px;top:70px;z-index:5;width:122px;height:163px;background:#c8b8a8;border:1px solid rgba(0,0,0,.28);overflow:hidden;display:flex;align-items:center;justify-content:center;}
+    .zvisa-photo img{width:100%;height:100%;object-fit:cover;display:block;mix-blend-mode:multiply;}
+    .zvisa-photo-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;height:100%;background:#c8b8a8;}
+    .zvisa-photo-ph span{font-size:6.5px;color:#7a6a5a;letter-spacing:2px;font-family:Arial,sans-serif;font-weight:700;text-transform:uppercase;}
+    .zvisa-photo-label{position:absolute;left:12px;top:233px;width:122px;z-index:5;background:rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.18);border-top:none;text-align:center;font-size:5.5px;color:#333;font-style:italic;font-family:Arial,sans-serif;padding:3px 2px;line-height:1.6;}
+    .zvisa-fields{position:absolute;left:146px;top:62px;right:28px;bottom:72px;z-index:5;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.18);}
+    .zvf-row{display:flex;flex:1;min-height:0;border-bottom:1px solid rgba(0,0,0,.15);}
+    .zvf-row:last-child{border-bottom:none;}
+    .zvf-cell{display:flex;flex-direction:column;justify-content:center;padding:2px 6px 2px 5px;flex:1;min-width:0;border-right:1px solid rgba(0,0,0,.15);}
+    .zvf-cell:last-child{border-right:none;}
+    .zvf-lbl{font-size:5px;font-weight:400;color:#1a1a1a;line-height:1.3;margin-bottom:1px;white-space:nowrap;font-family:Arial,sans-serif;font-style:italic;opacity:.7;}
+    .zvf-val{font-size:12px;font-weight:700;color:#000;letter-spacing:.05px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Arial,sans-serif;}
+    .zvf-val.big{font-size:22px;font-weight:900;}
+    .zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1.5px;font-size:11px;}
+    .zvf-type{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:2.5px solid #1a3a6e;border-radius:3px;font-size:20px;font-weight:900;color:#1a3a6e;font-family:Arial,sans-serif;background:rgba(255,255,255,.55);}
+    .zvisa-mrz{position:absolute;bottom:0;left:0;right:0;height:70px;z-index:6;background:#e2d4c2;border-top:2px solid rgba(0,0,0,.3);display:flex;flex-direction:column;justify-content:center;padding:4px 10px 4px 8px;gap:1px;}
+    .zvisa-mrz-line{font-family:'Courier New',monospace;font-size:10px;font-weight:700;letter-spacing:3px;color:#000;line-height:1.8;white-space:nowrap;overflow:hidden;display:block;}
+    .print-btn{display:block;margin:28px auto 0;padding:14px 40px;background:#1a3a6e;color:#FFD700;border:none;border-radius:8px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1.5px;font-family:Arial,sans-serif;}
+  `;
 
   return `
   <div class="z-visa-wrap" id="visa-sticker-${v.ref||'preview'}">
   <div class="zvisa">
 
-    <!-- Layer 0: parchment paper base -->
-    <div class="zvisa-bg">${bg}</div>
+    <!-- Guilloche parchment background -->
+    <div class="zvisa-bg">${guilloche}</div>
 
-    <!-- Layer 1: guilloche security waves -->
-    <div class="zvisa-guilloches">${waves}</div>
-
-    <!-- Layer 2: film grain texture -->
-    <div class="zvisa-grain"></div>
-
-    <!-- Layer 3: EU watermark -->
+    <!-- EU watermark -->
     <div class="zvisa-wm">${wm}</div>
 
-    <!-- Layer 8: left security bar -->
-    <div class="zvisa-left-bar"></div>
-
-    <!-- Layer 8: right OVD holographic strip -->
+    <!-- Right holographic OVD strip -->
     <div class="zvisa-holo"></div>
 
-    <!-- Layer 7: HEADER BAND -->
+    <!-- HEADER BAND -->
     <div class="zvisa-header">
-      <div class="zvisa-eu-badge">${euBadge}</div>
-      <div class="zvisa-title-block">
-        <div class="zvisa-title-visa">VISA</div>
-        <div class="zvisa-title-sub">SCHENGEN · TYPE ${typeCode} · SHORT STAY</div>
-      </div>
-      <div class="zvisa-header-right">
-        <div class="zvisa-header-country">${(v.country||'SCHENGEN').toUpperCase()}</div>
-        <div class="zvisa-header-schengen">ESPACE SCHENGEN · SCHENGENRAUM</div>
+      <div class="zvisa-eu-badge">${euSVG}</div>
+      <div class="zvisa-title">VISA</div>
+      <div class="zvisa-issuing">
+        ${countryUpper}
+        <span>SCHENGEN · TYPE ${typeCode}</span>
       </div>
     </div>
 
     <!-- Photo -->
-    <div class="zvisa-photo-box">${photo}</div>
-    <div class="zvisa-photo-label">
-      Titulaire / Holder<br>
-      Titular / Inhaber
-    </div>
+    <div class="zvisa-photo">${photo}</div>
+    <div class="zvisa-photo-label">Titulaire / Holder<br>Titular / Inhaber</div>
 
-    <!-- DATA FIELDS — 6 rows, exact Schengen layout -->
+    <!-- DATA FIELDS -->
     <div class="zvisa-fields">
 
-      <!-- R1: VALID FOR — full width -->
-      <div class="zvf-row" style="flex:.85">
+      <!-- R1: VALID FOR -->
+      <div class="zvf-row" style="flex:.82">
         <div class="zvf-cell">
-          <div class="zvf-lbl">VALABLE POUR / VALID FOR / GÜLTIG FÜR / VÁLIDO PARA</div>
-          <div class="zvf-val lg" style="letter-spacing:.3px">${(v.validFor||'ÉTATS SCHENGEN / SCHENGEN STATES / SCHENGEN-STAATEN').toUpperCase()}</div>
+          <div class="zvf-lbl">VALABLE POUR / VALID FOR / GÜLTIG FÜR</div>
+          <div class="zvf-val" style="font-size:11px;letter-spacing:.3px">${(v.validFor||'ÉTATS SCHENGEN / SCHENGEN STATES').toUpperCase()}</div>
         </div>
       </div>
 
       <!-- R2: FROM | UNTIL | NR ENTRIES | TYPE -->
       <div class="zvf-row" style="flex:1.05">
-        <div class="zvf-cell tint" style="flex:1.1">
-          <div class="zvf-lbl">DU / FROM / VON / DESDE</div>
-          <div class="zvf-val lg">${fd(v.validFrom)}</div>
+        <div class="zvf-cell" style="flex:1.1">
+          <div class="zvf-lbl">DU / FROM / VON</div>
+          <div class="zvf-val" style="font-size:13px">${fd(v.validFrom)}</div>
         </div>
         <div class="zvf-cell" style="flex:1.1">
-          <div class="zvf-lbl">AU / UNTIL / BIS / HASTA</div>
-          <div class="zvf-val lg">${fd(v.validUntil)}</div>
+          <div class="zvf-lbl">AU / UNTIL / BIS</div>
+          <div class="zvf-val" style="font-size:13px">${fd(v.validUntil)}</div>
         </div>
-        <div class="zvf-cell tint" style="flex:1">
-          <div class="zvf-lbl">NR D'ENTRÉES / NR OF ENTRIES / ANZAHL EINREISEN</div>
-          <div class="zvf-val lg" style="letter-spacing:.5px">${(v.entries||'01').toUpperCase()}</div>
+        <div class="zvf-cell" style="flex:1">
+          <div class="zvf-lbl">NR D'ENTRÉES / NR OF ENTRIES</div>
+          <div class="zvf-val" style="font-size:13px">${(v.entries||'01').toUpperCase()}</div>
         </div>
-        <div class="zvf-cell" style="flex:.55;align-items:center;justify-content:center">
+        <div class="zvf-cell" style="flex:.52;align-items:center;justify-content:center;gap:1px">
           <div class="zvf-lbl" style="text-align:center">TYPE</div>
-          <div class="zvf-type-badge">${typeCode}</div>
+          <div class="zvf-type">${typeCode}</div>
         </div>
       </div>
 
       <!-- R3: DURATION | ISSUED IN | ISSUED ON -->
       <div class="zvf-row" style="flex:1.05">
         <div class="zvf-cell" style="flex:1">
-          <div class="zvf-lbl">DURÉE DU SÉJOUR / DURATION OF STAY / AUFENTHALTSDAUER</div>
-          <div class="zvf-val" style="display:flex;align-items:baseline;gap:3px">
-            <span class="zvf-val xl" style="font-size:24px">${v.duration||'—'}</span>
-            <span style="font-size:7.5px;font-weight:400;line-height:1.2;font-family:Arial">JOURS<br>DAYS</span>
+          <div class="zvf-lbl">DURÉE DU SÉJOUR / DURATION OF STAY</div>
+          <div style="display:flex;align-items:baseline;gap:3px">
+            <span class="zvf-val big">${v.duration||'—'}</span>
+            <span style="font-size:7px;font-weight:400;font-family:Arial;line-height:1.3;color:#111">JOURS<br>DAYS</span>
           </div>
         </div>
-        <div class="zvf-cell tint" style="flex:1.3">
+        <div class="zvf-cell" style="flex:1.25">
           <div class="zvf-lbl">DÉLIVRÉ À / ISSUED IN / AUSGESTELLT IN</div>
-          <div class="zvf-val">${(v.issuedIn||'CASABLANCA').toUpperCase()}</div>
+          <div class="zvf-val" style="font-size:11px">${(v.issuedIn||'CASABLANCA').toUpperCase()}</div>
         </div>
         <div class="zvf-cell" style="flex:.85">
-          <div class="zvf-lbl">LE / ON / AM / EL</div>
-          <div class="zvf-val">${fd(v.issuedOn)}</div>
+          <div class="zvf-lbl">LE / ON / AM</div>
+          <div class="zvf-val" style="font-size:12px">${fd(v.issuedOn)}</div>
         </div>
       </div>
 
-      <!-- R4: NUMBER | REMARKS -->
-      <div class="zvf-row" style="flex:.85">
-        <div class="zvf-cell tint" style="flex:1.5">
+      <!-- R4: VISA NUMBER | REMARKS -->
+      <div class="zvf-row" style="flex:.82">
+        <div class="zvf-cell" style="flex:1.5">
           <div class="zvf-lbl">NUMÉRO DU VISA / VISA NUMBER / VISUMNUMMER</div>
-          <div class="zvf-val mono" style="color:#1e4494">${(v.number||'— — — —').toUpperCase()}</div>
+          <div class="zvf-val mono" style="color:#1a3a6e">${(v.number||'— — — —').toUpperCase()}</div>
         </div>
         <div class="zvf-cell" style="flex:1">
           <div class="zvf-lbl">REMARQUES / REMARKS / ANMERKUNGEN</div>
-          <div class="zvf-val" style="font-size:9.5px;font-weight:600">${v.remarks||'NONE'}&nbsp;</div>
+          <div class="zvf-val" style="font-size:9.5px;font-weight:600">${v.remarks||'NONE'}</div>
         </div>
       </div>
 
-      <!-- R5: SURNAME AND GIVEN NAMES -->
-      <div class="zvf-row" style="flex:.9">
+      <!-- R5: NAME -->
+      <div class="zvf-row" style="flex:.88">
         <div class="zvf-cell">
-          <div class="zvf-lbl">NOM, PRÉNOMS / SURNAME, GIVEN NAMES / NAME, VORNAME / APELLIDOS, NOMBRES</div>
-          <div class="zvf-val lg">${v.surname ? (v.surname.toUpperCase() + '  ' + (v.givenNames||'').toUpperCase()) : '— — —'}</div>
+          <div class="zvf-lbl">NOM, PRÉNOMS / SURNAME, GIVEN NAMES / NAME, VORNAME</div>
+          <div class="zvf-val" style="font-size:13px;letter-spacing:.2px">${v.surname?(v.surname.toUpperCase()+'  '+(v.givenNames||'').toUpperCase()):'— — —'}</div>
         </div>
       </div>
 
       <!-- R6: PASSPORT | NATIONALITY | DOB | SEX -->
       <div class="zvf-row" style="flex:1.05">
-        <div class="zvf-cell tint" style="flex:1.3">
+        <div class="zvf-cell" style="flex:1.3">
           <div class="zvf-lbl">N° DE PASSEPORT / PASSPORT NO.</div>
           <div class="zvf-val mono">${(v.passportNo||'—').toUpperCase()}</div>
         </div>
         <div class="zvf-cell" style="flex:1.1">
-          <div class="zvf-lbl">NATIONALITÉ / NATIONALITY / NATIONALITÄT</div>
-          <div class="zvf-val">${(v.nationality||'—').toUpperCase()}</div>
+          <div class="zvf-lbl">NATIONALITÉ / NATIONALITY</div>
+          <div class="zvf-val" style="font-size:11px">${(v.nationality||'—').toUpperCase()}</div>
         </div>
-        <div class="zvf-cell tint" style="flex:1">
-          <div class="zvf-lbl">DATE NAISS. / DATE OF BIRTH / GEBURTSDATUM</div>
-          <div class="zvf-val">${fd(v.dob)}</div>
+        <div class="zvf-cell" style="flex:1">
+          <div class="zvf-lbl">DATE NAISS. / DATE OF BIRTH</div>
+          <div class="zvf-val" style="font-size:11px">${fd(v.dob)}</div>
         </div>
-        <div class="zvf-cell" style="flex:.45">
+        <div class="zvf-cell" style="flex:.42">
           <div class="zvf-lbl">SEXE/SEX</div>
-          <div class="zvf-val xl" style="font-size:18px">${(v.gender||'M').charAt(0).toUpperCase()}</div>
+          <div class="zvf-val big" style="font-size:18px">${(v.gender||'M').charAt(0).toUpperCase()}</div>
         </div>
       </div>
 
     </div><!-- /fields -->
 
-    <!-- MRZ — 3-line Schengen Visa MRZ -->
-    <div class="zvisa-mrz-strip">
+    <!-- MRZ — FULL WIDTH, taller, high contrast -->
+    <div class="zvisa-mrz">
       <div class="zvisa-mrz-line">${mrz[0]}</div>
       <div class="zvisa-mrz-line">${mrz[1]}</div>
       <div class="zvisa-mrz-line">${mrz[2]}</div>
@@ -2331,18 +2238,27 @@ window.issueVisa = async function() {
   }
 };
 
-// ── Unified print popup (extracts CSS embedded in renderZVisa output) ──
+// ── Unified print popup — embeds all CSS, forces colour printing ──
 function openVisaPopup(v) {
   const rendered = renderZVisa(v);
   const cssMatch = rendered.match(/<style id="zvisa-print-css-data"[^>]*>([\s\S]*?)<\/style>/);
   const css = cssMatch ? cssMatch[1] : '';
   const clean = rendered.replace(/<style id="zvisa-print-css-data"[\s\S]*?<\/style>/,'');
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Z Visa ${v.number||''}</title>
-  <style>${css} body{background:#b8b0a0;padding:24px;} .print-btn{display:block;margin:20px auto 0;padding:13px 36px;background:#c89b3c;color:#0a1628;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1px;font-family:Arial,sans-serif;}</style>
-  </head><body>
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Z Visa ${v.number||''}</title>
+  <style>
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}
+    ${css}
+  </style>
+</head>
+<body>
   ${clean}
   <button class="print-btn" onclick="window.print()">🖨  Print / Save as PDF</button>
-  </body></html>`;
+</body>
+</html>`;
   const w = window.open('','_blank');
   if (w) { w.document.write(html); w.document.close(); }
 }
