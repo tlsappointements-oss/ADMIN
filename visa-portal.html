@@ -205,149 +205,259 @@
   .toast.success{border-left-color:var(--green);}
   .toast.error{border-left-color:var(--red);}
 
-  /* ═══════════════════════════════════════════════════
-     Z VISA — PIXEL-PERFECT SCHENGEN STICKER REPLICA
-     Real card: 85.6mm × 53.98mm landscape (ID-1 / CR-80)
-     Screen render: 680px × 430px
-  ═══════════════════════════════════════════════════ */
-  .z-visa-wrap{display:flex;justify-content:center;align-items:center;padding:28px 8px;}
+  /* ═══════════════════════════════════════════════════════════════
+     Z VISA — PREMIUM SCHENGEN STICKER  |  105mm × 74mm → 756×533px
+  ═══════════════════════════════════════════════════════════════ */
+  .z-visa-wrap{
+    display:flex;justify-content:center;align-items:center;
+    padding:36px 12px;
+  }
 
-  /* ══ SCHENGEN VISA STICKER — exact proportions ══
-     Real sticker: 105mm × 74mm (A7 landscape)
-     Screen: 756px × 533px  */
   .zvisa{
     position:relative;overflow:hidden;
     width:756px;height:533px;
-    border-radius:3px;
-    box-shadow:0 20px 60px rgba(0,0,0,.55),0 4px 14px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.2);
-    font-family:Arial,sans-serif;
-    animation:zvReveal .45s cubic-bezier(.22,1,.36,1);
+    border-radius:2px;
+    box-shadow:
+      0 2px 0 rgba(255,255,255,.15) inset,
+      0 32px 80px rgba(0,0,0,.65),
+      0 8px 24px rgba(0,0,0,.4),
+      0 0 0 1px rgba(0,0,0,.35);
+    font-family:Arial,Helvetica,sans-serif;
+    animation:zvReveal .55s cubic-bezier(.16,1,.3,1) both;
     flex-shrink:0;
-    background:#f0dfd8; /* authentic salmon/rose tint */
+    background:#e8d5c4;
+    image-rendering:crisp-edges;
   }
-  @keyframes zvReveal{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
-
-  /* Security guilloche background */
-  .zvisa-bg{position:absolute;inset:0;z-index:0;}
-  .zvisa-bg svg{width:100%;height:100%;}
-
-  /* ── TOP BLUE HEADER BAND ── */
-  .zvisa-header{
-    position:absolute;top:0;left:0;right:0;height:52px;z-index:5;
-    background:#1a3a6e;
-    display:flex;align-items:center;padding:0 14px;gap:0;
-  }
-  /* EU circle of stars on left */
-  .zvisa-eu-stars{flex-shrink:0;margin-right:10px;}
-  /* VISA text */
-  .zvisa-title{
-    font-family:Arial,sans-serif;font-size:28px;font-weight:900;
-    letter-spacing:8px;color:#ffffff;margin-right:auto;
-    text-transform:uppercase;
-  }
-  /* Issuing country name top-right */
-  .zvisa-issuing{
-    font-size:11px;font-weight:700;letter-spacing:2px;
-    color:#ffffff;text-transform:uppercase;text-align:right;
-    line-height:1.3;
+  @keyframes zvReveal{
+    from{opacity:0;transform:translateY(16px) scale(.95) rotateX(4deg)}
+    to{opacity:1;transform:none}
   }
 
-  /* ── HOLOGRAPHIC STRIP — right edge, vertical ── */
+  /* ── LAYER STACK ── */
+  .zvisa-bg,
+  .zvisa-guilloches,
+  .zvisa-grain,
+  .zvisa-wm,
+  .zvisa-left-bar,
+  .zvisa-holo,
+  .zvisa-header,
+  .zvisa-photo-box,
+  .zvisa-photo-label,
+  .zvisa-fields,
+  .zvisa-mrz-strip{ position:absolute; }
+
+  /* 0 — parchment + coarse paper grain */
+  .zvisa-bg{ inset:0; z-index:0; }
+  .zvisa-bg svg{ width:100%; height:100%; display:block; }
+
+  /* 1 — guilloche wave layers */
+  .zvisa-guilloches{ inset:0; z-index:1; pointer-events:none; }
+  .zvisa-guilloches svg{ width:100%; height:100%; display:block; }
+
+  /* 2 — subtle film grain */
+  .zvisa-grain{
+    inset:0; z-index:2; pointer-events:none; opacity:.55;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    background-size:200px 200px;
+    mix-blend-mode:multiply;
+  }
+
+  /* 3 — EU circle-of-stars watermark */
+  .zvisa-wm{
+    left:50%;top:56%;transform:translate(-50%,-50%);
+    z-index:3; opacity:.055; pointer-events:none;
+  }
+
+  /* 4 — left security bar (dark blue) */
+  .zvisa-left-bar{
+    left:0;top:0;bottom:0;width:6px;z-index:8;
+    background:linear-gradient(180deg,#0f2554 0%,#1b3d8a 35%,#0f2554 65%,#1b3d8a 100%);
+  }
+
+  /* 5 — right holographic OVD strip */
   .zvisa-holo{
-    position:absolute;right:0;top:0;bottom:0;width:22px;z-index:6;
-    background:repeating-linear-gradient(
-      170deg,
-      rgba(255,50,50,.7)   0px, rgba(255,50,50,.7)   3px,
-      rgba(255,200,0,.65)  3px, rgba(255,200,0,.65)   6px,
-      rgba(50,220,120,.6)  6px, rgba(50,220,120,.6)   9px,
-      rgba(50,150,255,.65) 9px, rgba(50,150,255,.65) 12px,
-      rgba(180,50,255,.6) 12px, rgba(180,50,255,.6)  15px,
-      rgba(255,50,50,.7)  15px, rgba(255,50,50,.7)   18px
-    );
-    border-left:1px solid rgba(255,255,255,.3);
+    right:0;top:0;bottom:0;width:28px;z-index:8;
+    background:
+      repeating-linear-gradient(175deg,
+        rgba(255,30,30,.8)    0px ,rgba(255,30,30,.8)    2px,
+        rgba(255,180,0,.75)   2px ,rgba(255,180,0,.75)   4px,
+        rgba(20,210,100,.7)   4px ,rgba(20,210,100,.7)   6px,
+        rgba(20,140,255,.75)  6px ,rgba(20,140,255,.75)  8px,
+        rgba(200,30,255,.7)   8px ,rgba(200,30,255,.7)  10px,
+        rgba(255,30,30,.8)   10px ,rgba(255,30,30,.8)   12px,
+        rgba(255,180,0,.75)  12px ,rgba(255,180,0,.75)  14px,
+        rgba(20,210,100,.7)  14px ,rgba(20,210,100,.7)  16px,
+        rgba(20,140,255,.75) 16px ,rgba(20,140,255,.75) 18px,
+        rgba(200,30,255,.7)  18px ,rgba(200,30,255,.7)  20px
+      );
+    border-left:1.5px solid rgba(255,255,255,.4);
+    box-shadow:inset -1px 0 0 rgba(0,0,0,.3);
+  }
+  .zvisa-holo::before{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(180deg,
+      rgba(255,255,255,.22) 0%,
+      rgba(255,255,255,.04) 30%,
+      rgba(255,255,255,.12) 60%,
+      rgba(255,255,255,.02) 100%);
+    pointer-events:none;
+  }
+  /* OVD text running vertically */
+  .zvisa-holo::after{
+    content:'SCHENGEN VISA';
+    position:absolute;left:50%;top:50%;
+    transform:translate(-50%,-50%) rotate(90deg);
+    font-size:5px;font-weight:900;letter-spacing:3px;
+    color:rgba(255,255,255,.35);white-space:nowrap;
+    font-family:Arial,sans-serif;
   }
 
-  /* ── PHOTO BOX — top-left under header ── */
-  .zvisa-photo{
-    position:absolute;left:14px;top:62px;z-index:4;
-    width:116px;height:155px;
-    background:#e8ddd8;
-    border:1px solid rgba(0,0,0,.25);
+  /* 6 — NAVY HEADER BAND */
+  .zvisa-header{
+    top:0;left:6px;right:28px;height:58px;z-index:7;
+    background:linear-gradient(180deg,#1e4494 0%,#163070 60%,#10245a 100%);
+    display:flex;align-items:center;
+    padding:0 14px 0 12px;
+    border-bottom:2px solid #0a1836;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+  }
+  .zvisa-eu-badge{
+    flex-shrink:0;
+    width:44px;height:44px;
+    background:radial-gradient(circle,rgba(255,255,255,.08) 0%,transparent 70%);
+    display:flex;align-items:center;justify-content:center;
+    margin-right:10px;
+  }
+  .zvisa-title-block{ flex:1; }
+  .zvisa-title-visa{
+    font-size:30px;font-weight:900;letter-spacing:11px;
+    color:#fff;text-transform:uppercase;line-height:1;
+    text-shadow:0 1px 4px rgba(0,0,0,.5);
+  }
+  .zvisa-title-sub{
+    font-size:7px;letter-spacing:3.5px;color:rgba(255,255,255,.55);
+    text-transform:uppercase;margin-top:1px;font-weight:400;
+  }
+  .zvisa-header-right{ text-align:right;flex-shrink:0; }
+  .zvisa-header-country{
+    font-size:14px;font-weight:900;letter-spacing:3px;
+    color:#fff;text-transform:uppercase;line-height:1;
+  }
+  .zvisa-header-schengen{
+    font-size:7px;letter-spacing:2.5px;color:rgba(255,255,255,.6);
+    text-transform:uppercase;margin-top:2px;
+    border-top:1px solid rgba(255,255,255,.2);padding-top:2px;
+  }
+
+  /* 7 — PHOTO BOX */
+  .zvisa-photo-box{
+    left:16px;top:68px;z-index:6;
+    width:124px;height:164px;
+    background:linear-gradient(145deg,#d0c0b4,#c4b0a4);
+    border:1px solid rgba(0,0,0,.3);
+    border-bottom:none;
     overflow:hidden;
     display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 0 8px rgba(0,0,0,.18),1px 1px 0 rgba(255,255,255,.12);
   }
-  .zvisa-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .zvisa-photo-box img{ width:100%;height:100%;object-fit:cover;display:block; }
   .zvisa-photo-ph{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:5px;color:#999;font-size:8px;font-weight:700;letter-spacing:1px;
-    width:100%;height:100%;
-    background:#e8ddd8;
+    gap:6px;width:100%;height:100%;
+    background:linear-gradient(145deg,#cfc0b4,#c0b0a4);
+  }
+  .zvisa-photo-ph svg{ opacity:.45; }
+  .zvisa-photo-ph span{
+    font-size:6.5px;color:#888;letter-spacing:2px;
+    font-family:Arial,sans-serif;font-weight:600;text-transform:uppercase;
   }
 
-  /* ── FIELDS GRID ── */
+  /* photo caption bar */
+  .zvisa-photo-label{
+    left:16px;top:232px;width:124px;z-index:6;
+    background:rgba(0,0,0,.07);
+    border:1px solid rgba(0,0,0,.2);
+    border-top:none;
+    padding:3px 0;
+    text-align:center;
+    font-size:5.5px;color:#444;font-style:italic;
+    font-family:Arial,sans-serif;line-height:1.5;
+  }
+
+  /* 8 — DATA FIELDS TABLE */
   .zvisa-fields{
-    position:absolute;
-    left:142px;top:54px;right:30px;bottom:58px;
-    z-index:4;
+    left:150px;top:60px;right:30px;bottom:64px;
+    z-index:6;
     display:flex;flex-direction:column;
-    border:1px solid rgba(0,0,0,.15);
-    background:transparent;
+    border:1px solid rgba(0,0,0,.2);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
   }
   .zvf-row{
     display:flex;flex:1;min-height:0;
-    border-bottom:1px solid rgba(0,0,0,.13);
+    border-bottom:1px solid rgba(0,0,0,.16);
   }
-  .zvf-row:last-child{border-bottom:none;}
+  .zvf-row:last-child{ border-bottom:none; }
   .zvf-cell{
     display:flex;flex-direction:column;justify-content:center;
-    padding:2px 5px 2px 5px;
+    padding:2px 6px 2px 5px;
     flex:1;min-width:0;
-    border-right:1px solid rgba(0,0,0,.13);
+    border-right:1px solid rgba(0,0,0,.14);
+    background:rgba(255,255,255,.04);
     position:relative;
   }
-  .zvf-cell:last-child{border-right:none;}
+  .zvf-cell:last-child{ border-right:none; }
+  /* alternating subtle tint every other cell */
+  .zvf-cell.tint{ background:rgba(0,0,60,.025); }
+
+  /* bilingual italic micro-label */
   .zvf-lbl{
-    font-size:5.5px;font-weight:400;
-    color:#333;line-height:1;margin-bottom:1px;
+    font-size:5px;font-weight:400;color:#2a2420;
+    line-height:1.25;margin-bottom:1px;
     white-space:nowrap;font-family:Arial,sans-serif;
-    font-style:italic;
+    font-style:italic;opacity:.75;
   }
+  /* main value */
   .zvf-val{
-    font-size:11px;font-weight:700;color:#000;
-    letter-spacing:.1px;line-height:1.15;
+    font-size:12px;font-weight:700;color:#060606;
+    letter-spacing:.05px;line-height:1.15;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     font-family:Arial,sans-serif;
   }
-  .zvf-val.big{font-size:20px;font-weight:900;letter-spacing:0;}
-  .zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1px;}
-
-  /* ── BOTTOM AREA: remarks + photo label below fields ── */
-  .zvisa-bottom-label{
-    position:absolute;left:14px;top:220px;width:116px;z-index:4;
-    font-size:5.5px;color:#555;text-align:center;font-style:italic;
+  .zvf-val.lg{ font-size:14px; }
+  .zvf-val.xl{ font-size:22px;font-weight:900;letter-spacing:-1px; }
+  .zvf-val.mono{
+    font-family:'Courier New',monospace;
+    letter-spacing:1.8px;font-size:11px;
+  }
+  /* type code badge */
+  .zvf-type-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:28px;
+    border:2.5px solid #1e4494;border-radius:3px;
+    font-size:20px;font-weight:900;color:#1e4494;
     font-family:Arial,sans-serif;
+    background:rgba(255,255,255,.5);
+    line-height:1;
   }
 
-  /* ── MRZ STRIP ── */
-  .zvisa-mrz{
-    position:absolute;bottom:0;left:0;right:22px;height:56px;z-index:4;
-    background:rgba(255,255,255,.5);
-    border-top:1px solid rgba(0,0,0,.2);
+  /* 9 — MRZ STRIP */
+  .zvisa-mrz-strip{
+    bottom:0;left:6px;right:28px;height:62px;z-index:7;
+    background:rgba(255,255,255,.52);
+    border-top:2px solid rgba(0,0,0,.25);
     display:flex;flex-direction:column;justify-content:center;
-    padding:0 10px;gap:2px;
+    padding:4px 10px 4px 8px;gap:0;
+    backdrop-filter:blur(1px);
   }
   .zvisa-mrz-line{
     font-family:'Courier New',monospace;
-    font-size:8.5px;font-weight:400;letter-spacing:3px;
-    color:#000;line-height:1.6;
+    font-size:9.5px;font-weight:400;letter-spacing:2.8px;
+    color:#000;line-height:1.75;
     white-space:nowrap;overflow:hidden;
+    text-shadow:none;
   }
-
-  /* EU watermark */
-  .zvisa-wm{
-    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    z-index:1;opacity:.06;pointer-events:none;
-  }
+  /* first MRZ line slightly bolder */
+  .zvisa-mrz-line:first-child{ font-weight:600; }
 </style>
 </head>
 <body>
@@ -1739,8 +1849,9 @@ function buildMRZ(v) {
 function renderZVisa(v) {
   const mrz = buildMRZ(v);
 
+  // Format date  DD.MM.YYYY
   const fd = d => {
-    if (!d) return '- - -';
+    if (!d) return '— — —';
     try {
       const dt = new Date(d+'T12:00:00');
       return String(dt.getDate()).padStart(2,'0') + '.' +
@@ -1749,213 +1860,248 @@ function renderZVisa(v) {
     } catch { return d; }
   };
 
+  // ── PHOTO ──
   const photo = v.photoUrl
     ? `<img src="${v.photoUrl}" alt="Photo">`
     : `<div class="zvisa-photo-ph">
-        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.2">
-          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        <svg width="52" height="58" viewBox="0 0 52 58" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="26" cy="20" rx="12" ry="14" fill="#a09088"/>
+          <path d="M2 58c0-15 10-23 24-23s24 8 24 23" fill="#a09088"/>
         </svg>
-        <span style="font-size:7px;color:#aaa;letter-spacing:1px">PHOTO</span>
+        <span>PHOTO</span>
       </div>`;
 
-  // EU circle of 12 gold stars (top-left of header)
-  const starPath = (cx,cy,r=6) => {
-    const pts=[];
-    for(let i=0;i<5;i++){
-      const outerA=(i*72-90)*Math.PI/180;
-      const innerA=(i*72-90+36)*Math.PI/180;
-      pts.push(`${cx+r*Math.cos(outerA)},${cy+r*Math.sin(outerA)}`);
-      pts.push(`${cx+(r*.38)*Math.cos(innerA)},${cy+(r*.38)*Math.sin(innerA)}`);
-    }
-    return `<polygon points="${pts.join(' ')}" fill="#FFD700"/>`;
-  };
-  const euCircleSVG = `<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg">
+  // ── EU 12-STAR BADGE (header) ──
+  const star5=(cx,cy,r)=>{const p=[];for(let i=0;i<5;i++){const oa=(i*72-90)*Math.PI/180,ia=(i*72-90+36)*Math.PI/180;p.push(`${cx+r*Math.cos(oa)},${cy+r*Math.sin(oa)}`);p.push(`${cx+r*.38*Math.cos(ia)},${cy+r*.38*Math.sin(ia)}`);}return`<polygon points="${p.join(' ')}" fill="#FFD700"/>`;};
+  const euBadge=`<svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,215,0,.3)" stroke-width=".5"/>
+    ${Array.from({length:12},(_,i)=>{const a=(i*30-90)*Math.PI/180,r=16;return star5(22+r*Math.cos(a),22+r*Math.sin(a),4.8);}).join('')}
+  </svg>`;
+
+  // ── EU LARGE WATERMARK ──
+  const wm=`<svg width="340" height="340" viewBox="0 0 340 340" xmlns="http://www.w3.org/2000/svg">
     ${Array.from({length:12},(_,i)=>{
-      const a=(i*30-90)*Math.PI/180, r=14;
-      return starPath(19+r*Math.cos(a), 19+r*Math.sin(a), 4);
+      const a=(i*30-90)*Math.PI/180,R=128,cx=170+R*Math.cos(a),cy=170+R*Math.sin(a);
+      const p=[];for(let j=0;j<5;j++){const oa=(j*72-90)*Math.PI/180,ia=(j*72-90+36)*Math.PI/180;p.push(`${cx+21*Math.cos(oa)},${cy+21*Math.sin(oa)}`);p.push(`${cx+8*Math.cos(ia)},${cy+8*Math.sin(ia)}`);}
+      return `<polygon points="${p.join(' ')}" fill="#0a2060"/>`;
     }).join('')}
+    <text x="170" y="184" text-anchor="middle" font-family="Arial" font-size="48" font-weight="900" fill="#0a2060" opacity=".9">EU</text>
   </svg>`;
 
-  // Large EU watermark behind everything
-  const wmSVG = `<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
-    ${Array.from({length:12},(_,i)=>{
-      const a=(i*30-90)*Math.PI/180, r=110;
-      const cx=150+r*Math.cos(a), cy=150+r*Math.sin(a);
-      const pts=[];
-      for(let j=0;j<5;j++){
-        const oa=(j*72-90)*Math.PI/180, ia=(j*72-90+36)*Math.PI/180;
-        pts.push(`${cx+18*Math.cos(oa)},${cy+18*Math.sin(oa)}`);
-        pts.push(`${cx+7*Math.cos(ia)},${cy+7*Math.sin(ia)}`);
-      }
-      return `<polygon points="${pts.join(' ')}" fill="#003399"/>`;
-    }).join('')}
+  // ── VISA TYPE ──
+  const typeCode = (v.visaTypeCode||'C').toUpperCase();
+
+  // ── PARCHMENT BACKGROUND ──
+  // Three layers: base paper, micro-grid, colour waves
+  const bg=`<svg viewBox="0 0 756 533" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#ecdcc8"/>
+        <stop offset="50%" stop-color="#e8d5c0"/>
+        <stop offset="100%" stop-color="#e0cdb8"/>
+      </linearGradient>
+    </defs>
+    <rect width="756" height="533" fill="url(#pg)"/>
   </svg>`;
 
-  // Guilloche security background — authentic salmon base + colored wave bands
-  const guilloche = `<svg viewBox="0 0 756 533" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-    <rect width="756" height="533" fill="#f0dfd8"/>
+  // ── GUILLOCHE WAVES ──
+  // 5 colour bands × 20 lines each, plus cross-hatch micro-pattern
+  const waves=`<svg viewBox="0 0 756 533" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+    <defs>
+      <clipPath id="bodyClip"><rect x="6" y="60" width="722" height="411"/></clipPath>
+    </defs>
+    <g clip-path="url(#bodyClip)">
 
-    <!-- Fine dot/grid base -->
-    ${Array.from({length:76},(_,i)=>`<line x1="${i*10}" y1="52" x2="${i*10}" y2="533" stroke="rgba(120,60,40,.05)" stroke-width=".4"/>`).join('')}
-    ${Array.from({length:49},(_,i)=>`<line x1="0" y1="${52+i*10}" x2="734" y2="${52+i*10}" stroke="rgba(120,60,40,.05)" stroke-width=".4"/>`).join('')}
+    <!-- micro vertical grid -->
+    ${Array.from({length:72},(_,i)=>`<line x1="${6+i*10}" y1="60" x2="${6+i*10}" y2="471" stroke="rgba(100,50,20,.04)" stroke-width=".3"/>`).join('')}
+    <!-- micro horizontal grid -->
+    ${Array.from({length:42},(_,i)=>`<line x1="6" y1="${60+i*10}" x2="728" y2="${60+i*10}" stroke="rgba(100,50,20,.04)" stroke-width=".3"/>`).join('')}
 
-    <!-- BLUE/INDIGO wave band — upper -->
-    ${Array.from({length:18},(_,i)=>{
-      const y=80+i*8, amp=12, freq=.014;
-      const pts=Array.from({length:38},(_,j)=>`${j*20},${y+amp*Math.sin(j*20*freq+i*.5)}`).join(' ');
-      return `<polyline points="${pts}" fill="none" stroke="rgba(30,60,180,${.1-i*.004})" stroke-width="${1.2-i*.03}"/>`;
+    <!-- DEEP INDIGO — upper -->
+    ${Array.from({length:22},(_,i)=>{
+      const y=72+i*7.5,a=14,f=.013,ph=i*.42;
+      const pts=Array.from({length:42},(_,j)=>`${6+j*17},${y+a*Math.sin(j*17*f+ph)}`).join(' ');
+      return `<polyline points="${pts}" fill="none" stroke="rgba(20,40,160,${.12-i*.005})" stroke-width="${1.4-i*.028}"/>`;
     }).join('')}
 
-    <!-- MAGENTA wave band — mid upper -->
+    <!-- CRIMSON — mid-upper -->
+    ${Array.from({length:20},(_,i)=>{
+      const y=220+i*8,a=16,f=.016,ph=i*.38+1.1;
+      const pts=Array.from({length:42},(_,j)=>`${6+j*17},${y+a*Math.sin(j*17*f+ph)}`).join(' ');
+      return `<polyline points="${pts}" fill="none" stroke="rgba(185,20,60,${.11-i*.005})" stroke-width="${1.3-i*.028}"/>`;
+    }).join('')}
+
+    <!-- TEAL — centre -->
+    ${Array.from({length:20},(_,i)=>{
+      const y=310+i*7.5,a=14,f=.014,ph=i*.44+2.3;
+      const pts=Array.from({length:42},(_,j)=>`${6+j*17},${y+a*Math.sin(j*17*f+ph)}`).join(' ');
+      return `<polyline points="${pts}" fill="none" stroke="rgba(0,130,110,${.10-i*.005})" stroke-width="${1.25-i*.025}"/>`;
+    }).join('')}
+
+    <!-- AMBER — lower -->
     ${Array.from({length:16},(_,i)=>{
-      const y=200+i*9, amp=14, freq=.018;
-      const pts=Array.from({length:38},(_,j)=>`${j*20},${y+amp*Math.sin(j*20*freq+i*.4+1.1)}`).join(' ');
-      return `<polyline points="${pts}" fill="none" stroke="rgba(200,30,120,${.09-i*.004})" stroke-width="${1.2-i*.03}"/>`;
+      const y=408+i*6,a=10,f=.018,ph=i*.5+0.6;
+      const pts=Array.from({length:42},(_,j)=>`${6+j*17},${y+a*Math.sin(j*17*f+ph)}`).join(' ');
+      return `<polyline points="${pts}" fill="none" stroke="rgba(195,100,0,${.09-i*.005})" stroke-width="${1.15-i*.025}"/>`;
     }).join('')}
 
-    <!-- GREEN/TEAL wave band — mid lower -->
-    ${Array.from({length:16},(_,i)=>{
-      const y=305+i*9, amp=13, freq=.016;
-      const pts=Array.from({length:38},(_,j)=>`${j*20},${y+amp*Math.sin(j*20*freq+i*.45+2.2)}`).join(' ');
-      return `<polyline points="${pts}" fill="none" stroke="rgba(0,150,120,${.09-i*.004})" stroke-width="${1.2-i*.03}"/>`;
-    }).join('')}
+    <!-- security diagonal hatching -->
+    ${Array.from({length:36},(_,i)=>`<line x1="${6+i*20}" y1="60" x2="${6+i*20+240}" y2="471" stroke="rgba(60,20,5,.016)" stroke-width=".4"/>`).join('')}
+    ${Array.from({length:30},(_,i)=>`<line x1="${728-i*24}" y1="60" x2="${728-i*24-180}" y2="471" stroke="rgba(20,10,60,.012)" stroke-width=".35"/>`).join('')}
 
-    <!-- ORANGE wave band — lower -->
-    ${Array.from({length:14},(_,i)=>{
-      const y=415+i*7, amp=10, freq=.02;
-      const pts=Array.from({length:38},(_,j)=>`${j*20},${y+amp*Math.sin(j*20*freq+i*.55+0.7)}`).join(' ');
-      return `<polyline points="${pts}" fill="none" stroke="rgba(210,110,0,${.08-i*.004})" stroke-width="${1.1-i*.03}"/>`;
-    }).join('')}
-
-    <!-- Micro diagonal lines -->
-    ${Array.from({length:30},(_,i)=>`<line x1="${i*26}" y1="52" x2="${i*26+260}" y2="533" stroke="rgba(80,30,10,.018)" stroke-width=".5"/>`).join('')}
+    <!-- large arc rosettes — decorative background element -->
+    <path d="M80,265 Q200,120 370,200 Q540,280 640,165" fill="none" stroke="rgba(30,50,150,.04)" stroke-width="18"/>
+    <path d="M80,265 Q200,380 370,310 Q540,240 640,355" fill="none" stroke="rgba(30,50,150,.04)" stroke-width="18"/>
+    <path d="M80,265 Q300,160 500,265 Q680,365 728,265" fill="none" stroke="rgba(180,30,60,.03)" stroke-width="14"/>
+    </g>
   </svg>`;
 
-  // Print CSS for popup
-  const printCSS = `*{margin:0;padding:0;box-sizing:border-box}body{background:#888;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:30px}.zvisa{position:relative;overflow:hidden;width:756px;height:533px;border-radius:3px;box-shadow:0 20px 60px rgba(0,0,0,.55);font-family:Arial,sans-serif;background:#f0dfd8}.zvisa-bg{position:absolute;inset:0;z-index:0}.zvisa-bg svg{width:100%;height:100%}.zvisa-holo{position:absolute;right:0;top:0;bottom:0;width:22px;z-index:6;background:repeating-linear-gradient(170deg,rgba(255,50,50,.7) 0px,rgba(255,50,50,.7) 3px,rgba(255,200,0,.65) 3px,rgba(255,200,0,.65) 6px,rgba(50,220,120,.6) 6px,rgba(50,220,120,.6) 9px,rgba(50,150,255,.65) 9px,rgba(50,150,255,.65) 12px,rgba(180,50,255,.6) 12px,rgba(180,50,255,.6) 15px,rgba(255,50,50,.7) 15px,rgba(255,50,50,.7) 18px);border-left:1px solid rgba(255,255,255,.3)}.zvisa-header{position:absolute;top:0;left:0;right:0;height:52px;z-index:5;background:#1a3a6e;display:flex;align-items:center;padding:0 14px;gap:0}.zvisa-title{font-family:Arial,sans-serif;font-size:28px;font-weight:900;letter-spacing:8px;color:#fff;margin-right:auto;text-transform:uppercase}.zvisa-issuing{font-size:11px;font-weight:700;letter-spacing:2px;color:#fff;text-transform:uppercase;text-align:right;line-height:1.3}.zvisa-photo{position:absolute;left:14px;top:62px;z-index:4;width:116px;height:155px;background:#e8ddd8;border:1px solid rgba(0,0,0,.25);overflow:hidden;display:flex;align-items:center;justify-content:center}.zvisa-photo img{width:100%;height:100%;object-fit:cover}.zvisa-photo-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#999;font-size:8px;font-weight:700;letter-spacing:1px;width:100%;height:100%;background:#e8ddd8}.zvisa-fields{position:absolute;left:142px;top:54px;right:30px;bottom:58px;z-index:4;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.15)}.zvf-row{display:flex;flex:1;min-height:0;border-bottom:1px solid rgba(0,0,0,.13)}.zvf-row:last-child{border-bottom:none}.zvf-cell{display:flex;flex-direction:column;justify-content:center;padding:2px 5px;flex:1;min-width:0;border-right:1px solid rgba(0,0,0,.13)}.zvf-cell:last-child{border-right:none}.zvf-lbl{font-size:5.5px;font-weight:400;color:#333;line-height:1;margin-bottom:1px;white-space:nowrap;font-family:Arial,sans-serif;font-style:italic}.zvf-val{font-size:11px;font-weight:700;color:#000;letter-spacing:.1px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Arial,sans-serif}.zvf-val.big{font-size:20px;font-weight:900}.zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1px}.zvisa-bottom-label{position:absolute;left:14px;top:220px;width:116px;z-index:4;font-size:5.5px;color:#555;text-align:center;font-style:italic;font-family:Arial,sans-serif}.zvisa-mrz{position:absolute;bottom:0;left:0;right:22px;height:56px;z-index:4;background:rgba(255,255,255,.5);border-top:1px solid rgba(0,0,0,.2);display:flex;flex-direction:column;justify-content:center;padding:0 10px;gap:2px}.zvisa-mrz-line{font-family:'Courier New',monospace;font-size:8.5px;font-weight:400;letter-spacing:3px;color:#000;line-height:1.6;white-space:nowrap;overflow:hidden}.zvisa-wm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;opacity:.06;pointer-events:none}@media print{body{background:white;padding:0}button{display:none}}`;
+  // ── PRINT CSS (fully self-contained) ──
+  const printCSS=`.z-visa-wrap{display:flex;justify-content:center;padding:30px;background:#777}.zvisa{position:relative;overflow:hidden;width:756px;height:533px;border-radius:2px;box-shadow:0 30px 80px rgba(0,0,0,.65);font-family:Arial,sans-serif;background:#e8d5c0}.zvisa-bg,.zvisa-guilloches,.zvisa-grain,.zvisa-wm,.zvisa-left-bar,.zvisa-holo,.zvisa-header,.zvisa-photo-box,.zvisa-photo-label,.zvisa-fields,.zvisa-mrz-strip{position:absolute}.zvisa-bg{inset:0;z-index:0}.zvisa-bg svg{width:100%;height:100%;display:block}.zvisa-guilloches{inset:0;z-index:1;pointer-events:none}.zvisa-guilloches svg{width:100%;height:100%;display:block}.zvisa-grain{inset:0;z-index:2;pointer-events:none;opacity:.5;mix-blend-mode:multiply}.zvisa-wm{left:50%;top:56%;transform:translate(-50%,-50%);z-index:3;opacity:.055;pointer-events:none}.zvisa-left-bar{left:0;top:0;bottom:0;width:6px;z-index:8;background:linear-gradient(180deg,#0f2554 0%,#1b3d8a 35%,#0f2554 65%,#1b3d8a 100%)}.zvisa-holo{right:0;top:0;bottom:0;width:28px;z-index:8;background:repeating-linear-gradient(175deg,rgba(255,30,30,.8) 0px,rgba(255,30,30,.8) 2px,rgba(255,180,0,.75) 2px,rgba(255,180,0,.75) 4px,rgba(20,210,100,.7) 4px,rgba(20,210,100,.7) 6px,rgba(20,140,255,.75) 6px,rgba(20,140,255,.75) 8px,rgba(200,30,255,.7) 8px,rgba(200,30,255,.7) 10px,rgba(255,30,30,.8) 10px,rgba(255,30,30,.8) 12px,rgba(255,180,0,.75) 12px,rgba(255,180,0,.75) 14px,rgba(20,210,100,.7) 14px,rgba(20,210,100,.7) 16px,rgba(20,140,255,.75) 16px,rgba(20,140,255,.75) 18px,rgba(200,30,255,.7) 18px,rgba(200,30,255,.7) 20px);border-left:1.5px solid rgba(255,255,255,.4)}.zvisa-header{top:0;left:6px;right:28px;height:58px;z-index:7;background:linear-gradient(180deg,#1e4494 0%,#163070 60%,#10245a 100%);display:flex;align-items:center;padding:0 14px 0 12px;border-bottom:2px solid #0a1836}.zvisa-eu-badge{flex-shrink:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin-right:10px}.zvisa-title-block{flex:1}.zvisa-title-visa{font-size:30px;font-weight:900;letter-spacing:11px;color:#fff;text-transform:uppercase;line-height:1}.zvisa-title-sub{font-size:7px;letter-spacing:3.5px;color:rgba(255,255,255,.55);text-transform:uppercase;margin-top:1px}.zvisa-header-right{text-align:right;flex-shrink:0}.zvisa-header-country{font-size:14px;font-weight:900;letter-spacing:3px;color:#fff;text-transform:uppercase;line-height:1}.zvisa-header-schengen{font-size:7px;letter-spacing:2.5px;color:rgba(255,255,255,.6);text-transform:uppercase;margin-top:2px;border-top:1px solid rgba(255,255,255,.2);padding-top:2px}.zvisa-photo-box{left:16px;top:68px;z-index:6;width:124px;height:164px;background:#cfc0b4;border:1px solid rgba(0,0,0,.3);border-bottom:none;overflow:hidden;display:flex;align-items:center;justify-content:center}.zvisa-photo-box img{width:100%;height:100%;object-fit:cover;display:block}.zvisa-photo-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;height:100%;background:#cfc0b4}.zvisa-photo-ph span{font-size:6.5px;color:#888;letter-spacing:2px;font-family:Arial,sans-serif;font-weight:600;text-transform:uppercase}.zvisa-photo-label{left:16px;top:232px;width:124px;z-index:6;background:rgba(0,0,0,.07);border:1px solid rgba(0,0,0,.2);border-top:none;padding:3px 0;text-align:center;font-size:5.5px;color:#444;font-style:italic;font-family:Arial,sans-serif;line-height:1.5}.zvisa-fields{left:150px;top:60px;right:30px;bottom:64px;z-index:6;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.2)}.zvf-row{display:flex;flex:1;min-height:0;border-bottom:1px solid rgba(0,0,0,.16)}.zvf-row:last-child{border-bottom:none}.zvf-cell{display:flex;flex-direction:column;justify-content:center;padding:2px 6px 2px 5px;flex:1;min-width:0;border-right:1px solid rgba(0,0,0,.14);background:rgba(255,255,255,.04)}.zvf-cell:last-child{border-right:none}.zvf-cell.tint{background:rgba(0,0,60,.025)}.zvf-lbl{font-size:5px;font-weight:400;color:#2a2420;line-height:1.25;margin-bottom:1px;white-space:nowrap;font-family:Arial,sans-serif;font-style:italic;opacity:.75}.zvf-val{font-size:12px;font-weight:700;color:#060606;letter-spacing:.05px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Arial,sans-serif}.zvf-val.lg{font-size:14px}.zvf-val.xl{font-size:22px;font-weight:900;letter-spacing:-1px}.zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1.8px;font-size:11px}.zvf-type-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:2.5px solid #1e4494;border-radius:3px;font-size:20px;font-weight:900;color:#1e4494;font-family:Arial,sans-serif;background:rgba(255,255,255,.5);line-height:1}.zvisa-mrz-strip{bottom:0;left:6px;right:28px;height:62px;z-index:7;background:rgba(255,255,255,.52);border-top:2px solid rgba(0,0,0,.25);display:flex;flex-direction:column;justify-content:center;padding:4px 10px 4px 8px;gap:0}.zvisa-mrz-line{font-family:'Courier New',monospace;font-size:9.5px;font-weight:400;letter-spacing:2.8px;color:#000;line-height:1.75;white-space:nowrap;overflow:hidden}.zvisa-mrz-line:first-child{font-weight:600}@media print{body{background:white;padding:0}.print-btn{display:none}}`;
 
   return `
   <div class="z-visa-wrap" id="visa-sticker-${v.ref||'preview'}">
-    <div class="zvisa">
+  <div class="zvisa">
 
-      <!-- Security guilloche background -->
-      <div class="zvisa-bg">${guilloche}</div>
+    <!-- Layer 0: parchment paper base -->
+    <div class="zvisa-bg">${bg}</div>
 
-      <!-- EU watermark -->
-      <div class="zvisa-wm">${wmSVG}</div>
+    <!-- Layer 1: guilloche security waves -->
+    <div class="zvisa-guilloches">${waves}</div>
 
-      <!-- Holographic strip — RIGHT edge -->
-      <div class="zvisa-holo"></div>
+    <!-- Layer 2: film grain texture -->
+    <div class="zvisa-grain"></div>
 
-      <!-- ── BLUE HEADER BAND ── -->
-      <div class="zvisa-header">
-        <div class="zvisa-eu-stars">${euCircleSVG}</div>
-        <div class="zvisa-title">VISA</div>
-        <div class="zvisa-issuing">
-          <div style="font-size:13px;letter-spacing:3px">${(v.country||'SCHENGEN').toUpperCase()}</div>
-          <div style="font-size:8px;opacity:.8;letter-spacing:1.5px">SCHENGEN</div>
-        </div>
+    <!-- Layer 3: EU watermark -->
+    <div class="zvisa-wm">${wm}</div>
+
+    <!-- Layer 8: left security bar -->
+    <div class="zvisa-left-bar"></div>
+
+    <!-- Layer 8: right OVD holographic strip -->
+    <div class="zvisa-holo"></div>
+
+    <!-- Layer 7: HEADER BAND -->
+    <div class="zvisa-header">
+      <div class="zvisa-eu-badge">${euBadge}</div>
+      <div class="zvisa-title-block">
+        <div class="zvisa-title-visa">VISA</div>
+        <div class="zvisa-title-sub">SCHENGEN · TYPE ${typeCode} · SHORT STAY</div>
       </div>
-
-      <!-- ── PHOTO ── -->
-      <div class="zvisa-photo">${photo}</div>
-      <div class="zvisa-bottom-label">Titulaire / Holder</div>
-
-      <!-- ── DATA FIELDS (exact Schengen layout) ── -->
-      <div class="zvisa-fields">
-
-        <!-- Row 1: VALID FOR -->
-        <div class="zvf-row">
-          <div class="zvf-cell">
-            <div class="zvf-lbl">VALABLE POUR / VALID FOR</div>
-            <div class="zvf-val" style="font-size:10px">${(v.validFor||'ETATS SCHENGEN / SCHENGEN STATES').toUpperCase()}</div>
-          </div>
-        </div>
-
-        <!-- Row 2: FROM | UNTIL | NR ENTRIES -->
-        <div class="zvf-row">
-          <div class="zvf-cell" style="flex:1.1">
-            <div class="zvf-lbl">DU / FROM</div>
-            <div class="zvf-val">${fd(v.validFrom)}</div>
-          </div>
-          <div class="zvf-cell" style="flex:1.1">
-            <div class="zvf-lbl">AU / UNTIL</div>
-            <div class="zvf-val">${fd(v.validUntil)}</div>
-          </div>
-          <div class="zvf-cell" style="flex:.9">
-            <div class="zvf-lbl">NR D'ENTRÉES / NR OF ENTRIES</div>
-            <div class="zvf-val" style="font-size:10px">${(v.entries||'01').toUpperCase()}</div>
-          </div>
-          <div class="zvf-cell" style="flex:.5">
-            <div class="zvf-lbl">TYPE</div>
-            <div class="zvf-val big" style="font-size:18px">${v.visaTypeCode||'C'}</div>
-          </div>
-        </div>
-
-        <!-- Row 3: DURATION OF STAY | ISSUED IN | ON -->
-        <div class="zvf-row">
-          <div class="zvf-cell" style="flex:1">
-            <div class="zvf-lbl">DURÉE DU SÉJOUR / DURATION OF STAY</div>
-            <div class="zvf-val"><span style="font-size:18px;font-weight:900">${v.duration||'—'}</span> <span style="font-size:8px;font-weight:400">JOURS/DAYS</span></div>
-          </div>
-          <div class="zvf-cell" style="flex:1.2">
-            <div class="zvf-lbl">DÉLIVRÉ À / ISSUED IN</div>
-            <div class="zvf-val" style="font-size:10px">${(v.issuedIn||'CASABLANCA').toUpperCase()}</div>
-          </div>
-          <div class="zvf-cell" style="flex:.8">
-            <div class="zvf-lbl">LE / ON</div>
-            <div class="zvf-val">${fd(v.issuedOn)}</div>
-          </div>
-        </div>
-
-        <!-- Row 4: VISA NUMBER | BLANK FOR STAMP -->
-        <div class="zvf-row">
-          <div class="zvf-cell" style="flex:1.5">
-            <div class="zvf-lbl">NUMÉRO / NUMBER</div>
-            <div class="zvf-val mono" style="font-size:11px;letter-spacing:1.5px">${(v.number||'- - - - -').toUpperCase()}</div>
-          </div>
-          <div class="zvf-cell" style="flex:1">
-            <div class="zvf-lbl">REMARQUES / REMARKS</div>
-            <div class="zvf-val" style="font-size:9px">${v.remarks||''}&nbsp;</div>
-          </div>
-        </div>
-
-        <!-- Row 5: SURNAME AND GIVEN NAMES -->
-        <div class="zvf-row">
-          <div class="zvf-cell">
-            <div class="zvf-lbl">NOM, PRÉNOMS / SURNAME, GIVEN NAMES</div>
-            <div class="zvf-val" style="font-size:11px">${v.surname ? (v.surname.toUpperCase() + ', ' + (v.givenNames||'').toUpperCase()) : '—'}</div>
-          </div>
-        </div>
-
-        <!-- Row 6: PASSPORT NO. | NATIONALITY | DOB -->
-        <div class="zvf-row">
-          <div class="zvf-cell" style="flex:1.3">
-            <div class="zvf-lbl">N° DE PASSEPORT / PASSPORT NO.</div>
-            <div class="zvf-val mono" style="font-size:10px">${(v.passportNo||'—').toUpperCase()}</div>
-          </div>
-          <div class="zvf-cell" style="flex:1">
-            <div class="zvf-lbl">NATIONALITÉ / NATIONALITY</div>
-            <div class="zvf-val" style="font-size:10px">${(v.nationality||'—').toUpperCase()}</div>
-          </div>
-          <div class="zvf-cell" style="flex:.9">
-            <div class="zvf-lbl">DATE DE NAISSANCE / DATE OF BIRTH</div>
-            <div class="zvf-val" style="font-size:10px">${fd(v.dob)}</div>
-          </div>
-        </div>
-
-      </div><!-- /fields -->
-
-      <!-- ── MRZ STRIP (3-line Schengen visa MRZ) ── -->
-      <div class="zvisa-mrz">
-        <div class="zvisa-mrz-line">${mrz[0]}</div>
-        <div class="zvisa-mrz-line">${mrz[1]}</div>
-        <div class="zvisa-mrz-line">${mrz[2]}</div>
+      <div class="zvisa-header-right">
+        <div class="zvisa-header-country">${(v.country||'SCHENGEN').toUpperCase()}</div>
+        <div class="zvisa-header-schengen">ESPACE SCHENGEN · SCHENGENRAUM</div>
       </div>
-
     </div>
-  </div>
 
+    <!-- Photo -->
+    <div class="zvisa-photo-box">${photo}</div>
+    <div class="zvisa-photo-label">
+      Titulaire / Holder<br>
+      Titular / Inhaber
+    </div>
+
+    <!-- DATA FIELDS — 6 rows, exact Schengen layout -->
+    <div class="zvisa-fields">
+
+      <!-- R1: VALID FOR — full width -->
+      <div class="zvf-row" style="flex:.85">
+        <div class="zvf-cell">
+          <div class="zvf-lbl">VALABLE POUR / VALID FOR / GÜLTIG FÜR / VÁLIDO PARA</div>
+          <div class="zvf-val lg" style="letter-spacing:.3px">${(v.validFor||'ÉTATS SCHENGEN / SCHENGEN STATES / SCHENGEN-STAATEN').toUpperCase()}</div>
+        </div>
+      </div>
+
+      <!-- R2: FROM | UNTIL | NR ENTRIES | TYPE -->
+      <div class="zvf-row" style="flex:1.05">
+        <div class="zvf-cell tint" style="flex:1.1">
+          <div class="zvf-lbl">DU / FROM / VON / DESDE</div>
+          <div class="zvf-val lg">${fd(v.validFrom)}</div>
+        </div>
+        <div class="zvf-cell" style="flex:1.1">
+          <div class="zvf-lbl">AU / UNTIL / BIS / HASTA</div>
+          <div class="zvf-val lg">${fd(v.validUntil)}</div>
+        </div>
+        <div class="zvf-cell tint" style="flex:1">
+          <div class="zvf-lbl">NR D'ENTRÉES / NR OF ENTRIES / ANZAHL EINREISEN</div>
+          <div class="zvf-val lg" style="letter-spacing:.5px">${(v.entries||'01').toUpperCase()}</div>
+        </div>
+        <div class="zvf-cell" style="flex:.55;align-items:center;justify-content:center">
+          <div class="zvf-lbl" style="text-align:center">TYPE</div>
+          <div class="zvf-type-badge">${typeCode}</div>
+        </div>
+      </div>
+
+      <!-- R3: DURATION | ISSUED IN | ISSUED ON -->
+      <div class="zvf-row" style="flex:1.05">
+        <div class="zvf-cell" style="flex:1">
+          <div class="zvf-lbl">DURÉE DU SÉJOUR / DURATION OF STAY / AUFENTHALTSDAUER</div>
+          <div class="zvf-val" style="display:flex;align-items:baseline;gap:3px">
+            <span class="zvf-val xl" style="font-size:24px">${v.duration||'—'}</span>
+            <span style="font-size:7.5px;font-weight:400;line-height:1.2;font-family:Arial">JOURS<br>DAYS</span>
+          </div>
+        </div>
+        <div class="zvf-cell tint" style="flex:1.3">
+          <div class="zvf-lbl">DÉLIVRÉ À / ISSUED IN / AUSGESTELLT IN</div>
+          <div class="zvf-val">${(v.issuedIn||'CASABLANCA').toUpperCase()}</div>
+        </div>
+        <div class="zvf-cell" style="flex:.85">
+          <div class="zvf-lbl">LE / ON / AM / EL</div>
+          <div class="zvf-val">${fd(v.issuedOn)}</div>
+        </div>
+      </div>
+
+      <!-- R4: NUMBER | REMARKS -->
+      <div class="zvf-row" style="flex:.85">
+        <div class="zvf-cell tint" style="flex:1.5">
+          <div class="zvf-lbl">NUMÉRO DU VISA / VISA NUMBER / VISUMNUMMER</div>
+          <div class="zvf-val mono" style="color:#1e4494">${(v.number||'— — — —').toUpperCase()}</div>
+        </div>
+        <div class="zvf-cell" style="flex:1">
+          <div class="zvf-lbl">REMARQUES / REMARKS / ANMERKUNGEN</div>
+          <div class="zvf-val" style="font-size:9.5px;font-weight:600">${v.remarks||'NONE'}&nbsp;</div>
+        </div>
+      </div>
+
+      <!-- R5: SURNAME AND GIVEN NAMES -->
+      <div class="zvf-row" style="flex:.9">
+        <div class="zvf-cell">
+          <div class="zvf-lbl">NOM, PRÉNOMS / SURNAME, GIVEN NAMES / NAME, VORNAME / APELLIDOS, NOMBRES</div>
+          <div class="zvf-val lg">${v.surname ? (v.surname.toUpperCase() + '  ' + (v.givenNames||'').toUpperCase()) : '— — —'}</div>
+        </div>
+      </div>
+
+      <!-- R6: PASSPORT | NATIONALITY | DOB | SEX -->
+      <div class="zvf-row" style="flex:1.05">
+        <div class="zvf-cell tint" style="flex:1.3">
+          <div class="zvf-lbl">N° DE PASSEPORT / PASSPORT NO.</div>
+          <div class="zvf-val mono">${(v.passportNo||'—').toUpperCase()}</div>
+        </div>
+        <div class="zvf-cell" style="flex:1.1">
+          <div class="zvf-lbl">NATIONALITÉ / NATIONALITY / NATIONALITÄT</div>
+          <div class="zvf-val">${(v.nationality||'—').toUpperCase()}</div>
+        </div>
+        <div class="zvf-cell tint" style="flex:1">
+          <div class="zvf-lbl">DATE NAISS. / DATE OF BIRTH / GEBURTSDATUM</div>
+          <div class="zvf-val">${fd(v.dob)}</div>
+        </div>
+        <div class="zvf-cell" style="flex:.45">
+          <div class="zvf-lbl">SEXE/SEX</div>
+          <div class="zvf-val xl" style="font-size:18px">${(v.gender||'M').charAt(0).toUpperCase()}</div>
+        </div>
+      </div>
+
+    </div><!-- /fields -->
+
+    <!-- MRZ — 3-line Schengen Visa MRZ -->
+    <div class="zvisa-mrz-strip">
+      <div class="zvisa-mrz-line">${mrz[0]}</div>
+      <div class="zvisa-mrz-line">${mrz[1]}</div>
+      <div class="zvisa-mrz-line">${mrz[2]}</div>
+    </div>
+
+  </div>
+  </div>
   <style id="zvisa-print-css-data" style="display:none">${printCSS}</style>`;
 }
 
