@@ -210,20 +210,28 @@
      Proportions: 105 × 74 mm  →  screen 756 × 533 px
   ═══════════════════════════════════════════════════════════ */
 
-  /* Containment wrapper — prevents overflow into surrounding UI */
+  /* Containment wrapper — scales the visa to fit any container */
   .z-visa-wrap{
-    display:flex;justify-content:center;align-items:center;
-    padding:20px 8px;
     width:100%;
-    overflow-x:auto;        /* scroll if viewport narrower than card */
-    overflow-y:visible;
+    overflow:hidden;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:16px 0;
+  }
+  /* Inner scaler: shrinks the fixed-size card to fit available width */
+  .z-visa-scaler{
+    width:756px;
+    height:533px;
+    flex-shrink:0;
+    transform-origin:top center;
+    /* JS will set transform:scale() based on container width */
   }
 
   /* ── STICKER CARD ── */
   .zvisa{
     position:relative;
     width:756px;height:533px;
-    flex-shrink:0;
     overflow:hidden;        /* all children clipped to card */
     border-radius:2px;
     font-family:Arial,Helvetica,sans-serif;
@@ -412,6 +420,15 @@
     -webkit-print-color-adjust:exact;print-color-adjust:exact;
   }
   .zvisa-mrz-line:first-child{font-weight:700;}
+
+  /* ── PRINT: clean visa output ── */
+  @media print {
+    .zvisa-bg { display:none !important; }
+    .zvisa { box-shadow:none !important; border:1px solid #bbb;
+      background:linear-gradient(135deg,#eeddd0 0%,#e8d4c0 40%,#e0ccba 100%) !important; }
+    .zvisa,.zvisa * { -webkit-print-color-adjust:exact !important;print-color-adjust:exact !important; }
+    .z-visa-scaler { transform:none !important; margin:0 !important; }
+  }
 </style>
 </head>
 <body>
@@ -1916,44 +1933,39 @@ function renderZVisa(v) {
   const country  = (v.country||'SCHENGEN').toUpperCase();
 
   // ── PRINT-POPUP SELF-CONTAINED CSS ──
-  // All colours are forced via -webkit-print-color-adjust:exact
   const printCSS = `
     *{margin:0;padding:0;box-sizing:border-box;}
     html,body{
-      background:#6e6860;
+      background:#888;
       min-height:100vh;
       display:flex;flex-direction:column;align-items:center;justify-content:center;
-      padding:28px;
+      padding:32px;
+      font-family:Arial,Helvetica,sans-serif;
     }
-    .z-visa-wrap{
-      display:flex;justify-content:center;align-items:center;
-      width:100%;overflow:visible;
-    }
-    @media print{
-      html,body{
-        background:#fff !important;
-        padding:0 !important;
-        display:flex;align-items:center;justify-content:center;
-        min-height:0;
-      }
-      .z-visa-wrap{
-        display:flex;justify-content:center;align-items:center;
-        width:100%;
-        transform-origin:center center;
-        /* Scale down to fit A4 (210mm≈794px) with margins */
-        transform:scale(0.94);
-      }
-      .no-print{display:none !important;}
-    }
+    .z-visa-wrap{ display:flex;justify-content:center;align-items:center;width:100%; }
+    .z-visa-scaler{ width:756px;height:533px;flex-shrink:0; }
+
+    /* ── Screen styles ── */
     .zvisa{
       position:relative;width:756px;height:533px;overflow:hidden;border-radius:2px;
       background:#ecddd0;font-family:Arial,Helvetica,sans-serif;
-      box-shadow:0 24px 64px rgba(0,0,0,.55);
+      box-shadow:0 24px 64px rgba(0,0,0,.55),0 6px 18px rgba(0,0,0,.35);
       -webkit-print-color-adjust:exact;print-color-adjust:exact;
     }
-    .zvisa-bg{position:absolute;inset:0;z-index:0;}
+    .zvisa-bg{position:absolute;inset:0;z-index:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .zvisa-bg svg{width:100%;height:100%;display:block;}
-    .zvisa-wm{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);z-index:1;opacity:.055;pointer-events:none;}
+    /* PRINT: hide the SVG guilloche — it renders as harsh lines on paper */
+    @media print{ .zvisa-bg{ display:none !important; } }
+    /* PRINT: show a clean parchment instead */
+    .zvisa::before{
+      content:'';position:absolute;inset:0;z-index:0;
+      display:none; /* hidden on screen */
+      -webkit-print-color-adjust:exact;print-color-adjust:exact;
+      background:linear-gradient(135deg,#eeddd0 0%,#e8d4c0 40%,#e0ccba 100%);
+    }
+    @media print{ .zvisa::before{ display:block !important; } }
+
+    .zvisa-wm{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);z-index:1;opacity:.07;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .zvisa-holo{
       position:absolute;right:0;top:0;bottom:0;width:26px;z-index:8;
       -webkit-print-color-adjust:exact;print-color-adjust:exact;
@@ -1967,20 +1979,19 @@ function renderZVisa(v) {
         rgba(255,190,0,.8) 13.2px,rgba(255,190,0,.8) 15.4px,
         rgba(10,220,100,.75) 15.4px,rgba(10,220,100,.75) 17.6px,
         rgba(10,140,255,.8) 17.6px,rgba(10,140,255,.8) 19.8px
-      );
-      border-left:1.5px solid rgba(255,255,255,.45);
+      );border-left:1.5px solid rgba(255,255,255,.45);
     }
     .zvisa-leftbar{position:absolute;left:0;top:0;bottom:0;width:5px;z-index:8;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:linear-gradient(180deg,#0d2258 0%,#1c4090 40%,#0d2258 70%,#1c4090 100%);}
-    .zvisa-header{position:absolute;top:0;left:5px;right:26px;height:60px;z-index:7;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:linear-gradient(180deg,#1f4799 0%,#163278 55%,#0e2260 100%);display:flex;align-items:center;padding:0 14px 0 10px;gap:10px;border-bottom:2px solid #091840;}
+    .zvisa-header{position:absolute;top:0;left:5px;right:26px;height:60px;z-index:7;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:linear-gradient(180deg,#1f4799 0%,#163278 55%,#0e2260 100%);display:flex;align-items:center;padding:0 14px 0 10px;gap:10px;border-bottom:2px solid #091840;box-shadow:0 2px 10px rgba(0,0,0,.45);}
     .zvisa-eu-badge{flex-shrink:0;}
     .zvisa-title-wrap{flex:1;}
-    .zvisa-title-visa{font-size:32px;font-weight:900;letter-spacing:12px;color:#fff;line-height:1;}
+    .zvisa-title-visa{font-size:32px;font-weight:900;letter-spacing:12px;color:#fff;line-height:1;text-shadow:0 1px 5px rgba(0,0,0,.5);}
     .zvisa-title-sub{font-size:6.5px;letter-spacing:3.5px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-top:2px;}
     .zvisa-hdr-right{text-align:right;flex-shrink:0;}
     .zvisa-hdr-country{font-size:15px;font-weight:900;letter-spacing:3.5px;color:#fff;line-height:1;text-transform:uppercase;}
     .zvisa-hdr-sub{font-size:6.5px;letter-spacing:2px;color:rgba(255,255,255,.55);text-transform:uppercase;margin-top:3px;border-top:1px solid rgba(255,255,255,.2);padding-top:2px;}
     .zvisa-photo{position:absolute;left:14px;top:70px;z-index:6;width:120px;height:160px;border:1px solid rgba(0,0,0,.3);overflow:hidden;display:flex;align-items:center;justify-content:center;background:#d4c4b8;}
-    .zvisa-photo img{width:100%;height:100%;object-fit:cover;display:block;mix-blend-mode:multiply;}
+    .zvisa-photo img{width:100%;height:100%;object-fit:cover;display:block;}
     .zvisa-photo-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;height:100%;background:#d4c4b8;}
     .zvisa-photo-ph span{font-size:6.5px;color:#888;letter-spacing:2px;font-family:Arial,sans-serif;text-transform:uppercase;}
     .zvisa-photo-cap{position:absolute;left:14px;top:230px;width:120px;z-index:6;background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.18);border-top:none;padding:3px 2px;text-align:center;font-size:5px;color:#444;font-style:italic;font-family:Arial,sans-serif;line-height:1.6;}
@@ -1989,20 +2000,42 @@ function renderZVisa(v) {
     .zvf-row:last-child{border-bottom:none;}
     .zvf-cell{display:flex;flex-direction:column;justify-content:center;padding:2px 6px 2px 5px;flex:1;min-width:0;border-right:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.06);}
     .zvf-cell:last-child{border-right:none;}
-    .zvf-cell.alt{background:rgba(0,10,50,.03);}
+    .zvf-cell.alt{background:rgba(0,10,50,.04);}
     .zvf-lbl{font-size:4.8px;font-weight:400;color:#2a2218;line-height:1.2;margin-bottom:1px;white-space:nowrap;font-family:Arial,sans-serif;font-style:italic;opacity:.8;}
     .zvf-val{font-size:12px;font-weight:700;color:#080808;letter-spacing:.05px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Arial,sans-serif;}
     .zvf-val.lg{font-size:14px;}
     .zvf-val.xl{font-size:24px;font-weight:900;letter-spacing:-1px;}
     .zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1.8px;font-size:11px;}
     .zvf-typebox{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:2.5px solid #163278;border-radius:2px;font-size:21px;font-weight:900;color:#163278;font-family:Arial,sans-serif;background:rgba(255,255,255,.55);line-height:1;}
-    .zvisa-mrz{position:absolute;bottom:0;left:0;right:0;height:74px;z-index:7;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:rgba(255,255,255,.58);border-top:2px solid rgba(0,0,0,.28);display:flex;flex-direction:column;justify-content:center;padding:5px 12px 5px 10px;gap:1px;}
+    .zvisa-mrz{position:absolute;bottom:0;left:0;right:0;height:74px;z-index:7;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:rgba(255,255,255,.72);border-top:2px solid rgba(0,0,0,.28);display:flex;flex-direction:column;justify-content:center;padding:5px 12px 5px 10px;gap:1px;}
     .zvisa-mrz-line{font-family:'Courier New',Courier,monospace;font-size:11px;font-weight:400;letter-spacing:3.2px;color:#000;line-height:1.8;white-space:nowrap;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .zvisa-mrz-line:first-child{font-weight:700;}
+
+    /* ── PRINT layout ── */
+    @page{ size:A4 landscape; margin:10mm; }
+    @media print{
+      html,body{
+        background:#fff !important;
+        padding:0 !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        width:100%;height:100%;
+        min-height:0 !important;
+      }
+      .no-print{ display:none !important; }
+      /* Fit card to printable width (A4 landscape ≈ 277mm − 20mm margins = 257mm ≈ 970px)
+         756px card at scale 0.96 = ~726px, fits cleanly */
+      .z-visa-wrap{ width:100%;display:flex;justify-content:center;align-items:center; }
+      .z-visa-scaler{ transform:scale(0.96);transform-origin:center center; }
+      .zvisa{ box-shadow:none !important;border:1px solid #ccc; }
+      .zvisa,.zvisa *{ -webkit-print-color-adjust:exact !important;print-color-adjust:exact !important; }
+    }
   `;
 
   return `
   <div class="z-visa-wrap" id="visa-sticker-${v.ref||'preview'}">
+  <div class="z-visa-scaler">
   <div class="zvisa">
 
     <!-- parchment + guilloche BG -->
@@ -2134,6 +2167,7 @@ function renderZVisa(v) {
     </div>
 
   </div><!-- /zvisa -->
+  </div><!-- /z-visa-scaler -->
   </div><!-- /z-visa-wrap -->
   <style id="zvisa-print-css-data" style="display:none">${printCSS}</style>`;
 }
@@ -2371,19 +2405,10 @@ function openVisaPopup(v) {
   const css = cssMatch ? cssMatch[1] : '';
   const clean = rendered.replace(/<style id="zvisa-print-css-data"[\s\S]*?<\/style>/,'');
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Z Visa ${v.number||''}</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    ${css}
-    @media print{
-      html,body{background:#fff !important;padding:0 !important;display:flex !important;align-items:center !important;justify-content:center !important;min-height:0 !important;}
-      .z-visa-wrap{display:flex !important;justify-content:center !important;align-items:center !important;transform:scale(0.94);transform-origin:center center;}
-      .no-print{display:none !important;}
-      .zvisa,.zvisa *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
-    }
-  </style>
+  <style>${css}</style>
   </head><body>
   ${clean}
-  <div class="no-print" style="text-align:center;margin-top:24px;">
+  <div class="no-print" style="text-align:center;margin-top:28px;padding-bottom:28px;">
     <button onclick="window.print()" style="padding:13px 40px;background:#1f4799;color:#FFD700;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1px;font-family:Arial,sans-serif;">🖨&nbsp; Print / Save as PDF</button>
   </div>
   </body></html>`;
@@ -2391,7 +2416,25 @@ function openVisaPopup(v) {
   if (w) { w.document.write(html); w.document.close(); }
 }
 
-window.printVisaPreview = function() { openVisaPopup(collectVisaForm()); };
+// ── Auto-scale visa cards to fit their container ──
+function scaleVisaCards(){
+  document.querySelectorAll('.z-visa-wrap').forEach(wrap => {
+    const scaler = wrap.querySelector('.z-visa-scaler');
+    if(!scaler) return;
+    const available = wrap.clientWidth - 32; // 16px padding each side
+    const scale = Math.min(1, available / 756);
+    scaler.style.transform = `scale(${scale})`;
+    scaler.style.marginBottom = `${(533 * scale) - 533}px`; // collapse dead space
+    wrap.style.paddingBottom = `${16 + Math.max(0, 533*(1-scale))}px`;
+    wrap.style.height = `${533*scale + 32}px`;
+  });
+}
+window.addEventListener('resize', scaleVisaCards);
+// Re-run whenever new visa cards are injected (MutationObserver on body)
+new MutationObserver(scaleVisaCards).observe(document.body, {childList:true, subtree:true});
+scaleVisaCards();
+
+
 
 // ── Print visa from applicant view ──
 window.__printVisa = function(visaId) {
