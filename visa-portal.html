@@ -212,10 +212,11 @@
 
   /* Containment wrapper — prevents overflow into surrounding UI */
   .z-visa-wrap{
-    display:flex;justify-content:center;align-items:flex-start;
+    display:flex;justify-content:center;align-items:center;
     padding:20px 8px;
     width:100%;
-    overflow:hidden;        /* hard clamp */
+    overflow-x:auto;        /* scroll if viewport narrower than card */
+    overflow-y:visible;
   }
 
   /* ── STICKER CARD ── */
@@ -1918,8 +1919,32 @@ function renderZVisa(v) {
   // All colours are forced via -webkit-print-color-adjust:exact
   const printCSS = `
     *{margin:0;padding:0;box-sizing:border-box;}
-    html,body{background:#6e6860;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;}
-    @media print{html,body{background:#fff;padding:0;} .no-print{display:none;}}
+    html,body{
+      background:#6e6860;
+      min-height:100vh;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:28px;
+    }
+    .z-visa-wrap{
+      display:flex;justify-content:center;align-items:center;
+      width:100%;overflow:visible;
+    }
+    @media print{
+      html,body{
+        background:#fff !important;
+        padding:0 !important;
+        display:flex;align-items:center;justify-content:center;
+        min-height:0;
+      }
+      .z-visa-wrap{
+        display:flex;justify-content:center;align-items:center;
+        width:100%;
+        transform-origin:center center;
+        /* Scale down to fit A4 (210mm≈794px) with margins */
+        transform:scale(0.94);
+      }
+      .no-print{display:none !important;}
+    }
     .zvisa{
       position:relative;width:756px;height:533px;overflow:hidden;border-radius:2px;
       background:#ecddd0;font-family:Arial,Helvetica,sans-serif;
@@ -2350,7 +2375,8 @@ function openVisaPopup(v) {
     *{margin:0;padding:0;box-sizing:border-box;}
     ${css}
     @media print{
-      html,body{background:#fff !important;padding:0 !important;}
+      html,body{background:#fff !important;padding:0 !important;display:flex !important;align-items:center !important;justify-content:center !important;min-height:0 !important;}
+      .z-visa-wrap{display:flex !important;justify-content:center !important;align-items:center !important;transform:scale(0.94);transform-origin:center center;}
       .no-print{display:none !important;}
       .zvisa,.zvisa *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
     }
