@@ -5,50 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VisaMa — European Visa Services for Morocco</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --navy:#0a1628; --gold:#c9973a; --gold-light:#e8b85c;
-    --white:#ffffff; --gray:#8a8fa8; --light-gray:#f0f2f7;
-    --red:#d64045; --green:#2d9e6b; --blue-mid:#1a3a6b;
+    --navy:#0a1628; --gold:#b8892e; --gold-light:#d4a843;
+    --gold-muted:rgba(184,137,46,0.12);
+    --white:#ffffff; --gray:#6b7280; --light-gray:#f4f5f9;
+    --red:#c0392b; --green:#1d7a52; --blue-mid:#14305a;
+    --border:#e2e5ef; --card-shadow:0 1px 4px rgba(10,22,40,0.07),0 4px 20px rgba(10,22,40,0.05);
   }
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--white);min-height:100vh;overflow-x:hidden;}
+  body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--white);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
 
-  /* ── LOADING OVERLAY ── */
+  /* ── LOADING ── */
   #loading-overlay{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.5s;}
   #loading-overlay.hidden{opacity:0;pointer-events:none;}
-  .loader-logo{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--gold);margin-bottom:24px;}
-  .loader-spin{width:40px;height:40px;border:3px solid rgba(201,151,58,0.2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;}
-  .loader-text{margin-top:16px;font-size:13px;color:var(--gray);}
+  .loader-logo{font-family:'Cormorant Garamond',Georgia,serif;font-size:36px;font-weight:600;color:var(--gold);margin-bottom:24px;letter-spacing:2px;}
+  .loader-spin{width:32px;height:32px;border:2px solid rgba(184,137,46,0.2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.9s linear infinite;}
+  .loader-text{margin-top:16px;font-size:12px;color:var(--gray);letter-spacing:1.5px;text-transform:uppercase;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
   /* ── AUTH ── */
-  #auth-screen{min-height:100vh;background:linear-gradient(135deg,#0a1628 0%,#1a3a6b 50%,#0a1628 100%);display:none;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+  #auth-screen{min-height:100vh;background:var(--navy);display:none;align-items:center;justify-content:center;position:relative;overflow:hidden;}
   #auth-screen.show{display:flex;}
-  #auth-screen::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(201,151,58,0.12) 0%,transparent 70%);top:-100px;right:-100px;animation:pulse 4s ease-in-out infinite;}
-  #auth-screen::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(201,151,58,0.08) 0%,transparent 70%);bottom:-50px;left:-50px;animation:pulse 6s ease-in-out infinite reverse;}
-  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:0.7}}
-  .auth-card{background:rgba(255,255,255,0.04);border:1px solid rgba(201,151,58,0.3);backdrop-filter:blur(20px);border-radius:24px;padding:50px 48px;width:100%;max-width:460px;position:relative;z-index:1;box-shadow:0 40px 80px rgba(0,0,0,0.4);}
-  .auth-logo{text-align:center;margin-bottom:36px;}
-  .logo-title{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--gold);letter-spacing:-1px;}
-  .logo-sub{font-size:12px;color:var(--gray);letter-spacing:3px;text-transform:uppercase;margin-top:4px;}
-  .logo-tagline{font-size:14px;color:rgba(255,255,255,0.45);margin-top:8px;}
-  .auth-tabs{display:flex;background:rgba(255,255,255,0.05);border-radius:12px;padding:4px;margin-bottom:32px;}
-  .auth-tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;color:var(--gray);transition:all 0.3s;}
-  .auth-tab.active{background:var(--gold);color:var(--navy);font-weight:600;}
-  .form-group{margin-bottom:20px;}
-  .form-label{font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gray);margin-bottom:8px;display:block;}
-  .form-input{width:100%;padding:14px 18px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:all 0.3s;}
-  .form-input:focus{border-color:var(--gold);background:rgba(201,151,58,0.08);}
-  .form-input::placeholder{color:rgba(255,255,255,0.3);}
+  #auth-screen::before{content:'';position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(184,137,46,0.08) 0%,transparent 65%);top:-200px;right:-200px;pointer-events:none;}
+  #auth-screen::after{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(20,48,90,0.6) 0%,transparent 70%);bottom:-100px;left:-100px;pointer-events:none;}
+  /* Fine diagonal pattern */
+  #auth-screen .auth-pattern{position:absolute;inset:0;opacity:0.025;background-image:repeating-linear-gradient(45deg,#c9973a 0,#c9973a 1px,transparent 0,transparent 50%);background-size:14px 14px;pointer-events:none;}
+  .auth-card{background:rgba(255,255,255,0.03);border:1px solid rgba(184,137,46,0.2);backdrop-filter:blur(24px);border-radius:4px;padding:52px 48px;width:100%;max-width:440px;position:relative;z-index:1;box-shadow:0 32px 80px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.05);}
+  .auth-logo{text-align:center;margin-bottom:40px;}
+  .logo-wordmark{font-family:'Cormorant Garamond',Georgia,serif;font-size:38px;font-weight:600;color:var(--gold);letter-spacing:4px;text-transform:uppercase;display:block;line-height:1;}
+  .logo-rule{width:40px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:12px auto;}
+  .logo-sub{font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:4px;text-transform:uppercase;}
+  .auth-tabs{display:flex;background:rgba(255,255,255,0.04);border-radius:2px;padding:3px;margin-bottom:32px;border:1px solid rgba(255,255,255,0.06);}
+  .auth-tab{flex:1;padding:10px;text-align:center;border-radius:1px;cursor:pointer;font-size:12px;font-weight:600;color:rgba(255,255,255,0.4);transition:all 0.2s;letter-spacing:1px;text-transform:uppercase;}
+  .auth-tab.active{background:var(--gold);color:var(--navy);}
+  .form-group{margin-bottom:18px;}
+  .form-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:8px;display:block;}
+  .form-input{width:100%;padding:13px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:2px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:all 0.2s;}
+  .form-input:focus{border-color:var(--gold);background:rgba(184,137,46,0.06);}
+  .form-input::placeholder{color:rgba(255,255,255,0.2);}
   .form-input.error{border-color:var(--red);}
-  .btn-primary{width:100%;padding:16px;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.3s;position:relative;}
-  .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 30px rgba(201,151,58,0.4);}
-  .btn-primary:disabled{opacity:0.6;cursor:not-allowed;}
-  .auth-hint{text-align:center;font-size:12px;color:rgba(255,255,255,0.35);margin-top:20px;}
+  .btn-primary{width:100%;padding:14px;background:var(--gold);color:var(--navy);border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:1.5px;text-transform:uppercase;}
+  .btn-primary:hover:not(:disabled){background:var(--gold-light);box-shadow:0 8px 24px rgba(184,137,46,0.3);}
+  .btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+  .auth-hint{text-align:center;font-size:11px;color:rgba(255,255,255,0.25);margin-top:18px;letter-spacing:0.5px;}
   .auth-hint span{color:var(--gold);}
-  .auth-error{background:rgba(214,64,69,0.15);border:1px solid rgba(214,64,69,0.4);border-radius:10px;padding:12px 16px;font-size:13px;color:#ff8a8d;margin-bottom:16px;display:none;}
+  .auth-error{background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);border-radius:2px;padding:11px 14px;font-size:12px;color:#f87171;margin-bottom:14px;display:none;letter-spacing:0.3px;}
   .auth-error.show{display:block;}
 
   /* ── MAIN APP ── */
@@ -56,154 +59,187 @@
   #main-app.show{display:block;}
 
   /* ── NAVBAR ── */
-  .navbar{background:var(--navy);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:72px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,0.3);}
-  .nav-logo{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--gold);cursor:pointer;}
-  .nav-links{display:flex;gap:8px;}
-  .nav-link{padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;color:rgba(255,255,255,0.7);transition:all 0.2s;border:none;background:transparent;}
-  .nav-link:hover,.nav-link.active{background:rgba(201,151,58,0.15);color:var(--gold);}
-  .nav-user{display:flex;align-items:center;gap:12px;}
-  .nav-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-light));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--navy);}
-  .nav-name{font-size:14px;font-weight:500;color:rgba(255,255,255,0.8);}
-  .btn-logout{padding:7px 14px;background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:rgba(255,255,255,0.6);font-size:13px;cursor:pointer;transition:all 0.2s;}
+  .navbar{background:var(--navy);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:68px;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .navbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0.4;}
+  .nav-logo{font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;color:var(--gold);cursor:pointer;letter-spacing:4px;text-transform:uppercase;}
+  .nav-links{display:flex;gap:4px;}
+  .nav-link{padding:7px 16px;border-radius:2px;cursor:pointer;font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);transition:all 0.2s;border:none;background:transparent;letter-spacing:1px;text-transform:uppercase;}
+  .nav-link:hover,.nav-link.active{background:rgba(184,137,46,0.12);color:var(--gold);}
+  .nav-user{display:flex;align-items:center;gap:14px;}
+  .nav-avatar{width:34px;height:34px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--navy);}
+  .nav-name{font-size:13px;font-weight:500;color:rgba(255,255,255,0.6);}
+  .btn-logout{padding:6px 14px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:2px;color:rgba(255,255,255,0.4);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:1px;text-transform:uppercase;}
   .btn-logout:hover{border-color:var(--red);color:var(--red);}
 
   /* ── PAGES ── */
   .page{display:none;padding:40px;max-width:1300px;margin:0 auto;}
   .page.active{display:block;}
-  .hero{background:linear-gradient(135deg,var(--navy),var(--blue-mid));border-radius:24px;padding:60px 50px;margin-bottom:40px;position:relative;overflow:hidden;}
-  .hero::after{content:'';position:absolute;right:-50px;top:-50px;width:400px;height:400px;background:radial-gradient(circle,rgba(201,151,58,0.15) 0%,transparent 70%);border-radius:50%;}
-  .hero h1{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;line-height:1.2;margin-bottom:16px;}
+
+  /* ── HERO ── */
+  .hero{background:var(--navy);border-radius:2px;padding:64px 56px;margin-bottom:40px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.06);}
+  .hero::before{content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,rgba(184,137,46,0.03) 0,rgba(184,137,46,0.03) 1px,transparent 0,transparent 50%);background-size:20px 20px;}
+  .hero::after{content:'';position:absolute;right:-80px;top:-80px;width:500px;height:500px;background:radial-gradient(circle,rgba(184,137,46,0.1) 0%,transparent 60%);border-radius:50%;}
+  .hero h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:48px;font-weight:600;line-height:1.15;margin-bottom:18px;position:relative;z-index:1;}
   .hero h1 span{color:var(--gold);}
-  .hero p{font-size:17px;color:rgba(255,255,255,0.7);max-width:500px;line-height:1.7;margin-bottom:32px;}
-  .hero-btns{display:flex;gap:14px;flex-wrap:wrap;}
-  .btn-hero{padding:14px 28px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;border:none;transition:all 0.3s;}
-  .btn-hero-primary{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);}
-  .btn-hero-primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(201,151,58,0.4);}
-  .btn-hero-secondary{background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);}
-  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:40px;}
-  .stat-card{background:var(--white);border-radius:16px;padding:28px 24px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:transform 0.2s;}
-  .stat-card:hover{transform:translateY(-4px);}
-  .stat-num{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--navy);}
-  .stat-label{font-size:13px;color:var(--gray);margin-top:4px;}
-  .stat-icon{font-size:28px;margin-bottom:10px;}
-  .section-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--navy);margin-bottom:8px;}
-  .section-sub{font-size:14px;color:var(--gray);}
-  .countries-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-bottom:40px;}
-  .country-card{background:var(--white);border-radius:16px;padding:24px 20px;text-align:center;cursor:pointer;transition:all 0.3s;border:2px solid transparent;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
-  .country-card:hover{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,0,0,0.12);}
-  .country-card.selected{border-color:var(--gold);background:#fffbf3;}
-  .country-flag{font-size:36px;margin-bottom:10px;}
-  .country-name{font-size:15px;font-weight:600;color:var(--navy);}
-  .country-fee{font-size:13px;color:var(--gold);font-weight:600;margin-top:4px;}
-  .country-days{font-size:12px;color:var(--gray);margin-top:2px;}
-  .form-card{background:var(--white);border-radius:20px;padding:36px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:24px;}
-  .form-card h3{font-family:'Playfair Display',serif;font-size:20px;color:var(--navy);margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--light-gray);}
-  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  .form-label-dark{font-size:12px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:#666;margin-bottom:7px;display:block;}
-  .form-input-light{width:100%;padding:12px 16px;background:var(--light-gray);border:2px solid transparent;border-radius:10px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:all 0.3s;}
-  .form-input-light:focus{border-color:var(--gold);background:#fffdf5;}
+  .hero p{font-size:16px;color:rgba(255,255,255,0.55);max-width:480px;line-height:1.8;margin-bottom:36px;position:relative;z-index:1;}
+  .hero-btns{display:flex;gap:12px;flex-wrap:wrap;position:relative;z-index:1;}
+  .btn-hero{padding:13px 28px;border-radius:2px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all 0.2s;letter-spacing:1.5px;text-transform:uppercase;}
+  .btn-hero-primary{background:var(--gold);color:var(--navy);}
+  .btn-hero-primary:hover{background:var(--gold-light);box-shadow:0 8px 24px rgba(184,137,46,0.3);}
+  .btn-hero-secondary{background:transparent;color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15);}
+  .btn-hero-secondary:hover{border-color:rgba(255,255,255,0.4);color:white;}
+
+  /* ── STATS ── */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px;}
+  .stat-card{background:var(--white);border-radius:2px;padding:28px 24px;text-align:center;box-shadow:var(--card-shadow);border:1px solid var(--border);transition:transform 0.2s,box-shadow 0.2s;display:flex;flex-direction:column;align-items:center;}
+  .stat-card:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(10,22,40,0.1);}
+  .stat-num{font-family:'Cormorant Garamond',Georgia,serif;font-size:40px;font-weight:600;color:var(--navy);line-height:1;}
+  .stat-label{font-size:11px;color:var(--gray);margin-top:6px;letter-spacing:0.5px;}
+  .stat-icon{width:44px;height:44px;border-radius:2px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;background:var(--gold-muted);border:1px solid rgba(184,137,46,0.15);}
+  .section-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:600;color:var(--navy);margin-bottom:6px;letter-spacing:0.5px;}
+  .section-sub{font-size:13px;color:var(--gray);}
+
+  /* ── COUNTRY CARDS ── */
+  .countries-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:12px;margin-bottom:40px;}
+  .country-card{background:var(--white);border-radius:2px;padding:22px 18px;text-align:center;cursor:pointer;transition:all 0.2s;border:1px solid var(--border);box-shadow:var(--card-shadow);}
+  .country-card:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 8px 28px rgba(10,22,40,0.1);}
+  .country-card.selected{border-color:var(--gold);background:#fffdf7;}
+  .country-name{font-size:14px;font-weight:600;color:var(--navy);}
+  .country-fee{font-size:12px;color:var(--gold);font-weight:700;margin-top:5px;letter-spacing:0.5px;}
+  .country-days{font-size:11px;color:var(--gray);margin-top:3px;}
+
+  /* ── FORM CARDS ── */
+  .form-card{background:var(--white);border-radius:2px;padding:36px;box-shadow:var(--card-shadow);margin-bottom:20px;border:1px solid var(--border);}
+  .form-card h3{font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;color:var(--navy);margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border);letter-spacing:0.5px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .form-label-dark{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9ca3af;margin-bottom:7px;display:block;}
+  .form-input-light{width:100%;padding:11px 14px;background:var(--light-gray);border:1px solid transparent;border-radius:2px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:all 0.2s;}
+  .form-input-light:focus{border-color:var(--gold);background:#fffdf7;}
   select.form-input-light{cursor:pointer;}
+
+  /* ── STEPS ── */
   .step-indicator{display:flex;gap:8px;margin-bottom:32px;align-items:center;flex-wrap:wrap;}
   .step{display:flex;align-items:center;gap:8px;}
-  .step-num{width:32px;height:32px;border-radius:50%;background:var(--light-gray);color:var(--gray);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;transition:all 0.3s;}
+  .step-num{width:30px;height:30px;border-radius:50%;background:var(--light-gray);color:var(--gray);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;transition:all 0.3s;}
   .step.active .step-num{background:var(--gold);color:var(--navy);}
   .step.done .step-num{background:var(--green);color:white;}
-  .step-label{font-size:13px;font-weight:500;color:var(--gray);}
-  .step.active .step-label{color:var(--navy);font-weight:600;}
-  .step-divider{flex:1;height:2px;background:var(--light-gray);min-width:16px;}
-  .btn-nav{padding:12px 28px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.3s;}
-  .btn-next{background:var(--navy);color:white;}
-  .btn-next:hover{background:var(--blue-mid);}
-  .btn-back{background:var(--light-gray);color:var(--navy);}
-  .btn-submit{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);}
-  .btn-submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,151,58,0.4);}
-  .btn-submit:disabled{opacity:0.6;cursor:not-allowed;}
-  .form-actions{display:flex;justify-content:space-between;align-items:center;margin-top:28px;}
-  .slots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:16px;}
-  .slot{padding:10px;text-align:center;border-radius:10px;border:2px solid var(--light-gray);cursor:pointer;font-size:13px;font-weight:500;color:var(--navy);transition:all 0.2s;}
+  .step-label{font-size:12px;font-weight:600;color:var(--gray);letter-spacing:0.5px;}
+  .step.active .step-label{color:var(--navy);}
+  .step-divider{flex:1;height:1px;background:var(--border);min-width:16px;}
+
+  /* ── SLOTS & CALENDAR ── */
+  .slots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:14px;}
+  .slot{padding:9px;text-align:center;border-radius:2px;border:1px solid var(--border);cursor:pointer;font-size:13px;font-weight:600;color:var(--navy);transition:all 0.2s;}
   .slot:hover{border-color:var(--gold);}
-  .slot.selected{border-color:var(--gold);background:#fffbf3;color:var(--gold);}
-  .slot.unavailable{background:var(--light-gray);color:#ccc;cursor:not-allowed;}
-  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:16px;}
-  .cal-day{aspect-ratio:1;border-radius:8px;border:2px solid transparent;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;background:var(--light-gray);color:var(--navy);}
+  .slot.selected{border-color:var(--gold);background:#fffdf7;color:var(--gold);}
+  .slot.unavailable{background:var(--light-gray);color:#d1d5db;cursor:not-allowed;border-color:var(--border);}
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:14px;}
+  .cal-day{aspect-ratio:1;border-radius:2px;border:1px solid transparent;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;background:var(--light-gray);color:var(--navy);}
   .cal-day:hover{border-color:var(--gold);}
   .cal-day.selected{background:var(--gold);color:var(--navy);font-weight:700;}
-  .cal-day.past{color:#ccc;cursor:not-allowed;background:#f8f8f8;}
-  .cal-header{font-size:12px;font-weight:700;color:var(--gray);text-align:center;text-transform:uppercase;}
-  .payment-summary{background:linear-gradient(135deg,var(--navy),var(--blue-mid));border-radius:16px;padding:28px;color:white;margin-bottom:24px;}
-  .payment-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1);font-size:15px;}
+  .cal-day.past{color:#d1d5db;cursor:not-allowed;background:#fafafa;}
+  .cal-header{font-size:10px;font-weight:700;color:var(--gray);text-align:center;text-transform:uppercase;letter-spacing:1px;}
+
+  /* ── PAYMENT ── */
+  .payment-summary{background:var(--navy);border-radius:2px;padding:28px;color:white;margin-bottom:20px;border:1px solid rgba(255,255,255,0.06);}
+  .payment-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.07);font-size:14px;color:rgba(255,255,255,0.7);}
   .payment-total{display:flex;justify-content:space-between;padding:16px 0 0;font-size:18px;font-weight:700;color:var(--gold);}
-  .search-track{display:flex;gap:12px;margin-bottom:32px;}
-  .search-input-track{flex:1;padding:14px 20px;background:var(--white);border:2px solid var(--light-gray);border-radius:12px;font-size:15px;font-family:'DM Sans',sans-serif;outline:none;transition:all 0.3s;color:var(--navy);}
+
+  /* ── SEARCH / TRACK ── */
+  .search-track{display:flex;gap:10px;margin-bottom:32px;}
+  .search-input-track{flex:1;padding:13px 18px;background:var(--white);border:1px solid var(--border);border-radius:2px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:all 0.2s;color:var(--navy);}
   .search-input-track:focus{border-color:var(--gold);}
-  .btn-search{padding:14px 28px;background:var(--navy);color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;}
-  .applications-list{display:flex;flex-direction:column;gap:16px;}
-  .app-card{background:var(--white);border-radius:16px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid transparent;transition:all 0.2s;}
-  .app-card:hover{transform:translateX(4px);}
-  .app-card.pending{border-left-color:#f59e0b;}
+  .btn-search{padding:13px 28px;background:var(--navy);color:white;border:none;border-radius:2px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:1.5px;text-transform:uppercase;transition:all 0.2s;}
+  .btn-search:hover{background:var(--blue-mid);}
+
+  /* ── APP CARDS ── */
+  .applications-list{display:flex;flex-direction:column;gap:12px;}
+  .app-card{background:var(--white);border-radius:2px;padding:22px 26px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--card-shadow);border:1px solid var(--border);border-left:3px solid transparent;transition:all 0.2s;}
+  .app-card:hover{box-shadow:0 4px 20px rgba(10,22,40,0.1);}
+  .app-card.pending{border-left-color:#d97706;}
   .app-card.approved{border-left-color:var(--green);}
-  .app-card.processing{border-left-color:#3b82f6;}
+  .app-card.processing{border-left-color:#2563eb;}
   .app-card.rejected{border-left-color:var(--red);}
-  .app-info h4{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;}
-  .app-info p{font-size:13px;color:var(--gray);}
-  .status-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+  .app-info h4{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:4px;}
+  .app-info p{font-size:12px;color:var(--gray);}
+  .status-badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:1px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
   .status-badge.pending{background:#fef3c7;color:#92400e;}
   .status-badge.approved{background:#d1fae5;color:#065f46;}
   .status-badge.processing{background:#dbeafe;color:#1e40af;}
   .status-badge.rejected{background:#fee2e2;color:#991b1b;}
-  .app-ref{font-size:13px;color:var(--gray);margin-top:6px;}
+  .app-ref{font-size:11px;color:var(--gray);margin-top:6px;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;}
 
-  /* ── ADMIN ── */
-  .admin-layout{display:grid;grid-template-columns:260px 1fr;gap:0;min-height:calc(100vh - 72px);}
-  .admin-sidebar{background:var(--navy);padding:32px 0;position:sticky;top:72px;height:calc(100vh - 72px);overflow-y:auto;}
-  .admin-sidebar-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.3);padding:0 24px;margin-bottom:8px;margin-top:24px;}
-  .admin-sidebar-title:first-child{margin-top:0;}
-  .admin-nav-item{display:flex;align-items:center;gap:12px;padding:12px 24px;cursor:pointer;font-size:14px;font-weight:500;color:rgba(255,255,255,0.6);transition:all 0.2s;}
-  .admin-nav-item:hover{background:rgba(255,255,255,0.05);color:white;}
-  .admin-nav-item.active{background:rgba(201,151,58,0.15);color:var(--gold);border-right:3px solid var(--gold);}
-  .admin-nav-icon{font-size:16px;width:20px;text-align:center;}
-  .admin-content{padding:36px;background:var(--light-gray);overflow-y:auto;}
-  .admin-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:32px;}
-  .kpi-card{background:var(--white);border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
-  .kpi-top{display:flex;justify-content:space-between;align-items:flex-start;}
-  .kpi-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;}
-  .kpi-icon.blue{background:#dbeafe;} .kpi-icon.green{background:#d1fae5;} .kpi-icon.gold{background:#fef3c7;} .kpi-icon.red{background:#fee2e2;}
-  .kpi-trend{font-size:12px;color:var(--green);font-weight:600;}
-  .kpi-trend.down{color:var(--red);}
-  .kpi-num{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--navy);margin-top:12px;}
-  .kpi-label{font-size:13px;color:var(--gray);margin-top:4px;}
-  .admin-table-card{background:var(--white);border-radius:16px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:24px;}
-  .admin-table-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
-  .admin-table-header h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--navy);}
-  table{width:100%;border-collapse:collapse;}
-  th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gray);border-bottom:2px solid var(--light-gray);}
-  td{padding:14px 16px;font-size:14px;color:var(--navy);border-bottom:1px solid var(--light-gray);}
-  tr:hover td{background:#fafbff;}
-  tr:last-child td{border-bottom:none;}
-  .action-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;}
-  .action-btn.approve{background:#d1fae5;color:#065f46;} .action-btn.approve:hover{background:#a7f3d0;}
-  .action-btn.reject{background:#fee2e2;color:#991b1b;} .action-btn.reject:hover{background:#fecaca;}
-  .action-btn.view{background:#dbeafe;color:#1e40af;} .action-btn.view:hover{background:#bfdbfe;}
-  .filter-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
-  .filter-select{padding:9px 14px;border-radius:8px;border:2px solid var(--light-gray);font-size:13px;color:var(--navy);cursor:pointer;outline:none;background:white;}
-  .search-admin{padding:9px 16px;border-radius:8px;border:2px solid var(--light-gray);font-size:13px;color:var(--navy);outline:none;background:white;flex:1;min-width:200px;}
-  .admin-chart-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
-  .mini-bar{display:flex;gap:6px;align-items:flex-end;height:80px;padding-top:10px;}
-  .bar{flex:1;background:linear-gradient(to top,var(--gold),var(--gold-light));border-radius:4px 4px 0 0;min-height:4px;}
-  .chart-labels{display:flex;gap:6px;margin-top:6px;}
-  .chart-label{flex:1;text-align:center;font-size:10px;color:var(--gray);}
+  /* ── BUTTONS ── */
+  .btn-nav{padding:11px 26px;border-radius:2px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all 0.2s;letter-spacing:1px;text-transform:uppercase;}
+  .btn-next{background:var(--navy);color:white;}
+  .btn-next:hover{background:var(--blue-mid);}
+  .btn-back{background:var(--light-gray);color:var(--navy);border:1px solid var(--border);}
+  .btn-submit{background:var(--gold);color:var(--navy);}
+  .btn-submit:hover:not(:disabled){background:var(--gold-light);box-shadow:0 6px 20px rgba(184,137,46,0.3);}
+  .btn-submit:disabled{opacity:0.5;cursor:not-allowed;}
+  .form-actions{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:20px;border-top:1px solid var(--border);}
+
+  /* ── SUCCESS ── */
   .success-screen{text-align:center;padding:60px 40px;}
-  .success-icon{font-size:72px;margin-bottom:24px;}
-  .success-screen h2{font-family:'Playfair Display',serif;font-size:32px;color:var(--navy);margin-bottom:12px;}
-  .ref-num{font-size:22px;font-weight:700;color:var(--gold);font-family:'Playfair Display',serif;margin:16px 0;}
+  .success-icon{width:76px;height:76px;border-radius:50%;background:rgba(29,122,82,0.08);border:1.5px solid rgba(29,122,82,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;}
+  .success-screen h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:32px;font-weight:600;color:var(--navy);margin-bottom:10px;}
+  .ref-num{font-size:20px;font-weight:700;color:var(--gold);font-family:'JetBrains Mono',monospace;margin:18px 0;letter-spacing:2px;}
+
+  /* ── EMPTY STATE ── */
   .empty-state{text-align:center;padding:60px 20px;color:var(--gray);}
-  .empty-state .empty-icon{font-size:48px;margin-bottom:16px;}
+  .empty-state .empty-icon{width:52px;height:52px;border:1px solid var(--border);border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;background:white;}
 
   /* ── TOAST ── */
-  .toast{position:fixed;bottom:32px;right:32px;background:var(--navy);color:white;padding:16px 24px;border-radius:14px;font-size:14px;font-weight:500;box-shadow:0 20px 50px rgba(0,0,0,0.3);z-index:9999;transform:translateY(100px);opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);border-left:4px solid var(--gold);max-width:380px;}
+  .toast{position:fixed;bottom:28px;right:28px;background:var(--navy);color:white;padding:14px 22px;border-radius:2px;font-size:13px;font-weight:500;box-shadow:0 16px 48px rgba(0,0,0,0.35);z-index:9999;transform:translateY(80px);opacity:0;transition:all 0.35s cubic-bezier(0.22,1,0.36,1);border-left:3px solid var(--gold);max-width:360px;letter-spacing:0.2px;}
   .toast.show{transform:translateY(0);opacity:1;}
   .toast.success{border-left-color:var(--green);}
   .toast.error{border-left-color:var(--red);}
+
+  /* ── ADMIN ── */
+  .admin-layout{display:grid;grid-template-columns:248px 1fr;gap:0;min-height:calc(100vh - 68px);}
+  .admin-sidebar{background:var(--navy);padding:28px 0;position:sticky;top:68px;height:calc(100vh - 68px);overflow-y:auto;border-right:1px solid rgba(255,255,255,0.05);}
+  .admin-sidebar-title{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.25);padding:0 22px;margin-bottom:6px;margin-top:22px;}
+  .admin-sidebar-title:first-child{margin-top:0;}
+  .admin-nav-item{display:flex;align-items:center;gap:11px;padding:11px 22px;cursor:pointer;font-size:13px;font-weight:500;color:rgba(255,255,255,0.5);transition:all 0.15s;}
+  .admin-nav-item:hover{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.85);}
+  .admin-nav-item.active{background:rgba(184,137,46,0.1);color:var(--gold);border-right:2px solid var(--gold);}
+  .admin-nav-icon{width:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .admin-content{padding:36px;background:var(--light-gray);overflow-y:auto;}
+
+  /* ── KPI CARDS ── */
+  .admin-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .kpi-card{background:var(--white);border-radius:2px;padding:22px;box-shadow:var(--card-shadow);border:1px solid var(--border);}
+  .kpi-top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .kpi-icon{width:40px;height:40px;border-radius:2px;display:flex;align-items:center;justify-content:center;}
+  .kpi-icon.blue{background:#eff6ff;} .kpi-icon.green{background:#f0fdf4;} .kpi-icon.gold{background:#fffbeb;} .kpi-icon.red{background:#fef2f2;}
+  .kpi-trend{font-size:11px;color:var(--green);font-weight:600;letter-spacing:0.3px;}
+  .kpi-trend.down{color:var(--red);}
+  .kpi-num{font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;font-weight:600;color:var(--navy);margin-top:14px;line-height:1;}
+  .kpi-label{font-size:12px;color:var(--gray);margin-top:5px;}
+
+  /* ── ADMIN TABLE CARDS ── */
+  .admin-table-card{background:var(--white);border-radius:2px;padding:26px;box-shadow:var(--card-shadow);margin-bottom:20px;border:1px solid var(--border);}
+  .admin-table-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .admin-table-header h3{font-family:'Cormorant Garamond',Georgia,serif;font-size:19px;font-weight:600;color:var(--navy);letter-spacing:0.3px;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;padding:11px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gray);border-bottom:1px solid var(--border);}
+  td{padding:13px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);}
+  tr:hover td{background:#fafbff;}
+  tr:last-child td{border-bottom:none;}
+  .action-btn{padding:5px 12px;border-radius:2px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all 0.15s;letter-spacing:0.5px;text-transform:uppercase;}
+  .action-btn.approve{background:#dcfce7;color:#166534;} .action-btn.approve:hover{background:#bbf7d0;}
+  .action-btn.reject{background:#fee2e2;color:#991b1b;} .action-btn.reject:hover{background:#fecaca;}
+  .action-btn.view{background:#eff6ff;color:#1d4ed8;} .action-btn.view:hover{background:#dbeafe;}
+  .filter-row{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+  .filter-select{padding:8px 12px;border-radius:2px;border:1px solid var(--border);font-size:12px;color:var(--navy);cursor:pointer;outline:none;background:white;}
+  .search-admin{padding:8px 14px;border-radius:2px;border:1px solid var(--border);font-size:12px;color:var(--navy);outline:none;background:white;flex:1;min-width:200px;}
+  .admin-chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+
+  /* ── MISC ── */
+  .mini-bar{display:flex;gap:5px;align-items:flex-end;height:72px;padding-top:8px;}
+  .bar{flex:1;background:linear-gradient(to top,var(--gold),var(--gold-light));border-radius:2px 2px 0 0;min-height:4px;}
+  .chart-labels{display:flex;gap:5px;margin-top:5px;}
+  .chart-label{flex:1;text-align:center;font-size:10px;color:var(--gray);}
 
   /* ═══════════════════════════════════════════════════════════
      Z VISA  —  AUTHENTIC SCHENGEN STICKER
@@ -387,7 +423,7 @@
   }
   .zvf-val.lg{font-size:14px;}
   .zvf-val.xl{font-size:24px;font-weight:900;letter-spacing:-1px;}
-  .zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1.8px;font-size:11px;}
+  .zvf-val.mono{font-family:'JetBrains Mono',monospace;letter-spacing:1.8px;font-size:11px;}
   /* TYPE code box */
   .zvf-typebox{
     display:inline-flex;align-items:center;justify-content:center;
@@ -411,7 +447,7 @@
     padding:5px 12px 5px 10px;gap:1px;
   }
   .zvisa-mrz-line{
-    font-family:'Courier New',Courier,monospace;
+    font-family:'JetBrains Mono','JetBrains Mono',monospace;
     font-size:11px;font-weight:400;
     letter-spacing:3.2px;
     color:#000;line-height:1.8;
@@ -441,12 +477,12 @@
 
 <!-- AUTH -->
 <div id="auth-screen" class="show">
+  <div class="auth-pattern"></div>
   <div class="auth-card">
     <div class="auth-logo">
-      <div style="font-size:40px;margin-bottom:8px">🇲🇦</div>
-      <div class="logo-title">VisaMa</div>
+      <span class="logo-wordmark">VisaMa</span>
+      <div class="logo-rule"></div>
       <div class="logo-sub">European Visa Services · Morocco</div>
-      <div class="logo-tagline">Your gateway to Europe</div>
     </div>
     <div class="auth-tabs">
       <div class="auth-tab active" onclick="switchAuthTab('login')">Sign In</div>
@@ -464,7 +500,7 @@
         <label class="form-label">Password</label>
         <input class="form-input" type="password" id="login-pass" placeholder="••••••••">
       </div>
-      <button class="btn-primary" id="login-btn" onclick="handleLogin()">Sign In →</button>
+      <button class="btn-primary" id="login-btn" onclick="handleLogin()">Sign In</button>
       <div class="auth-hint">Admin access: use an <span>@visa.com</span> email</div>
     </div>
 
@@ -487,7 +523,7 @@
         <label class="form-label">Password</label>
         <input class="form-input" type="password" id="reg-pass" placeholder="Min. 8 characters">
       </div>
-      <button class="btn-primary" id="reg-btn" onclick="handleRegister()">Create Account →</button>
+      <button class="btn-primary" id="reg-btn" onclick="handleRegister()">Create Account</button>
     </div>
   </div>
 </div>
@@ -517,10 +553,10 @@
         </div>
       </div>
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-icon">🌍</div><div class="stat-num">26</div><div class="stat-label">European countries</div></div>
-        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-num">94%</div><div class="stat-label">Approval rate</div></div>
-        <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-num">48h</div><div class="stat-label">Avg. processing</div></div>
-        <div class="stat-card"><div class="stat-icon">🤝</div><div class="stat-num">120K+</div><div class="stat-label">Visas issued</div></div>
+        <div class="stat-card"><div class="stat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c9973a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><div class="stat-num">26</div><div class="stat-label">European countries</div></div>
+        <div class="stat-card"><div class="stat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2d9e6b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="stat-num">94%</div><div class="stat-label">Approval rate</div></div>
+        <div class="stat-card"><div class="stat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a3a6b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><div class="stat-num">48h</div><div class="stat-label">Avg. processing</div></div>
+        <div class="stat-card"><div class="stat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c9973a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="stat-num">120K+</div><div class="stat-label">Visas issued</div></div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px">
         <div>
@@ -550,9 +586,9 @@
       </div>
 
       <div id="apply-step-1">
-        <div class="form-card"><h3>🌍 Select Destination Country</h3><div class="countries-grid" id="apply-countries"></div></div>
+        <div class="form-card"><h3>Select Destination Country</h3><div class="countries-grid" id="apply-countries"></div></div>
         <div class="form-card">
-          <h3>📋 Visa Type</h3>
+          <h3>Visa Type</h3>
           <div class="form-grid">
             <div><label class="form-label-dark">Visa Category</label><select class="form-input-light" id="visa-type"><option>Schengen Short Stay (Type C)</option><option>National Long Stay (Type D)</option><option>Transit Visa (Type A/B)</option><option>Airport Transit</option></select></div>
             <div><label class="form-label-dark">Purpose of Visit</label><select class="form-input-light" id="visa-purpose"><option>Tourism</option><option>Business</option><option>Family Visit</option><option>Medical</option><option>Study</option><option>Work</option></select></div>
@@ -563,7 +599,7 @@
 
       <div id="apply-step-2" style="display:none">
         <div class="form-card">
-          <h3>👤 Personal Information</h3>
+          <h3>Personal Information</h3>
           <div class="form-grid">
             <div><label class="form-label-dark">First Name (as in passport)</label><input class="form-input-light" id="p-first" type="text" placeholder="Mohammed"></div>
             <div><label class="form-label-dark">Last Name (as in passport)</label><input class="form-input-light" id="p-last" type="text" placeholder="El Alami"></div>
@@ -579,14 +615,14 @@
           <div style="margin-top:20px;padding-top:20px;border-top:2px solid var(--light-gray)">
             <label class="form-label-dark">Applicant Photo <span style="color:var(--red);font-size:11px">* Required for appointment letter</span></label>
             <div style="display:flex;align-items:center;gap:20px;margin-top:10px">
-              <div id="p-photo-preview" style="width:90px;height:110px;border-radius:8px;border:2px dashed #ccc;background:#f0f2f7;display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;flex-shrink:0">👤</div>
+              <div id="p-photo-preview" style="width:90px;height:110px;border-radius:8px;border:2px dashed #ccc;background:#f0f2f7;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
               <div>
                 <label style="display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:var(--navy);color:var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">
-                  📷 Upload Photo
+                  Upload Photo
                   <input type="file" accept="image/*" style="display:none" onchange="handleApplicantPhoto(this)">
                 </label>
                 <div style="font-size:11px;color:#aaa;margin-top:8px;line-height:1.6">Passport-style photo · White background<br>JPG or PNG · Max 2MB · Will appear on your appointment letter</div>
-                <div id="p-photo-status" style="font-size:12px;color:#2d9e6b;margin-top:6px;font-weight:600;display:none">✅ Photo uploaded</div>
+                <div id="p-photo-status" style="font-size:12px;color:#2d9e6b;margin-top:6px;font-weight:600;display:none">Photo uploaded</div>
               </div>
             </div>
           </div>
@@ -596,7 +632,7 @@
 
       <div id="apply-step-3" style="display:none">
         <div class="form-card">
-          <h3>✈️ Travel Details</h3>
+          <h3>Travel Details</h3>
           <div class="form-grid">
             <div><label class="form-label-dark">Arrival Date</label><input class="form-input-light" id="t-arrival" type="date"></div>
             <div><label class="form-label-dark">Departure Date</label><input class="form-input-light" id="t-depart" type="date"></div>
@@ -612,7 +648,7 @@
 
       <div id="apply-step-4" style="display:none">
         <div class="form-card">
-          <h3>📁 Required Documents</h3>
+          <h3>Required Documents</h3>
           <p style="font-size:14px;color:#666;margin-bottom:24px">Upload clear scans. Accepted: PDF, JPG, PNG (max 5MB each).</p>
           <div id="doc-list"></div>
         </div>
@@ -621,7 +657,7 @@
 
       <div id="apply-step-5" style="display:none">
         <div class="form-card">
-          <h3>📅 Book Appointment</h3>
+          <h3>Book Appointment</h3>
           <p style="font-size:14px;color:#666;margin-bottom:24px">Choose a date and time at our Casablanca center.</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
             <div>
@@ -640,7 +676,7 @@
 
       <div id="apply-step-6" style="display:none">
         <div class="payment-summary">
-          <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:6px">💳 Payment Summary</div>
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:6px">Payment Summary</div>
           <div id="pay-country-name" style="font-size:22px;font-weight:700;margin-bottom:20px;opacity:0.9"></div>
           <div class="payment-row"><span>Visa Fee (Embassy)</span><span id="pay-visa-fee">€80.00</span></div>
           <div class="payment-row"><span>Service Fee (VisaMa)</span><span>€25.00</span></div>
@@ -648,7 +684,7 @@
           <div class="payment-total"><span>Total Due</span><span id="pay-total">€115.00</span></div>
         </div>
         <div class="form-card">
-          <h3>💳 Card Details</h3>
+          <h3>Card Details</h3>
           <div class="form-grid">
             <div style="grid-column:span 2"><label class="form-label-dark">Cardholder Name</label><input class="form-input-light" id="card-name" type="text" placeholder="As it appears on card"></div>
             <div style="grid-column:span 2"><label class="form-label-dark">Card Number</label><input class="form-input-light" id="card-num" type="text" placeholder="0000  0000  0000  0000" maxlength="19"></div>
@@ -656,17 +692,17 @@
             <div><label class="form-label-dark">CVV</label><input class="form-input-light" type="text" placeholder="•••" maxlength="4"></div>
           </div>
           <div style="margin-top:16px;display:flex;gap:16px;flex-wrap:wrap">
-            <span style="font-size:12px;color:#999">🔒 256-bit SSL Encryption</span>
-            <span style="font-size:12px;color:#999">💳 Visa · Mastercard · CMI</span>
+            <span style="font-size:12px;color:#999;display:inline-flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>256-bit SSL Encryption</span>
+            <span style="font-size:12px;color:#999">Visa · Mastercard · CMI</span>
           </div>
         </div>
-        <div class="form-actions"><button class="btn-nav btn-back" onclick="nextStep(5)">← Back</button><button class="btn-nav btn-submit" id="pay-btn" onclick="submitApplication()">💳 Pay & Submit</button></div>
+        <div class="form-actions"><button class="btn-nav btn-back" onclick="nextStep(5)">← Back</button><button class="btn-nav btn-submit" id="pay-btn" onclick="submitApplication()">Pay & Submit</button></div>
       </div>
 
       <div id="apply-success" style="display:none">
         <div class="form-card">
           <div class="success-screen">
-            <div class="success-icon">🎉</div>
+            <div class="success-icon" style="display:flex;align-items:center;justify-content:center"><svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#2d9e6b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
             <h2>Application Submitted!</h2>
             <p style="font-size:16px;color:#666">Your application has been received and saved to our system.</p>
             <div class="ref-num" id="ref-number">REF: VMA-2026-XXXXX</div>
@@ -694,7 +730,7 @@
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
           <div style="width:4px;height:28px;background:linear-gradient(180deg,var(--gold),var(--gold-light));border-radius:2px"></div>
           <div>
-            <div class="section-title" style="margin-bottom:0;font-size:20px">Issued Visas</div>
+            <div class="section-title" style="margin-bottom:0;">Issued Visas</div>
             <div class="section-sub">Click on a visa to view and print</div>
           </div>
         </div>
@@ -705,12 +741,12 @@
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <div style="width:4px;height:28px;background:linear-gradient(180deg,#3b82f6,#1e40af);border-radius:2px"></div>
         <div>
-          <div class="section-title" style="margin-bottom:0;font-size:20px">Applications</div>
+          <div class="section-title" style="margin-bottom:0;">Applications</div>
           <div class="section-sub">All your submitted applications</div>
         </div>
       </div>
       <div id="applications-list" class="applications-list">
-        <div class="empty-state"><div class="empty-icon">⏳</div><div>Loading your applications...</div></div>
+        <div class="empty-state"><div style="width:32px;height:32px;border:3px solid rgba(10,22,40,0.15);border-top-color:#c9973a;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px"></div><div>Loading your applications...</div></div>
       </div>
     </div>
   </div>
@@ -720,18 +756,18 @@
     <div class="admin-layout">
       <div class="admin-sidebar">
         <div class="admin-sidebar-title">Overview</div>
-        <div class="admin-nav-item active" onclick="adminNav('dashboard',this)"><span class="admin-nav-icon">📊</span> Dashboard</div>
-        <div class="admin-nav-item" onclick="adminNav('applications',this)"><span class="admin-nav-icon">📋</span> Applications</div>
-        <div class="admin-nav-item" onclick="adminNav('appointments',this)"><span class="admin-nav-icon">📅</span> Appointments</div>
+        <div class="admin-nav-item active" onclick="adminNav('dashboard',this)"><span class="admin-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Dashboard</div>
+        <div class="admin-nav-item" onclick="adminNav('applications',this)"><span class="admin-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span> Applications</div>
+        <div class="admin-nav-item" onclick="adminNav('appointments',this)"><span class="admin-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Appointments</div>
         <div class="admin-sidebar-title">Management</div>
-        <div class="admin-nav-item" onclick="adminNav('users',this)"><span class="admin-nav-icon">👥</span> Users</div>
-        <div class="admin-nav-item" onclick="adminNav('payments',this)"><span class="admin-nav-icon">💰</span> Payments</div>
-        <div class="admin-nav-item" onclick="adminNav('countries',this)"><span class="admin-nav-icon">🌍</span> Countries</div>
+        <div class="admin-nav-item" onclick="adminNav('users',this)"><span class="admin-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Users</div>
+        <div class="admin-nav-item" onclick="adminNav('payments',this)"><span class="admin-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Payments</div>
+        <div class="admin-nav-item" onclick="adminNav('countries',this)"><span class="admin-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span> Countries</div>
         <div class="admin-sidebar-title">System</div>
-        <div class="admin-nav-item" onclick="adminNav('visas',this)"><span class="admin-nav-icon">🪪</span> Issue Z Visa</div>
-        <div class="admin-nav-item" onclick="adminNav('verify',this)"><span class="admin-nav-icon">🔍</span> Verify Document</div>
-        <div class="admin-nav-item" onclick="adminNav('reports',this)"><span class="admin-nav-icon">📈</span> Reports</div>
-        <div class="admin-nav-item" onclick="adminNav('settings',this)"><span class="admin-nav-icon">⚙️</span> Settings</div>
+        <div class="admin-nav-item" onclick="adminNav('visas',this)"><span class="admin-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/><line x1="14" y1="15" x2="16" y2="15"/></svg></span> Issue Z Visa</div>
+        <div class="admin-nav-item" onclick="adminNav('verify',this)"><span class="admin-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Verify Document</div>
+        <div class="admin-nav-item" onclick="adminNav('reports',this)"><span class="admin-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span> Reports</div>
+        <div class="admin-nav-item" onclick="adminNav('settings',this)"><span class="admin-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Settings</div>
       </div>
       <div class="admin-content" id="admin-content">
         <div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>
@@ -914,7 +950,7 @@ window.handleApplicantPhoto = function(input) {
     }
     const status = document.getElementById('p-photo-status');
     if (status) status.style.display = 'block';
-    showToast('Photo uploaded ✅', 'success');
+    showToast('Photo uploaded', 'success');
   };
   reader.readAsDataURL(file);
 };
@@ -1141,14 +1177,14 @@ function renderDocList() {
   document.getElementById('doc-list').innerHTML = DOCS.map((doc, i) =>
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f0f2f7">
       <div><div style="font-size:14px;font-weight:600;color:#0a1628">${doc}</div><div style="font-size:12px;color:#aaa;margin-top:2px">PDF, JPG, PNG — max 5MB</div></div>
-      <label style="cursor:pointer"><input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="markUploaded(this,${i})"><span id="ubtn-${i}" style="padding:8px 16px;background:#f0f2f7;border-radius:8px;font-size:13px;font-weight:600;color:#666">📎 Upload</span></label>
+      <label style="cursor:pointer"><input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="markUploaded(this,${i})"><span id="ubtn-${i}" style="padding:8px 16px;background:#f0f2f7;border-radius:8px;font-size:13px;font-weight:600;color:#666"> Upload </span></label>
     </div>`).join('');
 }
 function markUploaded(input, i) {
   if (input.files[0]) {
     const el = document.getElementById(`ubtn-${i}`);
     el.style.cssText = 'padding:8px 16px;background:#d1fae5;border-radius:8px;font-size:13px;font-weight:600;color:#065f46';
-    el.textContent = '✅ Uploaded';
+    el.textContent = 'Uploaded';
     showToast('Document uploaded', 'success');
   }
 }
@@ -1431,8 +1467,8 @@ async function generateAppointmentPDF(appData) {
 
 <div class="no-print-bar">
   <span>Appointment Confirmation — ${appData.ref}</span>
-  <button onclick="window.print()">🖨 Print / Save as PDF</button>
-  <button onclick="window.close()" style="background:rgba(255,255,255,0.15);color:#fff">✕ Close</button>
+  <button onclick="window.print()"> Print / Save as PDF </button>
+  <button onclick="window.close()" style="background:rgba(255,255,255,0.15);color:#fff"> Close </button>
 </div>
 
 <div class="page">
@@ -1454,7 +1490,7 @@ async function generateAppointmentPDF(appData) {
 
   <div class="letter-body">
     <div class="doc-title">Appointment Confirmation Letter</div>
-    <div class="doc-subtitle">Official document · Biometrics &amp; Document Submission</div>
+    <div class="doc-subtitle">Official Document · Biometrics &amp; Document Submission</div>
 
     <p class="body-text">
       This letter confirms that the visa appointment for
@@ -1516,7 +1552,7 @@ async function generateAppointmentPDF(appData) {
         <div style="width:96px;height:120px;border:2px solid #0a1628;border-radius:4px;overflow:hidden;background:#f0f2f7;display:flex;align-items:center;justify-content:center">
           ${appData.applicantPhoto
             ? '<img src="' + appData.applicantPhoto + '" style="width:100%;height:100%;object-fit:cover">'
-            : '<div style="text-align:center;padding:8px"><div style="font-size:32px">👤</div><div style="font-size:7px;color:#aaa;margin-top:4px;letter-spacing:1px;text-transform:uppercase">Photo</div></div>'}
+            : '<div style="text-align:center;padding:8px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div style="font-size:7px;color:#aaa;margin-top:4px;letter-spacing:1px;text-transform:uppercase">Photo</div></div>'}
         </div>
         <div style="font-size:7px;color:#888;letter-spacing:1px;text-transform:uppercase;text-align:center">Applicant Photo</div>
         ${appData.countryCode ? `
@@ -1548,7 +1584,7 @@ async function generateAppointmentPDF(appData) {
       </div>
       <div class="security-right">
         <div class="security-header-row">
-          <div class="security-badge">🔒 SECURE</div>
+          <div class="security-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle;margin-right:3px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>SECURE</div>
           <div class="security-title">Document Security Token — SHA-256</div>
         </div>
         <div class="security-token-row">
@@ -1621,7 +1657,7 @@ window.addEventListener('load', function() {
 async function submitApplication() {
   if (!selectedCountry) { showToast('Please select a country', 'error'); return; }
   const btn = document.getElementById('pay-btn');
-  btn.disabled = true; btn.textContent = '⏳ Processing...';
+  btn.disabled = true; btn.textContent = 'Processing...';
   try {
     const ref = 'VMA-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000);
     const appData = {
@@ -1654,7 +1690,7 @@ async function submitApplication() {
     document.querySelectorAll('[id^="apply-step-"]').forEach(s => s.style.display = 'none');
     document.getElementById('apply-success').style.display = 'block';
     document.querySelectorAll('.step-indicator .step').forEach(s => s.className = 'step done');
-    showToast('Application submitted! Generating your appointment confirmation... 📄', 'success');
+    showToast('Application submitted. Generating appointment confirmation...', 'success');
     // Auto-generate PDF confirmation
     if (selectedDate && selectedSlot) {
       setTimeout(() => generateAppointmentPDF(appData), 800);
@@ -1662,7 +1698,7 @@ async function submitApplication() {
   } catch (e) {
     console.error(e);
     showToast('Failed to submit. Check your connection.', 'error');
-    btn.disabled = false; btn.textContent = '💳 Pay & Submit';
+    btn.disabled = false; btn.textContent = 'Pay & Submit';
   }
 }
 
@@ -1681,7 +1717,7 @@ function resetApplicationForm() {
   selectedCountry = null; selectedDate = null; selectedSlot = null;
   applicantPhotoBase64 = null;
   const preview = document.getElementById('p-photo-preview');
-  if (preview) preview.innerHTML = '👤';
+  if (preview) preview.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
   const status = document.getElementById('p-photo-status');
   if (status) status.style.display = 'none';
   document.querySelectorAll('#apply-countries .country-card').forEach(c => c.classList.remove('selected'));
@@ -1690,13 +1726,13 @@ function resetApplicationForm() {
 // ── Load user's applications from Firestore ──
 async function loadUserApplications() {
   const el = document.getElementById('applications-list');
-  el.innerHTML = `<div class="empty-state"><div class="loader-spin" style="margin:0 auto 12px"></div><div>Loading your applications...</div></div>`;
+  el.innerHTML = `<div class="empty-state"><div class="loader-spin" style="margin:0 auto 20px"></div><div style="font-size:13px;font-weight:500;letter-spacing:0.5px">Loading applications...</div></div>`;
   try {
     // Use simple single-field query (no composite index needed) then sort client-side
     const q = query(collection(db,'applications'), where('uid','==',currentUser.uid));
     const snap = await getDocs(q);
     if (snap.empty) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div>No applications yet.</div><div style="margin-top:8px"><button class="btn-nav btn-next" onclick="showPage('apply')">Start an Application</button></div></div>`;
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div><div>No applications yet.</div><div style="margin-top:8px"><button class="btn-nav btn-next" onclick="showPage('apply')">Start an Application</button></div></div>`;
       return;
     }
     // Sort by createdAt descending client-side
@@ -1705,13 +1741,13 @@ async function loadUserApplications() {
       const tb = b.data().createdAt?.toMillis?.() || 0;
       return tb - ta;
     });
-    const statusIcon = {pending:'🟡',approved:'🟢',processing:'🔵',rejected:'🔴'};
+    const statusIcon = {pending:'',approved:'',processing:'',rejected:''};
     el.innerHTML = docs.map(d => {
       const a = d.data();
       const flagHtml = a.countryCode ? flagImg(a.countryCode, 'sm') : '';
       const apptInfo = (a.appointmentDate && a.appointmentDate !== 'TBD')
         ? `<div style="margin-top:8px;padding:10px 14px;background:#f0f7ff;border-radius:8px;border-left:3px solid #3b82f6;font-size:13px;color:#1e40af">
-            📅 Appointment: <strong>${a.appointmentDate}</strong> at <strong>${a.appointmentSlot}</strong>
+            Appointment: <strong>${a.appointmentDate}</strong> at <strong>${a.appointmentSlot}</strong>
            </div>`
         : '';
       return `<div class="app-card ${a.status}" style="flex-direction:column;align-items:flex-start;gap:12px">
@@ -1721,7 +1757,7 @@ async function loadUserApplications() {
             <p>Submitted: ${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'} · ${a.applicant}</p>
           </div>
           <div style="text-align:right">
-            <span class="status-badge ${a.status}">${statusIcon[a.status]||'⚪'} ${a.status}</span>
+            <span class="status-badge ${a.status}">${statusIcon[a.status]} ${a.status}</span>
             <div class="app-ref">${a.ref}</div>
           </div>
         </div>
@@ -1730,7 +1766,7 @@ async function loadUserApplications() {
     }).join('');
   } catch (e) {
     console.error('Track error:', e);
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>Could not load applications.<br><small style="color:#aaa">${e.message}</small></div></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div>Could not load applications.<br><small style="color:#aaa">${e.message}</small></div></div>`;
   }
 }
 
@@ -1743,16 +1779,16 @@ async function searchApplication() {
     const q = query(collection(db,'applications'), where('ref','==',ref));
     const snap = await getDocs(q);
     if (snap.empty) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div>No application found for "${ref}"</div></div>`;
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div>No application found for "${ref}"</div></div>`;
       return;
     }
     const a = snap.docs[0].data();
     el.innerHTML = `<div class="app-card ${a.status}">
       <div class="app-info"><h4>${a.countryCode?flagImg(a.countryCode,'sm'):''} ${a.country} — ${a.visaType}</h4><p>Applicant: ${a.applicant} · Submitted: ${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</p></div>
-      <div style="text-align:right"><span class="status-badge ${a.status}">${{pending:'🟡',approved:'🟢',processing:'🔵',rejected:'🔴'}[a.status]||'⚪'} ${a.status}</span><div class="app-ref">${a.ref}</div></div>
+      <div style="text-align:right"><span class="status-badge ${a.status}">${{pending:'',approved:'',processing:'',rejected:''}[a.status]} ${a.status}</span><div class="app-ref">${a.ref}</div></div>
     </div>`;
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>Search failed.</div></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div>Search failed.</div></div>`;
   }
 }
 
@@ -1762,7 +1798,7 @@ async function searchApplication() {
 function setupAdminUI() {
   document.getElementById('user-area').style.display  = 'none';
   document.getElementById('admin-area').style.display = 'block';
-  document.getElementById('nav-links').innerHTML = `<button class="nav-link active">👑 Admin Panel</button>`;
+  document.getElementById('nav-links').innerHTML = `<button class="nav-link active">Admin Panel</button>`;
   renderAdminDashboard();
 }
 
@@ -1774,7 +1810,7 @@ function adminNav(section, el) {
 
 async function renderAdminDashboard() {
   const c = document.getElementById('admin-content');
-  c.innerHTML = `<div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Dashboard</div><div style="font-size:14px;color:#aaa;margin-bottom:28px">${new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
+  c.innerHTML = `<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Dashboard</div><div style="font-size:14px;color:#aaa;margin-bottom:28px">${new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
   try {
     const snap = await getDocs(collection(db,'applications'));
     const all  = snap.docs.map(d => d.data());
@@ -1788,13 +1824,13 @@ async function renderAdminDashboard() {
     const topCountries = Object.entries(cCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
 
     c.innerHTML = `
-      <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Dashboard</div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Dashboard</div>
       <div style="font-size:14px;color:#aaa;margin-bottom:28px">${new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
       <div class="admin-kpi-grid">
-        <div class="kpi-card"><div class="kpi-top"><div class="kpi-icon blue">📋</div><span class="kpi-trend">Live</span></div><div class="kpi-num">${total}</div><div class="kpi-label">Total Applications</div></div>
-        <div class="kpi-card"><div class="kpi-top"><div class="kpi-icon green">✅</div><span class="kpi-trend">+</span></div><div class="kpi-num">${approved}</div><div class="kpi-label">Approved</div></div>
-        <div class="kpi-card"><div class="kpi-top"><div class="kpi-icon gold">⏳</div><span class="kpi-trend down">Needs review</span></div><div class="kpi-num">${pending}</div><div class="kpi-label">Pending</div></div>
-        <div class="kpi-card"><div class="kpi-top"><div class="kpi-icon green">💰</div><span class="kpi-trend">Live</span></div><div class="kpi-num">€${revenue.toLocaleString()}</div><div class="kpi-label">Est. Revenue</div></div>
+        <div class="kpi-card"><div class="kpi-top"><div class="kpi-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="1.8"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><span class="kpi-trend">Live</span></div><div class="kpi-num">${total}</div><div class="kpi-label">Total Applications</div></div>
+        <div class="kpi-card"><div class="kpi-top"><div class="kpi-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="1.8"><polyline points="20 6 9 17 4 12"/></svg></div><span class="kpi-trend">+</span></div><div class="kpi-num">${approved}</div><div class="kpi-label">Approved</div></div>
+        <div class="kpi-card"><div class="kpi-top"><div class="kpi-icon gold"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><span class="kpi-trend down">Needs review</span></div><div class="kpi-num">${pending}</div><div class="kpi-label">Pending</div></div>
+        <div class="kpi-card"><div class="kpi-top"><div class="kpi-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><span class="kpi-trend">Live</span></div><div class="kpi-num">€${revenue.toLocaleString()}</div><div class="kpi-label">Est. Revenue</div></div>
       </div>
       <div class="admin-chart-row">
         <div class="admin-table-card">
@@ -1810,16 +1846,16 @@ async function renderAdminDashboard() {
         <div class="admin-table-header"><h3>Recent Applications (live from Firestore)</h3><button class="action-btn view" onclick="adminNav('applications',document.querySelectorAll('.admin-nav-item')[1])">View All</button></div>
         ${all.length ? `<table><thead><tr><th>Ref #</th><th>Applicant</th><th>Country</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>
           ${snap.docs.slice(0,8).map(d=>{const a=d.data();return`<tr><td style="font-weight:600;color:#c9973a">${a.ref}</td><td>${a.applicant}</td><td>${a.countryCode?flagImg(a.countryCode,'sm'):''} ${a.country}</td><td style="font-size:13px;color:#aaa">${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</td><td><span class="status-badge ${a.status}">${a.status}</span></td><td style="display:flex;gap:6px">${a.status==='pending'||a.status==='processing'?`<button class="action-btn approve" onclick="updateAppStatus('${d.id}','approved',this)">Approve</button><button class="action-btn reject" onclick="updateAppStatus('${d.id}','rejected',this)">Reject</button>`:'<button class="action-btn view">View</button>'}</td></tr>`;}).join('')}
-        </tbody></table>` : '<div class="empty-state"><div class="empty-icon">📭</div><div>No applications yet.</div></div>'}
+        </tbody></table>` : '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div><div>No applications yet.</div></div>'}
       </div>`;
   } catch(e) {
-    c.innerHTML += `<div class="empty-state"><div class="empty-icon">⚠️</div><div>Failed to load data: ${e.message}</div></div>`;
+    c.innerHTML += `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div>Failed to load data: ${e.message}</div></div>`;
   }
 }
 
 async function renderAdminApplications() {
   const c = document.getElementById('admin-content');
-  c.innerHTML = `<div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">All Applications</div><div style="font-size:14px;color:#aaa;margin-bottom:24px">Live from Firestore</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
+  c.innerHTML = `<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">All Applications</div><div style="font-size:14px;color:#aaa;margin-bottom:24px">Live from Firestore</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
   try {
     const snap = await getDocs(query(collection(db,'applications'), orderBy('createdAt','desc')));
     // Cache all docs for modal access
@@ -1835,25 +1871,25 @@ async function renderAdminApplications() {
         <td style="font-size:13px;color:#aaa">${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</td>
         <td><span class="status-badge ${a.status}" id="badge-${d.id}">${a.status}</span></td>
         <td style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="action-btn view" onclick="openEditModal('${d.id}')">✏️ Edit</button>
+          <button class="action-btn view" onclick="openEditModal('${d.id}')"> Edit </button>
           <button class="action-btn approve" onclick="updateAppStatus('${d.id}','approved',this)">Approve</button>
           <button class="action-btn reject"  onclick="updateAppStatus('${d.id}','rejected',this)">Reject</button>
         </td>
       </tr>`;
     }).join('');
     c.innerHTML = `
-      <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">All Applications</div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">All Applications</div>
       <div style="font-size:14px;color:#aaa;margin-bottom:24px">Live from Firestore — ${snap.size} total</div>
       <div class="filter-row">
         <input class="search-admin" type="text" placeholder="Search by name, ref..." oninput="filterTable(this.value)">
         <select class="filter-select" onchange="filterByStatus(this.value)"><option value="">All Status</option><option>pending</option><option>processing</option><option>approved</option><option>rejected</option></select>
       </div>
       <div class="admin-table-card">
-        ${snap.empty ? '<div class="empty-state"><div class="empty-icon">📭</div><div>No applications yet.</div></div>' :
+        ${snap.empty ? '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div><div>No applications yet.</div></div>' :
         `<table><thead><tr><th>Ref #</th><th>Applicant</th><th>Country</th><th>Type</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody id="apps-tbody">${rows}</tbody></table>`}
       </div>`;
   } catch(e) {
-    c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>${e.message}</div></div>`;
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div>${e.message}</div></div>`;
   }
 }
 
@@ -1876,7 +1912,7 @@ window.openEditModal = function(docId) {
     <div style="background:white;border-radius:20px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;box-shadow:0 40px 80px rgba(0,0,0,0.5)">
       <div style="background:linear-gradient(135deg,#0a1628,#1a3a6b);padding:28px 32px;border-radius:20px 20px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1">
         <div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#c9973a">Edit Application</div>
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:700;color:#c9973a">Edit Application</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px">${a.ref} · ${a.applicant}</div>
         </div>
         <button onclick="document.getElementById('edit-modal').remove()" style="background:rgba(255,255,255,0.1);border:none;color:white;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;line-height:1">×</button>
@@ -1885,10 +1921,10 @@ window.openEditModal = function(docId) {
 
         <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:10px">Application Status</div>
         <select id="edit-status" style="width:100%;padding:12px 16px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-size:14px;margin-bottom:24px;outline:none;cursor:pointer">
-          <option value="pending"    ${a.status==='pending'?'selected':''}>🟡 Pending</option>
-          <option value="processing" ${a.status==='processing'?'selected':''}>🔵 Processing</option>
-          <option value="approved"   ${a.status==='approved'?'selected':''}>🟢 Approved</option>
-          <option value="rejected"   ${a.status==='rejected'?'selected':''}>🔴 Rejected</option>
+          <option value="pending"    ${a.status==='pending'?'selected':''}> Pending </option>
+          <option value="processing" ${a.status==='processing'?'selected':''}> Processing </option>
+          <option value="approved"   ${a.status==='approved'?'selected':''}> Approved </option>
+          <option value="rejected"   ${a.status==='rejected'?'selected':''}> Rejected </option>
         </select>
 
         <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:10px">Applicant Details</div>
@@ -1900,7 +1936,7 @@ window.openEditModal = function(docId) {
           </div>`).join('')}
         </div>
 
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:10px">📅 Appointment — changes reflect immediately in applicant view</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:10px">Appointment — changes reflect immediately in applicant view</div>
         <div style="background:linear-gradient(135deg,#fffbf3,#fff8ec);border:2px solid #f0e0b0;border-radius:14px;padding:20px;margin-bottom:24px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
             <div>
@@ -1913,7 +1949,7 @@ window.openEditModal = function(docId) {
             </div>
           </div>
           <div style="margin-top:12px;padding:10px 14px;background:rgba(201,151,58,0.1);border-radius:8px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px">
-            <span>💡</span> Saving will instantly update what the applicant sees on their Track page
+            Saving will instantly update what the applicant sees on their Track page
           </div>
         </div>
 
@@ -1921,8 +1957,8 @@ window.openEditModal = function(docId) {
 
         <div style="display:flex;gap:12px;justify-content:flex-end">
           <button onclick="document.getElementById('edit-modal').remove()" style="padding:13px 24px;background:#f0f2f7;color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Cancel</button>
-          <button onclick="generatePDFFromAdmin('${docId}')" style="padding:13px 24px;background:#0a1628;color:#c9973a;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">📄 PDF</button>
-          <button id="edit-save-btn" onclick="saveApplicationEdit('${docId}')" style="padding:13px 32px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💾 Save Changes</button>
+          <button onclick="generatePDFFromAdmin('${docId}')" style="padding:13px 24px;background:#0a1628;color:#c9973a;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif"> PDF </button>
+          <button id="edit-save-btn" onclick="saveApplicationEdit('${docId}')" style="padding:13px 32px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif"> Save Changes </button>
         </div>
       </div>
     </div>`;
@@ -1934,7 +1970,7 @@ window.saveApplicationEdit = async function(docId) {
   const btn   = document.getElementById('edit-save-btn');
   const errEl = document.getElementById('edit-modal-error');
   errEl.style.display = 'none';
-  btn.disabled = true; btn.textContent = '⏳ Saving...';
+  btn.disabled = true; btn.textContent = 'Saving...';
   try {
     const first = document.getElementById('edit-first').value.trim();
     const last  = document.getElementById('edit-last').value.trim();
@@ -1957,11 +1993,11 @@ window.saveApplicationEdit = async function(docId) {
     // Refresh row badge
     const badge = document.getElementById(`badge-${docId}`);
     if (badge) { badge.className = `status-badge ${updates.status}`; badge.textContent = updates.status; }
-    showToast('✅ Saved to Firestore — applicant view updated automatically', 'success');
+    showToast('Saved — applicant view updated automatically', 'success');
   } catch(e) {
     errEl.textContent = 'Save failed: ' + e.message;
     errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = '💾 Save Changes';
+    btn.disabled = false; btn.textContent = 'Save Changes';
   }
 };
 
@@ -1991,7 +2027,7 @@ window.updateAppStatus = updateAppStatus;
 
 async function renderAdminAppointments() {
   const c = document.getElementById('admin-content');
-  c.innerHTML = `<div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:28px">Appointments</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
+  c.innerHTML = `<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:28px">Appointments</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
   try {
     const snap = await getDocs(query(collection(db,'applications'), where('appointmentSlot','!=','TBD'), orderBy('appointmentSlot')));
     const rows = snap.docs.map(d => {
@@ -1999,26 +2035,26 @@ async function renderAdminAppointments() {
       return `<tr><td style="font-weight:700;font-size:15px">${a.appointmentSlot}</td><td style="font-weight:600">${a.applicant}</td><td>${a.countryCode?flagImg(a.countryCode,'sm'):''} ${a.country}</td><td><span style="font-size:12px;padding:4px 10px;border-radius:6px;background:#dbeafe;color:#1e40af;font-weight:600">Biometrics</span></td><td style="font-size:13px;color:#c9973a">${a.ref}</td><td><span class="status-badge ${a.status}">${a.status}</span></td></tr>`;
     }).join('');
     c.innerHTML = `
-      <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Appointments</div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Appointments</div>
       <div style="font-size:14px;color:#aaa;margin-bottom:28px">All scheduled appointments</div>
       <div class="admin-table-card">
-        ${snap.empty ? '<div class="empty-state"><div class="empty-icon">📅</div><div>No appointments booked yet.</div></div>' :
+        ${snap.empty ? '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div>No appointments booked yet.</div></div>' :
         `<table><thead><tr><th>Time</th><th>Applicant</th><th>Country</th><th>Type</th><th>Ref #</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`}
       </div>`;
   } catch(e) {
-    c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>${e.message}</div></div>`;
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div>${e.message}</div></div>`;
   }
 }
 
 async function renderAdminUsers() {
   const c = document.getElementById('admin-content');
-  c.innerHTML = `<div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:28px">Users</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
+  c.innerHTML = `<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:28px">Users</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
   try {
     const snap = await getDocs(collection(db,'users'));
     const admins = snap.docs.filter(d => d.data().email?.endsWith('@visa.com'));
     const users  = snap.docs.filter(d => !d.data().email?.endsWith('@visa.com'));
     c.innerHTML = `
-      <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Users</div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Users</div>
       <div style="font-size:14px;color:#aaa;margin-bottom:28px">Registered accounts — ${snap.size} total</div>
       <div class="admin-kpi-grid" style="grid-template-columns:repeat(3,1fr)">
         <div class="kpi-card"><div class="kpi-num">${snap.size}</div><div class="kpi-label">Registered Users</div></div>
@@ -2035,22 +2071,22 @@ async function renderAdminUsers() {
         <div class="admin-table-header"><h3>Applicants</h3></div>
         ${users.length ? `<table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Status</th></tr></thead><tbody>
           ${users.map(d=>{const u=d.data();return`<tr><td style="font-weight:600">${u.name||'—'}</td><td style="color:#aaa;font-size:13px">${u.email}</td><td style="font-size:13px">${u.phone||'—'}</td><td style="color:#aaa;font-size:13px">${u.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</td><td><span class="status-badge approved">Active</span></td></tr>`;}).join('')}
-        </tbody></table>` : '<div class="empty-state"><div class="empty-icon">👥</div><div>No applicants registered yet.</div></div>'}
+        </tbody></table>` : '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div>No applicants registered yet.</div></div>'}
       </div>`;
   } catch(e) {
-    c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>${e.message}</div></div>`;
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div>${e.message}</div></div>`;
   }
 }
 
 async function renderAdminPayments() {
   const c = document.getElementById('admin-content');
-  c.innerHTML = `<div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:28px">Payments</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
+  c.innerHTML = `<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:28px">Payments</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
   try {
     const snap = await getDocs(collection(db,'applications'));
     const all  = snap.docs.map(d => d.data());
     const revenue = all.reduce((s,a) => s + (a.totalFee||115), 0);
     c.innerHTML = `
-      <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Payments</div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Payments</div>
       <div style="font-size:14px;color:#aaa;margin-bottom:24px">Financial overview</div>
       <div class="admin-kpi-grid">
         <div class="kpi-card"><div class="kpi-num">€${revenue.toLocaleString()}</div><div class="kpi-label">Total Revenue</div></div>
@@ -2062,17 +2098,17 @@ async function renderAdminPayments() {
         <div class="admin-table-header"><h3>Transaction History</h3></div>
         ${all.length ? `<table><thead><tr><th>Ref #</th><th>Applicant</th><th>Country</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead><tbody>
           ${snap.docs.map((d,i)=>{const a=d.data();return`<tr><td style="font-weight:600;font-size:12px;color:#666">TXN-${100001+i}</td><td>${a.applicant}</td><td>${a.countryCode?flagImg(a.countryCode,'sm'):''} ${a.country}</td><td style="font-weight:700;color:#2d9e6b">€${a.totalFee||115}</td><td style="color:#aaa;font-size:13px">${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'}</td><td><span class="status-badge ${a.status==='rejected'?'rejected':'approved'}">${a.status==='rejected'?'Refunded':'Paid'}</span></td></tr>`;}).join('')}
-        </tbody></table>` : '<div class="empty-state"><div class="empty-icon">💸</div><div>No transactions yet.</div></div>'}
+        </tbody></table>` : '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div>No transactions yet.</div></div>'}
       </div>`;
   } catch(e) {
-    c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>${e.message}</div></div>`;
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div>${e.message}</div></div>`;
   }
 }
 
 function renderAdminCountries() {
   const c = document.getElementById('admin-content');
   c.innerHTML = `
-    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Countries & Fees</div>
+    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Countries & Fees</div>
     <div style="font-size:14px;color:#aaa;margin-bottom:24px">${COUNTRIES.length} supported countries</div>
     <div class="admin-table-card">
       <div class="admin-table-header"><h3>All Countries</h3><button class="action-btn view">+ Add Country</button></div>
@@ -2084,7 +2120,7 @@ function renderAdminCountries() {
 
 async function renderAdminReports() {
   const c = document.getElementById('admin-content');
-  c.innerHTML = `<div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:28px">Reports</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
+  c.innerHTML = `<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:28px">Reports</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
   try {
     const snap = await getDocs(collection(db,'applications'));
     const all  = snap.docs.map(d => d.data());
@@ -2093,26 +2129,26 @@ async function renderAdminReports() {
     const top = Object.entries(cCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
     const total = all.length || 1;
     c.innerHTML = `
-      <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Reports & Analytics</div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Reports & Analytics</div>
       <div style="font-size:14px;color:#aaa;margin-bottom:28px">Live data from Firestore</div>
       <div class="admin-chart-row">
         <div class="admin-table-card">
-          <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:20px">Top Destinations</h3>
+          <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0a1628;margin-bottom:20px">Top Destinations</h3>
           ${top.length ? top.map(([name,cnt])=>`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><span style="font-size:14px;font-weight:600;color:#0a1628;min-width:140px">${name}</span><div style="flex:1;height:8px;background:#f0f2f7;border-radius:4px;overflow:hidden;margin:0 12px"><div style="width:${Math.round(cnt/total*100)*3}%;height:100%;background:linear-gradient(90deg,#c9973a,#e8b85c);border-radius:4px"></div></div><span style="font-size:13px;color:#aaa">${cnt}</span></div>`).join('') : '<p style="color:#aaa">No data yet.</p>'}
         </div>
         <div class="admin-table-card">
-          <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:20px">Status Overview</h3>
+          <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0a1628;margin-bottom:20px">Status Overview</h3>
           ${[['Approved','#2d9e6b'],['Processing','#3b82f6'],['Pending','#f59e0b'],['Rejected','#d64045']].map(([l,col])=>{const n=all.filter(a=>a.status===l.toLowerCase()).length;const pct=Math.round(n/total*100);return`<div style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#0a1628">${l}</span><span style="font-size:13px;color:#aaa">${n} (${pct}%)</span></div><div style="height:8px;background:#f0f2f7;border-radius:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${col};border-radius:4px"></div></div></div>`;}).join('')}
         </div>
       </div>
       <div class="admin-table-card">
         <div class="admin-table-header"><h3>Export Reports</h3></div>
         <div style="display:flex;gap:12px;flex-wrap:wrap">
-          ${['Applications CSV','Financial Report','User Data CSV'].map(r=>`<button onclick="showToast('Preparing ${r}...','success')" style="padding:12px 20px;border-radius:10px;border:2px solid #f0f2f7;background:white;font-size:14px;font-weight:600;cursor:pointer;color:#0a1628">📥 ${r}</button>`).join('')}
+          ${['Applications CSV','Financial Report','User Data CSV'].map(r=>`<button onclick="showToast('Preparing ${r}...','success')" style="padding:12px 20px;border-radius:10px;border:2px solid #f0f2f7;background:white;font-size:14px;font-weight:600;cursor:pointer;color:#0a1628">${r}</button>`).join('')}
         </div>
       </div>`;
   } catch(e) {
-    c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>${e.message}</div></div>`;
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div>${e.message}</div></div>`;
   }
 }
 
@@ -2122,19 +2158,19 @@ async function renderAdminReports() {
 function renderAdminVerify() {
   const c = document.getElementById('admin-content');
   c.innerHTML = `
-    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Verify Document</div>
+    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Verify Document</div>
     <div style="font-size:14px;color:#aaa;margin-bottom:28px">Authenticate appointment letters using QR scan or token entry</div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:flex-start">
 
       <!-- TOKEN MANUAL INPUT -->
       <div class="admin-table-card">
-        <div style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:6px">🔑 Enter Security Token</div>
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0a1628;margin-bottom:6px"> Enter Security Token </div>
         <div style="font-size:13px;color:#aaa;margin-bottom:20px">Type or paste the 32-character token printed on the letter</div>
         <div style="margin-bottom:14px">
           <label style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#666;margin-bottom:7px;display:block">Security Token</label>
           <input id="verify-token-input" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
-            style="width:100%;padding:12px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-family:'Courier New',monospace;font-size:13px;letter-spacing:1.5px;outline:none;transition:border-color 0.2s"
+            style="width:100%;padding:12px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:1.5px;outline:none;transition:border-color 0.2s"
             onfocus="this.style.borderColor='#c9973a'" onblur="this.style.borderColor='transparent'"
             oninput="this.value=this.value.toUpperCase()">
         </div>
@@ -2145,17 +2181,17 @@ function renderAdminVerify() {
             onfocus="this.style.borderColor='#c9973a'" onblur="this.style.borderColor='transparent'"
             oninput="this.value=this.value.toUpperCase()">
         </div>
-        <button onclick="verifyDocumentToken()" style="width:100%;padding:14px;background:linear-gradient(135deg,#0a1628,#1a3a6b);color:#c9973a;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:0.5px">🔍 Verify Token</button>
+        <button onclick="verifyDocumentToken()" style="width:100%;padding:14px;background:linear-gradient(135deg,#0a1628,#1a3a6b);color:#c9973a;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:0.5px"> Verify Token </button>
         <div id="verify-result" style="margin-top:16px"></div>
       </div>
 
       <!-- QR SCANNER -->
       <div class="admin-table-card">
-        <div style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:6px">📷 Scan QR Code</div>
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0a1628;margin-bottom:6px"> Scan QR Code </div>
         <div style="font-size:13px;color:#aaa;margin-bottom:20px">Use device camera to scan the QR code on the printed letter</div>
         <div id="qr-scanner-area" style="background:#0a1628;border-radius:12px;overflow:hidden;position:relative;min-height:220px;display:flex;align-items:center;justify-content:center">
           <div id="qr-placeholder" style="text-align:center;padding:30px;color:rgba(255,255,255,0.5)">
-            <div style="font-size:48px;margin-bottom:12px">📷</div>
+            <div style="margin-bottom:12px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
             <div style="font-size:14px;font-weight:600">Camera not started</div>
             <div style="font-size:12px;margin-top:6px">Click Start Scan below</div>
           </div>
@@ -2170,8 +2206,8 @@ function renderAdminVerify() {
           </div>
         </div>
         <div style="display:flex;gap:10px;margin-top:14px">
-          <button id="qr-start-btn" onclick="startQRScan()" style="flex:1;padding:12px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">▶ Start Scan</button>
-          <button id="qr-stop-btn" onclick="stopQRScan()" style="flex:1;padding:12px;background:#f0f2f7;color:#0a1628;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:none">⏹ Stop</button>
+          <button id="qr-start-btn" onclick="startQRScan()" style="flex:1;padding:12px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">Start Scan</button>
+          <button id="qr-stop-btn" onclick="stopQRScan()" style="flex:1;padding:12px;background:#f0f2f7;color:#0a1628;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:none">Stop</button>
         </div>
         <div id="qr-scan-status" style="margin-top:10px;font-size:12px;color:#aaa;text-align:center"></div>
       </div>
@@ -2179,13 +2215,13 @@ function renderAdminVerify() {
 
     <!-- HOW IT WORKS -->
     <div class="admin-table-card" style="margin-top:24px">
-      <div style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:16px">How Document Verification Works</div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0a1628;margin-bottom:16px">How Document Verification Works</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
         ${[
-          ['1','🔐','Token Generated','When an appointment is created, a SHA-256 hash is computed from the applicant\'s name, passport, appointment date/slot, and a private salt — producing a unique 32-character token.'],
-          ['2','🖨','Printed on Letter','The token is printed on the confirmation letter both as a QR code and as readable text. No two documents share the same token.'],
-          ['3','📷','Admin Scans/Types','The officer scans the QR or types the token. The system re-fetches the application from Firestore and recomputes the hash.'],
-          ['4','✅','Match = Authentic','If the recomputed hash matches the scanned token, the document is genuine. Any tampering with names or dates produces a different hash — instantly caught.']
+          ['1','&#x25A0;','Token Generated','When an appointment is created, a SHA-256 hash is computed from the applicant\'s name, passport, appointment date/slot, and a private salt — producing a unique 32-character token.'],
+          ['2','&#x25A0;','Printed on Letter','The token is printed on the confirmation letter both as a QR code and as readable text. No two documents share the same token.'],
+          ['3','&#x25A0;','Admin Scans/Types','The officer scans the QR or types the token. The system re-fetches the application from Firestore and recomputes the hash.'],
+          ['4','&#x25A0;','Match = Authentic','If the recomputed hash matches the scanned token, the document is genuine. Any tampering with names or dates produces a different hash — instantly caught.']
         ].map(([n,ico,title,desc]) => `
           <div style="background:#f8faff;border-radius:12px;padding:16px;border:1px solid #e8edf8">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
@@ -2212,7 +2248,7 @@ window.verifyDocumentToken = async function() {
   const refInput = document.getElementById('verify-ref-input').value.trim().toUpperCase();
   const resultEl = document.getElementById('verify-result');
   if (rawInput.length < 16) {
-    resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;font-size:13px;color:#991b1b">⚠️ Please enter a valid security token.</div>`;
+    resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;font-size:13px;color:#991b1b">Please enter a valid security token.</div>`;
     return;
   }
   resultEl.innerHTML = `<div style="background:#f0f2f7;border-radius:10px;padding:14px 18px;font-size:13px;color:#666;display:flex;align-items:center;gap:10px"><div class="loader-spin" style="margin:0"></div> Verifying against Firestore...</div>`;
@@ -2235,7 +2271,7 @@ window.verifyDocumentToken = async function() {
     }
     if (!appSnap) {
       resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:16px 18px;font-size:13px;color:#991b1b">
-        <div style="font-size:16px;font-weight:700;margin-bottom:6px">❌ INVALID — Document Not Authentic</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px"> INVALID — Document Not Authentic </div>
         <div>No matching application found for this token. The document may be forged or tampered with.</div>
       </div>`;
       return;
@@ -2246,7 +2282,7 @@ window.verifyDocumentToken = async function() {
     const match = recomputed === rawInput;
     if (match) {
       resultEl.innerHTML = `<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:10px;padding:16px 18px">
-        <div style="font-size:16px;font-weight:700;color:#065f46;margin-bottom:10px">✅ VERIFIED — Document is Authentic</div>
+        <div style="font-size:16px;font-weight:700;color:#065f46;margin-bottom:10px"> VERIFIED — Document is Authentic </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
           <div><span style="color:#888;text-transform:uppercase;letter-spacing:0.5px;font-size:10px">Applicant</span><br><strong style="color:#0a1628">${a.applicant||'—'}</strong></div>
           <div><span style="color:#888;text-transform:uppercase;letter-spacing:0.5px;font-size:10px">Reference</span><br><strong style="color:#c9973a">${a.ref||'—'}</strong></div>
@@ -2260,7 +2296,7 @@ window.verifyDocumentToken = async function() {
       </div>`;
     } else {
       resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:16px 18px;font-size:13px;color:#991b1b">
-        <div style="font-size:16px;font-weight:700;margin-bottom:6px">⚠️ TOKEN MISMATCH — Document Tampered</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px"> MISMATCH — Document Tampered </div>
         <div>Application found but token does not match. The document data may have been altered after issuance.</div>
       </div>`;
     }
@@ -2292,7 +2328,7 @@ window.startQRScan = function() {
       if (frame) frame.style.display = 'block';
       if (startBtn) startBtn.style.display = 'none';
       if (stopBtn) stopBtn.style.display = 'block';
-      statusEl.textContent = '🔍 Scanning for QR code...';
+      statusEl.textContent = 'Scanning for QR code...';
       statusEl.style.color = '#c9973a';
 
       const canvas = document.getElementById('qr-canvas');
@@ -2314,7 +2350,7 @@ window.startQRScan = function() {
       }, 200);
     })
     .catch(err => {
-      statusEl.textContent = '❌ Camera access denied: ' + err.message;
+      statusEl.textContent = 'Camera access denied: ' + err.message;
       statusEl.style.color = '#d64045';
     });
 };
@@ -2338,7 +2374,7 @@ window.stopQRScan = function() {
 
 async function handleQRResult(data) {
   const statusEl = document.getElementById('qr-scan-status');
-  if (statusEl) { statusEl.textContent = '✅ QR Detected — verifying...'; statusEl.style.color = '#2d9e6b'; }
+  if (statusEl) { statusEl.textContent = 'QR Detected — verifying...'; statusEl.style.color = '#2d9e6b'; }
   try {
     const parsed = JSON.parse(data);
     const tok = (parsed.tok || '').toUpperCase();
@@ -2352,28 +2388,28 @@ async function handleQRResult(data) {
     await verifyDocumentToken();
   } catch(e) {
     const resultEl = document.getElementById('verify-result');
-    if (resultEl) resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;font-size:13px;color:#991b1b">❌ Invalid QR code format.</div>`;
+    if (resultEl) resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;font-size:13px;color:#991b1b">Invalid QR code format.</div>`;
   }
 }
 
 function renderAdminSettings() {
   document.getElementById('admin-content').innerHTML = `
-    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Settings</div>
+    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Settings</div>
     <div style="font-size:14px;color:#aaa;margin-bottom:28px">Firebase project: cars-website-558c0</div>
     <div class="admin-table-card">
-      <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:24px">General Settings</h3>
+      <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0a1628;margin-bottom:24px">General Settings</h3>
       <div class="form-grid">
         <div><label class="form-label-dark">Portal Name</label><input class="form-input-light" value="VisaMa"></div>
         <div><label class="form-label-dark">Support Email</label><input class="form-input-light" value="support@visama.ma"></div>
         <div><label class="form-label-dark">Appointment Center</label><input class="form-input-light" value="Casablanca, Morocco"></div>
         <div><label class="form-label-dark">Default Currency</label><select class="form-input-light"><option>EUR (€)</option><option>MAD (درهم)</option></select></div>
       </div>
-      <button class="btn-nav btn-next" style="margin-top:24px" onclick="showToast('Settings saved ✅','success')">Save Changes</button>
+      <button class="btn-nav btn-next" style="margin-top:24px" onclick="showToast('Settings saved','success')">Save Changes</button>
     </div>
     <div class="admin-table-card" style="margin-top:20px">
-      <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:24px">Firebase Connection</h3>
+      <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0a1628;margin-bottom:24px">Firebase Connection</h3>
       <div style="display:flex;align-items:center;gap:12px;padding:16px;background:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0">
-        <span style="font-size:24px">🔥</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="1.5" stroke-linecap="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17h2a2.5 2.5 0 0 0 0-5H9a2.5 2.5 0 0 1 0-5h2A2.5 2.5 0 0 1 13.5 9"/><path d="M12 6v3m0 6v3"/></svg>
         <div>
           <div style="font-weight:600;color:#065f46">Connected to Firebase</div>
           <div style="font-size:13px;color:#aaa">Project: cars-website-558c0 · Auth &amp; Firestore active</div>
@@ -2382,7 +2418,7 @@ function renderAdminSettings() {
       </div>
     </div>
     <div class="admin-table-card" style="margin-top:20px">
-      <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:24px">Notifications</h3>
+      <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0a1628;margin-bottom:24px">Notifications</h3>
       ${[['Email notifications for new applications',true],['SMS alerts for appointment changes',true],['Auto-approve eligible applications',false],['Weekly summary reports',true]].map(([label,on])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid #f0f2f7"><span style="font-size:14px;font-weight:500;color:#0a1628">${label}</span><div style="width:44px;height:24px;border-radius:12px;background:${on?'#c9973a':'#e0e0e0'};position:relative;cursor:pointer;transition:background 0.3s" onclick="this.style.background=this.style.background.includes('201')?'#e0e0e0':'#c9973a'"><div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:${on?'23px':'3px'}"></div></div></div>`).join('')}
     </div>`;
 }
@@ -2630,10 +2666,10 @@ function renderZVisa(v) {
     .zvf-val{font-size:12px;font-weight:700;color:#080808;letter-spacing:.05px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Arial,sans-serif;}
     .zvf-val.lg{font-size:14px;}
     .zvf-val.xl{font-size:24px;font-weight:900;letter-spacing:-1px;}
-    .zvf-val.mono{font-family:'Courier New',monospace;letter-spacing:1.8px;font-size:11px;}
+    .zvf-val.mono{font-family:'JetBrains Mono',monospace;letter-spacing:1.8px;font-size:11px;}
     .zvf-typebox{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:2.5px solid #163278;border-radius:2px;font-size:21px;font-weight:900;color:#163278;font-family:Arial,sans-serif;background:rgba(255,255,255,.55);line-height:1;}
     .zvisa-mrz{position:absolute;bottom:0;left:0;right:0;height:74px;z-index:7;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:rgba(255,255,255,.72);border-top:2px solid rgba(0,0,0,.28);display:flex;flex-direction:column;justify-content:center;padding:5px 12px 5px 10px;gap:1px;}
-    .zvisa-mrz-line{font-family:'Courier New',Courier,monospace;font-size:11px;font-weight:400;letter-spacing:3.2px;color:#000;line-height:1.8;white-space:nowrap;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .zvisa-mrz-line{font-family:'JetBrains Mono','JetBrains Mono',monospace;font-size:11px;font-weight:400;letter-spacing:3.2px;color:#000;line-height:1.8;white-space:nowrap;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .zvisa-mrz-line:first-child{font-weight:700;}
 
     /* ── PRINT layout ── */
@@ -2801,14 +2837,14 @@ function renderZVisa(v) {
 async function renderAdminVisas() {
   const c = document.getElementById('admin-content');
   c.innerHTML = `
-    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Issue Z Visa</div>
+    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Issue Z Visa</div>
     <div style="font-size:14px;color:#aaa;margin-bottom:28px">Fill in the visa details — the sticker preview updates live</div>
     <div style="display:grid;grid-template-columns:1fr 480px;gap:28px;align-items:flex-start">
 
       <!-- FORM -->
       <div>
         <div class="admin-table-card">
-          <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:20px">🔍 Load Applicant</h3>
+          <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0a1628;margin-bottom:20px"> Load Applicant </h3>
           <div style="display:flex;gap:10px">
             <input id="visa-load-ref" class="search-admin" style="flex:1" placeholder="Paste Reference No. (e.g. VMA-2026-12345)">
             <button onclick="loadApplicantForVisa()" style="padding:10px 20px;background:#0a1628;color:#c9973a;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px">Load →</button>
@@ -2817,7 +2853,7 @@ async function renderAdminVisas() {
         </div>
 
         <div class="admin-table-card" style="margin-top:0">
-          <h3 style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:20px">📋 Visa Details</h3>
+          <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0a1628;margin-bottom:20px"> Visa Details </h3>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
             ${[
               ['visa-number','Visa Number','ZMA-000001','text'],
@@ -2879,10 +2915,10 @@ async function renderAdminVisas() {
           <div style="margin-top:14px">
             <label style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#666;margin-bottom:8px;display:block">Applicant Photo</label>
             <div style="display:flex;align-items:center;gap:14px">
-              <div id="visa-photo-preview" style="width:70px;height:88px;background:#f0f2f7;border-radius:6px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden">👤</div>
+              <div id="visa-photo-preview" style="width:70px;height:88px;background:#f0f2f7;border-radius:6px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;overflow:hidden"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
               <div>
                 <label style="padding:10px 18px;background:#0a1628;color:#c9973a;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:inline-block">
-                  📷 Upload Photo
+                  Upload Photo
                   <input type="file" accept="image/*" style="display:none" onchange="handleVisaPhoto(this)">
                 </label>
                 <div style="font-size:11px;color:#aaa;margin-top:6px">JPG, PNG — passport style, white background</div>
@@ -2892,7 +2928,7 @@ async function renderAdminVisas() {
         </div>
 
         <div id="visa-issue-error" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;font-size:13px;color:#991b1b;margin-bottom:16px"></div>
-        <button id="visa-issue-btn" onclick="issueVisa()" style="width:100%;padding:16px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1px;font-family:'Playfair Display',serif">🪪 ISSUE Z VISA</button>
+        <button id="visa-issue-btn" onclick="issueVisa()" style="width:100%;padding:16px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1px;font-family:'Cormorant Garamond',Georgia,serif"> ISSUE VISA </button>
       </div>
 
       <!-- LIVE PREVIEW -->
@@ -2900,7 +2936,7 @@ async function renderAdminVisas() {
         <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#aaa;text-align:center;margin-bottom:16px">Live Preview</div>
         <div id="visa-preview-container"></div>
         <div style="text-align:center;margin-top:16px">
-          <button onclick="printVisaPreview()" style="padding:10px 20px;background:#0a1628;color:#c9973a;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🖨 Print Preview</button>
+          <button onclick="printVisaPreview()" style="padding:10px 20px;background:#0a1628;color:#c9973a;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer"> Print Preview </button>
         </div>
       </div>
 
@@ -2931,7 +2967,7 @@ window.loadApplicantForVisa = async function() {
   try {
     const q = query(collection(db,'applications'), where('ref','==',ref));
     const snap = await getDocs(q);
-    if (snap.empty) { status.innerHTML = '<span style="color:#d64045">❌ No application found</span>'; return; }
+    if (snap.empty) { status.innerHTML = '<span style="color:#d64045">No application found</span>'; return; }
     const a = snap.docs[0].data();
     window._visaAppDocId = snap.docs[0].id;
     window._visaCountry  = { name: a.country, code: a.countryCode };
@@ -2947,7 +2983,7 @@ window.loadApplicantForVisa = async function() {
     const until = new Date(today); until.setMonth(until.getMonth()+3);
     set('visa-from',  today.toISOString().split('T')[0]);
     set('visa-until', until.toISOString().split('T')[0]);
-    status.innerHTML = `<span style="color:#2d9e6b">✅ Loaded: ${a.applicant} — ${a.country}</span>`;
+    status.innerHTML = `<span style="color:#2d9e6b">Loaded: ${a.applicant} — ${a.country}</span>`;
     updateVisaPreview();
   } catch(e) {
     status.innerHTML = `<span style="color:#d64045">Error: ${e.message}</span>`;
@@ -2996,7 +3032,7 @@ window.issueVisa = async function() {
   const v = collectVisaForm();
   if (!v.surname || !v.givenNames) { errEl.textContent = 'Surname and given names are required.'; errEl.style.display='block'; return; }
   if (!v.validFrom || !v.validUntil) { errEl.textContent = 'Valid From and Valid Until dates are required.'; errEl.style.display='block'; return; }
-  btn.disabled = true; btn.textContent = '⏳ Issuing...';
+  btn.disabled = true; btn.textContent = 'Issuing...';
   try {
     const visaData = { ...v, issuedAt: serverTimestamp(), status: 'issued' };
     // Save visa to Firestore
@@ -3009,17 +3045,17 @@ window.issueVisa = async function() {
         visaNumber: v.number,
       });
     }
-    showToast('🪪 Z Visa issued successfully! Applicant can now view it.', 'success');
-    btn.disabled = false; btn.textContent = '🪪 ISSUE Z VISA';
+    showToast('Visa issued — applicant can now view it', 'success');
+    btn.disabled = false; btn.textContent = 'ISSUE VISA';
     // Show success on preview
     document.getElementById('visa-preview-container').insertAdjacentHTML('afterend',
       `<div style="text-align:center;margin-top:12px;padding:12px;background:#d1fae5;border-radius:10px;font-size:13px;font-weight:600;color:#065f46">
-        ✅ Visa Issued · ID: ${visaRef.id.slice(0,8).toUpperCase()}
+        Visa Issued · ID: ${visaRef.id.slice(0,8).toUpperCase()}
        </div>`);
   } catch(e) {
     errEl.textContent = 'Failed: ' + e.message;
     errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = '🪪 ISSUE Z VISA';
+    btn.disabled = false; btn.textContent = 'ISSUE VISA';
   }
 };
 
@@ -3079,7 +3115,7 @@ function openVisaPopup(v) {
   }
   .lh-left { flex: 1; }
   .lh-org {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 20px;
     font-weight: 700;
     color: #0a1628;
@@ -3111,7 +3147,7 @@ function openVisaPopup(v) {
     margin-bottom: 4px;
   }
   .lh-ref {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 16px;
     font-weight: 700;
     color: #0a1628;
@@ -3148,7 +3184,7 @@ function openVisaPopup(v) {
     flex: 1;
   }
   .doc-title {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 17px;
     font-weight: 700;
     color: #0a1628;
@@ -3302,8 +3338,8 @@ function openVisaPopup(v) {
 
 <div class="no-print-bar">
   <span>Consulate Print Document — Z Visa Issuance Letter</span>
-  <button onclick="window.print()">🖨 Print / Save as PDF</button>
-  <button onclick="window.close()" style="background:rgba(255,255,255,0.15);color:#fff">✕ Close</button>
+  <button onclick="window.print()"> Print / Save as PDF </button>
+  <button onclick="window.close()" style="background:rgba(255,255,255,0.15);color:#fff"> Close </button>
 </div>
 
 <div class="page-wrapper">
@@ -3374,7 +3410,7 @@ function openVisaPopup(v) {
       </div>
       <div class="sig-block" style="text-align:center">
         <div style="font-size:10px;color:#aaa">Document Reference</div>
-        <div style="font-size:13px;font-weight:700;color:#0a1628;font-family:'Playfair Display',serif;">VISA/${v.number || '—'}</div>
+        <div style="font-size:13px;font-weight:700;color:#0a1628;font-family:'Cormorant Garamond',Georgia,serif;">VISA/${v.number || '—'}</div>
         <div style="font-size:10px;color:#aaa">Generated: ${new Date().toLocaleDateString('en-GB')}</div>
       </div>
       <div class="sig-block" style="text-align:right">
@@ -3458,18 +3494,18 @@ window.__printVisa = function(visaId) {
 };
 async function loadUserApplications() {
   const el = document.getElementById('applications-list');
-  el.innerHTML = `<div class="empty-state"><div class="loader-spin" style="margin:0 auto 12px"></div><div>Loading your applications...</div></div>`;
+  el.innerHTML = `<div class="empty-state"><div class="loader-spin" style="margin:0 auto 20px"></div><div style="font-size:13px;font-weight:500;letter-spacing:0.5px">Loading applications...</div></div>`;
   try {
     const q = query(collection(db,'applications'), where('uid','==',currentUser.uid));
     const snap = await getDocs(q);
     if (snap.empty) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div>No applications yet.</div><div style="margin-top:8px"><button class="btn-nav btn-next" onclick="showPage('apply')">Start an Application</button></div></div>`;
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div><div>No applications yet.</div><div style="margin-top:8px"><button class="btn-nav btn-next" onclick="showPage('apply')">Start an Application</button></div></div>`;
       return;
     }
     const docs = snap.docs.sort((a,b) => {
       return (b.data().createdAt?.toMillis?.() || 0) - (a.data().createdAt?.toMillis?.() || 0);
     });
-    const statusIcon = {pending:'🟡',approved:'🟢',processing:'🔵',rejected:'🔴'};
+    const statusIcon = {pending:'',approved:'',processing:'',rejected:''};
 
     // ── Collect issued visas for the "My Visas" section ──
     const issuedVisas = [];
@@ -3506,9 +3542,9 @@ async function loadUserApplications() {
           onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 20px 50px rgba(0,0,0,0.4)'"
           onmouseout="this.style.transform='';this.style.boxShadow=''">
           <div style="display:flex;align-items:center;gap:18px">
-            <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#c9973a,#e8b85c);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🪪</div>
+            <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#c9973a,#e8b85c);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a1628" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/><line x1="14" y1="15" x2="16" y2="15"/></svg></div>
             <div>
-              <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#c9973a;margin-bottom:4px">
+              <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:700;color:#c9973a;margin-bottom:4px">
                 ${v.number || '—'}
               </div>
               <div style="font-size:14px;color:rgba(255,255,255,0.85);font-weight:500">
@@ -3520,10 +3556,10 @@ async function loadUserApplications() {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
-            <span style="background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px">✓ ISSUED</span>
+            <span style="background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px">ISSUED</span>
             <div style="display:flex;gap:8px">
-              <button onclick="event.stopPropagation();showVisaModal('${v._id}')" style="padding:8px 16px;background:rgba(201,151,58,0.2);border:1px solid rgba(201,151,58,0.5);color:#c9973a;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">👁 View</button>
-              <button onclick="event.stopPropagation();window.__printVisa('${v._id}')" style="padding:8px 16px;background:#c9973a;border:none;color:#0a1628;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🖨 Print</button>
+              <button onclick="event.stopPropagation();showVisaModal('${v._id}')" style="padding:8px 16px;background:rgba(201,151,58,0.2);border:1px solid rgba(201,151,58,0.5);color:#c9973a;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif"> View </button>
+              <button onclick="event.stopPropagation();window.__printVisa('${v._id}')" style="padding:8px 16px;background:#c9973a;border:none;color:#0a1628;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif"> Print </button>
             </div>
           </div>
         </div>`;
@@ -3539,15 +3575,15 @@ async function loadUserApplications() {
       const flagHtml = a.countryCode ? flagImg(a.countryCode, 'sm') : '';
       const apptInfo = (a.appointmentDate && a.appointmentDate !== 'TBD')
         ? `<div style="margin-top:8px;padding:10px 14px;background:#f0f7ff;border-radius:8px;border-left:3px solid #3b82f6;font-size:13px;color:#1e40af">
-            📅 Appointment: <strong>${a.appointmentDate}</strong> at <strong>${a.appointmentSlot}</strong>
+            Appointment: <strong>${a.appointmentDate}</strong> at <strong>${a.appointmentSlot}</strong>
            </div>` : '';
 
       const visaLink = (a.status === 'approved' && a.visaId)
         ? `<div style="margin-top:8px;padding:10px 14px;background:#f0fdf4;border-radius:8px;border-left:3px solid #2d9e6b;font-size:13px;color:#065f46;display:flex;align-items:center;justify-content:space-between">
-            <span>🪪 Visa issued — ${a.visaNumber || ''}</span>
+            <span>Visa issued — ${a.visaNumber || ''}</span>
             <div style="display:flex;gap:8px">
-              <button onclick="showVisaModal('${a.visaId}')" style="padding:6px 14px;background:#0a1628;color:#c9973a;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">👁 View Visa</button>
-              <button onclick="window.__printVisa('${a.visaId}')" style="padding:6px 14px;background:#c9973a;color:#0a1628;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🖨 Print</button>
+              <button onclick="showVisaModal('${a.visaId}')" style="padding:6px 14px;background:#0a1628;color:#c9973a;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif"> View Visa </button>
+              <button onclick="window.__printVisa('${a.visaId}')" style="padding:6px 14px;background:#c9973a;color:#0a1628;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif"> Print </button>
             </div>
            </div>` : '';
 
@@ -3558,7 +3594,7 @@ async function loadUserApplications() {
             <p>Submitted: ${a.createdAt?.toDate?.()?.toLocaleDateString('en-GB')||'N/A'} · ${a.applicant}</p>
           </div>
           <div style="text-align:right">
-            <span class="status-badge ${a.status}">${statusIcon[a.status]||'⚪'} ${a.status}</span>
+            <span class="status-badge ${a.status}">${statusIcon[a.status]} ${a.status}</span>
             <div class="app-ref">${a.ref}</div>
           </div>
         </div>
@@ -3569,7 +3605,7 @@ async function loadUserApplications() {
     el.innerHTML = html;
   } catch (e) {
     console.error('Track error:', e);
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>Could not load applications.<br><small style="color:#aaa">${e.message}</small></div></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div>Could not load applications.<br><small style="color:#aaa">${e.message}</small></div></div>`;
   }
 }
 
@@ -3596,11 +3632,11 @@ window.showVisaModal = function(visaId) {
       <!-- Modal Header -->
       <div style="background:linear-gradient(135deg,#0a1628,#1a3a6b);padding:24px 28px;border-radius:20px 20px 0 0;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(201,151,58,0.3)">
         <div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#c9973a">Your Visa</div>
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:700;color:#c9973a">Issued Visa</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:3px">${v.number || '—'} · ${(v.surname||'').toUpperCase()} ${(v.givenNames||'').toUpperCase()}</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <button onclick="window.__printVisa('${visaId}')" style="padding:10px 20px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🖨 Print Visa</button>
+          <button onclick="window.__printVisa('${visaId}')" style="padding:10px 20px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif"> Print Visa </button>
           <button onclick="document.getElementById('visa-view-modal').remove()" style="background:rgba(255,255,255,0.1);border:none;color:white;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;line-height:1">×</button>
         </div>
       </div>
@@ -3630,7 +3666,7 @@ window.showVisaModal = function(visaId) {
             </div>`).join('')}
         </div>
         <div style="margin-top:16px;text-align:center">
-          <button onclick="window.__printVisa('${visaId}')" style="padding:14px 36px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Playfair Display',serif;letter-spacing:0.5px">🖨 Print Official Visa Document</button>
+          <button onclick="window.__printVisa('${visaId}')" style="padding:14px 36px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Cormorant Garamond',Georgia,serif;letter-spacing:0.5px"> Print Official Visa Document </button>
         </div>
       </div>
     </div>`;
