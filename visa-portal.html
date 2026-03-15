@@ -902,7 +902,14 @@ window.searchApplication = searchApplication;
 window.adminNav          = adminNav;
 window.updateAppStatus   = updateAppStatus;
 window.showToast         = showToast;
-window.showVisaModal     = window.showVisaModal || function(){};
+
+// ── Admin: print visa preview from Issue Z Visa panel ──
+window.printVisaPreview = function() {
+  const container = document.getElementById('visa-preview-container');
+  if (!container) return;
+  const v = collectVisaForm();
+  openVisaPopup(v);
+};
 
 // ────────────────────────────────────────────
 // AUTH STATE OBSERVER — runs on every page load
@@ -3094,7 +3101,7 @@ function openVisaPopup(v) {
       <tr><td>Valid Until</td><td>${validUntilFmt}</td></tr>
       <tr><td>Place of Issue</td><td>${(v.issuedIn || 'Casablanca').toUpperCase()}</td></tr>
       <tr><td>Date of Issue</td><td>${issuedDate}</td></tr>
-      ${v.remarks ? `<tr><td>Remarks</td><td>${v.remarks}</td></tr>` : ''}
+      ${v.remarks ? '<tr><td>Remarks</td><td>' + v.remarks + '</td></tr>' : ''}
     </table>
 
     <div class="signature-row">
@@ -3148,7 +3155,7 @@ function openVisaPopup(v) {
   scale();
   window.addEventListener('resize', scale);
 })();
-</script>
+<\/script>
 </body>
 </html>`;
 
