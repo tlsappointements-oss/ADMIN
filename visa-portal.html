@@ -835,71 +835,317 @@
 <div class="toast" id="toast"></div>
 
 <!-- ════════════════════════════════════════════
-     BIOMETRIC SCANNER OVERLAY
+     BIOMETRIC SCANNER OVERLAY — CINEMATIC
 ════════════════════════════════════════════ -->
-<div id="biometric-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:9999;flex-direction:column;justify-content:center;align-items:center;backdrop-filter:blur(24px)">
+<style>
+/* ── Biometric overlay styles ── */
+#biometric-overlay {
+  display:none; position:fixed; inset:0; z-index:9999;
+  flex-direction:column; justify-content:center; align-items:center;
+  overflow:hidden;
+  background: radial-gradient(ellipse at 50% 35%, #030d1a 0%, #000305 100%);
+}
+#biometric-overlay::before {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,190,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,190,255,0.035) 1px, transparent 1px);
+  background-size: 52px 52px;
+  animation: bioGridScroll 10s linear infinite;
+}
+#biometric-overlay::after {
+  content:''; position:absolute; pointer-events:none;
+  width:800px; height:800px; border-radius:50%;
+  background: radial-gradient(circle, rgba(0,170,255,0.05) 0%, transparent 65%);
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  animation: bioBreathe 5s ease-in-out infinite;
+}
+@keyframes bioGridScroll { from{background-position:0 0} to{background-position:52px 52px} }
+@keyframes bioBreathe { 0%,100%{opacity:.5} 50%{opacity:1} }
+@keyframes bioScanLine { 0%{top:16%} 100%{top:84%} }
+@keyframes bioBlink { 0%,100%{opacity:1} 50%{opacity:.25} }
+@keyframes bioFadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes bioCheckDraw { from{stroke-dashoffset:60} to{stroke-dashoffset:0} }
+@keyframes bioSpinHex { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes bioMergeReveal { from{clip-path:inset(0 100% 0 0)} to{clip-path:inset(0 0 0 0)} }
+@keyframes bioGlowPulse { 0%,100%{opacity:.3} 50%{opacity:.8} }
 
-  <!-- Scan zone -->
-  <div id="bio-scan-zone" style="display:flex;flex-direction:column;align-items:center;">
-    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:13px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:28px">Biometric Identity Verification</div>
-    <div style="position:relative;width:300px;height:300px;display:flex;justify-content:center;align-items:center;">
-      <svg id="bio-progress-ring" style="position:absolute;transform:rotate(-90deg);" width="300" height="300">
-        <circle id="bio-ring-bg" r="130" cx="150" cy="150" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="4"/>
-        <circle id="bio-ring-fill" r="130" cx="150" cy="150" fill="none"
-          stroke="#b8892e" stroke-width="4" stroke-linecap="round"
-          stroke-dasharray="816.8" stroke-dashoffset="816.8"
-          style="filter:drop-shadow(0 0 8px rgba(184,137,46,0.6));transition:stroke-dashoffset 0.08s linear"/>
+#bio-scan-zone { display:flex; flex-direction:column; align-items:center; position:relative; z-index:2; animation: bioFadeUp .5s ease both; }
+
+.bio-header-label {
+  font-family:'DM Sans',sans-serif; font-size:8.5px; font-weight:700;
+  letter-spacing:5px; text-transform:uppercase; color:rgba(0,190,255,0.45);
+  margin-bottom:22px;
+}
+.bio-ring-container { position:relative; width:340px; height:340px; display:flex; justify-content:center; align-items:center; }
+
+.bio-hex-outer { position:absolute; width:390px; height:390px; animation: bioSpinHex 18s linear infinite; opacity:.18; }
+.bio-hex-inner { position:absolute; width:310px; height:310px; animation: bioSpinHex 12s linear infinite reverse; opacity:.1; }
+
+.bio-arcs-svg { position:absolute; inset:0; overflow:visible; }
+
+.bio-scan-line {
+  position:absolute; left:50%; width:200px; height:1px; top:20%;
+  background: linear-gradient(90deg, transparent, rgba(0,190,255,.7), transparent);
+  transform:translateX(-50%);
+  animation: bioScanLine 1.8s ease-in-out infinite alternate;
+  filter:drop-shadow(0 0 5px rgba(0,190,255,.8));
+  pointer-events:none; z-index:5;
+}
+
+#bio-video {
+  width:240px; height:240px; border-radius:50%;
+  object-fit:cover; position:relative; z-index:3;
+  border:1px solid rgba(0,190,255,.12);
+  filter: saturate(.65) contrast(1.08);
+}
+
+#bio-mesh-canvas {
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  border-radius:50%; z-index:4; pointer-events:none;
+}
+
+.bio-reticle { position:absolute; width:26px; height:26px; z-index:5; }
+.bio-reticle.tl { top:22px; left:22px; border-top:1.5px solid rgba(0,190,255,.5); border-left:1.5px solid rgba(0,190,255,.5); }
+.bio-reticle.tr { top:22px; right:22px; border-top:1.5px solid rgba(0,190,255,.5); border-right:1.5px solid rgba(0,190,255,.5); }
+.bio-reticle.bl { bottom:22px; left:22px; border-bottom:1.5px solid rgba(0,190,255,.5); border-left:1.5px solid rgba(0,190,255,.5); }
+.bio-reticle.br { bottom:22px; right:22px; border-bottom:1.5px solid rgba(0,190,255,.5); border-right:1.5px solid rgba(0,190,255,.5); }
+/* Mid-edge ticks */
+.bio-tick { position:absolute; background:rgba(0,190,255,.35); z-index:5; }
+.bio-tick.top    { top:14px; left:50%; transform:translateX(-50%); width:20px; height:1px; }
+.bio-tick.bottom { bottom:14px; left:50%; transform:translateX(-50%); width:20px; height:1px; }
+.bio-tick.left   { left:14px; top:50%; transform:translateY(-50%); width:1px; height:20px; }
+.bio-tick.right  { right:14px; top:50%; transform:translateY(-50%); width:1px; height:20px; }
+
+.bio-data-panel {
+  position:absolute; font-family:'JetBrains Mono',monospace;
+  font-size:8.5px; color:rgba(0,190,255,.45); line-height:2;
+  letter-spacing:.3px; animation: bioFadeUp .8s ease .2s both;
+  min-width:140px;
+}
+.bio-data-panel.left  { right:calc(100% + 24px); top:50%; transform:translateY(-50%); text-align:right; }
+.bio-data-panel.right { left:calc(100% + 24px);  top:50%; transform:translateY(-50%); text-align:left; }
+.bio-dp-row { display:flex; justify-content:flex-end; gap:6px; align-items:baseline; }
+.bio-dp-row.r { justify-content:flex-start; }
+.bio-dp-k { font-size:7px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(0,190,255,.22); flex-shrink:0; }
+.bio-dp-v { color:rgba(0,190,255,.65); }
+.bio-dp-v.live { color:#b8892e; animation: bioBlink 1.4s ease-in-out infinite; }
+.bio-dp-v.ok   { color:#1d7a52; }
+
+.bio-pct-row { display:flex; align-items:baseline; gap:4px; margin-top:20px; animation: bioFadeUp .7s ease .15s both; }
+#bio-percent {
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:56px; font-weight:300; line-height:1; color:white;
+  letter-spacing:-3px; text-shadow:0 0 40px rgba(0,190,255,.15);
+  min-width:80px; text-align:right;
+}
+.bio-pct-unit { font-family:'DM Sans',sans-serif; font-size:13px; color:rgba(255,255,255,.3); }
+#bio-status-label {
+  font-family:'DM Sans',sans-serif; font-size:9.5px; font-weight:700;
+  letter-spacing:3px; text-transform:uppercase; color:rgba(0,190,255,.55);
+  margin-top:8px; min-height:14px; animation: bioFadeUp .8s ease .25s both;
+}
+.bio-progress-strip { width:260px; height:1.5px; background:rgba(255,255,255,.05); border-radius:1px; margin-top:14px; overflow:hidden; animation: bioFadeUp .9s ease .35s both; }
+#bio-strip-fill { height:100%; width:0%; background:linear-gradient(90deg,rgba(0,190,255,.6),rgba(184,137,46,.8)); transition:width .1s linear; box-shadow:0 0 8px rgba(0,190,255,.3); }
+
+/* SUCCESS */
+#bio-success-zone {
+  display:none; flex-direction:column; align-items:center; gap:24px;
+  position:relative; z-index:2; animation: bioFadeUp .5s ease both;
+}
+.bio-merge-wrap {
+  position:relative; display:flex; align-items:center;
+  filter:drop-shadow(0 0 24px rgba(0,190,255,.12));
+}
+#bio-merge-ref-c {
+  width:180px; height:180px; border-radius:3px; object-fit:cover;
+  border:1px solid rgba(0,190,255,.3); filter:saturate(.55);
+  flex-shrink:0; z-index:1;
+}
+#bio-merge-live-c {
+  width:180px; height:180px; border-radius:3px; object-fit:cover;
+  border:1px solid rgba(184,137,46,.4); filter:saturate(.55);
+  flex-shrink:0; margin-left:-60px; z-index:2;
+  clip-path:inset(0 100% 0 0); animation: bioMergeReveal .9s cubic-bezier(.4,0,.2,1) .4s forwards;
+}
+.bio-merge-divider {
+  position:absolute; left:calc(50% - 1px); top:0; bottom:0; width:1px;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.2),transparent);
+  z-index:3; pointer-events:none;
+}
+#bio-check-badge {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:56px; height:56px; border-radius:50%;
+  background:rgba(29,122,82,.12); border:1.5px solid rgba(29,122,82,.4);
+  display:flex; align-items:center; justify-content:center;
+  z-index:4; opacity:0; transition:opacity .3s ease .9s;
+}
+#bio-check-badge svg polyline { stroke-dasharray:60; stroke-dashoffset:60; animation: bioCheckDraw .4s ease 1.2s forwards; }
+.bio-merge-sub { font-family:'DM Sans',sans-serif; font-size:8px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.2); text-align:center; }
+#bio-score-val { font-family:'Cormorant Garamond',Georgia,serif; font-size:38px; font-weight:300; color:#1d7a52; letter-spacing:-1px; text-shadow:0 0 24px rgba(29,122,82,.4); }
+.bio-confirmed-pill {
+  display:flex; align-items:center; gap:10px; padding:11px 22px;
+  background:rgba(29,122,82,.05); border:1px solid rgba(29,122,82,.18); border-radius:2px;
+}
+.bio-confirmed-pill span { font-family:'DM Sans',sans-serif; font-size:10px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:rgba(29,122,82,.85); }
+
+/* BREACH */
+#bio-breach-zone {
+  display:none; flex-direction:column; align-items:center; gap:22px;
+  position:relative; z-index:2; animation: bioFadeUp .5s ease both;
+}
+.bio-breach-pair { display:flex; gap:28px; align-items:flex-start; }
+.bio-breach-side { text-align:center; }
+.bio-breach-lbl { font-family:'DM Sans',sans-serif; font-size:8px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; margin-bottom:8px; }
+.bio-breach-lbl.c { color:rgba(0,190,255,.55); }
+.bio-breach-lbl.w { color:rgba(192,57,43,.7); }
+.bio-breach-img { width:144px; height:144px; border-radius:3px; object-fit:cover; display:block; }
+#bio-ref-img { border:1px solid rgba(0,190,255,.25); filter:saturate(.5) brightness(.8); }
+#bio-live-cnv { border:1px solid rgba(192,57,43,.3); filter:saturate(.5) brightness(.8); }
+.bio-vs { font-family:'Cormorant Garamond',Georgia,serif; font-size:22px; color:rgba(255,255,255,.1); align-self:center; }
+.bio-breach-info {
+  text-align:center; max-width:380px; padding:18px 24px;
+  border:1px solid rgba(192,57,43,.18); background:rgba(192,57,43,.03); border-radius:2px;
+}
+.bio-breach-ttl { font-family:'DM Sans',sans-serif; font-size:10px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(192,57,43,.75); margin-bottom:7px; }
+.bio-breach-txt { font-size:11.5px; color:rgba(255,255,255,.3); line-height:1.85; }
+.bio-retry { padding:10px 28px; background:transparent; color:rgba(255,255,255,.35); border:1px solid rgba(255,255,255,.09); border-radius:2px; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:all .2s; }
+.bio-retry:hover { border-color:rgba(255,255,255,.25); color:rgba(255,255,255,.6); }
+
+/* Hidden canvases */
+#bio-canvas, #bio-live-canvas { display:none; }
+</style>
+
+<div id="biometric-overlay">
+
+  <!-- SCAN ZONE -->
+  <div id="bio-scan-zone">
+    <div class="bio-header-label">Biometric Identity Verification &nbsp;&middot;&nbsp; VisaMa Security</div>
+
+    <div class="bio-ring-container">
+
+      <!-- Spinning hex frames -->
+      <svg class="bio-hex-outer" viewBox="0 0 390 390" fill="none">
+        <polygon points="195,6 378,102 378,288 195,384 12,288 12,102" stroke="rgba(0,190,255,0.15)" stroke-width="1" stroke-dasharray="3 9"/>
       </svg>
-      <!-- Corner brackets -->
-      <div style="position:absolute;inset:24px;pointer-events:none">
-        <div style="position:absolute;top:0;left:0;width:20px;height:20px;border-top:2px solid var(--gold);border-left:2px solid var(--gold)"></div>
-        <div style="position:absolute;top:0;right:0;width:20px;height:20px;border-top:2px solid var(--gold);border-right:2px solid var(--gold)"></div>
-        <div style="position:absolute;bottom:0;left:0;width:20px;height:20px;border-bottom:2px solid var(--gold);border-left:2px solid var(--gold)"></div>
-        <div style="position:absolute;bottom:0;right:0;width:20px;height:20px;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold)"></div>
-      </div>
-      <video id="bio-video" autoplay muted playsinline style="width:240px;height:240px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.12)"></video>
-      <!-- Success check -->
-      <div id="bio-success-mark" style="display:none;position:absolute;inset:0;border-radius:50%;background:rgba(29,122,82,0.15);display:flex;align-items:center;justify-content:center">
-        <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="1.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-      </div>
+      <svg class="bio-hex-inner" viewBox="0 0 310 310" fill="none">
+        <polygon points="155,5 300,82 300,228 155,305 10,228 10,82" stroke="rgba(184,137,46,0.12)" stroke-width="1" stroke-dasharray="2 10"/>
+      </svg>
+
+      <!-- Arc SVG -->
+      <svg class="bio-arcs-svg" width="340" height="340" viewBox="0 0 340 340">
+        <defs>
+          <linearGradient id="bioArcGrad" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="rgba(0,190,255,0.9)"/>
+            <stop offset="55%" stop-color="rgba(0,150,255,0.75)"/>
+            <stop offset="100%" stop-color="rgba(184,137,46,0.85)"/>
+          </linearGradient>
+        </defs>
+        <!-- bg track -->
+        <circle cx="170" cy="170" r="156" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <!-- outer dash ring -->
+        <circle cx="170" cy="170" r="164" fill="none" stroke="rgba(0,190,255,0.07)" stroke-width="1" stroke-dasharray="2 7"/>
+        <!-- main arc -->
+        <circle id="bio-ring-fill"
+          cx="170" cy="170" r="156" fill="none"
+          stroke="url(#bioArcGrad)" stroke-width="2" stroke-linecap="round"
+          stroke-dasharray="980" stroke-dashoffset="980"
+          transform="rotate(-90 170 170)"
+          style="transition:stroke-dashoffset .08s linear;filter:drop-shadow(0 0 5px rgba(0,190,255,0.4))"/>
+        <!-- accent arc -->
+        <circle id="bio-ring-accent"
+          cx="170" cy="170" r="148" fill="none"
+          stroke="rgba(184,137,46,0.2)" stroke-width="1"
+          stroke-dasharray="930" stroke-dashoffset="930"
+          transform="rotate(-90 170 170)"
+          style="transition:stroke-dashoffset .12s linear"/>
+      </svg>
+
+      <!-- Scan line -->
+      <div class="bio-scan-line"></div>
+
+      <!-- Reticle corners + mid ticks -->
+      <div class="bio-reticle tl"></div><div class="bio-reticle tr"></div>
+      <div class="bio-reticle bl"></div><div class="bio-reticle br"></div>
+      <div class="bio-tick top"></div><div class="bio-tick bottom"></div>
+      <div class="bio-tick left"></div><div class="bio-tick right"></div>
+
+      <!-- Video -->
+      <video id="bio-video" autoplay muted playsinline></video>
+
+      <!-- Face landmark mesh canvas -->
+      <canvas id="bio-mesh-canvas" width="240" height="240"></canvas>
     </div>
-    <div id="bio-percent" style="color:white;font-size:2.2rem;font-weight:300;margin-top:20px;font-family:'Cormorant Garamond',Georgia,serif;letter-spacing:6px">0%</div>
-    <div id="bio-status-label" style="color:rgba(184,137,46,0.8);letter-spacing:2.5px;font-size:10px;font-weight:600;text-transform:uppercase;margin-top:12px;font-family:'DM Sans',sans-serif">Initialising scan</div>
-    <canvas id="bio-canvas" style="display:none"></canvas>
+
+    <!-- Side data readouts -->
+    <div class="bio-data-panel left">
+      <div class="bio-dp-row"><span class="bio-dp-k">SUBJECT</span><span class="bio-dp-v" id="bio-d-name">&mdash;</span></div>
+      <div class="bio-dp-row"><span class="bio-dp-k">PASSPORT</span><span class="bio-dp-v" id="bio-d-passport">&mdash;</span></div>
+      <div class="bio-dp-row"><span class="bio-dp-k">LANDMARKS</span><span class="bio-dp-v live" id="bio-d-pts">MAPPING</span></div>
+      <div class="bio-dp-row"><span class="bio-dp-k">LIVENESS</span><span class="bio-dp-v live" id="bio-d-live">DETECTING</span></div>
+      <div class="bio-dp-row"><span class="bio-dp-k">CONFIDENCE</span><span class="bio-dp-v" id="bio-d-conf">&mdash;</span></div>
+    </div>
+    <div class="bio-data-panel right">
+      <div class="bio-dp-row r"><span class="bio-dp-k">SESSION</span><span class="bio-dp-v" id="bio-d-sess">&mdash;</span></div>
+      <div class="bio-dp-row r"><span class="bio-dp-k">FRAME</span><span class="bio-dp-v live" id="bio-d-frm">000</span></div>
+      <div class="bio-dp-row r"><span class="bio-dp-k">ALGORITHM</span><span class="bio-dp-v">SSD + TFD</span></div>
+      <div class="bio-dp-row r"><span class="bio-dp-k">THRESHOLD</span><span class="bio-dp-v">0.55</span></div>
+      <div class="bio-dp-row r"><span class="bio-dp-k">MATCH</span><span class="bio-dp-v" id="bio-d-match">&mdash;</span></div>
+    </div>
+
+    <div class="bio-pct-row">
+      <div id="bio-percent">0</div>
+      <div class="bio-pct-unit">%</div>
+    </div>
+    <div id="bio-status-label">Initialising</div>
+    <div class="bio-progress-strip"><div id="bio-strip-fill"></div></div>
   </div>
 
-  <!-- Breach display (shown on mismatch) -->
-  <div id="bio-breach-zone" style="display:none;flex-direction:column;align-items:center;gap:24px">
-    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:13px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">Identity Check Failed</div>
-    <div style="display:flex;gap:40px;align-items:center">
-      <div style="text-align:center">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#1d7a52;margin-bottom:8px;font-weight:700">Registered Applicant</div>
-        <div style="position:relative;display:inline-block">
-          <img id="bio-owner-img" style="width:160px;height:160px;border-radius:4px;object-fit:cover;border:1px solid rgba(29,122,82,0.5)">
-          <div style="position:absolute;bottom:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:#1d7a52;display:flex;align-items:center;justify-content:center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-        </div>
-      </div>
-      <div style="color:rgba(255,255,255,0.2);font-size:20px;font-family:'Cormorant Garamond',Georgia,serif">≠</div>
-      <div style="text-align:center">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#c0392b;margin-bottom:8px;font-weight:700">Live Camera Feed</div>
-        <div style="position:relative;display:inline-block">
-          <canvas id="bio-intruder-canvas" width="160" height="160" style="width:160px;height:160px;border-radius:4px;border:1px solid rgba(192,57,43,0.5)"></canvas>
-          <div style="position:absolute;bottom:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:#c0392b;display:flex;align-items:center;justify-content:center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </div>
-        </div>
+  <!-- SUCCESS ZONE -->
+  <div id="bio-success-zone">
+    <div class="bio-header-label" style="color:rgba(29,122,82,0.55)">Identity Confirmed &nbsp;&middot;&nbsp; Access Granted</div>
+    <div class="bio-merge-wrap">
+      <canvas id="bio-merge-ref-c" width="180" height="180" class="bio-merge-img" style="flex-shrink:0;z-index:1"></canvas>
+      <canvas id="bio-merge-live-c" width="180" height="180" class="bio-merge-img" style="flex-shrink:0;margin-left:-60px;z-index:2"></canvas>
+      <div class="bio-merge-divider"></div>
+      <div id="bio-check-badge">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
     </div>
-    <div style="text-align:center;max-width:380px;padding:20px 24px;background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.25);border-radius:2px">
-      <div style="font-size:13px;font-weight:700;color:#c0392b;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Access Denied</div>
-      <p style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.7">The face detected does not match the applicant photo on file. Please ensure you are the registered applicant before attempting to book.</p>
+    <div class="bio-merge-sub" style="margin-top:4px">Reference Photo &nbsp;&middot;&nbsp; Live Capture</div>
+    <div id="bio-score-val">CONFIRMED</div>
+    <div class="bio-confirmed-pill">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Biometric verification successful &mdash; capture saved to system</span>
     </div>
-    <button onclick="closeBiometricOverlay()" style="padding:11px 28px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.12);border-radius:2px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1.5px;text-transform:uppercase;font-family:'DM Sans',sans-serif;margin-top:8px">Try Again</button>
   </div>
+
+  <!-- BREACH ZONE -->
+  <div id="bio-breach-zone">
+    <div class="bio-header-label" style="color:rgba(192,57,43,0.55)">Verification Failed &nbsp;&middot;&nbsp; Identity Mismatch</div>
+    <div class="bio-breach-pair">
+      <div class="bio-breach-side">
+        <div class="bio-breach-lbl c">Registered Applicant</div>
+        <img id="bio-ref-img" class="bio-breach-img">
+      </div>
+      <div class="bio-vs">&#8800;</div>
+      <div class="bio-breach-side">
+        <div class="bio-breach-lbl w">Live Detection</div>
+        <canvas id="bio-live-cnv" class="bio-breach-img" width="144" height="144"></canvas>
+      </div>
+    </div>
+    <div class="bio-breach-info">
+      <div class="bio-breach-ttl">Identity Mismatch Detected</div>
+      <div class="bio-breach-txt">The face captured does not match the registered applicant. Please ensure you are the named applicant on this application before attempting verification again.</div>
+    </div>
+    <button class="bio-retry" onclick="closeBiometricOverlay()">Retry Verification</button>
+  </div>
+
+  <!-- Processing canvases (hidden) -->
+  <canvas id="bio-canvas" width="480" height="480"></canvas>
+  <canvas id="bio-live-canvas" width="480" height="480"></canvas>
 </div>
-
 <!-- ════════════════════════════════════════════
      FIREBASE — loaded asynchronously so it never blocks the page
 ════════════════════════════════════════════ -->
@@ -1608,39 +1854,117 @@ window.startFaceVerification = async function() {
     return;
   }
 
-  const overlay = document.getElementById('biometric-overlay');
-  const scanZone = document.getElementById('bio-scan-zone');
-  const breachZone = document.getElementById('bio-breach-zone');
-  const video = document.getElementById('bio-video');
-  const ring = document.getElementById('bio-ring-fill');
-  const pct = document.getElementById('bio-percent');
-  const statusLabel = document.getElementById('bio-status-label');
-  const successMark = document.getElementById('bio-success-mark');
-  const canvas = document.getElementById('bio-canvas');
-  const circumference = 130 * 2 * Math.PI;
+  // ── DOM refs ──
+  const overlay      = document.getElementById('biometric-overlay');
+  const scanZone     = document.getElementById('bio-scan-zone');
+  const successZone  = document.getElementById('bio-success-zone');
+  const breachZone   = document.getElementById('bio-breach-zone');
+  const video        = document.getElementById('bio-video');
+  const ring         = document.getElementById('bio-ring-fill');
+  const accent       = document.getElementById('bio-ring-accent');
+  const pct          = document.getElementById('bio-percent');
+  const strip        = document.getElementById('bio-strip-fill');
+  const statusLabel  = document.getElementById('bio-status-label');
+  const meshCanvas   = document.getElementById('bio-mesh-canvas');
+  const procCanvas   = document.getElementById('bio-canvas');
+  const liveCanvas   = document.getElementById('bio-live-canvas');
+  const meshCtx      = meshCanvas.getContext('2d');
+  const circumference = 980;
+  const accentCirc   = 930;
 
-  // Reset state
+  // ── Reset ──
   ring.style.strokeDashoffset = circumference;
-  pct.textContent = '0%';
-  successMark.style.display = 'none';
+  accent.style.strokeDashoffset = accentCirc;
+  strip.style.width = '0%';
+  pct.textContent = '0';
   scanZone.style.display = 'flex';
+  successZone.style.display = 'none';
   breachZone.style.display = 'none';
   overlay.style.display = 'flex';
+  meshCtx.clearRect(0, 0, 240, 240);
 
+  // Populate side data panels
+  const firstName = document.getElementById('p-first')?.value || '';
+  const lastName  = document.getElementById('p-last')?.value  || '';
+  const passport  = document.getElementById('p-passport')?.value || '';
+  const setDP = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  setDP('bio-d-name', (firstName + ' ' + lastName).trim().toUpperCase() || '—');
+  setDP('bio-d-passport', passport.toUpperCase() || '—');
+  setDP('bio-d-sess', 'VS-' + Math.random().toString(36).slice(2,8).toUpperCase());
+
+  let frameCount = 0;
   function updateProgress(val) {
-    ring.style.strokeDashoffset = circumference - (val / 100 * circumference);
-    pct.textContent = Math.floor(val) + '%';
+    const off = circumference - (val / 100 * circumference);
+    ring.style.strokeDashoffset = off;
+    accent.style.strokeDashoffset = accentCirc - (val / 100 * accentCirc * 0.85);
+    strip.style.width = val + '%';
+    pct.textContent = Math.floor(val);
+    setDP('bio-d-frm', String(frameCount).padStart(3, '0'));
+  }
+
+  // ── Draw face landmarks on mesh canvas ──
+  function drawMesh(detection) {
+    meshCtx.clearRect(0, 0, 240, 240);
+    if (!detection) return;
+
+    const { landmarks, detection: det } = detection;
+    const box = det.box;
+    // Scale from video coords to 240×240 canvas
+    const sx = 240 / (video.videoWidth  || 480);
+    const sy = 240 / (video.videoHeight || 480);
+
+    const pts = landmarks.positions;
+
+    // Draw landmark dots
+    meshCtx.fillStyle = 'rgba(0,190,255,0.7)';
+    pts.forEach(pt => {
+      meshCtx.beginPath();
+      meshCtx.arc(pt.x * sx, pt.y * sy, 1.2, 0, Math.PI * 2);
+      meshCtx.fill();
+    });
+
+    // Draw jaw line
+    meshCtx.strokeStyle = 'rgba(0,190,255,0.3)';
+    meshCtx.lineWidth = 0.8;
+    const drawGroup = (indices) => {
+      meshCtx.beginPath();
+      indices.forEach((i, idx) => {
+        const p = pts[i];
+        idx === 0 ? meshCtx.moveTo(p.x*sx, p.y*sy) : meshCtx.lineTo(p.x*sx, p.y*sy);
+      });
+      meshCtx.stroke();
+    };
+
+    // Jaw, eyebrows, eyes, nose, mouth — face-api landmark groups
+    const jaw      = Array.from({length:17}, (_,i) => i);
+    const lBrow    = [17,18,19,20,21];
+    const rBrow    = [22,23,24,25,26];
+    const nose     = [27,28,29,30,31,32,33,34,35];
+    const lEye     = [36,37,38,39,40,41,36];
+    const rEye     = [42,43,44,45,46,47,42];
+    const outerMouth = [48,49,50,51,52,53,54,55,56,57,58,59,48];
+    const innerMouth = [60,61,62,63,64,65,66,67,60];
+
+    drawGroup(jaw);
+    drawGroup(lBrow); drawGroup(rBrow);
+    drawGroup(nose);
+    meshCtx.strokeStyle = 'rgba(184,137,46,0.45)';
+    drawGroup(lEye); drawGroup(rEye);
+    meshCtx.strokeStyle = 'rgba(0,190,255,0.25)';
+    drawGroup(outerMouth); drawGroup(innerMouth);
+
+    // Bounding box
+    meshCtx.strokeStyle = 'rgba(0,190,255,0.2)';
+    meshCtx.lineWidth = 0.6;
+    meshCtx.strokeRect(box.x*sx, box.y*sy, box.width*sx, box.height*sy);
   }
 
   try {
-    statusLabel.textContent = 'Loading models...';
+    statusLabel.textContent = 'Loading security models';
     await preloadFaceModels();
-
     if (!faceModelsLoaded) throw new Error('Models could not be loaded');
 
-    statusLabel.textContent = 'Analysing reference photo...';
-
-    // Load reference image from base64
+    statusLabel.textContent = 'Analysing reference biometric';
     const refImg = new Image();
     refImg.src = applicantPhotoBase64;
     await new Promise((res, rej) => { refImg.onload = res; refImg.onerror = rej; });
@@ -1652,79 +1976,158 @@ window.startFaceVerification = async function() {
 
     if (!refResult) {
       overlay.style.display = 'none';
-      showToast('No face detected in your uploaded photo. Please upload a clear passport photo.', 'error');
+      showToast('No face found in uploaded photo. Please upload a clear passport photo.', 'error');
       return;
     }
 
-    statusLabel.textContent = 'Starting camera...';
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 480, height: 480 } });
+    statusLabel.textContent = 'Initialising camera';
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:'user', width:{ ideal:480 }, height:{ ideal:480 } }
+    });
     video.srcObject = stream;
     await new Promise(res => { video.onloadedmetadata = res; });
     video.play();
 
-    statusLabel.textContent = 'Scanning — look directly at the camera';
+    statusLabel.textContent = 'Scanning · Keep still and face the camera';
+    setDP('bio-d-pts', 'ACTIVE');
+    setDP('bio-d-live', 'ACTIVE');
 
-    let progress = 0;
-    let isMatch = false;
-    const matcher = new faceapi.FaceMatcher(refResult, 0.55);
+    let progress   = 0;
+    let isMatch    = false;
+    let bestScore  = 0;
+    let liveCaptureBase64 = null;
+    const matcher  = new faceapi.FaceMatcher(refResult, 0.55);
 
     const scanInterval = setInterval(async () => {
       if (video.readyState < 2) return;
+      frameCount++;
 
       const live = await faceapi
-        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize:320, scoreThreshold:0.5 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
       if (live) {
+        drawMesh(live);
         const match = matcher.findBestMatch(live.descriptor);
+        const score = 1 - (match.distance || 1);
+        if (score > bestScore) bestScore = score;
         if (match.label !== 'unknown') isMatch = true;
+        setDP('bio-d-conf', Math.round(score * 100) + '%');
+        setDP('bio-d-match', isMatch ? 'MATCHED' : 'CHECKING');
+        setDP('bio-d-live', 'DETECTED');
+        setDP('bio-d-pts', live.landmarks.positions.length + ' PTS');
+      } else {
+        setDP('bio-d-live', 'SEARCHING');
+        setDP('bio-d-pts', '—');
       }
 
-      progress += 1.8;
+      progress += 1.6;
       updateProgress(Math.min(progress, 100));
 
       if (progress >= 100) {
         clearInterval(scanInterval);
+
+        // Capture live frame before stopping stream
+        procCanvas.width  = video.videoWidth  || 480;
+        procCanvas.height = video.videoHeight || 480;
+        const pCtx = procCanvas.getContext('2d');
+        pCtx.drawImage(video, 0, 0);
+        liveCaptureBase64 = procCanvas.toDataURL('image/jpeg', 0.8);
+
+        // Also capture to liveCanvas (480px)
+        liveCanvas.width  = procCanvas.width;
+        liveCanvas.height = procCanvas.height;
+        liveCanvas.getContext('2d').drawImage(procCanvas, 0, 0);
+
         stream.getTracks().forEach(t => t.stop());
+        meshCtx.clearRect(0, 0, 240, 240);
 
         if (isMatch) {
-          // Success
-          successMark.style.display = 'flex';
+          // ── SUCCESS ──
           statusLabel.textContent = 'Identity confirmed';
-          pct.textContent = '100%';
+          updateProgress(100);
+
+          // Store capture for later save
+          window.__biometricCapture = {
+            livePhoto: liveCaptureBase64,
+            refPhoto: applicantPhotoBase64,
+            matchScore: Math.round(bestScore * 100),
+            verifiedAt: new Date().toISOString(),
+            verifiedBy: currentUser?.uid || 'unknown',
+          };
+
+          // Transition to success zone after brief pause
           setTimeout(() => {
-            overlay.style.display = 'none';
-            faceVerified = true;
-            // Show verified badge and next button
-            document.getElementById('face-verify-section').style.display = 'none';
-            const badge = document.getElementById('face-verified-badge');
-            badge.style.display = 'flex';
-            document.getElementById('appt-next-btn').style.display = 'block';
-            showToast('Identity verified successfully', 'success');
-          }, 1500);
+            scanZone.style.display = 'none';
+            successZone.style.display = 'flex';
+
+            // Draw reference + live onto merge canvases
+            const refC = document.getElementById('bio-merge-ref-c');
+            const livC = document.getElementById('bio-merge-live-c');
+
+            const rCtx = refC.getContext('2d');
+            const lCtx = livC.getContext('2d');
+
+            // Draw ref
+            const ri = new Image(); ri.src = applicantPhotoBase64;
+            ri.onload = () => { rCtx.drawImage(ri, 0, 0, 180, 180); };
+
+            // Draw live (from liveCanvas, cropped to face)
+            lCtx.drawImage(liveCanvas, 0, 0, liveCanvas.width, liveCanvas.height, 0, 0, 180, 180);
+
+            // Animate check badge
+            setTimeout(() => {
+              const badge = document.getElementById('bio-check-badge');
+              if (badge) { badge.style.opacity = '1'; badge.style.transition = 'opacity .3s ease .9s'; }
+            }, 900);
+
+            document.getElementById('bio-score-val').textContent = Math.round(bestScore * 100) + '% MATCH';
+
+            // Auto-dismiss after 3s and set verified
+            setTimeout(() => {
+              overlay.style.display = 'none';
+              faceVerified = true;
+              document.getElementById('face-verify-section').style.display = 'none';
+              const badge2 = document.getElementById('face-verified-badge');
+              if (badge2) badge2.style.display = 'flex';
+              document.getElementById('appt-next-btn').style.display = 'block';
+              showToast('Identity verified — capture saved to system', 'success');
+            }, 3200);
+          }, 600);
+
         } else {
-          // Mismatch — show breach display
-          scanZone.style.display = 'none';
-          breachZone.style.display = 'flex';
-          // Capture intruder frame
-          canvas.width = video.videoWidth || 160;
-          canvas.height = video.videoHeight || 160;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const intruderCanvas = document.getElementById('bio-intruder-canvas');
-          intruderCanvas.getContext('2d').drawImage(canvas, 0, 0, 160, 160);
-          // Show registered photo
-          document.getElementById('bio-owner-img').src = applicantPhotoBase64;
+          // ── BREACH ──
+          setTimeout(() => {
+            scanZone.style.display = 'none';
+            breachZone.style.display = 'flex';
+
+            // Reference photo
+            document.getElementById('bio-ref-img').src = applicantPhotoBase64;
+
+            // Live capture
+            const lc = document.getElementById('bio-live-cnv');
+            lc.getContext('2d').drawImage(liveCanvas, 0, 0, liveCanvas.width, liveCanvas.height, 0, 0, 144, 144);
+
+            // Store mismatch capture (admin can still see who attempted)
+            window.__biometricCapture = {
+              livePhoto: liveCaptureBase64,
+              refPhoto: applicantPhotoBase64,
+              matchScore: Math.round(bestScore * 100),
+              result: 'MISMATCH',
+              verifiedAt: new Date().toISOString(),
+              verifiedBy: currentUser?.uid || 'unknown',
+            };
+          }, 400);
         }
       }
-    }, 60);
+    }, 55);
 
   } catch(err) {
     overlay.style.display = 'none';
     const msg = err.name === 'NotAllowedError'
-      ? 'Camera access was denied. Please allow camera access and try again.'
-      : 'Identity verification error: ' + err.message;
+      ? 'Camera access denied. Please allow camera access and retry.'
+      : 'Verification error: ' + err.message;
     showToast(msg, 'error');
   }
 };
@@ -1737,6 +2140,8 @@ window.closeBiometricOverlay = function() {
     video.srcObject.getTracks().forEach(t => t.stop());
     video.srcObject = null;
   }
+  const meshCanvas = document.getElementById('bio-mesh-canvas');
+  if (meshCanvas) meshCanvas.getContext('2d').clearRect(0, 0, 240, 240);
 };
 
 // ════════════════════════════════════════════
@@ -2189,6 +2594,7 @@ async function submitApplication() {
       status:    'pending',
       createdAt: serverTimestamp(),
       applicantPhoto: applicantPhotoBase64 || '',
+      biometricCapture: window.__biometricCapture || null,
     };
     await addDoc(collection(db, 'applications'), appData);
     document.getElementById('ref-number').textContent = 'REF: ' + ref;
@@ -2534,20 +2940,98 @@ window.updateAppStatus = updateAppStatus;
 
 async function renderAdminAppointments() {
   const c = document.getElementById('admin-content');
-  c.innerHTML = `<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:28px">Appointments</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
+  c.innerHTML = `<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Appointments</div><div style="font-size:14px;color:#aaa;margin-bottom:28px">Scheduled appointments with biometric verification records</div><div class="empty-state"><div class="loader-spin" style="margin:0 auto"></div></div>`;
   try {
     const snap = await getDocs(query(collection(db,'applications'), where('appointmentSlot','!=','TBD'), orderBy('appointmentSlot')));
-    const rows = snap.docs.map(d => {
+    if (snap.empty) {
+      c.innerHTML = `<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Appointments</div><div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div>No appointments booked yet.</div></div>`;
+      return;
+    }
+
+    const cards = snap.docs.map(d => {
       const a = d.data();
-      return `<tr><td style="font-weight:700;font-size:15px">${a.appointmentSlot}</td><td style="font-weight:600">${a.applicant}</td><td>${a.countryCode?flagImg(a.countryCode,'sm'):''} ${a.country}</td><td><span style="font-size:12px;padding:4px 10px;border-radius:6px;background:#dbeafe;color:#1e40af;font-weight:600">Biometrics</span></td><td style="font-size:13px;color:#c9973a">${a.ref}</td><td><span class="status-badge ${a.status}">${a.status}</span></td></tr>`;
+      const bio = a.biometricCapture;
+      const hasBio = bio && bio.livePhoto;
+      const bioStatus = !bio ? 'NOT RECORDED'
+        : bio.result === 'MISMATCH' ? 'MISMATCH'
+        : 'VERIFIED';
+      const bioColor = bioStatus === 'VERIFIED' ? '#1d7a52'
+        : bioStatus === 'MISMATCH' ? '#c0392b' : '#888';
+      const bioBg = bioStatus === 'VERIFIED' ? 'rgba(29,122,82,0.07)'
+        : bioStatus === 'MISMATCH' ? 'rgba(192,57,43,0.07)' : 'rgba(0,0,0,0.03)';
+
+      return `
+        <div style="background:white;border:1px solid var(--border);border-radius:2px;padding:24px 28px;margin-bottom:16px;box-shadow:var(--card-shadow)">
+          <!-- Header row -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                ${a.countryCode ? flagImg(a.countryCode,'sm') : ''}
+                <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:#0a1628">${a.applicant}</span>
+                <span class="status-badge ${a.status}">${a.status}</span>
+              </div>
+              <div style="font-size:12px;color:#888;display:flex;gap:16px">
+                <span>${a.country} · ${a.visaType}</span>
+                <span style="font-family:'JetBrains Mono',monospace;color:#b8892e">${a.ref}</span>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:600;color:#0a1628">${a.appointmentSlot}</div>
+              <div style="font-size:11px;color:#888;margin-top:3px">${a.appointmentDate}</div>
+            </div>
+          </div>
+
+          <!-- Biometric section -->
+          <div style="background:${bioBg};border:1px solid rgba(0,0,0,0.06);border-radius:2px;padding:16px 18px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${hasBio ? '16px' : '0'}">
+              <div style="display:flex;align-items:center;gap:10px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${bioColor}" stroke-width="1.8" stroke-linecap="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${bioColor}">Biometric Record · ${bioStatus}</span>
+              </div>
+              ${bio ? `<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#aaa">${bio.verifiedAt ? new Date(bio.verifiedAt).toLocaleString('en-GB') : ''}</span>` : ''}
+            </div>
+
+            ${hasBio ? `
+            <div style="display:flex;gap:20px;align-items:flex-start">
+              <!-- Reference photo -->
+              <div style="text-align:center">
+                <div style="font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:6px">Registered Photo</div>
+                <img src="${a.applicantPhoto || bio.refPhoto}" style="width:90px;height:108px;object-fit:cover;border-radius:2px;border:1px solid rgba(0,0,0,0.1);display:block">
+              </div>
+              <!-- Live capture -->
+              <div style="text-align:center">
+                <div style="font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:6px">Live Capture</div>
+                <img src="${bio.livePhoto}" style="width:90px;height:90px;object-fit:cover;border-radius:2px;border:1px solid rgba(0,0,0,0.1);display:block">
+              </div>
+              <!-- Match data -->
+              <div style="flex:1;padding-left:12px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div style="background:white;border:1px solid var(--border);border-radius:2px;padding:10px 12px">
+                    <div style="font-size:8px;color:#888;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Match Score</div>
+                    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:600;color:${bioColor}">${bio.matchScore || 0}%</div>
+                  </div>
+                  <div style="background:white;border:1px solid var(--border);border-radius:2px;padding:10px 12px">
+                    <div style="font-size:8px;color:#888;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Result</div>
+                    <div style="font-size:11px;font-weight:700;color:${bioColor};letter-spacing:1px;text-transform:uppercase;margin-top:2px">${bioStatus}</div>
+                  </div>
+                  <div style="grid-column:span 2;background:white;border:1px solid var(--border);border-radius:2px;padding:10px 12px">
+                    <div style="font-size:8px;color:#888;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Algorithm</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#0a1628">SSD MobileNet v1 + TinyFaceDetector</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#888">Threshold: 0.55 · face-api.js v0.22</div>
+                  </div>
+                </div>
+              </div>
+            </div>` : `
+            <div style="font-size:12px;color:#aaa;font-style:italic">${bio ? 'Capture data unavailable.' : 'No biometric verification recorded for this appointment.'}</div>`}
+          </div>
+        </div>`;
     }).join('');
+
     c.innerHTML = `
       <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Appointments</div>
-      <div style="font-size:14px;color:#aaa;margin-bottom:28px">All scheduled appointments</div>
-      <div class="admin-table-card">
-        ${snap.empty ? '<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div>No appointments booked yet.</div></div>' :
-        `<table><thead><tr><th>Time</th><th>Applicant</th><th>Country</th><th>Type</th><th>Ref #</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`}
-      </div>`;
+      <div style="font-size:14px;color:#aaa;margin-bottom:28px">Scheduled appointments with biometric verification records — ${snap.size} total</div>
+      ${cards}`;
+
   } catch(e) {
     c.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a8fa8" stroke-width="1.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div>${e.message}</div></div>`;
   }
