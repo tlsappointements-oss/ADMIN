@@ -6,6 +6,8 @@
 <title>VisaMa — European Visa Services for Morocco</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <style>
   :root {
     --navy:#0a1628; --gold:#b8892e; --gold-light:#d4a843;
@@ -658,20 +660,74 @@
       <div id="apply-step-5" style="display:none">
         <div class="form-card">
           <h3>Book Appointment</h3>
-          <p style="font-size:14px;color:#666;margin-bottom:24px">Choose a date and time at our Casablanca center.</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
-            <div>
-              <label class="form-label-dark" style="display:block;margin-bottom:10px">Select Date — <span id="cal-month-label"></span></label>
-              <div class="calendar-grid" id="cal-headers"></div>
-              <div class="calendar-grid" id="cal-days"></div>
+          <p style="font-size:14px;color:var(--gray);margin-bottom:24px">Choose a date and time at our Casablanca center. Identity verification is required before proceeding to payment.</p>
+
+          <!-- STEP 5A: reCAPTCHA gate -->
+          <div id="appt-captcha-gate">
+            <div style="background:var(--light-gray);border:1px solid var(--border);border-radius:2px;padding:28px;text-align:center;margin-bottom:20px">
+              <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--navy);margin-bottom:8px">Security Verification Required</div>
+              <p style="font-size:13px;color:var(--gray);margin-bottom:20px;max-width:360px;margin-left:auto;margin-right:auto">Please complete the verification below to access the appointment booking system.</p>
+              <div class="g-recaptcha" data-sitekey="6Ldl4VMsAAAAAH9KZ7pHmZS8tYozgU3TovKNUkSt" style="display:inline-block;margin-bottom:16px"></div>
+              <br>
+              <button onclick="verifyCaptchaAndEnterBooking()" style="padding:12px 32px;background:var(--navy);color:var(--gold);border:none;border-radius:2px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:1.5px;text-transform:uppercase;font-family:'DM Sans',sans-serif">Verify & Continue</button>
+              <div id="captcha-err" style="color:var(--red);font-size:12px;margin-top:10px;display:none">Please complete the reCAPTCHA before continuing.</div>
             </div>
-            <div>
-              <label class="form-label-dark" style="display:block;margin-bottom:10px">Available Time Slots</label>
-              <div class="slots-grid" id="time-slots"></div>
+          </div>
+
+          <!-- STEP 5B: Waiting room (shown if slot is locked by another user) -->
+          <div id="appt-waiting-room" style="display:none">
+            <div style="background:var(--navy);border-radius:2px;padding:36px;text-align:center;color:white">
+              <div style="display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+                <div id="waiting-spin" style="width:36px;height:36px;border:2px solid rgba(184,137,46,0.3);border-top-color:var(--gold);border-radius:50%;animation:spin 0.9s linear infinite;flex-shrink:0"></div>
+              </div>
+              <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:600;color:var(--gold);margin-bottom:8px;letter-spacing:1px">You Are In The Waiting Room</div>
+              <p style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.7;max-width:400px;margin:0 auto 20px">Another applicant is currently booking an appointment for this week. You will be redirected to the booking calendar automatically as soon as they complete their session.</p>
+              <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:2px;padding:14px 24px;display:inline-block">
+                <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:4px">Your position in queue</div>
+                <div id="queue-position" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:600;color:var(--gold)">#1</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 5C: Calendar + slots (shown after captcha + no lock) -->
+          <div id="appt-booking-ui" style="display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:28px">
+              <div>
+                <label class="form-label-dark" style="display:block;margin-bottom:10px">Select Date — <span id="cal-month-label"></span></label>
+                <div class="calendar-grid" id="cal-headers"></div>
+                <div class="calendar-grid" id="cal-days"></div>
+              </div>
+              <div>
+                <label class="form-label-dark" style="display:block;margin-bottom:10px">Available Time Slots</label>
+                <div class="slots-grid" id="time-slots"></div>
+              </div>
+            </div>
+
+            <!-- Facial recognition trigger -->
+            <div id="face-verify-section" style="background:var(--light-gray);border:1px solid var(--border);border-radius:2px;padding:24px;display:none">
+              <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+                <div style="width:40px;height:40px;border-radius:50%;background:rgba(10,22,40,0.08);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.8" stroke-linecap="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:2px">Identity Verification Required</div>
+                  <div style="font-size:12px;color:var(--gray)">A live facial scan will be compared against the photo you uploaded in step 2 before proceeding to payment.</div>
+                </div>
+              </div>
+              <button id="start-face-btn" onclick="startFaceVerification()" style="padding:12px 28px;background:var(--navy);color:var(--gold);border:none;border-radius:2px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:1.5px;text-transform:uppercase;font-family:'DM Sans',sans-serif">Begin Identity Scan</button>
+            </div>
+
+            <!-- Face verified badge -->
+            <div id="face-verified-badge" style="display:none;background:#f0fdf4;border:1px solid rgba(29,122,82,0.3);border-radius:2px;padding:14px 20px;display:flex;align-items:center;gap:12px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span style="font-size:13px;font-weight:600;color:#1d7a52;letter-spacing:0.3px">Identity verified successfully — you may proceed to payment</span>
             </div>
           </div>
         </div>
-        <div class="form-actions"><button class="btn-nav btn-back" onclick="nextStep(4)">← Back</button><button class="btn-nav btn-next" onclick="nextStep(6)">Next: Payment →</button></div>
+        <div class="form-actions">
+          <button class="btn-nav btn-back" onclick="nextStep(4)">← Back</button>
+          <button class="btn-nav btn-next" id="appt-next-btn" onclick="proceedFromAppointment()" style="display:none">Next: Payment →</button>
+        </div>
       </div>
 
       <div id="apply-step-6" style="display:none">
@@ -777,6 +833,72 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════════════
+     BIOMETRIC SCANNER OVERLAY
+════════════════════════════════════════════ -->
+<div id="biometric-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:9999;flex-direction:column;justify-content:center;align-items:center;backdrop-filter:blur(24px)">
+
+  <!-- Scan zone -->
+  <div id="bio-scan-zone" style="display:flex;flex-direction:column;align-items:center;">
+    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:13px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:28px">Biometric Identity Verification</div>
+    <div style="position:relative;width:300px;height:300px;display:flex;justify-content:center;align-items:center;">
+      <svg id="bio-progress-ring" style="position:absolute;transform:rotate(-90deg);" width="300" height="300">
+        <circle id="bio-ring-bg" r="130" cx="150" cy="150" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="4"/>
+        <circle id="bio-ring-fill" r="130" cx="150" cy="150" fill="none"
+          stroke="#b8892e" stroke-width="4" stroke-linecap="round"
+          stroke-dasharray="816.8" stroke-dashoffset="816.8"
+          style="filter:drop-shadow(0 0 8px rgba(184,137,46,0.6));transition:stroke-dashoffset 0.08s linear"/>
+      </svg>
+      <!-- Corner brackets -->
+      <div style="position:absolute;inset:24px;pointer-events:none">
+        <div style="position:absolute;top:0;left:0;width:20px;height:20px;border-top:2px solid var(--gold);border-left:2px solid var(--gold)"></div>
+        <div style="position:absolute;top:0;right:0;width:20px;height:20px;border-top:2px solid var(--gold);border-right:2px solid var(--gold)"></div>
+        <div style="position:absolute;bottom:0;left:0;width:20px;height:20px;border-bottom:2px solid var(--gold);border-left:2px solid var(--gold)"></div>
+        <div style="position:absolute;bottom:0;right:0;width:20px;height:20px;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold)"></div>
+      </div>
+      <video id="bio-video" autoplay muted playsinline style="width:240px;height:240px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.12)"></video>
+      <!-- Success check -->
+      <div id="bio-success-mark" style="display:none;position:absolute;inset:0;border-radius:50%;background:rgba(29,122,82,0.15);display:flex;align-items:center;justify-content:center">
+        <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="1.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+    </div>
+    <div id="bio-percent" style="color:white;font-size:2.2rem;font-weight:300;margin-top:20px;font-family:'Cormorant Garamond',Georgia,serif;letter-spacing:6px">0%</div>
+    <div id="bio-status-label" style="color:rgba(184,137,46,0.8);letter-spacing:2.5px;font-size:10px;font-weight:600;text-transform:uppercase;margin-top:12px;font-family:'DM Sans',sans-serif">Initialising scan</div>
+    <canvas id="bio-canvas" style="display:none"></canvas>
+  </div>
+
+  <!-- Breach display (shown on mismatch) -->
+  <div id="bio-breach-zone" style="display:none;flex-direction:column;align-items:center;gap:24px">
+    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:13px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">Identity Check Failed</div>
+    <div style="display:flex;gap:40px;align-items:center">
+      <div style="text-align:center">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#1d7a52;margin-bottom:8px;font-weight:700">Registered Applicant</div>
+        <div style="position:relative;display:inline-block">
+          <img id="bio-owner-img" style="width:160px;height:160px;border-radius:4px;object-fit:cover;border:1px solid rgba(29,122,82,0.5)">
+          <div style="position:absolute;bottom:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:#1d7a52;display:flex;align-items:center;justify-content:center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+      </div>
+      <div style="color:rgba(255,255,255,0.2);font-size:20px;font-family:'Cormorant Garamond',Georgia,serif">≠</div>
+      <div style="text-align:center">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#c0392b;margin-bottom:8px;font-weight:700">Live Camera Feed</div>
+        <div style="position:relative;display:inline-block">
+          <canvas id="bio-intruder-canvas" width="160" height="160" style="width:160px;height:160px;border-radius:4px;border:1px solid rgba(192,57,43,0.5)"></canvas>
+          <div style="position:absolute;bottom:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:#c0392b;display:flex;align-items:center;justify-content:center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;max-width:380px;padding:20px 24px;background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.25);border-radius:2px">
+      <div style="font-size:13px;font-weight:700;color:#c0392b;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Access Denied</div>
+      <p style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.7">The face detected does not match the applicant photo on file. Please ensure you are the registered applicant before attempting to book.</p>
+    </div>
+    <button onclick="closeBiometricOverlay()" style="padding:11px 28px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.12);border-radius:2px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1.5px;text-transform:uppercase;font-family:'DM Sans',sans-serif;margin-top:8px">Try Again</button>
+  </div>
+</div>
 
 <!-- ════════════════════════════════════════════
      FIREBASE — loaded asynchronously so it never blocks the page
@@ -905,6 +1027,8 @@ const query         = (ref, ...constraints)   => constraints.reduce((r,c) => c(r
 const where         = (f, op, v)              => r => r.where(f, op, v);
 const orderBy       = (f, dir='asc')          => r => r.orderBy(f, dir);
 const serverTimestamp = () => (window.firebase && window.firebase.firestore) ? window.firebase.firestore.FieldValue.serverTimestamp() : new Date();
+// onSnapshot — real-time listener (compat API returns unsubscribe fn)
+const onSnapshot    = (ref, cb)               => ref.onSnapshot(cb);
 
 // Compat getDocs returns QuerySnapshot — .docs, .empty work the same
 // getDoc returns DocumentSnapshot — .exists(), .data(), .id work the same
@@ -1208,6 +1332,7 @@ function selectDay(d, el) {
   document.querySelectorAll('.cal-day').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   selectedDate = d;
+  checkShowFaceSection();
 }
 function renderTimeSlots() {
   const slots = ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00'];
@@ -1220,10 +1345,27 @@ function selectSlot(slot, el) {
   document.querySelectorAll('.slot:not(.unavailable)').forEach(s => s.classList.remove('selected'));
   el.classList.add('selected');
   selectedSlot = slot;
+  checkShowFaceSection();
 }
 
 function nextStep(step) {
   if (step === 2 && !selectedCountry) { showToast('Please select a destination country', 'error'); return; }
+  // Step 5 requires captcha gate — show the gate, not calendar directly
+  if (step === 5) {
+    document.querySelectorAll('[id^="apply-step-"]').forEach(s => s.style.display = 'none');
+    document.getElementById('apply-step-5').style.display = 'block';
+    // Reset step 5 sub-state
+    document.getElementById('appt-captcha-gate').style.display = 'block';
+    document.getElementById('appt-waiting-room').style.display = 'none';
+    document.getElementById('appt-booking-ui').style.display = 'none';
+    document.getElementById('appt-next-btn').style.display = 'none';
+    for (let i = 1; i <= 6; i++) {
+      const el = document.getElementById(`step${i}`);
+      if (el) el.className = 'step' + (i<5?' done':i===5?' active':'');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
   document.querySelectorAll('[id^="apply-step-"]').forEach(s => s.style.display = 'none');
   const target = document.getElementById(`apply-step-${step}`);
   if (target) target.style.display = 'block';
@@ -1233,6 +1375,369 @@ function nextStep(step) {
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// ════════════════════════════════════════════
+// BOOKING PROTECTION SYSTEM
+// ════════════════════════════════════════════
+
+// State
+let bookingLockDocId  = null;   // Firestore doc ID of the lock we acquired
+let queueDocId        = null;   // Our position in the queue
+let queueUnsubscribe  = null;   // Firestore listener cleanup
+let faceVerified      = false;  // Whether face recognition passed
+let faceModelsLoaded  = false;  // face-api.js models status
+let faceModelsPromise = null;   // Promise for model loading
+
+// ── Helpers ──
+function getWeekKey() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+
+// ── Step 1: reCAPTCHA verification ──
+window.verifyCaptchaAndEnterBooking = async function() {
+  const captchaErr = document.getElementById('captcha-err');
+  captchaErr.style.display = 'none';
+
+  // Check reCAPTCHA
+  if (typeof grecaptcha === 'undefined' || !grecaptcha.getResponse || !grecaptcha.getResponse()) {
+    captchaErr.style.display = 'block';
+    return;
+  }
+
+  // Try to acquire booking lock for this week
+  const weekKey = getWeekKey();
+  const uid = currentUser?.uid || ('anon-' + Math.random().toString(36).slice(2));
+
+  try {
+    if (db && db.collection) {
+      // Check if there's already an active lock
+      const lockRef = db.collection('bookingLocks');
+      const existing = await lockRef.where('weekKey', '==', weekKey).where('active', '==', true).get();
+
+      const alreadyMine = existing.docs.find(d => d.data().uid === uid);
+
+      if (existing.empty || alreadyMine) {
+        // Acquire or refresh lock
+        if (alreadyMine) {
+          bookingLockDocId = alreadyMine.id;
+          await lockRef.doc(bookingLockDocId).update({ ts: new Date() });
+        } else {
+          const lockDoc = await lockRef.add({
+            weekKey, uid,
+            active: true,
+            ts: new Date()
+          });
+          bookingLockDocId = lockDoc.id;
+        }
+        showBookingCalendar();
+      } else {
+        // Slot is taken — join queue
+        await joinWaitingQueue(weekKey, uid, existing.docs[0].id);
+      }
+    } else {
+      // Offline fallback — show calendar directly
+      showBookingCalendar();
+    }
+  } catch(e) {
+    console.warn('Lock check failed, proceeding:', e);
+    showBookingCalendar();
+  }
+};
+
+function showBookingCalendar() {
+  document.getElementById('appt-captcha-gate').style.display = 'none';
+  document.getElementById('appt-waiting-room').style.display = 'none';
+  document.getElementById('appt-booking-ui').style.display = 'block';
+  renderCalendar();
+  renderTimeSlots();
+  // Start preloading face-api models in background
+  preloadFaceModels();
+}
+
+// ── Waiting queue ──
+async function joinWaitingQueue(weekKey, uid, activeLockDocId) {
+  document.getElementById('appt-captcha-gate').style.display = 'none';
+  document.getElementById('appt-booking-ui').style.display = 'none';
+  document.getElementById('appt-waiting-room').style.display = 'block';
+
+  try {
+    // Add to queue
+    const queueRef = db.collection('bookingQueue');
+    const qDoc = await queueRef.add({
+      weekKey, uid,
+      joinedAt: new Date(),
+      active: true
+    });
+    queueDocId = qDoc.id;
+
+    // Listen to the active lock — when it becomes inactive, next in queue proceeds
+    const lockRef = db.collection('bookingLocks').doc(activeLockDocId);
+    queueUnsubscribe = lockRef.onSnapshot(async snap => {
+      if (!snap.exists || snap.data().active === false) {
+        // Lock released — check if we're next
+        if (queueUnsubscribe) { queueUnsubscribe(); queueUnsubscribe = null; }
+
+        // Get all queue entries for this week, ordered by joinedAt
+        const allQueue = await db.collection('bookingQueue')
+          .where('weekKey', '==', weekKey)
+          .where('active', '==', true)
+          .orderBy('joinedAt')
+          .get();
+
+        const myPos = allQueue.docs.findIndex(d => d.id === queueDocId);
+        if (myPos === 0) {
+          // We're first — acquire lock and show calendar
+          await db.collection('bookingQueue').doc(queueDocId).update({ active: false });
+          const lockDoc = await db.collection('bookingLocks').add({
+            weekKey, uid, active: true, ts: new Date()
+          });
+          bookingLockDocId = lockDoc.id;
+          showToast('Your turn — booking calendar is now available', 'success');
+          showBookingCalendar();
+        } else {
+          // Update queue position display
+          document.getElementById('queue-position').textContent = '#' + (myPos + 1);
+          // Re-listen to next person ahead
+          const aheadId = allQueue.docs[myPos - 1].id;
+          const newLockSnap = await db.collection('bookingLocks')
+            .where('weekKey', '==', weekKey).where('active', '==', true).get();
+          if (!newLockSnap.empty) {
+            queueUnsubscribe = db.collection('bookingLocks').doc(newLockSnap.docs[0].id)
+              .onSnapshot(s => { if (!s.exists || !s.data()?.active) joinWaitingQueue(weekKey, uid, newLockSnap.docs[0].id); });
+          }
+        }
+      }
+    });
+  } catch(e) {
+    console.warn('Queue error, showing calendar anyway:', e);
+    showBookingCalendar();
+  }
+}
+
+// Release booking lock when user finishes or leaves
+async function releaseBookingLock() {
+  if (bookingLockDocId && db && db.collection) {
+    try {
+      await db.collection('bookingLocks').doc(bookingLockDocId).update({ active: false });
+      bookingLockDocId = null;
+    } catch(e) { console.warn('Lock release failed:', e); }
+  }
+  if (queueDocId && db && db.collection) {
+    try {
+      await db.collection('bookingQueue').doc(queueDocId).update({ active: false });
+      queueDocId = null;
+    } catch(e) {}
+  }
+  if (queueUnsubscribe) { queueUnsubscribe(); queueUnsubscribe = null; }
+}
+window.addEventListener('beforeunload', releaseBookingLock);
+
+// ── Proceed from appointment step ──
+window.proceedFromAppointment = function() {
+  if (!selectedDate || !selectedSlot) {
+    showToast('Please select a date and time slot', 'error'); return;
+  }
+  if (!faceVerified) {
+    showToast('Identity verification is required before payment', 'error'); return;
+  }
+  // Release lock since we're done with the booking step
+  releaseBookingLock();
+  nextStep(6);
+};
+
+// ── Trigger face section when date + slot selected ──
+function checkShowFaceSection() {
+  if (selectedDate && selectedSlot) {
+    const sec = document.getElementById('face-verify-section');
+    const badge = document.getElementById('face-verified-badge');
+    const btn = document.getElementById('appt-next-btn');
+    if (!faceVerified) {
+      if (sec) sec.style.display = 'block';
+      if (badge) badge.style.display = 'none';
+      if (btn) btn.style.display = 'none';
+    } else {
+      if (sec) sec.style.display = 'none';
+      if (badge) { badge.style.display = 'flex'; badge.style.display = 'flex'; }
+      if (btn) btn.style.display = 'block';
+    }
+  }
+}
+
+// ════════════════════════════════════════════
+// FACE-API.JS RECOGNITION
+// ════════════════════════════════════════════
+
+function preloadFaceModels() {
+  if (faceModelsPromise) return;
+  faceModelsPromise = (async () => {
+    try {
+      if (typeof faceapi === 'undefined') {
+        // face-api.js not yet loaded — wait for it
+        await new Promise((res, rej) => {
+          let tries = 0;
+          const check = setInterval(() => {
+            tries++;
+            if (typeof faceapi !== 'undefined') { clearInterval(check); res(); }
+            if (tries > 60) { clearInterval(check); rej(new Error('face-api.js not loaded')); }
+          }, 500);
+        });
+      }
+      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+      ]);
+      faceModelsLoaded = true;
+      console.log('Face recognition models loaded');
+    } catch(e) {
+      console.warn('Face models failed to load:', e);
+      throw e;
+    }
+  })();
+  return faceModelsPromise;
+}
+
+window.startFaceVerification = async function() {
+  if (!applicantPhotoBase64) {
+    showToast('Please upload your applicant photo in Step 2 first', 'error');
+    return;
+  }
+
+  const overlay = document.getElementById('biometric-overlay');
+  const scanZone = document.getElementById('bio-scan-zone');
+  const breachZone = document.getElementById('bio-breach-zone');
+  const video = document.getElementById('bio-video');
+  const ring = document.getElementById('bio-ring-fill');
+  const pct = document.getElementById('bio-percent');
+  const statusLabel = document.getElementById('bio-status-label');
+  const successMark = document.getElementById('bio-success-mark');
+  const canvas = document.getElementById('bio-canvas');
+  const circumference = 130 * 2 * Math.PI;
+
+  // Reset state
+  ring.style.strokeDashoffset = circumference;
+  pct.textContent = '0%';
+  successMark.style.display = 'none';
+  scanZone.style.display = 'flex';
+  breachZone.style.display = 'none';
+  overlay.style.display = 'flex';
+
+  function updateProgress(val) {
+    ring.style.strokeDashoffset = circumference - (val / 100 * circumference);
+    pct.textContent = Math.floor(val) + '%';
+  }
+
+  try {
+    statusLabel.textContent = 'Loading models...';
+    await preloadFaceModels();
+
+    if (!faceModelsLoaded) throw new Error('Models could not be loaded');
+
+    statusLabel.textContent = 'Analysing reference photo...';
+
+    // Load reference image from base64
+    const refImg = new Image();
+    refImg.src = applicantPhotoBase64;
+    await new Promise((res, rej) => { refImg.onload = res; refImg.onerror = rej; });
+
+    const refResult = await faceapi
+      .detectSingleFace(refImg, new faceapi.SsdMobilenetv1Options())
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (!refResult) {
+      overlay.style.display = 'none';
+      showToast('No face detected in your uploaded photo. Please upload a clear passport photo.', 'error');
+      return;
+    }
+
+    statusLabel.textContent = 'Starting camera...';
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 480, height: 480 } });
+    video.srcObject = stream;
+    await new Promise(res => { video.onloadedmetadata = res; });
+    video.play();
+
+    statusLabel.textContent = 'Scanning — look directly at the camera';
+
+    let progress = 0;
+    let isMatch = false;
+    const matcher = new faceapi.FaceMatcher(refResult, 0.55);
+
+    const scanInterval = setInterval(async () => {
+      if (video.readyState < 2) return;
+
+      const live = await faceapi
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (live) {
+        const match = matcher.findBestMatch(live.descriptor);
+        if (match.label !== 'unknown') isMatch = true;
+      }
+
+      progress += 1.8;
+      updateProgress(Math.min(progress, 100));
+
+      if (progress >= 100) {
+        clearInterval(scanInterval);
+        stream.getTracks().forEach(t => t.stop());
+
+        if (isMatch) {
+          // Success
+          successMark.style.display = 'flex';
+          statusLabel.textContent = 'Identity confirmed';
+          pct.textContent = '100%';
+          setTimeout(() => {
+            overlay.style.display = 'none';
+            faceVerified = true;
+            // Show verified badge and next button
+            document.getElementById('face-verify-section').style.display = 'none';
+            const badge = document.getElementById('face-verified-badge');
+            badge.style.display = 'flex';
+            document.getElementById('appt-next-btn').style.display = 'block';
+            showToast('Identity verified successfully', 'success');
+          }, 1500);
+        } else {
+          // Mismatch — show breach display
+          scanZone.style.display = 'none';
+          breachZone.style.display = 'flex';
+          // Capture intruder frame
+          canvas.width = video.videoWidth || 160;
+          canvas.height = video.videoHeight || 160;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const intruderCanvas = document.getElementById('bio-intruder-canvas');
+          intruderCanvas.getContext('2d').drawImage(canvas, 0, 0, 160, 160);
+          // Show registered photo
+          document.getElementById('bio-owner-img').src = applicantPhotoBase64;
+        }
+      }
+    }, 60);
+
+  } catch(err) {
+    overlay.style.display = 'none';
+    const msg = err.name === 'NotAllowedError'
+      ? 'Camera access was denied. Please allow camera access and try again.'
+      : 'Identity verification error: ' + err.message;
+    showToast(msg, 'error');
+  }
+};
+
+window.closeBiometricOverlay = function() {
+  const overlay = document.getElementById('biometric-overlay');
+  overlay.style.display = 'none';
+  const video = document.getElementById('bio-video');
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+};
 
 // ════════════════════════════════════════════
 // SECURITY TOKEN — SHA-256 hash of key fields
@@ -1716,6 +2221,8 @@ function resetApplicationForm() {
   }
   selectedCountry = null; selectedDate = null; selectedSlot = null;
   applicantPhotoBase64 = null;
+  faceVerified = false;
+  releaseBookingLock();
   const preview = document.getElementById('p-photo-preview');
   if (preview) preview.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
   const status = document.getElementById('p-photo-status');
