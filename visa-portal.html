@@ -575,6 +575,21 @@
             <div><label class="form-label-dark">Phone</label><input class="form-input-light" id="p-phone" type="tel" placeholder="+212 6XX XXX XXX"></div>
             <div style="grid-column:span 2"><label class="form-label-dark">Email</label><input class="form-input-light" id="p-email" type="email" placeholder="email@example.com"></div>
           </div>
+          <!-- PHOTO UPLOAD -->
+          <div style="margin-top:20px;padding-top:20px;border-top:2px solid var(--light-gray)">
+            <label class="form-label-dark">Applicant Photo <span style="color:var(--red);font-size:11px">* Required for appointment letter</span></label>
+            <div style="display:flex;align-items:center;gap:20px;margin-top:10px">
+              <div id="p-photo-preview" style="width:90px;height:110px;border-radius:8px;border:2px dashed #ccc;background:#f0f2f7;display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;flex-shrink:0">👤</div>
+              <div>
+                <label style="display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:var(--navy);color:var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">
+                  📷 Upload Photo
+                  <input type="file" accept="image/*" style="display:none" onchange="handleApplicantPhoto(this)">
+                </label>
+                <div style="font-size:11px;color:#aaa;margin-top:8px;line-height:1.6">Passport-style photo · White background<br>JPG or PNG · Max 2MB · Will appear on your appointment letter</div>
+                <div id="p-photo-status" style="font-size:12px;color:#2d9e6b;margin-top:6px;font-weight:600;display:none">✅ Photo uploaded</div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="form-actions"><button class="btn-nav btn-back" onclick="nextStep(1)">← Back</button><button class="btn-nav btn-next" onclick="nextStep(3)">Next: Travel Details →</button></div>
       </div>
@@ -882,6 +897,26 @@ let isAdmin     = false;
 let selectedCountry = null;
 let selectedDate    = null;
 let selectedSlot    = null;
+let applicantPhotoBase64 = null;   // stores base64 data URL of applicant photo
+
+// ── Applicant photo upload handler ──
+window.handleApplicantPhoto = function(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  if (file.size > 3 * 1024 * 1024) { showToast('Photo too large — max 3MB', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    applicantPhotoBase64 = e.target.result;
+    const preview = document.getElementById('p-photo-preview');
+    if (preview) {
+      preview.innerHTML = `<img src="${applicantPhotoBase64}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
+    }
+    const status = document.getElementById('p-photo-status');
+    if (status) status.style.display = 'block';
+    showToast('Photo uploaded ✅', 'success');
+  };
+  reader.readAsDataURL(file);
+};
 
 // ── Expose globals for inline onclick handlers ──
 window.switchAuthTab  = switchAuthTab;
@@ -1531,24 +1566,64 @@ function generateAppointmentPDF(appData) {
       </div>
     </div>
 
-    <!-- APPLICANT DETAILS -->
-    <div class="section-heading">Applicant Information</div>
-    <table class="info-table">
-      <tr><td>Full Name</td><td><strong>${appData.firstName || ''} ${appData.lastName || appData.applicant || ''}</strong></td></tr>
-      <tr><td>Email Address</td><td>${appData.email || '—'}</td></tr>
-      <tr><td>Phone Number</td><td>${appData.phone || '—'}</td></tr>
-      <tr><td>Passport Number</td><td>${appData.passport || '—'}</td></tr>
-      <tr><td>National ID (CIN)</td><td>${appData.cin || '—'}</td></tr>
-    </table>
+    <!-- APPLICANT INFO + PHOTO side by side -->
+    <div style="display:flex;gap:14px;margin-bottom:12px;align-items:stretch">
 
-    <!-- VISA DETAILS -->
-    <div class="section-heading">Visa Application Details</div>
-    <table class="info-table">
-      <tr><td>Destination Country</td><td><strong>${appData.country || '—'}</strong></td></tr>
-      <tr><td>Visa Type</td><td>${appData.visaType || '—'}</td></tr>
-      <tr><td>Application Reference</td><td><strong style="color:#c9973a">${appData.ref || '—'}</strong></td></tr>
-      <tr><td>Total Amount Paid</td><td><strong>€${appData.totalFee || '—'}</strong></td></tr>
-    </table>
+      <!-- LEFT: tables -->
+      <div style="flex:1;min-width:0">
+        <div class="section-heading">Applicant Information</div>
+        <table class="info-table">
+          <tr><td>Full Name</td><td><strong>${appData.firstName || ''} ${appData.lastName || appData.applicant || ''}</strong></td></tr>
+          <tr><td>Email Address</td><td>${appData.email || '—'}</td></tr>
+          <tr><td>Phone Number</td><td>${appData.phone || '—'}</td></tr>
+          <tr><td>Passport Number</td><td>${appData.passport || '—'}</td></tr>
+          <tr><td>National ID (CIN)</td><td>${appData.cin || '—'}</td></tr>
+        </table>
+
+        <div class="section-heading">Visa Application Details</div>
+        <table class="info-table">
+          <tr>
+            <td>Destination Country</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                ${appData.countryCode
+                  ? `<img src="https://flagcdn.com/w40/${appData.countryCode.toLowerCase()}.png" alt="${appData.country}" style="width:24px;height:auto;border-radius:2px;border:1px solid #e0e0e0;vertical-align:middle">`
+                  : ''}
+                <strong>${appData.country || '—'}</strong>
+              </div>
+            </td>
+          </tr>
+          <tr><td>Visa Type</td><td>${appData.visaType || '—'}</td></tr>
+          <tr><td>Application Reference</td><td><strong style="color:#c9973a">${appData.ref || '—'}</strong></td></tr>
+          <tr><td>Total Amount Paid</td><td><strong>€${appData.totalFee || '—'}</strong></td></tr>
+        </table>
+      </div>
+
+      <!-- RIGHT: photo + country flag -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;width:105px">
+        <!-- Applicant photo -->
+        <div style="width:100px;height:126px;border:2px solid #0a1628;border-radius:4px;overflow:hidden;background:#f0f2f7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          ${appData.applicantPhoto
+            ? `<img src="${appData.applicantPhoto}" style="width:100%;height:100%;object-fit:cover">`
+            : `<div style="text-align:center;padding:8px">
+                <div style="font-size:36px;line-height:1">👤</div>
+                <div style="font-size:7px;color:#aaa;margin-top:4px;letter-spacing:1px;text-transform:uppercase">Photo</div>
+               </div>`}
+        </div>
+        <div style="font-size:7px;color:#888;letter-spacing:1px;text-transform:uppercase;text-align:center;line-height:1.4">Applicant<br>Photo</div>
+
+        <!-- Country flag -->
+        ${appData.countryCode ? `
+        <div style="width:100px;border:1.5px solid #e0e0e0;border-radius:4px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.1)">
+          <img src="https://flagcdn.com/w160/${appData.countryCode.toLowerCase()}.png"
+               alt="${appData.country}"
+               style="width:100%;height:auto;display:block">
+        </div>
+        <div style="font-size:7px;color:#888;letter-spacing:1px;text-transform:uppercase;text-align:center">${appData.country || ''}</div>
+        ` : ''}
+      </div>
+
+    </div>
 
     <!-- INSTRUCTIONS -->
     <div class="instructions">
@@ -1631,6 +1706,7 @@ async function submitApplication() {
       totalFee:  selectedCountry.fee + 35,
       status:    'pending',
       createdAt: serverTimestamp(),
+      applicantPhoto: applicantPhotoBase64 || '',
     };
     await addDoc(collection(db, 'applications'), appData);
     document.getElementById('ref-number').textContent = 'REF: ' + ref;
@@ -1662,6 +1738,11 @@ function resetApplicationForm() {
     if (el) el.className = 'step' + (i===1?' active':'');
   }
   selectedCountry = null; selectedDate = null; selectedSlot = null;
+  applicantPhotoBase64 = null;
+  const preview = document.getElementById('p-photo-preview');
+  if (preview) preview.innerHTML = '👤';
+  const status = document.getElementById('p-photo-status');
+  if (status) status.style.display = 'none';
   document.querySelectorAll('#apply-countries .country-card').forEach(c => c.classList.remove('selected'));
 }
 
