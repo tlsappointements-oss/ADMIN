@@ -729,6 +729,7 @@
         <div class="admin-nav-item" onclick="adminNav('countries',this)"><span class="admin-nav-icon">🌍</span> Countries</div>
         <div class="admin-sidebar-title">System</div>
         <div class="admin-nav-item" onclick="adminNav('visas',this)"><span class="admin-nav-icon">🪪</span> Issue Z Visa</div>
+        <div class="admin-nav-item" onclick="adminNav('verify',this)"><span class="admin-nav-icon">🔍</span> Verify Document</div>
         <div class="admin-nav-item" onclick="adminNav('reports',this)"><span class="admin-nav-icon">📈</span> Reports</div>
         <div class="admin-nav-item" onclick="adminNav('settings',this)"><span class="admin-nav-icon">⚙️</span> Settings</div>
       </div>
@@ -1198,15 +1199,45 @@ function nextStep(step) {
 }
 
 // ════════════════════════════════════════════
+// SECURITY TOKEN — SHA-256 hash of key fields
+// ════════════════════════════════════════════
+async function generateSecurityToken(appData) {
+  const SALT = 'VISAMA_SECURE_2026_XK9';
+  const payload = [
+    appData.ref || '',
+    (appData.firstName || '') + (appData.lastName || appData.applicant || ''),
+    appData.appointmentDate || '',
+    appData.appointmentSlot || '',
+    appData.passport || '',
+    appData.countryCode || '',
+    SALT
+  ].join('|').toUpperCase();
+  const encoder = new TextEncoder();
+  const data = encoder.encode(payload);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase().slice(0, 32);
+}
+
+// ════════════════════════════════════════════
 // PDF GENERATION — called after appointment booking
 // ════════════════════════════════════════════
-function generateAppointmentPDF(appData) {
+async function generateAppointmentPDF(appData) {
   const now = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' });
+
+  // Generate security token
+  const secToken = await generateSecurityToken(appData);
+  // Format token in groups for readability: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+  const tokenFormatted = secToken.match(/.{1,4}/g).join('-');
+  // QR payload — compact verification data
+  const qrPayload = JSON.stringify({ ref: appData.ref, tok: secToken, dt: appData.appointmentDate, sl: appData.appointmentSlot });
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Appointment Confirmation — ${appData.ref}</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
 <style>
   *{ margin:0; padding:0; box-sizing:border-box; }
   html, body {
@@ -1215,7 +1246,6 @@ function generateAppointmentPDF(appData) {
     color: #0a1628;
     font-size: 11px;
   }
-  /* Single page fixed size */
   .page {
     width: 210mm;
     height: 297mm;
@@ -1227,283 +1257,180 @@ function generateAppointmentPDF(appData) {
     overflow: hidden;
     position: relative;
   }
-
-  /* ── TOP BORDER STRIPE ── */
   .top-stripe {
     height: 8px;
     background: linear-gradient(90deg, #0a1628 0%, #1a3a6b 40%, #c9973a 60%, #e8b85c 100%);
     flex-shrink: 0;
   }
-
-  /* ── LETTERHEAD ── */
   .letterhead {
-    padding: 22px 36px 16px;
+    padding: 18px 36px 14px;
     border-bottom: 2px solid #0a1628;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     flex-shrink: 0;
   }
-  .lh-org {
-    font-family: 'Playfair Display', Arial, serif;
-    font-size: 18px;
-    font-weight: 900;
-    color: #0a1628;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-  }
-  .lh-sub {
-    font-size: 8px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: #888;
-    margin-top: 3px;
-  }
-  .lh-addr {
-    font-size: 9px;
-    color: #666;
-    margin-top: 7px;
-    line-height: 1.8;
-  }
-  .lh-right {
-    text-align: right;
-  }
-  .lh-doc-label {
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #888;
-    margin-bottom: 3px;
-  }
-  .lh-ref {
-    font-size: 16px;
-    font-weight: 900;
-    color: #c9973a;
-    letter-spacing: 0.5px;
-  }
-  .lh-date {
-    font-size: 9px;
-    color: #888;
-    margin-top: 3px;
-  }
-  .lh-status {
-    display: inline-block;
-    background: #0a1628;
-    color: #c9973a;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    padding: 5px 12px;
-    border-radius: 4px;
-    margin-top: 6px;
-  }
+  .lh-org { font-family: Arial, serif; font-size: 17px; font-weight: 900; color: #0a1628; letter-spacing: 1.5px; text-transform: uppercase; }
+  .lh-sub { font-size: 8px; letter-spacing: 3px; text-transform: uppercase; color: #888; margin-top: 3px; }
+  .lh-addr { font-size: 9px; color: #666; margin-top: 6px; line-height: 1.7; }
+  .lh-right { text-align: right; }
+  .lh-doc-label { font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #888; margin-bottom: 3px; }
+  .lh-ref { font-size: 16px; font-weight: 900; color: #c9973a; }
+  .lh-date { font-size: 9px; color: #888; margin-top: 3px; }
+  .lh-status { display: inline-block; background: #0a1628; color: #c9973a; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 5px 12px; border-radius: 4px; margin-top: 6px; }
+  .letter-body { padding: 16px 36px; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .doc-title { font-size: 13px; font-weight: 900; color: #0a1628; text-align: center; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 3px; }
+  .doc-subtitle { font-size: 8px; text-align: center; color: #888; letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e0e0e0; }
+  .body-text { font-size: 10px; line-height: 1.65; color: #333; margin-bottom: 10px; }
+  .appt-box { background: #0a1628; border-radius: 7px; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: stretch; gap: 1px; }
+  .appt-item { flex: 1; text-align: center; padding: 5px 10px; border-right: 1px solid rgba(255,255,255,0.1); }
+  .appt-item:last-child { border-right: none; }
+  .appt-label { font-size: 7px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 3px; }
+  .appt-val { font-size: 12px; font-weight: 700; color: #c9973a; line-height: 1.2; }
+  .appt-sub { font-size: 7.5px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .section-heading { font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #0a1628; background: #f0f2f7; padding: 5px 10px; border-left: 3px solid #0a1628; }
+  .info-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 9.5px; }
+  .info-table tr { border-bottom: 1px solid #f0f0f0; }
+  .info-table td { padding: 4px 10px; vertical-align: middle; }
+  .info-table td:first-child { font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #555; width: 35%; background: #fafafa; font-size: 8.5px; }
+  .info-table td:last-child { color: #0a1628; font-weight: 500; }
+  .instructions { background: #fffbf3; border: 1.5px solid #c9973a; border-radius: 6px; padding: 9px 13px; margin-bottom: 10px; }
+  .instr-title { font-size: 7.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #0a1628; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(201,151,58,0.3); }
+  .instr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; }
+  .instr-item { font-size: 9px; color: #555; padding: 2px 0 2px 11px; position: relative; line-height: 1.45; }
+  .instr-item::before { content: '▸'; position: absolute; left: 0; color: #c9973a; font-size: 8px; }
 
-  /* ── BODY ── */
-  .letter-body {
-    padding: 20px 36px;
+  /* ── SECURITY BLOCK ── */
+  .security-block {
+    border: 1.5px solid #1a3a6b;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 0;
+    background: #fff;
+  }
+  .security-qr {
+    padding: 10px 12px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border-right: 1.5px solid #1a3a6b;
+    flex-shrink: 0;
+  }
+  .security-qr-label {
+    font-size: 6.5px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #1a3a6b;
+    text-align: center;
+  }
+  .security-right {
     flex: 1;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    padding: 10px 14px;
+    gap: 6px;
+    position: relative;
     overflow: hidden;
   }
-
-  .doc-title {
-    font-size: 14px;
-    font-weight: 900;
-    color: #0a1628;
-    text-align: center;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-  .doc-subtitle {
-    font-size: 8.5px;
-    text-align: center;
-    color: #888;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    margin-bottom: 14px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e0e0e0;
-  }
-
-  .body-text {
-    font-size: 10.5px;
-    line-height: 1.7;
-    color: #333;
-    margin-bottom: 12px;
-  }
-
-  /* ── INFORMATION TABLE ── */
-  .section-heading {
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #0a1628;
-    background: #f0f2f7;
-    padding: 6px 10px;
-    margin-bottom: 0;
-    border-left: 3px solid #0a1628;
-  }
-  .info-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 12px;
-    font-size: 10px;
-  }
-  .info-table tr { border-bottom: 1px solid #f0f0f0; }
-  .info-table td { padding: 5px 10px; vertical-align: middle; }
-  .info-table td:first-child {
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #555;
-    width: 35%;
-    background: #fafafa;
-    font-size: 9px;
-  }
-  .info-table td:last-child { color: #0a1628; font-weight: 500; }
-
-  /* ── APPOINTMENT HIGHLIGHT BOX ── */
-  .appt-box {
-    background: #0a1628;
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin-bottom: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: stretch;
-    gap: 1px;
-  }
-  .appt-item {
-    flex: 1;
-    text-align: center;
-    padding: 6px 12px;
-    border-right: 1px solid rgba(255,255,255,0.1);
-  }
-  .appt-item:last-child { border-right: none; }
-  .appt-label { font-size: 7.5px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 4px; }
-  .appt-val { font-size: 13px; font-weight: 700; color: #c9973a; line-height: 1.2; }
-  .appt-sub { font-size: 8px; color: rgba(255,255,255,0.5); margin-top: 2px; }
-
-  /* ── INSTRUCTIONS ── */
-  .instructions {
-    background: #fffbf3;
-    border: 1.5px solid #c9973a;
-    border-radius: 6px;
-    padding: 10px 14px;
-    margin-bottom: 10px;
-  }
-  .instr-title {
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #0a1628;
-    margin-bottom: 7px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid rgba(201,151,58,0.3);
-  }
-  .instr-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 3px 16px;
-  }
-  .instr-item {
-    font-size: 9.5px;
-    color: #555;
-    padding: 2px 0;
-    padding-left: 12px;
-    position: relative;
-    line-height: 1.5;
-  }
-  .instr-item::before {
-    content: '▸';
+  /* guilloche-like security pattern overlay */
+  .security-right::before {
+    content: '';
     position: absolute;
-    left: 0;
-    color: #c9973a;
-    font-size: 9px;
+    inset: 0;
+    opacity: 0.04;
+    background-image:
+      repeating-linear-gradient(45deg, #0a1628 0px, #0a1628 1px, transparent 1px, transparent 8px),
+      repeating-linear-gradient(-45deg, #c9973a 0px, #c9973a 1px, transparent 1px, transparent 8px);
+    pointer-events: none;
   }
-
-  /* ── FOOTER ── */
-  .letter-footer {
-    padding: 12px 36px;
-    border-top: 2px solid #0a1628;
+  .security-header-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 8px;
+  }
+  .security-badge {
+    background: #0a1628;
+    color: #c9973a;
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
     flex-shrink: 0;
   }
-  .footer-left { font-size: 9px; color: #aaa; }
-  .footer-left strong { color: #0a1628; font-size: 10px; }
-  .footer-center {
-    text-align: center;
-    font-size: 8px;
-    color: #aaa;
+  .security-title {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #0a1628;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .security-token-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .token-label {
+    font-size: 7px;
+    font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
-  }
-  .footer-right {
-    font-size: 9px;
-    color: #aaa;
-    text-align: right;
-  }
-
-  /* ── BOTTOM STRIPE ── */
-  .bottom-stripe {
-    height: 5px;
-    background: linear-gradient(90deg, #c9973a 0%, #0a1628 100%);
+    color: #888;
     flex-shrink: 0;
   }
-
-  /* Screen print bar */
-  .no-print-bar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    background: #0a1628;
-    color: #c9973a;
-    padding: 10px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    z-index: 9999;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-  }
-  .no-print-bar button {
-    padding: 7px 22px;
-    background: #c9973a;
-    color: #0a1628;
-    border: none;
-    border-radius: 6px;
-    font-size: 13px;
+  .token-value {
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
     font-weight: 700;
-    cursor: pointer;
+    color: #0a1628;
+    letter-spacing: 2px;
+    background: #f0f2f7;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid #d0d4e0;
   }
+  .security-meta {
+    font-size: 7.5px;
+    color: #888;
+    line-height: 1.5;
+  }
+  .security-meta strong { color: #0a1628; }
+
+  .sig-row { display: flex; justify-content: space-between; align-items: flex-end; padding-top: 8px; border-top: 1px solid #e0e0e0; margin-top: auto; }
+  .sig-block { font-size: 8.5px; color: #aaa; }
+  .sig-line { border-bottom: 1px solid #0a1628; width: 120px; margin-bottom: 3px; }
+
+  .letter-footer { padding: 10px 36px; border-top: 2px solid #0a1628; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .footer-left { font-size: 9px; color: #aaa; }
+  .footer-left strong { color: #0a1628; font-size: 10px; }
+  .footer-center { text-align: center; font-size: 7.5px; color: #aaa; letter-spacing: 1px; text-transform: uppercase; }
+  .footer-right { font-size: 9px; color: #aaa; text-align: right; }
+  .bottom-stripe { height: 5px; background: linear-gradient(90deg, #c9973a 0%, #0a1628 100%); flex-shrink: 0; }
+
+  .no-print-bar { position: fixed; top: 0; left: 0; right: 0; background: #0a1628; color: #c9973a; padding: 10px 24px; display: flex; align-items: center; justify-content: center; gap: 16px; z-index: 9999; font-family: Arial, sans-serif; font-size: 13px; font-weight: 600; }
+  .no-print-bar button { padding: 7px 22px; background: #c9973a; color: #0a1628; border: none; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; }
   body { padding-top: 48px; }
 
   @page { size: A4 portrait; margin: 0; }
   @media print {
     html, body { background: #fff !important; padding: 0 !important; }
     .no-print-bar { display: none !important; }
-    .page {
-      margin: 0;
-      box-shadow: none;
-      width: 210mm;
-      height: 297mm;
-    }
+    .page { margin: 0; box-shadow: none; width: 210mm; height: 297mm; }
   }
 </style>
 </head>
 <body>
 
 <div class="no-print-bar">
-  <span>Appointment Confirmation Letter — ${appData.ref}</span>
+  <span>Appointment Confirmation — ${appData.ref}</span>
   <button onclick="window.print()">🖨 Print / Save as PDF</button>
   <button onclick="window.close()" style="background:rgba(255,255,255,0.15);color:#fff">✕ Close</button>
 </div>
@@ -1511,16 +1438,11 @@ function generateAppointmentPDF(appData) {
 <div class="page">
   <div class="top-stripe"></div>
 
-  <!-- LETTERHEAD -->
   <div class="letterhead">
     <div>
       <div class="lh-org">VisaMa</div>
       <div class="lh-sub">European Visa Services · Kingdom of Morocco</div>
-      <div class="lh-addr">
-        Centre de Traitement des Visas<br>
-        Boulevard Hassan II, Casablanca 20250, Morocco<br>
-        Tel: +212 5 22 00 00 00 · support@visama.ma
-      </div>
+      <div class="lh-addr">Centre de Traitement des Visas · Boulevard Hassan II, Casablanca 20250<br>Tel: +212 5 22 00 00 00 · support@visama.ma</div>
     </div>
     <div class="lh-right">
       <div class="lh-doc-label">Confirmation Reference</div>
@@ -1530,7 +1452,6 @@ function generateAppointmentPDF(appData) {
     </div>
   </div>
 
-  <!-- BODY -->
   <div class="letter-body">
     <div class="doc-title">Appointment Confirmation Letter</div>
     <div class="doc-subtitle">Official document · Biometrics &amp; Document Submission</div>
@@ -1538,11 +1459,9 @@ function generateAppointmentPDF(appData) {
     <p class="body-text">
       This letter confirms that the visa appointment for
       <strong>${appData.firstName || ''} ${appData.lastName || appData.applicant || ''}</strong>
-      has been successfully registered in our system. Please attend the appointment at the time and date indicated below.
-      Present this document at the reception desk upon arrival.
+      has been successfully registered. Present this document at the reception desk upon arrival.
     </p>
 
-    <!-- APPOINTMENT HIGHLIGHT -->
     <div class="appt-box">
       <div class="appt-item">
         <div class="appt-label">Appointment Date</div>
@@ -1556,20 +1475,18 @@ function generateAppointmentPDF(appData) {
       </div>
       <div class="appt-item">
         <div class="appt-label">Processing Center</div>
-        <div class="appt-val" style="font-size:10px;padding-top:3px">Casablanca</div>
+        <div class="appt-val" style="font-size:9.5px;padding-top:3px">Casablanca</div>
         <div class="appt-sub">Boulevard Hassan II</div>
       </div>
       <div class="appt-item">
         <div class="appt-label">Service</div>
-        <div class="appt-val" style="font-size:9px;padding-top:5px">Biometrics &amp; Docs</div>
+        <div class="appt-val" style="font-size:8.5px;padding-top:5px">Biometrics &amp; Docs</div>
         <div class="appt-sub">Duration: ~30 min</div>
       </div>
     </div>
 
-    <!-- APPLICANT INFO + PHOTO side by side -->
-    <div style="display:flex;gap:14px;margin-bottom:12px;align-items:stretch">
-
-      <!-- LEFT: tables -->
+    <!-- APPLICANT INFO + PHOTO -->
+    <div style="display:flex;gap:14px;margin-bottom:10px;align-items:stretch">
       <div style="flex:1;min-width:0">
         <div class="section-heading">Applicant Information</div>
         <table class="info-table">
@@ -1579,16 +1496,13 @@ function generateAppointmentPDF(appData) {
           <tr><td>Passport Number</td><td>${appData.passport || '—'}</td></tr>
           <tr><td>National ID (CIN)</td><td>${appData.cin || '—'}</td></tr>
         </table>
-
         <div class="section-heading">Visa Application Details</div>
         <table class="info-table">
           <tr>
             <td>Destination Country</td>
             <td>
               <div style="display:flex;align-items:center;gap:8px">
-                ${appData.countryCode
-                  ? `<img src="https://flagcdn.com/w40/${appData.countryCode.toLowerCase()}.png" alt="${appData.country}" style="width:24px;height:auto;border-radius:2px;border:1px solid #e0e0e0;vertical-align:middle">`
-                  : ''}
+                ${appData.countryCode ? '<img src="https://flagcdn.com/w40/' + appData.countryCode.toLowerCase() + '.png" alt="' + (appData.country||'') + '" style="width:22px;height:auto;border-radius:2px;border:1px solid #e0e0e0;vertical-align:middle">' : ''}
                 <strong>${appData.country || '—'}</strong>
               </div>
             </td>
@@ -1598,31 +1512,19 @@ function generateAppointmentPDF(appData) {
           <tr><td>Total Amount Paid</td><td><strong>€${appData.totalFee || '—'}</strong></td></tr>
         </table>
       </div>
-
-      <!-- RIGHT: photo + country flag -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;width:105px">
-        <!-- Applicant photo -->
-        <div style="width:100px;height:126px;border:2px solid #0a1628;border-radius:4px;overflow:hidden;background:#f0f2f7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;width:100px">
+        <div style="width:96px;height:120px;border:2px solid #0a1628;border-radius:4px;overflow:hidden;background:#f0f2f7;display:flex;align-items:center;justify-content:center">
           ${appData.applicantPhoto
-            ? `<img src="${appData.applicantPhoto}" style="width:100%;height:100%;object-fit:cover">`
-            : `<div style="text-align:center;padding:8px">
-                <div style="font-size:36px;line-height:1">👤</div>
-                <div style="font-size:7px;color:#aaa;margin-top:4px;letter-spacing:1px;text-transform:uppercase">Photo</div>
-               </div>`}
+            ? '<img src="' + appData.applicantPhoto + '" style="width:100%;height:100%;object-fit:cover">'
+            : '<div style="text-align:center;padding:8px"><div style="font-size:32px">👤</div><div style="font-size:7px;color:#aaa;margin-top:4px;letter-spacing:1px;text-transform:uppercase">Photo</div></div>'}
         </div>
-        <div style="font-size:7px;color:#888;letter-spacing:1px;text-transform:uppercase;text-align:center;line-height:1.4">Applicant<br>Photo</div>
-
-        <!-- Country flag -->
+        <div style="font-size:7px;color:#888;letter-spacing:1px;text-transform:uppercase;text-align:center">Applicant Photo</div>
         ${appData.countryCode ? `
-        <div style="width:100px;border:1.5px solid #e0e0e0;border-radius:4px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.1)">
-          <img src="https://flagcdn.com/w160/${appData.countryCode.toLowerCase()}.png"
-               alt="${appData.country}"
-               style="width:100%;height:auto;display:block">
+        <div style="width:96px;border:1px solid #e0e0e0;border-radius:3px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.1)">
+          <img src="https://flagcdn.com/w160/${appData.countryCode.toLowerCase()}.png" alt="${appData.country||''}" style="width:100%;height:auto;display:block">
         </div>
-        <div style="font-size:7px;color:#888;letter-spacing:1px;text-transform:uppercase;text-align:center">${appData.country || ''}</div>
-        ` : ''}
+        <div style="font-size:7px;color:#888;letter-spacing:1px;text-transform:uppercase;text-align:center">${appData.country||''}</div>` : ''}
       </div>
-
     </div>
 
     <!-- INSTRUCTIONS -->
@@ -1638,34 +1540,73 @@ function generateAppointmentPDF(appData) {
       </div>
     </div>
 
+    <!-- SECURITY VERIFICATION BLOCK -->
+    <div class="security-block">
+      <div class="security-qr">
+        <div id="qr-render" style="width:72px;height:72px;background:#fff"></div>
+        <div class="security-qr-label">Scan to<br>Verify</div>
+      </div>
+      <div class="security-right">
+        <div class="security-header-row">
+          <div class="security-badge">🔒 SECURE</div>
+          <div class="security-title">Document Security Token — SHA-256</div>
+        </div>
+        <div class="security-token-row">
+          <div class="token-label">Token:</div>
+          <div class="token-value">${tokenFormatted}</div>
+        </div>
+        <div class="security-meta">
+          <strong>Document integrity:</strong> This token is cryptographically bound to the applicant data.<br>
+          Verify at the admin panel by scanning the QR code or entering the token manually.<br>
+          Any alteration of this document will invalidate the token.
+        </div>
+      </div>
+    </div>
+
     <!-- SIGNATURE ROW -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-top:10px;border-top:1px solid #e0e0e0;margin-top:auto">
-      <div>
-        <div style="border-bottom:1px solid #0a1628;width:130px;margin-bottom:4px"></div>
-        <div style="font-size:9px;font-weight:700;color:#0a1628;text-transform:uppercase;letter-spacing:0.5px">Visa Processing Officer</div>
-        <div style="font-size:8.5px;color:#888">VisaMa — Casablanca Center</div>
+    <div class="sig-row">
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div style="font-size:8.5px;font-weight:700;color:#0a1628;text-transform:uppercase;letter-spacing:0.5px">Visa Processing Officer</div>
+        <div>VisaMa — Casablanca Center</div>
       </div>
-      <div style="text-align:center;font-size:9px;color:#aaa">
-        <div>This document is computer-generated and valid without signature.</div>
-        <div style="margin-top:2px">Generated: ${now}</div>
+      <div style="text-align:center;font-size:8.5px;color:#aaa">
+        <div>Computer-generated · Valid without handwritten signature</div>
+        <div>Generated: ${now}</div>
       </div>
-      <div style="text-align:right">
-        <div style="border-bottom:1px solid #0a1628;width:130px;margin-bottom:4px;margin-left:auto"></div>
-        <div style="font-size:9px;font-weight:700;color:#0a1628;text-transform:uppercase;letter-spacing:0.5px">Consular Authority</div>
-        <div style="font-size:8.5px;color:#888">Official Stamp &amp; Seal</div>
+      <div class="sig-block" style="text-align:right">
+        <div class="sig-line" style="margin-left:auto"></div>
+        <div style="font-size:8.5px;font-weight:700;color:#0a1628;text-transform:uppercase;letter-spacing:0.5px">Consular Authority</div>
+        <div>Official Stamp &amp; Seal</div>
       </div>
     </div>
   </div>
 
-  <!-- FOOTER -->
   <div class="letter-footer">
     <div class="footer-left"><strong>${appData.ref}</strong><br>${appData.applicant}</div>
-    <div class="footer-center">VisaMa · Authorized Visa Processing Center · Morocco<br>This document is confidential and intended solely for the addressee.</div>
+    <div class="footer-center">VisaMa · Authorized Visa Processing Center · Morocco<br>Confidential — For addressee only</div>
     <div class="footer-right">${appData.country} Visa Application<br>Page 1 of 1</div>
   </div>
   <div class="bottom-stripe"></div>
 </div>
 
+<script>
+// Generate QR code once DOM is ready
+window.addEventListener('load', function() {
+  var qrData = ${JSON.stringify(qrPayload)};
+  var el = document.getElementById('qr-render');
+  if (el && window.QRCode) {
+    new QRCode(el, {
+      text: qrData,
+      width: 72,
+      height: 72,
+      colorDark: '#0a1628',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  }
+});
+<\/script>
 </body>
 </html>`;
 
@@ -1828,7 +1769,7 @@ function setupAdminUI() {
 function adminNav(section, el) {
   document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
   el.classList.add('active');
-  ({dashboard:renderAdminDashboard, applications:renderAdminApplications, appointments:renderAdminAppointments, users:renderAdminUsers, payments:renderAdminPayments, countries:renderAdminCountries, visas:renderAdminVisas, reports:renderAdminReports, settings:renderAdminSettings})[section]();
+  ({dashboard:renderAdminDashboard, applications:renderAdminApplications, appointments:renderAdminAppointments, users:renderAdminUsers, payments:renderAdminPayments, countries:renderAdminCountries, visas:renderAdminVisas, verify:renderAdminVerify, reports:renderAdminReports, settings:renderAdminSettings})[section]();
 }
 
 async function renderAdminDashboard() {
@@ -2172,6 +2113,246 @@ async function renderAdminReports() {
       </div>`;
   } catch(e) {
     c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div>${e.message}</div></div>`;
+  }
+}
+
+// ════════════════════════════════════════════
+// ADMIN — Document Verification Panel
+// ════════════════════════════════════════════
+function renderAdminVerify() {
+  const c = document.getElementById('admin-content');
+  c.innerHTML = `
+    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#0a1628;margin-bottom:4px">Verify Document</div>
+    <div style="font-size:14px;color:#aaa;margin-bottom:28px">Authenticate appointment letters using QR scan or token entry</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:flex-start">
+
+      <!-- TOKEN MANUAL INPUT -->
+      <div class="admin-table-card">
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:6px">🔑 Enter Security Token</div>
+        <div style="font-size:13px;color:#aaa;margin-bottom:20px">Type or paste the 32-character token printed on the letter</div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#666;margin-bottom:7px;display:block">Security Token</label>
+          <input id="verify-token-input" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+            style="width:100%;padding:12px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-family:'Courier New',monospace;font-size:13px;letter-spacing:1.5px;outline:none;transition:border-color 0.2s"
+            onfocus="this.style.borderColor='#c9973a'" onblur="this.style.borderColor='transparent'"
+            oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#666;margin-bottom:7px;display:block">Reference Number (optional — speeds up search)</label>
+          <input id="verify-ref-input" placeholder="VMA-2026-XXXXX"
+            style="width:100%;padding:12px 14px;background:#f0f2f7;border:2px solid transparent;border-radius:10px;color:#0a1628;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s"
+            onfocus="this.style.borderColor='#c9973a'" onblur="this.style.borderColor='transparent'"
+            oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <button onclick="verifyDocumentToken()" style="width:100%;padding:14px;background:linear-gradient(135deg,#0a1628,#1a3a6b);color:#c9973a;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:0.5px">🔍 Verify Token</button>
+        <div id="verify-result" style="margin-top:16px"></div>
+      </div>
+
+      <!-- QR SCANNER -->
+      <div class="admin-table-card">
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:6px">📷 Scan QR Code</div>
+        <div style="font-size:13px;color:#aaa;margin-bottom:20px">Use device camera to scan the QR code on the printed letter</div>
+        <div id="qr-scanner-area" style="background:#0a1628;border-radius:12px;overflow:hidden;position:relative;min-height:220px;display:flex;align-items:center;justify-content:center">
+          <div id="qr-placeholder" style="text-align:center;padding:30px;color:rgba(255,255,255,0.5)">
+            <div style="font-size:48px;margin-bottom:12px">📷</div>
+            <div style="font-size:14px;font-weight:600">Camera not started</div>
+            <div style="font-size:12px;margin-top:6px">Click Start Scan below</div>
+          </div>
+          <video id="qr-video" style="display:none;width:100%;border-radius:12px" playsinline></video>
+          <canvas id="qr-canvas" style="display:none"></canvas>
+          <!-- Scan overlay frame -->
+          <div id="qr-frame" style="display:none;position:absolute;width:150px;height:150px;border:3px solid #c9973a;border-radius:4px;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none">
+            <div style="position:absolute;top:-2px;left:-2px;width:20px;height:20px;border-top:4px solid #c9973a;border-left:4px solid #c9973a;border-radius:2px 0 0 0"></div>
+            <div style="position:absolute;top:-2px;right:-2px;width:20px;height:20px;border-top:4px solid #c9973a;border-right:4px solid #c9973a;border-radius:0 2px 0 0"></div>
+            <div style="position:absolute;bottom:-2px;left:-2px;width:20px;height:20px;border-bottom:4px solid #c9973a;border-left:4px solid #c9973a;border-radius:0 0 0 2px"></div>
+            <div style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-bottom:4px solid #c9973a;border-right:4px solid #c9973a;border-radius:0 0 2px 0"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button id="qr-start-btn" onclick="startQRScan()" style="flex:1;padding:12px;background:linear-gradient(135deg,#c9973a,#e8b85c);color:#0a1628;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">▶ Start Scan</button>
+          <button id="qr-stop-btn" onclick="stopQRScan()" style="flex:1;padding:12px;background:#f0f2f7;color:#0a1628;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:none">⏹ Stop</button>
+        </div>
+        <div id="qr-scan-status" style="margin-top:10px;font-size:12px;color:#aaa;text-align:center"></div>
+      </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="admin-table-card" style="margin-top:24px">
+      <div style="font-family:'Playfair Display',serif;font-size:18px;color:#0a1628;margin-bottom:16px">How Document Verification Works</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        ${[
+          ['1','🔐','Token Generated','When an appointment is created, a SHA-256 hash is computed from the applicant\'s name, passport, appointment date/slot, and a private salt — producing a unique 32-character token.'],
+          ['2','🖨','Printed on Letter','The token is printed on the confirmation letter both as a QR code and as readable text. No two documents share the same token.'],
+          ['3','📷','Admin Scans/Types','The officer scans the QR or types the token. The system re-fetches the application from Firestore and recomputes the hash.'],
+          ['4','✅','Match = Authentic','If the recomputed hash matches the scanned token, the document is genuine. Any tampering with names or dates produces a different hash — instantly caught.']
+        ].map(([n,ico,title,desc]) => `
+          <div style="background:#f8faff;border-radius:12px;padding:16px;border:1px solid #e8edf8">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <div style="width:28px;height:28px;border-radius:50%;background:#0a1628;color:#c9973a;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0">${n}</div>
+              <div style="font-size:20px">${ico}</div>
+              <div style="font-size:13px;font-weight:700;color:#0a1628">${title}</div>
+            </div>
+            <div style="font-size:12px;color:#666;line-height:1.6">${desc}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  // Load jsQR for QR scanning
+  if (!window.jsQR) {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+    document.head.appendChild(s);
+  }
+}
+
+// ── Verify token against Firestore ──
+window.verifyDocumentToken = async function() {
+  const rawInput = document.getElementById('verify-token-input').value.trim().toUpperCase().replace(/-/g,'');
+  const refInput = document.getElementById('verify-ref-input').value.trim().toUpperCase();
+  const resultEl = document.getElementById('verify-result');
+  if (rawInput.length < 16) {
+    resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;font-size:13px;color:#991b1b">⚠️ Please enter a valid security token.</div>`;
+    return;
+  }
+  resultEl.innerHTML = `<div style="background:#f0f2f7;border-radius:10px;padding:14px 18px;font-size:13px;color:#666;display:flex;align-items:center;gap:10px"><div class="loader-spin" style="margin:0"></div> Verifying against Firestore...</div>`;
+  try {
+    // Try to find the application — by ref first, otherwise scan all
+    let appSnap = null;
+    if (refInput) {
+      const q = query(collection(db,'applications'), where('ref','==',refInput));
+      const snap = await getDocs(q);
+      if (!snap.empty) appSnap = snap.docs[0];
+    }
+    if (!appSnap) {
+      // Scan all applications (limited scope) — in production you'd index the token
+      const snap = await getDocs(collection(db,'applications'));
+      for (const d of snap.docs) {
+        const a = d.data();
+        const tok = await generateSecurityToken(a);
+        if (tok === rawInput) { appSnap = d; break; }
+      }
+    }
+    if (!appSnap) {
+      resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:16px 18px;font-size:13px;color:#991b1b">
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px">❌ INVALID — Document Not Authentic</div>
+        <div>No matching application found for this token. The document may be forged or tampered with.</div>
+      </div>`;
+      return;
+    }
+    const a = appSnap.data();
+    // Recompute token from DB data
+    const recomputed = await generateSecurityToken(a);
+    const match = recomputed === rawInput;
+    if (match) {
+      resultEl.innerHTML = `<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:10px;padding:16px 18px">
+        <div style="font-size:16px;font-weight:700;color:#065f46;margin-bottom:10px">✅ VERIFIED — Document is Authentic</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+          <div><span style="color:#888;text-transform:uppercase;letter-spacing:0.5px;font-size:10px">Applicant</span><br><strong style="color:#0a1628">${a.applicant||'—'}</strong></div>
+          <div><span style="color:#888;text-transform:uppercase;letter-spacing:0.5px;font-size:10px">Reference</span><br><strong style="color:#c9973a">${a.ref||'—'}</strong></div>
+          <div><span style="color:#888;text-transform:uppercase;letter-spacing:0.5px;font-size:10px">Country</span><br><strong style="color:#0a1628">${a.country||'—'}</strong></div>
+          <div><span style="color:#888;text-transform:uppercase;letter-spacing:0.5px;font-size:10px">Passport</span><br><strong style="color:#0a1628">${a.passport||'—'}</strong></div>
+          <div><span style="color:#888;text-transform:uppercase;letter-spacing:0.5px;font-size:10px">Appointment Date</span><br><strong style="color:#0a1628">${a.appointmentDate||'—'}</strong></div>
+          <div><span style="color:#888;text-transform:uppercase;letter-spacing:0.5px;font-size:10px">Time Slot</span><br><strong style="color:#0a1628">${a.appointmentSlot||'—'}</strong></div>
+          <div><span style="color:#888;text-transform:uppercase;letter-spacing:0.5px;font-size:10px">Status</span><br><span class="status-badge ${a.status}">${a.status}</span></div>
+          <div><span style="color:#888;text-transform:uppercase;letter-spacing:0.5px;font-size:10px">Token</span><br><span style="font-family:monospace;font-size:10px;color:#555">${rawInput.match(/.{1,4}/g).join('-')}</span></div>
+        </div>
+      </div>`;
+    } else {
+      resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:16px 18px;font-size:13px;color:#991b1b">
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px">⚠️ TOKEN MISMATCH — Document Tampered</div>
+        <div>Application found but token does not match. The document data may have been altered after issuance.</div>
+      </div>`;
+    }
+  } catch(e) {
+    resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;font-size:13px;color:#991b1b">Error: ${e.message}</div>`;
+  }
+};
+
+// ── QR scanner ──
+let _qrStream = null;
+let _qrInterval = null;
+
+window.startQRScan = function() {
+  const video = document.getElementById('qr-video');
+  const placeholder = document.getElementById('qr-placeholder');
+  const frame = document.getElementById('qr-frame');
+  const startBtn = document.getElementById('qr-start-btn');
+  const stopBtn = document.getElementById('qr-stop-btn');
+  const statusEl = document.getElementById('qr-scan-status');
+  if (!video) return;
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(stream => {
+      _qrStream = stream;
+      video.srcObject = stream;
+      video.play();
+      video.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+      if (frame) frame.style.display = 'block';
+      if (startBtn) startBtn.style.display = 'none';
+      if (stopBtn) stopBtn.style.display = 'block';
+      statusEl.textContent = '🔍 Scanning for QR code...';
+      statusEl.style.color = '#c9973a';
+
+      const canvas = document.getElementById('qr-canvas');
+      const ctx = canvas.getContext('2d');
+      _qrInterval = setInterval(() => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          if (window.jsQR) {
+            const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+            if (code) {
+              stopQRScan();
+              handleQRResult(code.data);
+            }
+          }
+        }
+      }, 200);
+    })
+    .catch(err => {
+      statusEl.textContent = '❌ Camera access denied: ' + err.message;
+      statusEl.style.color = '#d64045';
+    });
+};
+
+window.stopQRScan = function() {
+  if (_qrStream) { _qrStream.getTracks().forEach(t => t.stop()); _qrStream = null; }
+  if (_qrInterval) { clearInterval(_qrInterval); _qrInterval = null; }
+  const video = document.getElementById('qr-video');
+  const placeholder = document.getElementById('qr-placeholder');
+  const frame = document.getElementById('qr-frame');
+  const startBtn = document.getElementById('qr-start-btn');
+  const stopBtn = document.getElementById('qr-stop-btn');
+  const statusEl = document.getElementById('qr-scan-status');
+  if (video) video.style.display = 'none';
+  if (placeholder) placeholder.style.display = 'block';
+  if (frame) frame.style.display = 'none';
+  if (startBtn) startBtn.style.display = 'block';
+  if (stopBtn) stopBtn.style.display = 'none';
+  if (statusEl) statusEl.textContent = '';
+};
+
+async function handleQRResult(data) {
+  const statusEl = document.getElementById('qr-scan-status');
+  if (statusEl) { statusEl.textContent = '✅ QR Detected — verifying...'; statusEl.style.color = '#2d9e6b'; }
+  try {
+    const parsed = JSON.parse(data);
+    const tok = (parsed.tok || '').toUpperCase();
+    const ref = (parsed.ref || '').toUpperCase();
+    if (document.getElementById('verify-token-input')) {
+      document.getElementById('verify-token-input').value = tok.match(/.{1,4}/g)?.join('-') || tok;
+    }
+    if (document.getElementById('verify-ref-input') && ref) {
+      document.getElementById('verify-ref-input').value = ref;
+    }
+    await verifyDocumentToken();
+  } catch(e) {
+    const resultEl = document.getElementById('verify-result');
+    if (resultEl) resultEl.innerHTML = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;font-size:13px;color:#991b1b">❌ Invalid QR code format.</div>`;
   }
 }
 
