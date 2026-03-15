@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Confirmed — VisaMa</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:#f4f5f9;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .card{background:white;border-radius:2px;padding:56px 48px;max-width:520px;width:100%;text-align:center;box-shadow:0 1px 4px rgba(10,22,40,0.07),0 4px 20px rgba(10,22,40,0.05);border:1px solid #e2e5ef;}
+  .icon{width:72px;height:72px;border-radius:50%;background:rgba(29,122,82,0.08);border:1.5px solid rgba(29,122,82,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;}
+  h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;font-weight:600;color:#0a1628;margin-bottom:10px;}
+  p{font-size:14px;color:#6b7280;line-height:1.75;margin-bottom:8px;}
+  .ref{font-family:'Courier New',monospace;font-size:16px;font-weight:700;color:#b8892e;background:#fffbf0;border:1px solid rgba(184,137,46,0.2);border-radius:2px;padding:10px 20px;display:inline-block;margin:16px 0;}
+  .btn{display:inline-block;margin-top:24px;padding:12px 32px;background:#0a1628;color:#b8892e;border:none;border-radius:2px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;cursor:pointer;font-family:'DM Sans',sans-serif;}
+  .rule{width:40px;height:1px;background:linear-gradient(90deg,transparent,#b8892e,transparent);margin:20px auto;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="1.8" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+  <h1>Payment Confirmed</h1>
+  <div class="rule"></div>
+  <p>Your payment has been processed successfully by CMI. Your visa application has been received and is now under review.</p>
+  <div class="ref" id="ref-display">Loading...</div>
+  <p style="font-size:12px;color:#9ca3af">Keep this reference number — you will need it to track your application status.</p>
+  <a href="visa-portal.html" class="btn">Return to Portal</a>
+</div>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref');
+  document.getElementById('ref-display').textContent = ref ? 'REF: ' + ref : '—';
+  document.title = ref ? 'Payment Confirmed — ' + ref : 'Payment Confirmed — VisaMa';
+</script>
+</body>
+</html>

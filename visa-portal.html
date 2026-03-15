@@ -731,6 +731,7 @@
       </div>
 
       <div id="apply-step-6" style="display:none">
+        <!-- Payment summary -->
         <div class="payment-summary">
           <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:6px">Payment Summary</div>
           <div id="pay-country-name" style="font-size:22px;font-weight:700;margin-bottom:20px;opacity:0.9"></div>
@@ -739,20 +740,62 @@
           <div class="payment-row"><span>Biometric Fee</span><span>€10.00</span></div>
           <div class="payment-total"><span>Total Due</span><span id="pay-total">€115.00</span></div>
         </div>
+
+        <!-- CMI Payment info card -->
         <div class="form-card">
-          <h3>Card Details</h3>
-          <div class="form-grid">
-            <div style="grid-column:span 2"><label class="form-label-dark">Cardholder Name</label><input class="form-input-light" id="card-name" type="text" placeholder="As it appears on card"></div>
-            <div style="grid-column:span 2"><label class="form-label-dark">Card Number</label><input class="form-input-light" id="card-num" type="text" placeholder="0000  0000  0000  0000" maxlength="19"></div>
-            <div><label class="form-label-dark">Expiry</label><input class="form-input-light" type="text" placeholder="MM / YY"></div>
-            <div><label class="form-label-dark">CVV</label><input class="form-input-light" type="text" placeholder="•••" maxlength="4"></div>
+          <h3>Secure Payment via CMI</h3>
+          <p style="font-size:14px;color:var(--gray);margin-bottom:24px;line-height:1.7">
+            You will be securely redirected to the CMI (Centre Monétique Interbancaire) hosted payment page to complete your transaction. All card details are entered and processed exclusively on CMI's PCI-DSS certified servers — no card data is stored on this site.
+          </p>
+
+          <!-- Payment breakdown visible -->
+          <div style="background:var(--light-gray);border:1px solid var(--border);border-radius:2px;padding:20px 22px;margin-bottom:24px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+              <div>
+                <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray);margin-bottom:6px">Applicant</div>
+                <div style="font-size:14px;font-weight:600;color:var(--navy)" id="cmi-applicant-name">—</div>
+              </div>
+              <div>
+                <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray);margin-bottom:6px">Reference</div>
+                <div style="font-size:13px;font-weight:700;color:var(--gold);font-family:'JetBrains Mono',monospace" id="cmi-order-ref">—</div>
+              </div>
+              <div>
+                <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray);margin-bottom:6px">Amount</div>
+                <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:600;color:var(--navy)" id="cmi-amount-display">—</div>
+              </div>
+            </div>
           </div>
-          <div style="margin-top:16px;display:flex;gap:16px;flex-wrap:wrap">
-            <span style="font-size:12px;color:#999;display:inline-flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>256-bit SSL Encryption</span>
-            <span style="font-size:12px;color:#999">Visa · Mastercard · CMI</span>
+
+          <!-- Security badges -->
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:24px;padding:14px 16px;background:#fafbff;border:1px solid var(--border);border-radius:2px">
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--gray)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              PCI-DSS Compliant
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--gray)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              3D Secure Authentication
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--gray)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              SHA-512 Encrypted
+            </div>
+            <div style="font-size:11px;color:var(--gray)">Visa &nbsp;·&nbsp; Mastercard &nbsp;·&nbsp; CMI Interbank</div>
           </div>
+
+          <!-- Error display -->
+          <div id="cmi-error" style="display:none;background:#fee2e2;border:1px solid rgba(192,57,43,0.3);border-radius:2px;padding:12px 16px;font-size:13px;color:#c0392b;margin-bottom:16px"></div>
+
+          <!-- Hidden CMI form — populated and submitted by JS -->
+          <form id="cmi-form" method="POST" action="https://payment.cmi.co.ma/fim/est3Dgate" style="display:none"></form>
         </div>
-        <div class="form-actions"><button class="btn-nav btn-back" onclick="nextStep(5)">← Back</button><button class="btn-nav btn-submit" id="pay-btn" onclick="submitApplication()">Pay & Submit</button></div>
+
+        <div class="form-actions">
+          <button class="btn-nav btn-back" onclick="nextStep(5)">← Back</button>
+          <button class="btn-nav btn-submit" id="pay-btn" onclick="initiateCMIPayment()">
+            <span id="pay-btn-text">Pay Securely via CMI</span>
+          </button>
+        </div>
       </div>
 
       <div id="apply-success" style="display:none">
@@ -1619,6 +1662,7 @@ function nextStep(step) {
     const el = document.getElementById(`step${i}`);
     if (el) el.className = 'step' + (i<step?' done':i===step?' active':'');
   }
+  if (step === 6) updateStep6Display();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -2564,53 +2608,191 @@ window.addEventListener('load', function() {
 }
 
 // ── Submit to Firestore ──
-async function submitApplication() {
+// ════════════════════════════════════════════
+// CMI PAYMENT INTEGRATION
+// ════════════════════════════════════════════
+
+// Config — replace with your real credentials from CMI
+const CMI_CONFIG = {
+  // ⚠️  NEVER put the real storekey here — it must stay on the server (cmi-backend.php)
+  clientid:    'YOUR_CMI_CLIENT_ID',         // Given by CMI
+  BACKEND_URL: './cmi-backend.php',          // Path to your PHP backend
+  // These URLs must match what you registered with CMI
+  okUrl:       window.location.origin + '/payment-success.html',
+  failUrl:     window.location.origin + '/payment-fail.html',
+  shopUrl:     window.location.origin,
+  callbackUrl: window.location.origin + '/cmi-backend.php?action=callback',
+  currency:    '504',                        // MAD = 504, EUR = 978
+  lang:        'fr',
+  storeType:   '3D_PAY_HOSTING',
+  tranType:    'PreAuth',
+  hashAlgorithm: 'ver3',
+  encoding:    'UTF-8',
+  autoRedirect: 'true',
+};
+
+// Populate step 6 display fields when entering the step
+function updateStep6Display() {
+  const firstName = document.getElementById('p-first')?.value || '';
+  const lastName  = document.getElementById('p-last')?.value  || '';
+  const name = (firstName + ' ' + lastName).trim();
+  const ref  = 'VMA-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000);
+  const fee  = selectedCountry ? (selectedCountry.fee + 35) : 115;
+
+  // Store ref for reuse
+  window.__pendingRef = ref;
+
+  const nameEl = document.getElementById('cmi-applicant-name');
+  const refEl  = document.getElementById('cmi-order-ref');
+  const amtEl  = document.getElementById('cmi-amount-display');
+  if (nameEl) nameEl.textContent = name || '—';
+  if (refEl)  refEl.textContent  = ref;
+  if (amtEl)  amtEl.textContent  = fee + '.00 MAD';
+
+  // Update pay-total
+  const pt = document.getElementById('pay-total');
+  if (pt) pt.textContent = '€' + fee + '.00';
+
+  // Update country display
+  const pcn = document.getElementById('pay-country-name');
+  if (pcn && selectedCountry) {
+    pcn.innerHTML = `<span style="display:flex;align-items:center;gap:10px">${flagImg(selectedCountry.code,'md')} ${selectedCountry.name}</span>`;
+  }
+}
+
+// ── Called when Pay button is clicked ──
+window.initiateCMIPayment = async function() {
   if (!selectedCountry) { showToast('Please select a country', 'error'); return; }
-  const btn = document.getElementById('pay-btn');
-  btn.disabled = true; btn.textContent = 'Processing...';
+
+  const btn     = document.getElementById('pay-btn');
+  const btnText = document.getElementById('pay-btn-text');
+  const errEl   = document.getElementById('cmi-error');
+  errEl.style.display = 'none';
+
+  btn.disabled = true;
+  btnText.textContent = 'Saving application...';
+
   try {
-    const ref = 'VMA-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000);
+    // 1. Build application data
+    const ref = window.__pendingRef || ('VMA-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000));
+    const firstName = document.getElementById('p-first')?.value  || '';
+    const lastName  = document.getElementById('p-last')?.value   || '';
+    const fullName  = (firstName + ' ' + lastName).trim();
+    const email     = currentUser.email;
+    const fee       = selectedCountry.fee + 35;
+    const amountMAD = (fee * 10.8).toFixed(2); // approximate EUR→MAD rate, CMI uses MAD
+
     const appData = {
       ref,
       uid:       currentUser.uid,
-      email:     currentUser.email,
-      applicant: currentUser.displayName || currentUser.email.split('@')[0],
+      email,
+      applicant: currentUser.displayName || email.split('@')[0],
       country:   selectedCountry.name,
       countryFlag: selectedCountry.flag,
       countryCode: selectedCountry.code,
       visaType:  document.getElementById('visa-type')?.value    || 'Schengen Short Stay (Type C)',
       purpose:   document.getElementById('visa-purpose')?.value || 'Tourism',
-      firstName: document.getElementById('p-first')?.value      || '',
-      lastName:  document.getElementById('p-last')?.value       || '',
+      firstName,
+      lastName,
       dob:       document.getElementById('p-dob')?.value        || '',
       cin:       document.getElementById('p-cin')?.value        || '',
       passport:  document.getElementById('p-passport')?.value   || '',
       phone:     document.getElementById('p-phone')?.value      || '',
-      arrivalDate:  document.getElementById('t-arrival')?.value || '',
-      departureDate:document.getElementById('t-depart')?.value  || '',
+      arrivalDate:   document.getElementById('t-arrival')?.value || '',
+      departureDate: document.getElementById('t-depart')?.value  || '',
       appointmentDate: selectedDate ? `${new Date().toLocaleString('default',{month:'long'})} ${selectedDate}` : 'TBD',
       appointmentSlot: selectedSlot || 'TBD',
-      totalFee:  selectedCountry.fee + 35,
-      status:    'pending',
+      totalFee:  fee,
+      amountMAD: parseFloat(amountMAD),
+      status:    'pending_payment',   // will be updated to 'pending' after CMI confirms
       createdAt: serverTimestamp(),
-      applicantPhoto: applicantPhotoBase64 || '',
+      applicantPhoto:   applicantPhotoBase64 || '',
       biometricCapture: window.__biometricCapture || null,
+      paymentStatus:    'initiated',
+      cmiOrderId:       ref,
     };
-    await addDoc(collection(db, 'applications'), appData);
-    document.getElementById('ref-number').textContent = 'REF: ' + ref;
-    document.querySelectorAll('[id^="apply-step-"]').forEach(s => s.style.display = 'none');
-    document.getElementById('apply-success').style.display = 'block';
-    document.querySelectorAll('.step-indicator .step').forEach(s => s.className = 'step done');
-    showToast('Application submitted. Generating appointment confirmation...', 'success');
-    // Auto-generate PDF confirmation
-    if (selectedDate && selectedSlot) {
-      setTimeout(() => generateAppointmentPDF(appData), 800);
+
+    // 2. Save application to Firestore BEFORE redirecting to CMI
+    const docRef = await addDoc(collection(db, 'applications'), appData);
+    window.__pendingDocId = docRef.id;
+
+    btnText.textContent = 'Redirecting to CMI...';
+
+    // 3. Request hash from backend
+    const payload = {
+      clientid:      CMI_CONFIG.clientid,
+      oid:           ref,
+      amount:        amountMAD,
+      okUrl:         CMI_CONFIG.okUrl    + '?ref=' + encodeURIComponent(ref) + '&docId=' + docRef.id,
+      failUrl:       CMI_CONFIG.failUrl  + '?ref=' + encodeURIComponent(ref) + '&docId=' + docRef.id,
+      shopurl:       CMI_CONFIG.shopUrl,
+      CallbackURL:   CMI_CONFIG.callbackUrl,
+      trantype:      CMI_CONFIG.tranType,
+      storetype:     CMI_CONFIG.storeType,
+      currency:      CMI_CONFIG.currency,
+      lang:          CMI_CONFIG.lang,
+      encoding:      CMI_CONFIG.encoding,
+      hashAlgorithm: CMI_CONFIG.hashAlgorithm,
+      AutoRedirect:  CMI_CONFIG.autoRedirect,
+      email:         email,
+      BillToName:    fullName,
+      BillToCity:    'Casablanca',
+      BillToCountry: 'MA',
+      tel:           document.getElementById('p-phone')?.value || '',
+      rnd:           Date.now().toString(),
+    };
+
+    let hashResponse;
+    try {
+      const res = await fetch(CMI_CONFIG.BACKEND_URL + '?action=hash', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Backend responded with ' + res.status);
+      hashResponse = await res.json();
+    } catch(fetchErr) {
+      // Backend not reachable — show configuration notice
+      throw new Error('CMI backend not reachable. Please deploy cmi-backend.php to your server and update CMI_CONFIG.BACKEND_URL. Error: ' + fetchErr.message);
     }
-  } catch (e) {
-    console.error(e);
-    showToast('Failed to submit. Check your connection.', 'error');
-    btn.disabled = false; btn.textContent = 'Pay & Submit';
+
+    if (!hashResponse.hash) throw new Error('Hash generation failed: ' + (hashResponse.error || 'unknown'));
+
+    // 4. Build and auto-submit the CMI form
+    const form = document.getElementById('cmi-form');
+    form.action = hashResponse.gatewayUrl || 'https://payment.cmi.co.ma/fim/est3Dgate';
+    form.innerHTML = '';
+
+    const allFields = { ...payload, HASH: hashResponse.hash };
+    Object.entries(allFields).forEach(([key, val]) => {
+      const inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = key;
+      inp.value = val;
+      form.appendChild(inp);
+    });
+
+    // Update Firestore with CMI order data before redirect
+    await updateDoc(doc(db, 'applications', docRef.id), {
+      paymentStatus: 'redirected_to_cmi',
+      cmiPayload: payload,
+    });
+
+    form.submit(); // → user is sent to CMI's hosted page
+
+  } catch(e) {
+    console.error('CMI payment error:', e);
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btnText.textContent = 'Pay Securely via CMI';
   }
+};
+
+// ── Legacy submitApplication — still used in success screen ──
+async function submitApplication() {
+  // This is now only called as a fallback; real submission happens in initiateCMIPayment
+  showToast('Please use the Pay Securely button to complete your application.', 'error');
 }
 
 function newApplication() {

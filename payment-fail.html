@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Failed — VisaMa</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:#f4f5f9;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .card{background:white;border-radius:2px;padding:56px 48px;max-width:520px;width:100%;text-align:center;box-shadow:0 1px 4px rgba(10,22,40,0.07),0 4px 20px rgba(10,22,40,0.05);border:1px solid #e2e5ef;}
+  .icon{width:72px;height:72px;border-radius:50%;background:rgba(192,57,43,0.07);border:1.5px solid rgba(192,57,43,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;}
+  h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;font-weight:600;color:#0a1628;margin-bottom:10px;}
+  p{font-size:14px;color:#6b7280;line-height:1.75;margin-bottom:8px;}
+  .reason{font-family:'Courier New',monospace;font-size:13px;color:#c0392b;background:#fef2f2;border:1px solid rgba(192,57,43,0.15);border-radius:2px;padding:10px 20px;display:inline-block;margin:16px 0;}
+  .rule{width:40px;height:1px;background:linear-gradient(90deg,transparent,#c0392b,transparent);margin:20px auto;opacity:0.4;}
+  .btn{display:inline-block;margin-top:24px;padding:12px 32px;background:#0a1628;color:#b8892e;border:none;border-radius:2px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;cursor:pointer;font-family:'DM Sans',sans-serif;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </div>
+  <h1>Payment Not Completed</h1>
+  <div class="rule"></div>
+  <p>Your payment was not completed. This may be because the transaction was declined, cancelled, or there was a card authentication issue.</p>
+  <div class="reason" id="reason-display">Transaction not completed</div>
+  <p style="font-size:12px;color:#9ca3af">Your application data has been saved. You can retry payment from the portal.</p>
+  <a href="visa-portal.html" class="btn">Return to Portal</a>
+</div>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const reason = params.get('reason') || 'Transaction not completed';
+  document.getElementById('reason-display').textContent = reason;
+</script>
+</body>
+</html>
