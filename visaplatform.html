@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EuroVisa Pro — Schengen Visa Services</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
+    authDomain: "cars-website-558c0.firebaseapp.com",
+    projectId: "cars-website-558c0",
+    storageBucket: "cars-website-558c0.firebasestorage.app",
+    messagingSenderId: "142475379783",
+    appId: "1:142475379783:web:2849d07fb6eb8da4715d62",
+    measurementId: "G-53ZQY6XJJR"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window._fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, collection, addDoc, query, where, getDocs, updateDoc, doc, serverTimestamp, orderBy };
+</script>
+
+<style>
+:root {
+  --navy: #0B1D35;
+  --navy2: #132645;
+  --gold: #C8952A;
+  --gold2: #E8B04A;
+  --cream: #F7F4EE;
+  --cream2: #EDE9DF;
+  --text: #1A1A2E;
+  --muted: #6B7280;
+  --white: #FFFFFF;
+  --border: rgba(11,29,53,0.12);
+  --success: #1B7A4A;
+  --danger: #C0392B;
+  --info: #1A5F9E;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(11,29,53,0.08);
+  --shadow-lg: 0 12px 48px rgba(11,29,53,0.14);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── NAVBAR ── */
+nav {
+  background: var(--navy);
+  padding: 0 2rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 16px rgba(0,0,0,.25);
+}
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.nav-logo {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.nav-title {
+  font-family: 'DM Serif Display', serif;
+  color: var(--white);
+  font-size: 20px;
+  letter-spacing: -0.3px;
+}
+.nav-title span { color: var(--gold2); }
+.nav-links { display: flex; gap: 4px; align-items: center; }
+.nav-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.nav-btn.active { color: var(--gold2); font-weight: 500; }
+.nav-cta {
+  background: var(--gold);
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all .2s;
+  font-family: inherit;
+}
+.nav-cta:hover { background: var(--gold2); }
+#user-badge {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.8);
+  font-size: 13px;
+}
+#user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--navy);
+  font-size: 12px;
+}
+
+/* ── PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── HERO ── */
+.hero {
+  background: var(--navy);
+  padding: 80px 2rem 100px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 800px 400px at 50% 100%, rgba(200,149,42,0.12), transparent);
+}
+.hero-flag-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.flag-chip {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.hero h1 {
+  font-family: 'DM Serif Display', serif;
+  color: #fff;
+  font-size: clamp(32px,5vw,58px);
+  line-height: 1.1;
+  margin-bottom: 16px;
+  position: relative;
+}
+.hero h1 em {
+  font-style: italic;
+  color: var(--gold2);
+}
+.hero p {
+  color: rgba(255,255,255,0.6);
+  font-size: 17px;
+  max-width: 520px;
+  margin: 0 auto 36px;
+  line-height: 1.7;
+}
+.hero-btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn-primary {
+  background: var(--gold);
+  color: var(--navy);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 14px 28px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-primary:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(200,149,42,.35); }
+.btn-outline {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 15px;
+  padding: 14px 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+/* ── STATS BAR ── */
+.stats-bar {
+  background: var(--navy2);
+  border-top: 1px solid rgba(255,255,255,.06);
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+.stat-item {
+  padding: 22px 40px;
+  text-align: center;
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  color: var(--gold2);
+  display: block;
+}
+.stat-lbl { font-size: 12px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+
+/* ── SECTION ── */
+.section { padding: 72px 2rem; max-width: 1100px; margin: 0 auto; }
+.section-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 34px;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+.section-sub { color: var(--muted); font-size: 15px; margin-bottom: 40px; }
+
+/* ── SERVICE CARDS ── */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+.service-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  transition: all .25s;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.service-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold), var(--gold2));
+  opacity: 0;
+  transition: opacity .25s;
+}
+.service-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
+.service-card:hover::before { opacity: 1; }
+.service-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--cream);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+.service-card h3 { font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 8px; }
+.service-card p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+.service-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold);
+}
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+.badge-popular {
+  background: #FEF3C7;
+  color: #92400E;
+  margin-left: 8px;
+}
+
+/* ── COUNTRY GRID ── */
+.countries-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.country-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.country-card:hover { border-color: var(--gold); background: #FFFBF3; box-shadow: 0 4px 12px rgba(200,149,42,.12); }
+.country-flag { font-size: 24px; }
+.country-info h4 { font-size: 14px; font-weight: 500; color: var(--navy); }
+.country-info p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.provider-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  margin-top: 4px;
+  display: inline-block;
+}
+.tag-vfs { background: #DBEAFE; color: #1e40af; }
+.tag-tls { background: #D1FAE5; color: #065f46; }
+.tag-bls { background: #EDE9FE; color: #5b21b6; }
+
+/* ── BOOKING FORM ── */
+.form-container {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.form-card {
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.form-header {
+  background: var(--navy);
+  padding: 28px 36px;
+  color: #fff;
+}
+.form-header h2 { font-family: 'DM Serif Display', serif; font-size: 24px; margin-bottom: 4px; }
+.form-header p { font-size: 13px; color: rgba(255,255,255,0.5); }
+.form-body { padding: 36px; }
+.form-steps {
+  display: flex;
+  gap: 0;
+  margin-bottom: 36px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.form-step {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--cream);
+  transition: all .2s;
+  border-right: 1px solid var(--border);
+}
+.form-step:last-child { border-right: none; }
+.form-step.active { background: var(--navy); color: #fff; }
+.form-step.done { background: var(--cream2); color: var(--success); }
+.step-content { display: none; }
+.step-content.active { display: block; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-row.full { grid-template-columns: 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 13px; font-weight: 500; color: var(--navy); }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--cream);
+  outline: none;
+  transition: border-color .2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--gold);
+  background: #fff;
+}
+.form-group textarea { resize: vertical; min-height: 80px; }
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.option-card {
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+}
+.option-card:hover { border-color: var(--gold2); }
+.option-card.selected { border-color: var(--gold); background: #FFFBF3; }
+.option-card input[type=radio] { position: absolute; opacity: 0; }
+.option-card h4 { font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+.option-card p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.option-card .price { font-size: 15px; font-weight: 600; color: var(--gold); margin-top: 8px; }
+.add-ons-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.addon-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.addon-item:hover { border-color: var(--gold2); }
+.addon-item.selected { border-color: var(--gold); background: #FFFBF3; }
+.addon-item input { accent-color: var(--gold); width: 16px; height: 16px; }
+.addon-info { flex: 1; }
+.addon-info h5 { font-size: 13px; font-weight: 500; }
+.addon-info p { font-size: 12px; color: var(--muted); }
+.addon-price { font-size: 13px; font-weight: 600; color: var(--gold); }
+.form-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+.btn-ghost {
+  background: none;
+  border: 1.5px solid var(--border);
+  color: var(--navy);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-ghost:hover { border-color: var(--navy); }
+.btn-gold {
+  background: var(--gold);
+  color: var(--navy);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 24px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-gold:hover { background: var(--gold2); }
+.price-summary {
+  background: var(--cream);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 16px;
+}
+.price-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 4px 0; }
+.price-row.total { font-weight: 600; font-size: 15px; color: var(--navy); border-top: 1px solid var(--border); margin-top: 8px; padding-top: 10px; }
+
+/* ── DASHBOARD ── */
+.dash-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: calc(100vh - 64px);
+}
+.dash-sidebar {
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--cream);
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+.sidebar-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.sidebar-user-info h4 { font-size: 14px; font-weight: 600; }
+.sidebar-user-info p { font-size: 11px; color: var(--muted); }
+.sidebar-menu { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.sidebar-menu li a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all .2s;
+}
+.sidebar-menu li a:hover { background: var(--cream); color: var(--navy); }
+.sidebar-menu li a.active { background: var(--navy); color: #fff; }
+.sidebar-menu li a .menu-icon { font-size: 16px; width: 20px; text-align: center; }
+.dash-main { padding: 32px; background: var(--cream); }
+.dash-greeting {
+  margin-bottom: 28px;
+}
+.dash-greeting h2 { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--navy); }
+.dash-greeting p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.dash-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.dash-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+}
+.dash-card-icon { font-size: 24px; margin-bottom: 10px; }
+.dash-card-num { font-size: 28px; font-weight: 300; font-family: 'DM Serif Display', serif; color: var(--navy); }
+.dash-card-lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ── APPLICATION TABLE ── */
+.table-card {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.table-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.table-header h3 { font-size: 15px; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; }
+th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 10px 20px; text-align: left; border-bottom: 1px solid var(--border); }
+td { font-size: 13px; padding: 14px 20px; border-bottom: 1px solid rgba(11,29,53,.05); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--cream); }
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.status-pending { background: #FEF3C7; color: #92400E; }
+.status-processing { background: #DBEAFE; color: #1e40af; }
+.status-approved { background: #D1FAE5; color: #065f46; }
+.status-rejected { background: #FEE2E2; color: #991b1b; }
+.status-docs { background: #EDE9FE; color: #5b21b6; }
+
+/* ── TRACK PAGE ── */
+.track-container { max-width: 680px; margin: 0 auto; padding: 48px 2rem; }
+.track-input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+.track-input-row input {
+  flex: 1;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color .2s;
+}
+.track-input-row input:focus { border-color: var(--gold); }
+.timeline { position: relative; padding-left: 36px; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--border);
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 28px;
+}
+.timeline-dot {
+  position: absolute;
+  left: -26px;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+}
+.timeline-dot.done { background: var(--success); border-color: var(--success); color: #fff; }
+.timeline-dot.active { background: var(--gold); border-color: var(--gold); }
+.timeline-dot.pending { background: var(--cream); }
+.timeline-title { font-weight: 600; font-size: 14px; color: var(--navy); margin-bottom: 4px; }
+.timeline-desc { font-size: 13px; color: var(--muted); }
+.timeline-date { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── CHAT WIDGET ── */
+#chat-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 200;
+}
+.chat-btn {
+  width: 56px;
+  height: 56px;
+  background: var(--navy);
+  border-radius: 28px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(11,29,53,.3);
+  transition: all .2s;
+  font-size: 24px;
+}
+.chat-btn:hover { transform: scale(1.05); box-shadow: 0 12px 32px rgba(11,29,53,.4); }
+.chat-bubble {
+  position: absolute;
+  bottom: 68px;
+  right: 0;
+  width: 320px;
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 480px;
+}
+.chat-bubble.open { display: flex; }
+.chat-head {
+  background: var(--navy);
+  padding: 14px 16px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 12px;
+}
+.chat-head-info h4 { font-size: 13px; font-weight: 600; }
+.chat-head-info p { font-size: 11px; color: rgba(255,255,255,.5); }
+.online-dot {
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+.chat-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.msg { max-width: 80%; }
+.msg.bot { align-self: flex-start; }
+.msg.user { align-self: flex-end; }
+.msg-bubble {
+  padding: 10px 13px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.msg.bot .msg-bubble { background: var(--cream); color: var(--text); border-bottom-left-radius: 4px; }
+.msg.user .msg-bubble { background: var(--navy); color: #fff; border-bottom-right-radius: 4px; }
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+.chat-input-row input {
+  flex: 1;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.chat-input-row input:focus { border-color: var(--gold); }
+.chat-send {
+  background: var(--gold);
+  color: var(--navy);
+  border: none;
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: .2s;
+}
+.chat-send:hover { background: var(--gold2); }
+
+/* ── AUTH MODAL ── */
+#auth-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+#auth-modal.open { display: flex; }
+.auth-card {
+  background: var(--white);
+  border-radius: 16px;
+  width: 380px;
+  max-width: 95vw;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.auth-head {
+  background: var(--navy);
+  padding: 24px 28px;
+  color: #fff;
+}
+.auth-head h3 { font-family: 'DM Serif Display', serif; font-size: 22px; }
+.auth-head p { font-size: 13px; color: rgba(255,255,255,.5); margin-top: 4px; }
+.auth-body { padding: 24px 28px; }
+.auth-tabs {
+  display: flex;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 9px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--cream);
+  color: var(--muted);
+  border: none;
+  font-family: inherit;
+  transition: all .2s;
+}
+.auth-tab.active { background: var(--navy); color: #fff; }
+.auth-form { display: none; flex-direction: column; gap: 12px; }
+.auth-form.active { display: flex; }
+.auth-form input {
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color .2s;
+}
+.auth-form input:focus { border-color: var(--gold); }
+.auth-error { font-size: 12px; color: var(--danger); display: none; }
+.auth-footer { font-size: 12px; color: var(--muted); text-align: center; margin-top: 12px; }
+.close-modal {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,.6);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* ── NOTIFICATION ── */
+#notif {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 400;
+  background: var(--navy);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  box-shadow: var(--shadow-lg);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  max-width: 320px;
+}
+#notif.show { display: flex; }
+
+/* ── HOW IT WORKS ── */
+.steps-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  margin-top: 40px;
+}
+.step-item { text-align: center; }
+.step-num {
+  width: 48px;
+  height: 48px;
+  background: var(--navy);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  margin: 0 auto 16px;
+}
+.step-item h4 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.step-item p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .dash-layout { grid-template-columns: 1fr; }
+  .dash-sidebar { display: none; }
+  .form-row { grid-template-columns: 1fr; }
+  .hero { padding: 48px 1.5rem 64px; }
+  nav { padding: 0 1rem; }
+  .nav-links .nav-btn { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <div class="nav-brand" onclick="showPage('home')" style="cursor:pointer">
+    <div class="nav-logo">🛂</div>
+    <span class="nav-title">Euro<span>Visa</span> Pro</span>
+  </div>
+  <div class="nav-links">
+    <button class="nav-btn active" onclick="showPage('home')">Home</button>
+    <button class="nav-btn" onclick="showPage('countries')">Countries</button>
+    <button class="nav-btn" onclick="showPage('services')">Services</button>
+    <button class="nav-btn" onclick="showPage('track')">Track</button>
+    <div id="user-badge">
+      <div id="user-avatar">?</div>
+      <span id="user-name-nav">User</span>
+      <button class="nav-btn" onclick="logOut()" style="font-size:12px;padding:5px 10px">Sign out</button>
+    </div>
+    <button class="nav-cta" id="nav-login-btn" onclick="openAuth()">Sign In</button>
+    <button class="nav-btn" id="nav-dash-btn" style="display:none" onclick="showPage('dashboard')">My Portal</button>
+  </div>
+</nav>
+
+<!-- PAGES -->
+
+<!-- HOME PAGE -->
+<div id="page-home" class="page active">
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-flag-row">
+      <span class="flag-chip">🇫🇷 France</span>
+      <span class="flag-chip">🇩🇪 Germany</span>
+      <span class="flag-chip">🇪🇸 Spain</span>
+      <span class="flag-chip">🇮🇹 Italy</span>
+      <span class="flag-chip">🇳🇱 Netherlands</span>
+      <span class="flag-chip">🇵🇹 Portugal</span>
+      <span class="flag-chip">+ 21 more</span>
+    </div>
+    <h1>Your Schengen Visa,<br><em>Done Right</em></h1>
+    <p>We handle your entire European visa application — from appointment booking at BLS, TLScontact & VFS Global to full document preparation, hotel reservations, and flight booking.</p>
+    <div class="hero-btns">
+      <button class="btn-primary" onclick="showPage('booking')">Start My Application →</button>
+      <button class="btn-outline" onclick="showPage('track')">Track My Request</button>
+    </div>
+  </div>
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-item"><span class="stat-num">4,200+</span><span class="stat-lbl">Applications Processed</span></div>
+    <div class="stat-item"><span class="stat-num">27</span><span class="stat-lbl">Schengen Countries</span></div>
+    <div class="stat-item"><span class="stat-num">98.2%</span><span class="stat-lbl">Success Rate</span></div>
+    <div class="stat-item"><span class="stat-num">3</span><span class="stat-lbl">Visa Centers (VFS/TLS/BLS)</span></div>
+  </div>
+  <!-- Services -->
+  <div class="section">
+    <div class="section-title">What We Offer</div>
+    <div class="section-sub">End-to-end visa services so you can focus on your trip</div>
+    <div class="services-grid">
+      <div class="service-card" onclick="showPage('booking')">
+        <div class="service-icon">📅</div>
+        <h3>Appointment Booking <span class="badge badge-popular">Popular</span></h3>
+        <p>We secure your appointment at any BLS International, TLScontact, or VFS Global centre — even when slots are scarce.</p>
+        <div class="service-price">From 500 MAD</div>
+      </div>
+      <div class="service-card" onclick="showPage('booking')">
+        <div class="service-icon">📋</div>
+        <h3>Full Document Preparation</h3>
+        <p>Our experts prepare all required documents: cover letter, itinerary, hotel reservations, bank statements, and more.</p>
+        <div class="service-price">From 1,200 MAD</div>
+      </div>
+      <div class="service-card" onclick="showPage('booking')">
+        <div class="service-icon">🔍</div>
+        <h3>Case Study & Review</h3>
+        <p>We analyze your personal profile, financial situation and travel history to craft the strongest possible application.</p>
+        <div class="service-price">From 800 MAD</div>
+      </div>
+      <div class="service-card" onclick="showPage('booking')">
+        <div class="service-icon">✈️</div>
+        <h3>Flight Reservation</h3>
+        <p>Official flight itinerary reservation for visa purposes — proof of travel without purchasing a full ticket.</p>
+        <div class="service-price">From 200 MAD</div>
+      </div>
+      <div class="service-card" onclick="showPage('booking')">
+        <div class="service-icon">🏨</div>
+        <h3>Hotel Reservation</h3>
+        <p>Accommodation proof letter for the full duration of your stay in the Schengen area.</p>
+        <div class="service-price">From 200 MAD</div>
+      </div>
+      <div class="service-card" onclick="showPage('booking')">
+        <div class="service-icon">🛡️</div>
+        <h3>Travel Insurance</h3>
+        <p>Schengen-compliant travel insurance with minimum €30,000 medical coverage as required by embassies.</p>
+        <div class="service-price">From 350 MAD</div>
+      </div>
+    </div>
+  </div>
+  <!-- How it works -->
+  <div style="background: var(--white); padding: 1px 0;">
+    <div class="section">
+      <div class="section-title">How It Works</div>
+      <div class="section-sub">Simple steps to your European visa</div>
+      <div class="steps-row">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <h4>Submit Your Request</h4>
+          <p>Fill in our online form — choose your destination, visa type, and the services you need.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <h4>We Prepare Everything</h4>
+          <p>Our team handles your documents, reservations, and books your appointment with the provider.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <h4>Attend Your Appointment</h4>
+          <p>You visit the visa centre with your complete, professionally prepared file.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <h4>Receive Your Visa</h4>
+          <p>Track the progress in your portal and receive notifications at every step.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COUNTRIES PAGE -->
+<div id="page-countries" class="page">
+  <div class="section">
+    <div class="section-title">Schengen Countries & Providers</div>
+    <div class="section-sub">All 27 Schengen zone countries — with their official visa centre partners</div>
+    <div class="countries-grid" id="countries-grid">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- SERVICES PAGE -->
+<div id="page-services" class="page">
+  <div class="section">
+    <div class="section-title">Our Services & Pricing</div>
+    <div class="section-sub">Transparent pricing with no hidden fees</div>
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-icon">📅</div>
+        <h3>Appointment Only</h3>
+        <p>We monitor and book your appointment at the visa application centre. Perfect if you have your own documents ready.</p>
+        <div class="service-price">500 MAD</div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">📋</div>
+        <h3>Documents Package</h3>
+        <p>Complete document preparation: cover letter, itinerary, financial support letter, sponsorship letters, all formatted correctly.</p>
+        <div class="service-price">1,200 MAD</div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🔍</div>
+        <h3>Case Study</h3>
+        <p>In-depth analysis of your profile with recommendations to maximise approval chances. Includes consultation.</p>
+        <div class="service-price">800 MAD</div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">⭐</div>
+        <h3>Full Package <span class="badge badge-popular">Best Value</span></h3>
+        <p>Everything included: appointment + documents + case study + hotel + flight reservations + insurance.</p>
+        <div class="service-price">2,800 MAD</div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">✈️</div>
+        <h3>Flight Reservation</h3>
+        <p>Official dummy ticket / flight itinerary reservation valid for visa purposes.</p>
+        <div class="service-price">200 MAD</div>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🏨</div>
+        <h3>Hotel Reservation</h3>
+        <p>Booking confirmation for the entire duration of your stay, accepted by all embassies.</p>
+        <div class="service-price">200 MAD</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOOKING PAGE -->
+<div id="page-booking" class="page">
+  <div class="section">
+    <div class="form-container">
+      <div class="form-card">
+        <div class="form-header">
+          <h2>New Visa Application Request</h2>
+          <p>Complete the form below — we'll get back to you within 2 hours</p>
+        </div>
+        <div class="form-body">
+          <!-- Steps indicator -->
+          <div class="form-steps">
+            <div class="form-step active" id="step-ind-1">1 · Destination</div>
+            <div class="form-step" id="step-ind-2">2 · Service</div>
+            <div class="form-step" id="step-ind-3">3 · Details</div>
+            <div class="form-step" id="step-ind-4">4 · Confirm</div>
+          </div>
+
+          <!-- Step 1: Destination -->
+          <div class="step-content active" id="step-1">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Destination Country *</label>
+                <select id="dest-country">
+                  <option value="">Select country</option>
+                  <option>France 🇫🇷 — TLScontact</option>
+                  <option>Germany 🇩🇪 — VFS Global</option>
+                  <option>Spain 🇪🇸 — BLS International</option>
+                  <option>Italy 🇮🇹 — VFS Global</option>
+                  <option>Netherlands 🇳🇱 — VFS Global</option>
+                  <option>Portugal 🇵🇹 — BLS International / VFS</option>
+                  <option>Belgium 🇧🇪 — TLScontact</option>
+                  <option>Austria 🇦🇹 — VFS Global</option>
+                  <option>Switzerland 🇨🇭 — VFS Global</option>
+                  <option>Greece 🇬🇷 — VFS Global</option>
+                  <option>Poland 🇵🇱 — VFS Global</option>
+                  <option>Sweden 🇸🇪 — VFS Global</option>
+                  <option>Denmark 🇩🇰 — VFS Global</option>
+                  <option>Norway 🇳🇴 — VFS Global</option>
+                  <option>Finland 🇫🇮 — VFS Global</option>
+                  <option>Czech Republic 🇨🇿 — VFS Global</option>
+                  <option>Hungary 🇭🇺 — VFS Global</option>
+                  <option>Slovakia 🇸🇰 — VFS Global</option>
+                  <option>Luxembourg 🇱🇺 — TLScontact</option>
+                  <option>Iceland 🇮🇸 — VFS Global</option>
+                  <option>Liechtenstein 🇱🇮 — Embassy Direct</option>
+                  <option>Estonia 🇪🇪 — VFS Global</option>
+                  <option>Latvia 🇱🇻 — VFS Global</option>
+                  <option>Lithuania 🇱🇹 — VFS Global</option>
+                  <option>Slovenia 🇸🇮 — VFS Global</option>
+                  <option>Malta 🇲🇹 — VFS Global</option>
+                  <option>Croatia 🇭🇷 — VFS Global</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Visa Type *</label>
+                <select id="visa-type">
+                  <option value="">Select type</option>
+                  <option>Tourist / Leisure (Type C)</option>
+                  <option>Business (Type C)</option>
+                  <option>Family Visit (Type C)</option>
+                  <option>Student (Type C)</option>
+                  <option>Medical Treatment (Type C)</option>
+                  <option>Transit (Type A/B)</option>
+                  <option>Long Stay / National Visa (Type D)</option>
+                  <option>Work Visa (Type D)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Intended Travel Date</label>
+                <input type="date" id="travel-date">
+              </div>
+              <div class="form-group">
+                <label>Duration of Stay</label>
+                <select id="stay-duration">
+                  <option>1-7 days</option>
+                  <option>8-15 days</option>
+                  <option>16-30 days</option>
+                  <option>31-60 days</option>
+                  <option>61-90 days (maximum)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row full">
+              <div class="form-group">
+                <label>Number of Applicants</label>
+                <select id="num-applicants">
+                  <option>1 person</option>
+                  <option>2 persons</option>
+                  <option>3 persons</option>
+                  <option>4 persons</option>
+                  <option>Family (5+)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <span></span>
+              <button class="btn-gold" onclick="nextStep(1)">Continue →</button>
+            </div>
+          </div>
+
+          <!-- Step 2: Service -->
+          <div class="step-content" id="step-2">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Choose the package that suits your needs. You can add extras below.</p>
+            <div class="options-grid">
+              <label class="option-card" id="opt-appt" onclick="selectPackage('appt')">
+                <input type="radio" name="package" value="appt">
+                <h4>Appointment Only</h4>
+                <p>We book your appointment at the visa centre. You prepare your own documents.</p>
+                <div class="price">500 MAD</div>
+              </label>
+              <label class="option-card" id="opt-docs" onclick="selectPackage('docs')">
+                <input type="radio" name="package" value="docs">
+                <h4>Appointment + Documents</h4>
+                <p>Appointment booking + full document file preparation by our experts.</p>
+                <div class="price">1,700 MAD</div>
+              </label>
+              <label class="option-card" id="opt-full" onclick="selectPackage('full')">
+                <input type="radio" name="package" value="full">
+                <h4>Full Package ⭐</h4>
+                <p>Everything: appointment, documents, case study, hotel & flight proofs, insurance.</p>
+                <div class="price">2,800 MAD</div>
+              </label>
+              <label class="option-card" id="opt-custom" onclick="selectPackage('custom')">
+                <input type="radio" name="package" value="custom">
+                <h4>Custom</h4>
+                <p>Select exactly the services you need from the add-ons below.</p>
+                <div class="price">From 200 MAD</div>
+              </label>
+            </div>
+            <p style="font-size:13px;font-weight:600;margin-bottom:10px;margin-top:4px">Add-on Services</p>
+            <div class="add-ons-list">
+              <label class="addon-item" onclick="toggleAddon(this)">
+                <input type="checkbox" value="200" data-name="Flight Reservation">
+                <div class="addon-info"><h5>✈️ Flight Reservation</h5><p>Official itinerary for visa purposes</p></div>
+                <div class="addon-price">200 MAD</div>
+              </label>
+              <label class="addon-item" onclick="toggleAddon(this)">
+                <input type="checkbox" value="200" data-name="Hotel Reservation">
+                <div class="addon-info"><h5>🏨 Hotel Reservation</h5><p>Accommodation proof letter</p></div>
+                <div class="addon-price">200 MAD</div>
+              </label>
+              <label class="addon-item" onclick="toggleAddon(this)">
+                <input type="checkbox" value="350" data-name="Travel Insurance">
+                <div class="addon-info"><h5>🛡️ Travel Insurance</h5><p>Schengen-compliant, min. €30,000 coverage</p></div>
+                <div class="addon-price">350 MAD</div>
+              </label>
+              <label class="addon-item" onclick="toggleAddon(this)">
+                <input type="checkbox" value="800" data-name="Case Study">
+                <div class="addon-info"><h5>🔍 Case Study & Consultation</h5><p>Profile analysis to maximise approval chances</p></div>
+                <div class="addon-price">800 MAD</div>
+              </label>
+              <label class="addon-item" onclick="toggleAddon(this)">
+                <input type="checkbox" value="300" data-name="Bank Statement Preparation">
+                <div class="addon-info"><h5>🏦 Bank Statement Presentation</h5><p>Guide and formatting for financial documents</p></div>
+                <div class="addon-price">300 MAD</div>
+              </label>
+            </div>
+            <div class="price-summary">
+              <div class="price-row"><span>Base package</span><span id="price-pkg">—</span></div>
+              <div class="price-row"><span id="addon-line">Add-ons</span><span id="price-addons">0 MAD</span></div>
+              <div class="price-row total"><span>Estimated Total</span><span id="price-total">—</span></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-ghost" onclick="nextStep(-1)">← Back</button>
+              <button class="btn-gold" onclick="nextStep(2)">Continue →</button>
+            </div>
+          </div>
+
+          <!-- Step 3: Personal Details -->
+          <div class="step-content" id="step-3">
+            <div class="form-row">
+              <div class="form-group">
+                <label>First Name *</label>
+                <input type="text" id="fname" placeholder="Your first name">
+              </div>
+              <div class="form-group">
+                <label>Last Name *</label>
+                <input type="text" id="lname" placeholder="Your last name">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email Address *</label>
+                <input type="email" id="app-email" placeholder="you@example.com">
+              </div>
+              <div class="form-group">
+                <label>Phone Number *</label>
+                <input type="tel" id="phone" placeholder="+212 6 XX XX XX XX">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nationality</label>
+                <input type="text" id="nationality" placeholder="Moroccan">
+              </div>
+              <div class="form-group">
+                <label>Passport Number</label>
+                <input type="text" id="passport" placeholder="AB123456">
+              </div>
+            </div>
+            <div class="form-row full">
+              <div class="form-group">
+                <label>Additional Notes / Special Requirements</label>
+                <textarea id="notes" placeholder="Any specific requirements, urgent requests, questions for our team..."></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-ghost" onclick="nextStep(-2)">← Back</button>
+              <button class="btn-gold" onclick="nextStep(3)">Review Order →</button>
+            </div>
+          </div>
+
+          <!-- Step 4: Confirm -->
+          <div class="step-content" id="step-4">
+            <div style="background:var(--cream);border-radius:10px;padding:20px;margin-bottom:16px">
+              <h4 style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--navy)">Order Summary</h4>
+              <div id="summary-content" style="font-size:13px;color:var(--muted);line-height:2"></div>
+            </div>
+            <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:16px;font-size:13px;color:#166534;margin-bottom:16px">
+              ✅ Our team will contact you within <strong>2 hours</strong> to confirm your order and provide payment instructions. Your appointment slot will be secured upon payment confirmation.
+            </div>
+            <div class="form-actions">
+              <button class="btn-ghost" onclick="nextStep(-3)">← Back</button>
+              <button class="btn-gold" onclick="submitApplication()">Submit Request ✓</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRACK PAGE -->
+<div id="page-track" class="page">
+  <div class="track-container">
+    <h2 style="font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:6px">Track Your Application</h2>
+    <p style="color:var(--muted);margin-bottom:28px">Enter your application reference number to see real-time status</p>
+    <div class="track-input-row">
+      <input type="text" id="track-ref" placeholder="Enter reference e.g. EVP-2024-0042">
+      <button class="btn-gold" onclick="trackApplication()">Track →</button>
+    </div>
+    <div id="track-result" style="display:none">
+      <div style="background:var(--white);border-radius:12px;padding:20px 24px;border:1px solid var(--border);margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:13px;color:var(--muted)">Reference</span>
+          <strong id="track-ref-display" style="font-size:14px"></strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:13px;color:var(--muted)">Applicant</span>
+          <span id="track-name" style="font-size:14px"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:13px;color:var(--muted)">Destination</span>
+          <span id="track-dest" style="font-size:14px"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:var(--muted)">Current Status</span>
+          <span id="track-status-badge" class="status-badge status-processing">Processing</span>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot done">✓</div>
+          <div class="timeline-title">Request Received</div>
+          <div class="timeline-desc">Your application request has been received and assigned to our team.</div>
+          <div class="timeline-date">Mar 15, 2026 · 10:23 AM</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done">✓</div>
+          <div class="timeline-title">Payment Confirmed</div>
+          <div class="timeline-desc">Payment verified. Your case has been activated.</div>
+          <div class="timeline-date">Mar 15, 2026 · 02:15 PM</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done">✓</div>
+          <div class="timeline-title">Document Preparation</div>
+          <div class="timeline-desc">Our team is preparing your complete application file.</div>
+          <div class="timeline-date">Mar 16, 2026</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot active"></div>
+          <div class="timeline-title">Appointment Booked</div>
+          <div class="timeline-desc">Appointment secured at VFS Global for Mar 22, 2026 at 9:30 AM.</div>
+          <div class="timeline-date" style="color:var(--gold);font-weight:500">⬅ Current stage</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot pending"></div>
+          <div class="timeline-title">File Submission</div>
+          <div class="timeline-desc">Documents submitted to the embassy for processing.</div>
+          <div class="timeline-date">Pending</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot pending"></div>
+          <div class="timeline-title">Decision</div>
+          <div class="timeline-desc">Embassy decision on your visa application.</div>
+          <div class="timeline-date">Estimated: Mar 28–Apr 2, 2026</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div id="page-dashboard" class="page">
+  <div class="dash-layout">
+    <div class="dash-sidebar">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="dash-avatar">A</div>
+        <div class="sidebar-user-info">
+          <h4 id="dash-user-name">Loading...</h4>
+          <p id="dash-user-email">...</p>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li><a href="#" class="active" onclick="showDashTab('overview')"><span class="menu-icon">🏠</span> Overview</a></li>
+        <li><a href="#" onclick="showDashTab('applications')"><span class="menu-icon">📋</span> My Applications</a></li>
+        <li><a href="#" onclick="showPage('booking')"><span class="menu-icon">➕</span> New Request</a></li>
+        <li><a href="#" onclick="showPage('track')"><span class="menu-icon">🔍</span> Track Application</a></li>
+        <li><a href="#" onclick="showDashTab('docs')"><span class="menu-icon">📁</span> My Documents</a></li>
+        <li><a href="#" onclick="showDashTab('profile')"><span class="menu-icon">👤</span> Profile</a></li>
+        <li><a href="#" onclick="logOut()"><span class="menu-icon">🚪</span> Sign Out</a></li>
+      </ul>
+    </div>
+    <div class="dash-main">
+      <!-- Overview Tab -->
+      <div id="dash-overview" class="dash-tab active">
+        <div class="dash-greeting">
+          <h2>Welcome back, <span id="dash-first-name">User</span> 👋</h2>
+          <p id="dash-today">Loading...</p>
+        </div>
+        <div class="dash-cards">
+          <div class="dash-card">
+            <div class="dash-card-icon">📋</div>
+            <div class="dash-card-num" id="dash-total-apps">0</div>
+            <div class="dash-card-lbl">Total Applications</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-icon">⏳</div>
+            <div class="dash-card-num" id="dash-pending">0</div>
+            <div class="dash-card-lbl">In Progress</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-icon">✅</div>
+            <div class="dash-card-num" id="dash-approved">0</div>
+            <div class="dash-card-lbl">Approved</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-icon">💬</div>
+            <div class="dash-card-num">1</div>
+            <div class="dash-card-lbl">Unread Messages</div>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <h3>Recent Applications</h3>
+            <button class="btn-gold" style="font-size:12px;padding:7px 14px" onclick="showPage('booking')">+ New</button>
+          </div>
+          <div id="dash-apps-table">
+            <div style="padding:32px;text-align:center;color:var(--muted);font-size:14px">No applications yet. <a href="#" onclick="showPage('booking')" style="color:var(--gold)">Submit your first request →</a></div>
+          </div>
+        </div>
+      </div>
+      <!-- Applications Tab -->
+      <div id="dash-applications" class="dash-tab" style="display:none">
+        <h2 style="font-family:'DM Serif Display',serif;margin-bottom:20px">All Applications</h2>
+        <div class="table-card">
+          <div id="all-apps-table">
+            <div style="padding:32px;text-align:center;color:var(--muted);font-size:14px">No applications found.</div>
+          </div>
+        </div>
+      </div>
+      <!-- Docs Tab -->
+      <div id="dash-docs" class="dash-tab" style="display:none">
+        <h2 style="font-family:'DM Serif Display',serif;margin-bottom:20px">My Documents</h2>
+        <div class="table-card" style="padding:32px;text-align:center;color:var(--muted);font-size:14px">
+          Documents will appear here once your case is processed by our team. 📁
+        </div>
+      </div>
+      <!-- Profile Tab -->
+      <div id="dash-profile" class="dash-tab" style="display:none">
+        <h2 style="font-family:'DM Serif Display',serif;margin-bottom:20px">My Profile</h2>
+        <div style="background:var(--white);border-radius:12px;padding:28px;border:1px solid var(--border);max-width:500px">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--navy)" id="profile-avatar-lg">A</div>
+            <div>
+              <h3 id="profile-name" style="font-size:18px;font-weight:600"></h3>
+              <p id="profile-email-txt" style="color:var(--muted);font-size:13px;margin-top:4px"></p>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--muted);line-height:2.2">
+            <div><strong style="color:var(--navy)">Account created:</strong> <span id="profile-created">—</span></div>
+            <div><strong style="color:var(--navy)">Portal access:</strong> Full access</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div id="auth-modal">
+  <div class="auth-card" style="position:relative">
+    <div class="auth-head">
+      <h3>Welcome to EuroVisa Pro</h3>
+      <p>Sign in or create your account</p>
+    </div>
+    <div class="auth-body">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuth('login')">Sign In</button>
+        <button class="auth-tab" onclick="switchAuth('register')">Create Account</button>
+      </div>
+      <!-- Login form -->
+      <div class="auth-form active" id="login-form">
+        <input type="email" id="login-email" placeholder="Email address">
+        <input type="password" id="login-pwd" placeholder="Password">
+        <p class="auth-error" id="login-error"></p>
+        <button class="btn-gold" onclick="doLogin()" style="width:100%;padding:12px">Sign In</button>
+      </div>
+      <!-- Register form -->
+      <div class="auth-form" id="reg-form">
+        <input type="text" id="reg-name" placeholder="Full name">
+        <input type="email" id="reg-email" placeholder="Email address">
+        <input type="password" id="reg-pwd" placeholder="Password (min 6 chars)">
+        <p class="auth-error" id="reg-error"></p>
+        <button class="btn-gold" onclick="doRegister()" style="width:100%;padding:12px">Create Account</button>
+      </div>
+      <p class="auth-footer">By signing in you agree to our Terms of Service</p>
+    </div>
+    <button class="close-modal" onclick="closeAuth()">✕</button>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div id="notif">
+  <span id="notif-icon">✅</span>
+  <span id="notif-msg">Done!</span>
+</div>
+
+<!-- CHAT WIDGET -->
+<div id="chat-widget">
+  <div class="chat-bubble" id="chat-bubble">
+    <div class="chat-head">
+      <div class="chat-avatar">EP</div>
+      <div class="chat-head-info">
+        <h4>EuroVisa Helpdesk</h4>
+        <p><span class="online-dot"></span>Online · Usually replies in minutes</p>
+      </div>
+    </div>
+    <div class="chat-msgs" id="chat-msgs">
+      <div class="msg bot">
+        <div class="msg-bubble">👋 Hello! Welcome to EuroVisa Pro. How can I help you today? You can ask about:<br><br>• Visa requirements<br>• Our services & pricing<br>• Appointment availability<br>• Your application status</div>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Type your message..." onkeypress="if(event.key==='Enter')sendChat()">
+      <button class="chat-send" onclick="sendChat()">➤</button>
+    </div>
+  </div>
+  <button class="chat-btn" onclick="toggleChat()">💬</button>
+</div>
+
+<script type="module">
+// Data
+const COUNTRIES = [
+  {name:"France",flag:"🇫🇷",provider:"TLScontact",tag:"tag-tls",visaFee:"80€",processing:"15 days"},
+  {name:"Germany",flag:"🇩🇪",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"10-15 days"},
+  {name:"Spain",flag:"🇪🇸",provider:"BLS International",tag:"tag-bls",visaFee:"80€",processing:"15 days"},
+  {name:"Italy",flag:"🇮🇹",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Netherlands",flag:"🇳🇱",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Portugal",flag:"🇵🇹",provider:"BLS / VFS Global",tag:"tag-bls",visaFee:"80€",processing:"15 days"},
+  {name:"Belgium",flag:"🇧🇪",provider:"TLScontact",tag:"tag-tls",visaFee:"80€",processing:"15 days"},
+  {name:"Austria",flag:"🇦🇹",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"10-15 days"},
+  {name:"Switzerland",flag:"🇨🇭",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Greece",flag:"🇬🇷",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Poland",flag:"🇵🇱",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Sweden",flag:"🇸🇪",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Denmark",flag:"🇩🇰",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Norway",flag:"🇳🇴",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Finland",flag:"🇫🇮",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Czech Rep.",flag:"🇨🇿",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Hungary",flag:"🇭🇺",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Slovakia",flag:"🇸🇰",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Luxembourg",flag:"🇱🇺",provider:"TLScontact",tag:"tag-tls",visaFee:"80€",processing:"15 days"},
+  {name:"Iceland",flag:"🇮🇸",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Liechtenstein",flag:"🇱🇮",provider:"Embassy Direct",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Estonia",flag:"🇪🇪",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Latvia",flag:"🇱🇻",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Lithuania",flag:"🇱🇹",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Slovenia",flag:"🇸🇮",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Malta",flag:"🇲🇹",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+  {name:"Croatia",flag:"🇭🇷",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"15 days"},
+];
+
+// Render countries
+const grid = document.getElementById('countries-grid');
+if (grid) {
+  grid.innerHTML = COUNTRIES.map(c => `
+    <div class="country-card" onclick="showNotif('ℹ️','${c.name}: Visa fee ${c.visaFee} · ${c.processing} · ${c.provider}')">
+      <div class="country-flag">${c.flag}</div>
+      <div class="country-info">
+        <h4>${c.name}</h4>
+        <p>Fee: ${c.visaFee} · ~${c.processing}</p>
+        <span class="provider-tag ${c.tag}">${c.provider}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Pages
+window.showPage = function(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  window.scrollTo(0, 0);
+  if (page === 'dashboard') loadDashboard();
+};
+
+// Form steps
+let currentStep = 1;
+window.nextStep = function(dir) {
+  currentStep += dir;
+  if (currentStep < 1) currentStep = 1;
+  if (currentStep > 4) currentStep = 4;
+  document.querySelectorAll('.step-content').forEach((s,i) => {
+    s.classList.toggle('active', i+1 === currentStep);
+  });
+  document.querySelectorAll('.form-step').forEach((s,i) => {
+    s.classList.remove('active','done');
+    if (i+1 === currentStep) s.classList.add('active');
+    if (i+1 < currentStep) s.classList.add('done');
+  });
+  if (currentStep === 4) buildSummary();
+};
+
+// Package selection
+let pkgPrice = 0;
+let pkgName = '';
+window.selectPackage = function(pkg) {
+  document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+  const el = document.getElementById('opt-' + pkg);
+  if (el) el.classList.add('selected');
+  const prices = {appt:500, docs:1700, full:2800, custom:0};
+  const names = {appt:'Appointment Only', docs:'Appointment + Documents', full:'Full Package', custom:'Custom'};
+  pkgPrice = prices[pkg];
+  pkgName = names[pkg];
+  document.getElementById('price-pkg').textContent = pkgPrice > 0 ? pkgPrice + ' MAD' : '—';
+  calcTotal();
+};
+
+let addonTotal = 0;
+window.toggleAddon = function(el) {
+  el.classList.toggle('selected');
+  addonTotal = 0;
+  document.querySelectorAll('.addon-item input:checked').forEach(cb => {
+    addonTotal += parseInt(cb.value);
+  });
+  document.getElementById('price-addons').textContent = addonTotal + ' MAD';
+  calcTotal();
+};
+
+function calcTotal() {
+  const t = pkgPrice + addonTotal;
+  document.getElementById('price-total').textContent = t > 0 ? t + ' MAD' : '—';
+}
+
+function buildSummary() {
+  const dest = document.getElementById('dest-country').value || '—';
+  const vtype = document.getElementById('visa-type').value || '—';
+  const tdate = document.getElementById('travel-date').value || '—';
+  const num = document.getElementById('num-applicants').value || '1';
+  const fn = document.getElementById('fname').value || '—';
+  const ln = document.getElementById('lname').value || '—';
+  const email = document.getElementById('app-email').value || '—';
+  const phone = document.getElementById('phone').value || '—';
+  const addons = Array.from(document.querySelectorAll('.addon-item input:checked')).map(c => c.dataset.name).join(', ') || 'None';
+  document.getElementById('summary-content').innerHTML = `
+    <strong>Applicant:</strong> ${fn} ${ln}<br>
+    <strong>Email:</strong> ${email}<br>
+    <strong>Phone:</strong> ${phone}<br>
+    <strong>Destination:</strong> ${dest}<br>
+    <strong>Visa Type:</strong> ${vtype}<br>
+    <strong>Travel Date:</strong> ${tdate}<br>
+    <strong>Applicants:</strong> ${num}<br>
+    <strong>Package:</strong> ${pkgName || '—'}<br>
+    <strong>Add-ons:</strong> ${addons}<br>
+    <strong>Total:</strong> <span style="color:var(--gold);font-weight:600">${pkgPrice + addonTotal} MAD</span>
+  `;
+}
+
+// Submit application
+window.submitApplication = async function() {
+  const { db, collection, addDoc, serverTimestamp } = window._fb;
+  const fn = document.getElementById('fname').value.trim();
+  const ln = document.getElementById('lname').value.trim();
+  const email = document.getElementById('app-email').value.trim();
+  if (!fn || !email) { showNotif('⚠️', 'Please fill in at least name and email'); return; }
+
+  const ref = 'EVP-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random()*9000);
+  const data = {
+    ref,
+    firstName: fn,
+    lastName: ln,
+    email,
+    phone: document.getElementById('phone').value,
+    destination: document.getElementById('dest-country').value,
+    visaType: document.getElementById('visa-type').value,
+    travelDate: document.getElementById('travel-date').value,
+    numApplicants: document.getElementById('num-applicants').value,
+    package: pkgName,
+    addons: Array.from(document.querySelectorAll('.addon-item input:checked')).map(c => c.dataset.name),
+    total: pkgPrice + addonTotal,
+    notes: document.getElementById('notes').value,
+    status: 'pending',
+    createdAt: serverTimestamp(),
+    userId: window._fb.auth.currentUser ? window._fb.auth.currentUser.uid : 'guest',
+  };
+
+  try {
+    await addDoc(collection(db, 'applications'), data);
+    showNotif('✅', `Application submitted! Ref: ${ref}`);
+    currentStep = 1;
+    nextStep(0);
+    showPage('track');
+    document.getElementById('track-ref').value = ref;
+  } catch(e) {
+    showNotif('⚠️', 'Error submitting. Please try again or contact us.');
+    console.error(e);
+  }
+};
+
+// Track
+window.trackApplication = function() {
+  const ref = document.getElementById('track-ref').value.trim();
+  if (!ref) return;
+  document.getElementById('track-result').style.display = 'block';
+  document.getElementById('track-ref-display').textContent = ref;
+  document.getElementById('track-name').textContent = 'Applicant';
+  document.getElementById('track-dest').textContent = 'Processing...';
+};
+
+// Auth
+window.openAuth = function() { document.getElementById('auth-modal').classList.add('open'); };
+window.closeAuth = function() { document.getElementById('auth-modal').classList.remove('open'); };
+window.switchAuth = function(mode) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&mode==='login')||(i===1&&mode==='register')));
+  document.getElementById('login-form').classList.toggle('active', mode==='login');
+  document.getElementById('reg-form').classList.toggle('active', mode==='register');
+};
+
+window.doLogin = async function() {
+  const { auth, signInWithEmailAndPassword } = window._fb;
+  const email = document.getElementById('login-email').value.trim();
+  const pwd = document.getElementById('login-pwd').value;
+  try {
+    await signInWithEmailAndPassword(auth, email, pwd);
+    closeAuth();
+    showNotif('✅', 'Signed in successfully!');
+  } catch(e) {
+    const err = document.getElementById('login-error');
+    err.style.display = 'block';
+    err.textContent = e.code === 'auth/invalid-credential' ? 'Invalid email or password' : e.message;
+  }
+};
+
+window.doRegister = async function() {
+  const { auth, db, createUserWithEmailAndPassword, collection, addDoc, serverTimestamp } = window._fb;
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pwd = document.getElementById('reg-pwd').value;
+  if (!name || !email || !pwd) { document.getElementById('reg-error').style.display='block'; document.getElementById('reg-error').textContent='All fields required'; return; }
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pwd);
+    await addDoc(collection(db, 'users'), { uid: cred.user.uid, name, email, createdAt: serverTimestamp() });
+    closeAuth();
+    showNotif('✅', 'Account created! Welcome, ' + name.split(' ')[0]);
+  } catch(e) {
+    const err = document.getElementById('reg-error');
+    err.style.display = 'block';
+    err.textContent = e.code === 'auth/email-already-in-use' ? 'Email already in use' : e.message;
+  }
+};
+
+window.logOut = async function() {
+  const { auth, signOut } = window._fb;
+  await signOut(auth);
+  showNotif('👋', 'Signed out successfully');
+  showPage('home');
+};
+
+// Auth state listener
+const { auth, onAuthStateChanged } = window._fb;
+onAuthStateChanged(auth, user => {
+  const loginBtn = document.getElementById('nav-login-btn');
+  const badge = document.getElementById('user-badge');
+  const dashBtn = document.getElementById('nav-dash-btn');
+  if (user) {
+    loginBtn.style.display = 'none';
+    badge.style.display = 'flex';
+    dashBtn.style.display = 'inline-block';
+    const initials = (user.email || 'U').slice(0,2).toUpperCase();
+    document.getElementById('user-avatar').textContent = initials;
+    document.getElementById('user-name-nav').textContent = user.email.split('@')[0];
+    document.getElementById('dash-avatar').textContent = initials;
+    document.getElementById('profile-avatar-lg').textContent = initials;
+    document.getElementById('dash-user-email').textContent = user.email;
+    document.getElementById('profile-email-txt').textContent = user.email;
+    const displayName = user.email.split('@')[0];
+    document.getElementById('dash-user-name').textContent = displayName;
+    document.getElementById('dash-first-name').textContent = displayName;
+    document.getElementById('profile-name').textContent = displayName;
+  } else {
+    loginBtn.style.display = 'inline-block';
+    badge.style.display = 'none';
+    dashBtn.style.display = 'none';
+  }
+});
+
+// Dashboard
+window.loadDashboard = async function() {
+  const { db, auth, collection, query, where, getDocs, orderBy } = window._fb;
+  const user = auth.currentUser;
+  const today = new Date().toLocaleDateString('en-GB', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  document.getElementById('dash-today').textContent = today;
+  if (!user) return;
+  try {
+    const q = query(collection(db, 'applications'), where('userId', '==', user.uid));
+    const snap = await getDocs(q);
+    const apps = [];
+    snap.forEach(d => apps.push({id: d.id, ...d.data()}));
+    document.getElementById('dash-total-apps').textContent = apps.length;
+    document.getElementById('dash-pending').textContent = apps.filter(a => a.status === 'pending' || a.status === 'processing').length;
+    document.getElementById('dash-approved').textContent = apps.filter(a => a.status === 'approved').length;
+    if (apps.length > 0) {
+      const rows = apps.slice(0,5).map(a => `
+        <tr>
+          <td><strong>${a.ref || '—'}</strong></td>
+          <td>${a.destination || '—'}</td>
+          <td>${a.visaType || '—'}</td>
+          <td>${a.createdAt?.toDate ? a.createdAt.toDate().toLocaleDateString('en-GB') : '—'}</td>
+          <td><span class="status-badge status-${a.status || 'pending'}">${a.status || 'pending'}</span></td>
+          <td style="font-weight:500">${a.total || 0} MAD</td>
+        </tr>
+      `).join('');
+      const tbl = `<table><thead><tr><th>Ref</th><th>Destination</th><th>Type</th><th>Date</th><th>Status</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+      document.getElementById('dash-apps-table').innerHTML = tbl;
+      document.getElementById('all-apps-table').innerHTML = tbl;
+    }
+  } catch(e) { console.error(e); }
+};
+
+// Dashboard tabs
+window.showDashTab = function(tab) {
+  document.querySelectorAll('.dash-tab').forEach(t => t.style.display = 'none');
+  document.getElementById('dash-'+tab).style.display = 'block';
+  document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
+};
+
+// Chat
+window.toggleChat = function() {
+  document.getElementById('chat-bubble').classList.toggle('open');
+};
+
+const chatResponses = {
+  'appointment': "To book an appointment, simply click 'Start My Application' and select 'Appointment Only'. We monitor slots daily at VFS Global, TLScontact, and BLS International and secure yours as soon as one becomes available.",
+  'price': "Our prices start at 500 MAD for appointment-only. Document preparation is 1,200 MAD, and our full package (everything included) is 2,800 MAD. Would you like details on any specific service?",
+  'france': "For France, visa applications go through TLScontact. The embassy fee is €80. Processing typically takes 15 working days. Required documents include a cover letter, bank statements, hotel and flight reservations, and travel insurance.",
+  'spain': "For Spain, we work with BLS International. The embassy fee is €80. You'll need a cover letter, itinerary, hotel bookings, bank statements (last 3 months), and insurance.",
+  'document': "Required Schengen documents typically include: valid passport, application form, photos, travel insurance (€30k minimum), bank statements, employment/financial proof, accommodation proof, and flight reservation.",
+  'track': "You can track your application from the 'Track' menu at the top. Enter your reference number (format: EVP-YYYY-XXXX) to see real-time status updates.",
+  'default': "Thank you for your message! Our helpdesk team typically responds within 2 hours during business hours (Mon–Sat, 8AM–8PM). For urgent requests, please call us directly. Is there anything specific I can help you with about our visa services?"
+};
+
+window.sendChat = function() {
+  const inp = document.getElementById('chat-input');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  const msgs = document.getElementById('chat-msgs');
+  msgs.innerHTML += `<div class="msg user"><div class="msg-bubble">${msg}</div></div>`;
+  inp.value = '';
+  const lower = msg.toLowerCase();
+  let reply = chatResponses.default;
+  for (const [key, val] of Object.entries(chatResponses)) {
+    if (lower.includes(key)) { reply = val; break; }
+  }
+  setTimeout(() => {
+    msgs.innerHTML += `<div class="msg bot"><div class="msg-bubble">${reply}</div></div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 600);
+  msgs.scrollTop = msgs.scrollHeight;
+};
+
+// Notification
+window.showNotif = function(icon, msg) {
+  document.getElementById('notif-icon').textContent = icon;
+  document.getElementById('notif-msg').textContent = msg;
+  const n = document.getElementById('notif');
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 4000);
+};
+
+// Close modal on backdrop click
+document.getElementById('auth-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAuth();
+});
+</script>
+</body>
+</html>
