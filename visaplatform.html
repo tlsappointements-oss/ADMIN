@@ -6,28 +6,6 @@
 <title>EuroVisa Pro — Schengen Visa Services</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
-    authDomain: "cars-website-558c0.firebaseapp.com",
-    projectId: "cars-website-558c0",
-    storageBucket: "cars-website-558c0.firebasestorage.app",
-    messagingSenderId: "142475379783",
-    appId: "1:142475379783:web:2849d07fb6eb8da4715d62",
-    measurementId: "G-53ZQY6XJJR"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  window._fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, collection, addDoc, query, where, getDocs, updateDoc, doc, serverTimestamp, orderBy };
-</script>
 
 <style>
 :root {
@@ -2409,7 +2387,27 @@ tr:hover td { background: var(--cream); }
   <button class="chat-btn" onclick="toggleChat()">💬</button>
 </div>
 
+<!-- Firebase + Main Script -->
 <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
+  authDomain: "cars-website-558c0.firebaseapp.com",
+  projectId: "cars-website-558c0",
+  storageBucket: "cars-website-558c0.firebasestorage.app",
+  messagingSenderId: "142475379783",
+  appId: "1:142475379783:web:2849d07fb6eb8da4715d62",
+  measurementId: "G-53ZQY6XJJR"
+};
+const _app = initializeApp(firebaseConfig);
+const auth = getAuth(_app);
+const db = getFirestore(_app);
+
+// Keep window._fb for any legacy references
+window._fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, collection, addDoc, query, where, getDocs, updateDoc, doc, serverTimestamp, orderBy };
 // ── ADMIN CONFIG ──
 const ADMIN_EMAILS = ['user@admin.com'];
 
@@ -2558,7 +2556,7 @@ window.showPage = function(page) {
 
 // ── ADMIN LOGIN ──
 window.doAdminLogin = async function() {
-  const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window._fb;
+  // (firebase vars in scope)
   const email = document.getElementById('adm-email').value.trim();
   const pwd = document.getElementById('adm-pwd').value;
   const errEl = document.getElementById('admin-login-error');
@@ -2611,7 +2609,7 @@ window.doAdminLogin = async function() {
 };
 
 window.adminLogOut = async function() {
-  const { auth, signOut } = window._fb;
+  // (firebase vars in scope)
   await signOut(auth);
   isAdmin = false;
   document.getElementById('admin-access-btn').style.display = 'block';
@@ -2631,7 +2629,7 @@ window.showAdminTab = function(tab) {
 
 // ── LOAD ALL DATA ──
 window.loadAdminData = async function() {
-  const { db, collection, getDocs, query, orderBy } = window._fb;
+  // (firebase vars in scope)
   document.getElementById('admin-today').textContent = new Date().toLocaleDateString('en-GB', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
   try {
     // Load applications
@@ -2801,7 +2799,7 @@ window.closeDrawer = function() {
 
 window.updateAppStatus = async function() {
   if (!currentDrawerApp) return;
-  const { db, doc, updateDoc } = window._fb;
+  // (firebase vars in scope)
   const newStatus = document.getElementById('drawer-status-sel').value;
   const note = document.getElementById('drawer-admin-note').value;
   try {
@@ -2821,7 +2819,7 @@ window.updateAppStatus = async function() {
 
 window.saveAppointment = async function() {
   if (!currentDrawerApp) return;
-  const { db, doc, updateDoc } = window._fb;
+  // (firebase vars in scope)
   const date = document.getElementById('drawer-appt-date').value;
   const time = document.getElementById('drawer-appt-time').value;
   const venue = document.getElementById('drawer-appt-venue').value;
@@ -2909,7 +2907,7 @@ window.insertVar = function(fieldId, variable) {
 
 // ── EMAIL SENDING (queues to Firestore for Cloud Function pickup) ──
 async function queueEmail(to, subject, body, type, ref) {
-  const { db, collection, addDoc, serverTimestamp } = window._fb;
+  // (firebase vars in scope)
   await addDoc(collection(db, 'email_queue'), { to, subject, body, type, ref, status: 'queued', createdAt: serverTimestamp() });
   // Also log it
   await addDoc(collection(db, 'email_log'), { to, subject, type, ref, sentAt: serverTimestamp(), status: 'queued' });
@@ -2965,7 +2963,7 @@ async function sendConfirmationOnSubmit(appData) {
 
 // ── EMAIL LOG ──
 window.loadEmailLog = async function() {
-  const { db, collection, getDocs, query, orderBy } = window._fb;
+  // (firebase vars in scope)
   try {
     const snap = await getDocs(collection(db, 'email_log'));
     const logs = [];
@@ -3084,7 +3082,7 @@ function buildSummary() {
 
 // ── SUBMIT APPLICATION ──
 window.submitApplication = async function() {
-  const { db, collection, addDoc, serverTimestamp } = window._fb;
+  // (firebase vars in scope)
   const fn = document.getElementById('fname').value.trim();
   const ln = document.getElementById('lname').value.trim();
   const email = document.getElementById('app-email').value.trim();
@@ -3106,7 +3104,7 @@ window.submitApplication = async function() {
     passport: document.getElementById('passport').value,
     status: 'pending',
     createdAt: serverTimestamp(),
-    userId: window._fb.auth.currentUser ? window._fb.auth.currentUser.uid : 'guest',
+    userId: auth.currentUser ? auth.currentUser.uid : 'guest',
   };
 
   try {
@@ -3144,7 +3142,7 @@ window.switchAuth = function(mode) {
 };
 
 window.doLogin = async function() {
-  const { auth, signInWithEmailAndPassword } = window._fb;
+  // (firebase vars in scope)
   const email = document.getElementById('login-email').value.trim();
   const pwd = document.getElementById('login-pwd').value;
   try {
@@ -3164,7 +3162,7 @@ window.doLogin = async function() {
 };
 
 window.doRegister = async function() {
-  const { auth, db, createUserWithEmailAndPassword, collection, addDoc, serverTimestamp } = window._fb;
+  // (firebase vars in scope)
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const pwd = document.getElementById('reg-pwd').value;
@@ -3182,7 +3180,7 @@ window.doRegister = async function() {
 };
 
 window.logOut = async function() {
-  const { auth, signOut } = window._fb;
+  // (firebase vars in scope)
   await signOut(auth);
   isAdmin = false;
   showNotif('👋', 'Signed out successfully');
@@ -3190,7 +3188,7 @@ window.logOut = async function() {
 };
 
 // Auth state
-const { auth, onAuthStateChanged } = window._fb;
+// (firebase vars in scope)
 onAuthStateChanged(auth, user => {
   const loginBtn = document.getElementById('nav-login-btn');
   const badge = document.getElementById('user-badge');
@@ -3225,7 +3223,7 @@ onAuthStateChanged(auth, user => {
 
 // ── USER DASHBOARD ──
 window.loadDashboard = async function() {
-  const { db, auth, collection, query, where, getDocs } = window._fb;
+  // (firebase vars in scope)
   const user = auth.currentUser;
   const today = new Date().toLocaleDateString('en-GB', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
   document.getElementById('dash-today').textContent = today;
@@ -3391,7 +3389,7 @@ function buildSummary() {
 
 // Submit application
 window.submitApplication = async function() {
-  const { db, collection, addDoc, serverTimestamp } = window._fb;
+  // (firebase vars in scope)
   const fn = document.getElementById('fname').value.trim();
   const ln = document.getElementById('lname').value.trim();
   const email = document.getElementById('app-email').value.trim();
@@ -3414,7 +3412,7 @@ window.submitApplication = async function() {
     notes: document.getElementById('notes').value,
     status: 'pending',
     createdAt: serverTimestamp(),
-    userId: window._fb.auth.currentUser ? window._fb.auth.currentUser.uid : 'guest',
+    userId: auth.currentUser ? auth.currentUser.uid : 'guest',
   };
 
   try {
