@@ -3316,7 +3316,6 @@ document.addEventListener('keydown', e => {
     document.getElementById('admin-login-overlay').classList.add('open');
   }
 });
-</script>
 
 // Form steps
 let currentStep = 1;
@@ -3450,38 +3449,7 @@ window.switchAuth = function(mode) {
   document.getElementById('reg-form').classList.toggle('active', mode==='register');
 };
 
-window.doLogin = async function() {
-  const { auth, signInWithEmailAndPassword } = window._fb;
-  const email = document.getElementById('login-email').value.trim();
-  const pwd = document.getElementById('login-pwd').value;
-  try {
-    await signInWithEmailAndPassword(auth, email, pwd);
-    closeAuth();
-    showNotif('✅', 'Signed in successfully!');
-  } catch(e) {
-    const err = document.getElementById('login-error');
-    err.style.display = 'block';
-    err.textContent = e.code === 'auth/invalid-credential' ? 'Invalid email or password' : e.message;
-  }
-};
 
-window.doRegister = async function() {
-  const { auth, db, createUserWithEmailAndPassword, collection, addDoc, serverTimestamp } = window._fb;
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const pwd = document.getElementById('reg-pwd').value;
-  if (!name || !email || !pwd) { document.getElementById('reg-error').style.display='block'; document.getElementById('reg-error').textContent='All fields required'; return; }
-  try {
-    const cred = await createUserWithEmailAndPassword(auth, email, pwd);
-    await addDoc(collection(db, 'users'), { uid: cred.user.uid, name, email, createdAt: serverTimestamp() });
-    closeAuth();
-    showNotif('✅', 'Account created! Welcome, ' + name.split(' ')[0]);
-  } catch(e) {
-    const err = document.getElementById('reg-error');
-    err.style.display = 'block';
-    err.textContent = e.code === 'auth/email-already-in-use' ? 'Email already in use' : e.message;
-  }
-};
-
+</script>
 </body>
 </html>
