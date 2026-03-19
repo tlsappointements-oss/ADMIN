@@ -414,7 +414,10 @@ tr:hover td{background:var(--cream)}
   <div class="section">
     <div class="form-container">
       <div class="form-card">
-        <div class="form-header"><h2>New Visa Application Request</h2><p>Complete the form — we'll get back to you within 2 hours</p></div>
+        <div class="form-header">
+          <h2>New Visa Application Request</h2>
+          <p>Complete the form — we'll get back to you within 2 hours &nbsp;·&nbsp; <a href="#" onclick="openAuth()" style="color:var(--gold2);text-decoration:none">Sign in to save progress</a></p>
+        </div>
         <div class="form-body">
           <div class="form-steps">
             <div class="form-step active" id="step-ind-1">1 · Destination</div>
@@ -508,14 +511,34 @@ tr:hover td{background:var(--cream)}
     </div>
     <div id="track-result" style="display:none">
       <div style="background:var(--white);border-radius:12px;padding:20px 24px;border:1px solid var(--border);margin-bottom:24px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px;color:var(--muted)">Reference</span><strong id="track-ref-display"></strong></div>
-        <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--muted)">Status</span><span class="status-badge status-processing">Processing</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;color:var(--muted)">Reference</span>
+          <strong id="track-ref-display" style="font-size:14px;color:var(--navy)"></strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;color:var(--muted)">Applicant</span>
+          <span id="track-applicant-name" style="font-size:14px"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;color:var(--muted)">Destination</span>
+          <span id="track-destination" style="font-size:14px"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;color:var(--muted)">Package</span>
+          <span id="track-package" style="font-size:14px"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:var(--muted)">Status</span>
+          <span class="status-badge status-pending" id="track-status-badge">Pending</span>
+        </div>
       </div>
-      <div class="timeline">
-        <div class="timeline-item"><div class="timeline-dot done">✓</div><div class="timeline-title">Request Received</div><div class="timeline-desc">Your application has been received and assigned to our team.</div></div>
-        <div class="timeline-item"><div class="timeline-dot active"></div><div class="timeline-title">In Processing</div><div class="timeline-desc">Our team is working on your file.</div><div class="timeline-date" style="color:var(--gold);font-weight:500">⬅ Current stage</div></div>
-        <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-title">Appointment Booked</div><div class="timeline-desc">Appointment secured at the visa centre.</div></div>
-        <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-title">Decision</div><div class="timeline-desc">Embassy decision on your visa application.</div></div>
+      <div id="track-admin-note" style="display:none;background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#92400E">
+        <strong>Message from our team:</strong> <span id="track-admin-note-text"></span>
+      </div>
+      <div class="timeline" id="track-timeline"></div>
+      <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn-gold" onclick="document.getElementById('track-ref').value='';document.getElementById('track-result').style.display='none'" style="font-size:13px;padding:9px 18px">Track Another</button>
+        <button onclick="showPage('dashboard')" style="background:none;border:1.5px solid var(--border);color:var(--navy);font-family:inherit;font-size:13px;font-weight:500;padding:9px 18px;border-radius:8px;cursor:pointer">My Portal →</button>
       </div>
     </div>
   </div>
@@ -770,7 +793,11 @@ tr:hover td{background:var(--cream)}
 <!-- CHAT -->
 <div id="chat-widget">
   <div class="chat-bubble" id="chat-bubble">
-    <div class="chat-head"><div class="chat-avatar-sm">EP</div><div class="chat-head-info"><h4>EuroVisa Helpdesk</h4><p><span class="online-dot"></span>Online · replies in minutes</p></div></div>
+    <div class="chat-head">
+      <div class="chat-avatar-sm">EP</div>
+      <div class="chat-head-info" style="flex:1"><h4>EuroVisa Helpdesk</h4><p><span class="online-dot"></span>Online · replies in minutes</p></div>
+      <a href="https://wa.me/212600000000" target="_blank" title="WhatsApp" style="color:rgba(255,255,255,.6);font-size:20px;text-decoration:none;margin-left:8px">📱</a>
+    </div>
     <div class="chat-msgs" id="chat-msgs">
       <div class="msg bot"><div class="msg-bubble">👋 Hello! How can I help you today?<br><br>• Visa requirements<br>• Services & pricing<br>• Application status</div></div>
     </div>
@@ -784,19 +811,12 @@ tr:hover td{background:var(--cream)}
   <button onclick="document.getElementById('admin-login-overlay').classList.add('open')">🔐 Admin Login</button>
 </div>
 
-<script type="module">
-// ══════════════════════════════════════════
-//  FIREBASE — single unified module script
-// ══════════════════════════════════════════
-import { initializeApp }                           from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword,
-         signInWithEmailAndPassword, signOut,
-         onAuthStateChanged }                      from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, query,
-         where, getDocs, updateDoc, doc,
-         serverTimestamp }                         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const app  = initializeApp({
+<!-- Firebase Compat (works on file:// and HTTP) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
   apiKey:            "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
   authDomain:        "cars-website-558c0.firebaseapp.com",
   projectId:         "cars-website-558c0",
@@ -804,8 +824,8 @@ const app  = initializeApp({
   messagingSenderId: "142475379783",
   appId:             "1:142475379783:web:2849d07fb6eb8da4715d62"
 });
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const auth = firebase.auth();
+const db   = firebase.firestore();
 
 // ══════════════════════════════════════════
 //  CONSTANTS & STATE
@@ -908,7 +928,7 @@ loadSmtpConfig();
 // ══════════════════════════════════════════
 //  AUTH STATE — runs once Firebase is ready
 // ══════════════════════════════════════════
-onAuthStateChanged(auth, user => {
+auth.onAuthStateChanged(user => {
   const loginBtn  = document.getElementById('nav-login-btn');
   const badge     = document.getElementById('user-badge');
   const dashBtn   = document.getElementById('nav-dash-btn');
@@ -951,6 +971,12 @@ window.showPage = function(page) {
   }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
+  // Highlight active nav button
+  document.querySelectorAll('.nav-btn').forEach(b=>b.style.color='');
+  const navMap = {home:'Home',countries:'Countries',services:'Services',track:'Track',booking:'Booking'};
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    if(b.textContent.trim()===navMap[page]) b.style.color='var(--gold2)';
+  });
   window.scrollTo(0,0);
   if (page === 'dashboard') loadDashboard();
 };
@@ -974,9 +1000,16 @@ window.doLogin = async function() {
   errEl.style.display = 'none';
   if (!email || !pwd) { showErr(errEl,'Please enter email and password.'); return; }
   try {
-    await signInWithEmailAndPassword(auth, email, pwd);
+    await auth.signInWithEmailAndPassword(email, pwd);
     closeAuth();
-    showNotif('✅', email === ADMIN_EMAIL ? 'Signed in as Admin' : 'Signed in successfully!');
+    if (email === ADMIN_EMAIL) {
+      isAdmin = true;
+      showNotif('🔐', 'Signed in as Admin');
+      setTimeout(() => showPage('admin'), 300);
+    } else {
+      showNotif('✅', 'Signed in successfully!');
+      setTimeout(() => showPage('dashboard'), 300);
+    }
   } catch(e) {
     showErr(errEl, friendlyError(e.code));
   }
@@ -991,17 +1024,18 @@ window.doRegister = async function() {
   if (!name||!email||!pwd) { showErr(errEl,'All fields are required.'); return; }
   if (pwd.length < 6)      { showErr(errEl,'Password must be at least 6 characters.'); return; }
   try {
-    const cred = await createUserWithEmailAndPassword(auth, email, pwd);
-    await addDoc(collection(db,'users'),{ uid:cred.user.uid, name, email, createdAt:serverTimestamp() });
+    const cred = await auth.createUserWithEmailAndPassword(email, pwd);
+    await db.collection('users').add({ uid:cred.user.uid, name, email, createdAt:firebase.firestore.FieldValue.serverTimestamp() });
     closeAuth();
     showNotif('✅','Account created! Welcome, '+name.split(' ')[0]);
+    setTimeout(() => showPage('dashboard'), 300);
   } catch(e) {
     showErr(errEl, friendlyError(e.code));
   }
 };
 
 window.doLogOut = async function() {
-  await signOut(auth);
+  await auth.signOut();
   isAdmin = false;
   showPage('home');
   showNotif('👋','Signed out successfully');
@@ -1024,11 +1058,11 @@ window.doAdminLogin = async function() {
   btn.textContent = 'Signing in…'; btn.disabled = true;
   try {
     try {
-      await signInWithEmailAndPassword(auth, email, pwd);
+      await auth.signInWithEmailAndPassword(email, pwd);
     } catch(e1) {
       // Account doesn't exist yet — create it on first login
       if (e1.code === 'auth/user-not-found' || e1.code === 'auth/invalid-credential') {
-        await createUserWithEmailAndPassword(auth, email, pwd);
+        await auth.createUserWithEmailAndPassword(email, pwd);
       } else { throw e1; }
     }
     isAdmin = true;
@@ -1054,7 +1088,7 @@ window.doAdminLogin = async function() {
 };
 
 window.adminLogOut = async function() {
-  await signOut(auth);
+  await auth.signOut();
   isAdmin = false;
   document.getElementById('admin-access-btn').style.display = 'block';
   showPage('home');
@@ -1127,16 +1161,25 @@ window.submitApplication = async function() {
     travelDate:g('travel-date'), numApplicants:g('num-applicants'),
     nationality:g('nationality'), passport:g('passport'), notes:g('notes'),
     package:pkgName, addons:[...document.querySelectorAll('.addon-item input:checked')].map(c=>c.dataset.name),
-    total:pkgPrice+addonTotal, status:'pending', createdAt:serverTimestamp(),
+    total:pkgPrice+addonTotal, status:'pending', createdAt:firebase.firestore.FieldValue.serverTimestamp(),
     userId: auth.currentUser ? auth.currentUser.uid : 'guest'
   };
   try {
-    await addDoc(collection(db,'applications'), data);
+    await db.collection('applications').add(data);
     await queueEmail(email, fillTpl(getTpl('confirm-subject'),data), fillTpl(getTpl('confirm-body'),data), 'confirmation', ref);
-    showNotif('✅',`Request submitted! Ref: ${ref} — Confirmation email sent.`);
+    showNotif('✅',`✅ Request submitted! Ref: ${ref}`);
+    // Reset form
+    pkgPrice=0; pkgName=''; addonTotal=0;
+    document.querySelectorAll('.addon-item').forEach(el=>el.classList.remove('selected'));
+    document.querySelectorAll('.addon-item input').forEach(cb=>cb.checked=false);
+    document.querySelectorAll('.option-card').forEach(c=>c.classList.remove('selected'));
+    ['fname','lname','app-email','phone','nationality','passport','notes'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
     currentStep=1; nextStep(0);
     showPage('track');
     document.getElementById('track-ref').value = ref;
+    setTimeout(()=> window.trackApplication(), 500);
   } catch(e) {
     showNotif('⚠️','Error: '+e.message);
     console.error(e);
@@ -1146,11 +1189,55 @@ window.submitApplication = async function() {
 // ══════════════════════════════════════════
 //  TRACK
 // ══════════════════════════════════════════
-window.trackApplication = function() {
+window.trackApplication = async function() {
   const ref = document.getElementById('track-ref').value.trim();
-  if (!ref) return;
-  document.getElementById('track-result').style.display = 'block';
-  document.getElementById('track-ref-display').textContent = ref;
+  if (!ref) { showNotif('⚠️','Please enter a reference number'); return; }
+  const btn = document.querySelector('.track-input-row .btn-gold');
+  const orig = btn.textContent;
+  btn.textContent = 'Searching…'; btn.disabled = true;
+  try {
+    const snap = await db.collection('applications').where('ref','==',ref).get();
+    if (snap.empty) {
+      showNotif('⚠️',`No application found for ${ref}`);
+      btn.textContent = orig; btn.disabled = false;
+      return;
+    }
+    const a = snap.docs[0].data();
+    const statusLabels = {pending:'Pending Review',processing:'In Processing','docs-ready':'Documents Ready',appointment:'Appointment Booked',submitted:'Submitted to Embassy',approved:'Visa Approved ✅',rejected:'Application Rejected'};
+    const statusClasses = {pending:'status-pending',processing:'status-processing','docs-ready':'status-docs',appointment:'status-processing',submitted:'status-docs',approved:'status-approved',rejected:'status-rejected'};
+    document.getElementById('track-ref-display').textContent = ref;
+    document.getElementById('track-applicant-name').textContent = `${a.firstName||''} ${a.lastName||''}`.trim();
+    document.getElementById('track-destination').textContent = a.destination || '—';
+    document.getElementById('track-package').textContent = a.package || '—';
+    document.getElementById('track-status-badge').className = `status-badge ${statusClasses[a.status]||'status-pending'}`;
+    document.getElementById('track-status-badge').textContent = statusLabels[a.status] || a.status || 'Pending';
+    // Build timeline
+    const stages = [
+      {key:'received',   label:'Request Received',        desc:'Your application has been received and assigned to our team.',   done:true},
+      {key:'processing', label:'In Processing',           desc:'Our team is preparing your document file.',                      done:['processing','docs-ready','appointment','submitted','approved','rejected'].includes(a.status)},
+      {key:'docs',       label:'Documents Ready',         desc:'Your complete application file has been prepared.',              done:['docs-ready','appointment','submitted','approved','rejected'].includes(a.status)},
+      {key:'appt',       label:'Appointment Booked',      desc: a.appointmentDate ? `Appointment on ${a.appointmentDate}${a.appointmentTime?' at '+a.appointmentTime:''}.${a.appointmentVenue?' — '+a.appointmentVenue:''}` : 'Appointment slot being secured.', done:['appointment','submitted','approved','rejected'].includes(a.status)},
+      {key:'submitted',  label:'File Submitted to Embassy', desc:'Your complete file has been submitted to the embassy for processing.', done:['submitted','approved','rejected'].includes(a.status)},
+      {key:'decision',   label:'Decision',                desc: a.status==='approved' ? '🎉 Your visa has been approved!' : a.status==='rejected' ? 'Unfortunately your application was rejected.' : 'Awaiting embassy decision.', done:['approved','rejected'].includes(a.status)},
+    ];
+    const currentIdx = stages.reduceRight((acc,s,i)=> s.done && acc===-1 ? i : acc, -1);
+    document.getElementById('track-timeline').innerHTML = stages.map((s,i)=>`
+      <div class="timeline-item">
+        <div class="timeline-dot ${s.done ? 'done' : i===currentIdx+1 ? 'active' : ''}">${s.done ? '✓' : ''}</div>
+        <div class="timeline-title">${s.label}</div>
+        <div class="timeline-desc">${s.desc}</div>
+        ${i===currentIdx+1 ? '<div class="timeline-date" style="color:var(--gold);font-weight:500">⬅ Current stage</div>' : ''}
+      </div>`).join('');
+    document.getElementById('track-result').style.display = 'block';
+    if (a.adminNote) {
+      document.getElementById('track-admin-note').style.display = 'block';
+      document.getElementById('track-admin-note-text').textContent = a.adminNote;
+    }
+  } catch(e) {
+    showNotif('⚠️','Error: '+e.message);
+    console.error(e);
+  }
+  btn.textContent = orig; btn.disabled = false;
 };
 
 // ══════════════════════════════════════════
@@ -1162,7 +1249,13 @@ window.loadDashboard = async function() {
     new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   if (!user) return;
   try {
-    const snap = await getDocs(query(collection(db,'applications'), where('userId','==',user.uid)));
+    // Get apps by userId OR by email (for guest submissions)
+    const [snap1, snap2] = await Promise.all([
+      db.collection('applications').where('userId','==',user.uid).get(),
+      db.collection('applications').where('email','==',user.email).get()
+    ]);
+    const seen = new Set();
+    const snap = { docs: [...snap1.docs, ...snap2.docs].filter(d=>{ if(seen.has(d.id)) return false; seen.add(d.id); return true; }) };
     const apps = []; snap.forEach(d=>apps.push({id:d.id,...d.data()}));
     document.getElementById('dash-total-apps').textContent = apps.length;
     document.getElementById('dash-pending').textContent    = apps.filter(a=>['pending','processing'].includes(a.status)).length;
@@ -1196,8 +1289,8 @@ window.loadAdminData = async function() {
     new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   try {
     const [appsSnap, usersSnap] = await Promise.all([
-      getDocs(collection(db,'applications')),
-      getDocs(collection(db,'users'))
+      db.collection('applications').get(),
+      db.collection('users').get()
     ]);
     allApplications = [];
     appsSnap.forEach(d=>allApplications.push({id:d.id,...d.data()}));
@@ -1307,7 +1400,7 @@ window.updateAppStatus = async function() {
   const newStatus = document.getElementById('drawer-status-sel').value;
   const note      = document.getElementById('drawer-admin-note').value;
   try {
-    await updateDoc(doc(db,'applications',currentDrawerApp.id), {status:newStatus, adminNote:note});
+    await db.collection('applications').doc(currentDrawerApp.id).update({status:newStatus, adminNote:note});
     const idx = allApplications.findIndex(a=>a.id===currentDrawerApp.id);
     if (idx>-1) { allApplications[idx].status=newStatus; allApplications[idx].adminNote=note; }
     currentDrawerApp.status=newStatus; currentDrawerApp.adminNote=note;
@@ -1324,7 +1417,7 @@ window.saveAppointment = async function() {
   if (!currentDrawerApp) return;
   const date=document.getElementById('drawer-appt-date').value, time=document.getElementById('drawer-appt-time').value, venue=document.getElementById('drawer-appt-venue').value;
   try {
-    await updateDoc(doc(db,'applications',currentDrawerApp.id),{appointmentDate:date,appointmentTime:time,appointmentVenue:venue});
+    await db.collection('applications').doc(currentDrawerApp.id).update({appointmentDate:date,appointmentTime:time,appointmentVenue:venue});
     Object.assign(currentDrawerApp,{appointmentDate:date,appointmentTime:time,appointmentVenue:venue});
     showNotif('✅','Appointment saved');
   } catch(e) { showNotif('⚠️',e.message); }
@@ -1358,13 +1451,13 @@ window.sendApptEmail = async function() {
 //  EMAIL QUEUE
 // ══════════════════════════════════════════
 async function queueEmail(to, subject, body, type, ref) {
-  await addDoc(collection(db,'email_queue'),{to,subject,body,type,ref:ref||'',status:'queued',createdAt:serverTimestamp()});
-  await addDoc(collection(db,'email_log'),  {to,subject,type,ref:ref||'',status:'queued',sentAt:serverTimestamp()});
+  await db.collection('email_queue').add({to,subject,body,type,ref:ref||'',status:'queued',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  await db.collection('email_log').add({to,subject,type,ref:ref||'',status:'queued',sentAt:firebase.firestore.FieldValue.serverTimestamp()});
 }
 
 window.loadEmailLog = async function() {
   try {
-    const snap = await getDocs(collection(db,'email_log'));
+    const snap = await db.collection('email_log').get();
     const logs=[]; snap.forEach(d=>logs.push(d.data()));
     logs.sort((a,b)=>(b.sentAt?.seconds||0)-(a.sentAt?.seconds||0));
     const icons={confirmation:'📬',status_update:'📣',appointment:'🗓'};
