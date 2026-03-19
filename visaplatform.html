@@ -908,7 +908,433 @@ tr:hover td { background: var(--cream); }
   nav { padding: 0 1rem; }
   .nav-links .nav-btn { display: none; }
 }
+
+/* ── ADMIN PANEL ── */
+#page-admin { display: none; }
+#page-admin.active { display: block; }
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 64px);
+}
+.admin-sidebar {
+  background: #0D1B2A;
+  padding: 20px 14px;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  margin-bottom: 16px;
+}
+.admin-brand-icon {
+  width: 32px;
+  height: 32px;
+  background: #C0392B;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.admin-brand span { font-size: 13px; font-weight: 600; color: #fff; letter-spacing: .02em; }
+.admin-brand small { display: block; font-size: 10px; color: rgba(255,255,255,.35); letter-spacing: .06em; text-transform: uppercase; }
+.admin-nav { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.admin-nav li a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: 7px;
+  text-decoration: none;
+  color: rgba(255,255,255,.5);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all .2s;
+  cursor: pointer;
+}
+.admin-nav li a:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.9); }
+.admin-nav li a.active { background: rgba(255,255,255,.1); color: #fff; }
+.admin-nav .nav-section {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,.2);
+  padding: 14px 12px 4px;
+}
+.admin-nav .badge-count {
+  margin-left: auto;
+  background: #C0392B;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+.admin-main {
+  background: #F0EDE6;
+  padding: 28px 32px;
+  overflow-y: auto;
+}
+.admin-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.admin-topbar h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 24px;
+  color: var(--navy);
+}
+.admin-topbar p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+/* Admin stats */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.astat {
+  background: var(--white);
+  border-radius: 10px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.astat::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.astat.s-red::after { background: #C0392B; }
+.astat.s-gold::after { background: var(--gold); }
+.astat.s-green::after { background: #1B7A4A; }
+.astat.s-blue::after { background: #1A5F9E; }
+.astat.s-purple::after { background: #6B21A8; }
+.astat-num { font-size: 30px; font-weight: 300; font-family: 'DM Serif Display', serif; color: var(--navy); }
+.astat-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .06em; }
+
+/* Admin table */
+.admin-card {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.admin-card-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-card-head h3 { font-size: 14px; font-weight: 600; }
+.admin-filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.admin-filters select,
+.admin-filters input {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  background: var(--cream);
+  transition: border-color .2s;
+}
+.admin-filters select:focus,
+.admin-filters input:focus { border-color: var(--gold); }
+
+/* Status select in table */
+.status-select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  background: var(--cream);
+}
+
+/* Application detail drawer */
+#app-drawer {
+  display: none;
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 480px;
+  max-width: 95vw;
+  background: var(--white);
+  box-shadow: -8px 0 40px rgba(0,0,0,.15);
+  z-index: 500;
+  overflow-y: auto;
+  flex-direction: column;
+}
+#app-drawer.open { display: flex; }
+.drawer-head {
+  background: var(--navy);
+  padding: 20px 24px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.drawer-head h3 { font-family: 'DM Serif Display', serif; font-size: 18px; }
+.drawer-head p { font-size: 12px; color: rgba(255,255,255,.5); margin-top: 2px; }
+.drawer-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,.7);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.drawer-body { padding: 24px; flex: 1; }
+.drawer-section { margin-bottom: 24px; }
+.drawer-section h4 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.detail-item label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 2px; }
+.detail-item span { font-size: 13px; font-weight: 500; color: var(--navy); }
+.drawer-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.btn-sm {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  transition: .2s;
+}
+.btn-sm-navy { background: var(--navy); color: #fff; }
+.btn-sm-navy:hover { background: #1a3a5c; }
+.btn-sm-red { background: #FEE2E2; color: #991b1b; }
+.btn-sm-red:hover { background: #FCA5A5; }
+.btn-sm-green { background: #D1FAE5; color: #065f46; }
+.btn-sm-green:hover { background: #A7F3D0; }
+.btn-sm-gold { background: var(--gold); color: var(--navy); }
+.btn-sm-gold:hover { background: var(--gold2); }
+
+/* Email template editor */
+.email-editor-wrap { padding: 0; }
+.tpl-card {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.tpl-card-head {
+  background: var(--cream);
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.tpl-card-head h4 { font-size: 14px; font-weight: 600; }
+.tpl-card-head span { font-size: 11px; color: var(--muted); background: var(--cream2); padding: 2px 8px; border-radius: 4px; }
+.tpl-body { padding: 20px; }
+.tpl-row { margin-bottom: 14px; }
+.tpl-row label { display: block; font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+.tpl-row input,
+.tpl-row textarea {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  background: var(--cream);
+  transition: border-color .2s;
+  resize: vertical;
+}
+.tpl-row input:focus,
+.tpl-row textarea:focus { border-color: var(--gold); background: #fff; }
+.tpl-row textarea { min-height: 200px; font-family: 'Courier New', monospace; font-size: 12px; }
+.tpl-vars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.tpl-var {
+  background: #EDE9FE;
+  color: #5b21b6;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  cursor: pointer;
+  transition: background .15s;
+}
+.tpl-var:hover { background: #DDD6FE; }
+.email-preview-box {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 14px;
+  background: #fff;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  max-height: 300px;
+  overflow-y: auto;
+}
+.email-preview-box h2 { font-size: 18px; color: var(--navy); margin-bottom: 12px; }
+
+/* Users table */
+.user-row-photo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--navy);
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* Admin login overlay */
+#admin-login-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #0B1D35;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+#admin-login-overlay.open { display: flex; }
+.admin-login-card {
+  background: #132645;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 40px 44px;
+  width: 380px;
+  max-width: 95vw;
+}
+.admin-login-card h2 {
+  font-family: 'DM Serif Display', serif;
+  color: #fff;
+  font-size: 26px;
+  margin-bottom: 4px;
+}
+.admin-login-card p { color: rgba(255,255,255,.4); font-size: 13px; margin-bottom: 28px; }
+.admin-login-card input {
+  width: 100%;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  color: #fff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 12px;
+  transition: border-color .2s;
+}
+.admin-login-card input:focus { border-color: var(--gold); }
+.admin-login-card input::placeholder { color: rgba(255,255,255,.3); }
+#admin-login-error { color: #F87171; font-size: 12px; margin-bottom: 12px; display: none; }
+
+/* Overlay backdrop for drawer */
+#drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 499;
+}
+#drawer-backdrop.open { display: block; }
+
+/* Email log */
+.email-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.email-log-item:last-child { border-bottom: none; }
+.email-log-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #D1FAE5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.email-log-info h5 { font-size: 13px; font-weight: 500; }
+.email-log-info p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* SMTP config */
+.smtp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.smtp-grid .form-group { display: flex; flex-direction: column; gap: 5px; }
+.smtp-grid label { font-size: 12px; font-weight: 600; color: var(--navy); }
+.smtp-grid input, .smtp-grid select {
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 11px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  background: var(--cream);
+  transition: border-color .2s;
+}
+.smtp-grid input:focus, .smtp-grid select:focus { border-color: var(--gold); background: #fff; }
 </style>
+
 </head>
 <body>
 
@@ -930,6 +1356,7 @@ tr:hover td { background: var(--cream); }
     </div>
     <button class="nav-cta" id="nav-login-btn" onclick="openAuth()">Sign In</button>
     <button class="nav-btn" id="nav-dash-btn" style="display:none" onclick="showPage('dashboard')">My Portal</button>
+    <button class="nav-btn" id="nav-admin-btn" style="display:none;color:#F87171" onclick="showPage('admin')">🔐 Admin</button>
   </div>
 </nav>
 
@@ -1496,6 +1923,418 @@ tr:hover td { background: var(--cream); }
   </div>
 </div>
 
+<!-- ADMIN LOGIN OVERLAY -->
+<div id="admin-login-overlay">
+  <div class="admin-login-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+      <div style="width:40px;height:40px;background:#C0392B;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px">🔐</div>
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3)">EuroVisa Pro</div>
+        <div style="font-size:14px;font-weight:600;color:#fff">Admin Access</div>
+      </div>
+    </div>
+    <h2>Welcome back</h2>
+    <p>Sign in with your administrator credentials</p>
+    <input type="email" id="adm-email" placeholder="admin@yourdomain.com">
+    <input type="password" id="adm-pwd" placeholder="Password">
+    <p id="admin-login-error"></p>
+    <button class="btn-gold" onclick="doAdminLogin()" style="width:100%;padding:13px;font-size:15px;border-radius:8px">Sign In to Admin Panel →</button>
+    <div style="text-align:center;margin-top:16px">
+      <a href="#" onclick="document.getElementById('admin-login-overlay').classList.remove('open');showPage('home')" style="font-size:12px;color:rgba(255,255,255,.3);text-decoration:none">← Back to main site</a>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL PAGE -->
+<div id="page-admin" class="page">
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <div class="admin-sidebar">
+      <div class="admin-brand">
+        <div class="admin-brand-icon">🔐</div>
+        <div>
+          <span>EuroVisa Pro</span>
+          <small>Admin Panel</small>
+        </div>
+      </div>
+      <ul class="admin-nav">
+        <li class="nav-section">Overview</li>
+        <li><a href="#" class="active" onclick="showAdminTab('overview')"><span>🏠</span> Dashboard</a></li>
+        <li class="nav-section">Applications</li>
+        <li><a href="#" onclick="showAdminTab('applications')" id="nav-apps"><span>📋</span> All Applications <span class="badge-count" id="badge-pending">0</span></a></li>
+        <li><a href="#" onclick="showAdminTab('users')"><span>👥</span> All Users</a></li>
+        <li class="nav-section">Email</li>
+        <li><a href="#" onclick="showAdminTab('email-templates')"><span>✉️</span> Email Templates</a></li>
+        <li><a href="#" onclick="showAdminTab('smtp-config')"><span>⚙️</span> SMTP / Email Config</a></li>
+        <li><a href="#" onclick="showAdminTab('email-log')"><span>📬</span> Email Log</a></li>
+        <li class="nav-section">System</li>
+        <li><a href="#" onclick="showAdminTab('settings')"><span>🔧</span> Settings</a></li>
+        <li><a href="#" onclick="adminLogOut()"><span>🚪</span> Sign Out</a></li>
+      </ul>
+    </div>
+
+    <!-- Main content -->
+    <div class="admin-main">
+
+      <!-- ── OVERVIEW TAB ── -->
+      <div id="atab-overview" class="admin-tab">
+        <div class="admin-topbar">
+          <div>
+            <h2>Admin Dashboard</h2>
+            <p id="admin-today"></p>
+          </div>
+          <button class="btn-gold" onclick="loadAdminData()" style="font-size:13px;padding:9px 18px;border-radius:8px">↻ Refresh</button>
+        </div>
+        <div class="admin-stats">
+          <div class="astat s-gold">
+            <div class="astat-num" id="as-total">0</div>
+            <div class="astat-lbl">Total Applications</div>
+          </div>
+          <div class="astat s-red">
+            <div class="astat-num" id="as-pending">0</div>
+            <div class="astat-lbl">Pending</div>
+          </div>
+          <div class="astat s-blue">
+            <div class="astat-num" id="as-processing">0</div>
+            <div class="astat-lbl">Processing</div>
+          </div>
+          <div class="astat s-green">
+            <div class="astat-num" id="as-approved">0</div>
+            <div class="astat-lbl">Approved</div>
+          </div>
+          <div class="astat s-purple">
+            <div class="astat-num" id="as-revenue">0</div>
+            <div class="astat-lbl">Total Revenue (MAD)</div>
+          </div>
+          <div class="astat s-blue">
+            <div class="astat-num" id="as-users">0</div>
+            <div class="astat-lbl">Registered Users</div>
+          </div>
+        </div>
+        <!-- Recent applications -->
+        <div class="admin-card">
+          <div class="admin-card-head">
+            <h3>Latest Applications</h3>
+            <button class="btn-sm btn-sm-navy" onclick="showAdminTab('applications')">View All →</button>
+          </div>
+          <div id="admin-recent-table">
+            <div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── APPLICATIONS TAB ── -->
+      <div id="atab-applications" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>All Applications</h2><p>Manage and update every visa request</p></div>
+          <button class="btn-gold" onclick="loadAdminData()" style="font-size:13px;padding:9px 18px;border-radius:8px">↻ Refresh</button>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-head">
+            <h3 id="apps-count">Applications</h3>
+            <div class="admin-filters">
+              <input type="text" id="search-apps" placeholder="Search name, ref, email…" oninput="filterApps()" style="width:200px">
+              <select id="filter-status" onchange="filterApps()">
+                <option value="">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="docs-ready">Docs Ready</option>
+                <option value="appointment">Appointment Booked</option>
+                <option value="submitted">Submitted</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <select id="filter-dest" onchange="filterApps()">
+                <option value="">All destinations</option>
+              </select>
+            </div>
+          </div>
+          <div id="admin-apps-table">
+            <div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── USERS TAB ── -->
+      <div id="atab-users" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>All Users</h2><p>Registered client accounts</p></div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-head">
+            <h3 id="users-count">Users</h3>
+            <div class="admin-filters">
+              <input type="text" id="search-users" placeholder="Search name or email…" oninput="filterUsers()" style="width:220px">
+            </div>
+          </div>
+          <div id="admin-users-table">
+            <div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EMAIL TEMPLATES TAB ── -->
+      <div id="atab-email-templates" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>Email Templates</h2><p>Customize automated emails sent to applicants</p></div>
+          <button class="btn-gold" onclick="saveAllTemplates()" style="font-size:13px;padding:9px 18px;border-radius:8px">💾 Save All Templates</button>
+        </div>
+
+        <!-- Confirmation email -->
+        <div class="tpl-card">
+          <div class="tpl-card-head">
+            <h4>📬 Application Confirmation Email</h4>
+            <span>Sent automatically on submission</span>
+          </div>
+          <div class="tpl-body">
+            <div class="tpl-row">
+              <label>Email Subject</label>
+              <input type="text" id="tpl-confirm-subject" value="✅ We received your visa request — EuroVisa Pro [{{ref}}]">
+            </div>
+            <div class="tpl-row">
+              <label>Email Body (HTML supported)</label>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Available variables — click to copy:</div>
+              <div class="tpl-vars">
+                <span class="tpl-var" onclick="insertVar('tpl-confirm-body','{{firstName}}')">{{firstName}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-confirm-body','{{lastName}}')">{{lastName}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-confirm-body','{{ref}}')">{{ref}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-confirm-body','{{destination}}')">{{destination}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-confirm-body','{{visaType}}')">{{visaType}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-confirm-body','{{package}}')">{{package}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-confirm-body','{{total}}')">{{total}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-confirm-body','{{travelDate}}')">{{travelDate}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-confirm-body','{{phone}}')">{{phone}}</span>
+              </div>
+              <textarea id="tpl-confirm-body" style="margin-top:8px"></textarea>
+            </div>
+            <button class="btn-sm btn-sm-navy" onclick="previewTemplate('confirm')" style="margin-right:8px">👁 Preview</button>
+            <button class="btn-sm btn-sm-gold" onclick="saveSingleTemplate('confirm')">💾 Save</button>
+            <div id="preview-confirm" class="email-preview-box" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- Status update email -->
+        <div class="tpl-card">
+          <div class="tpl-card-head">
+            <h4>📣 Status Update Email</h4>
+            <span>Sent when admin changes application status</span>
+          </div>
+          <div class="tpl-body">
+            <div class="tpl-row">
+              <label>Email Subject</label>
+              <input type="text" id="tpl-status-subject" value="📣 Update on your visa application {{ref}} — EuroVisa Pro">
+            </div>
+            <div class="tpl-row">
+              <label>Email Body</label>
+              <div class="tpl-vars">
+                <span class="tpl-var" onclick="insertVar('tpl-status-body','{{firstName}}')">{{firstName}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-status-body','{{ref}}')">{{ref}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-status-body','{{status}}')">{{status}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-status-body','{{destination}}')">{{destination}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-status-body','{{adminNote}}')">{{adminNote}}</span>
+              </div>
+              <textarea id="tpl-status-body" style="margin-top:8px"></textarea>
+            </div>
+            <button class="btn-sm btn-sm-navy" onclick="previewTemplate('status')" style="margin-right:8px">👁 Preview</button>
+            <button class="btn-sm btn-sm-gold" onclick="saveSingleTemplate('status')">💾 Save</button>
+            <div id="preview-status" class="email-preview-box" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- Appointment reminder -->
+        <div class="tpl-card">
+          <div class="tpl-card-head">
+            <h4>🗓 Appointment Reminder Email</h4>
+            <span>Sent manually from application detail view</span>
+          </div>
+          <div class="tpl-body">
+            <div class="tpl-row">
+              <label>Email Subject</label>
+              <input type="text" id="tpl-appt-subject" value="🗓 Your visa appointment is confirmed — {{appointmentDate}}">
+            </div>
+            <div class="tpl-row">
+              <label>Email Body</label>
+              <div class="tpl-vars">
+                <span class="tpl-var" onclick="insertVar('tpl-appt-body','{{firstName}}')">{{firstName}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-appt-body','{{ref}}')">{{ref}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-appt-body','{{appointmentDate}}')">{{appointmentDate}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-appt-body','{{appointmentTime}}')">{{appointmentTime}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-appt-body','{{venueName}}')">{{venueName}}</span>
+                <span class="tpl-var" onclick="insertVar('tpl-appt-body','{{venueAddress}}')">{{venueAddress}}</span>
+              </div>
+              <textarea id="tpl-appt-body" style="margin-top:8px"></textarea>
+            </div>
+            <button class="btn-sm btn-sm-navy" onclick="previewTemplate('appt')" style="margin-right:8px">👁 Preview</button>
+            <button class="btn-sm btn-sm-gold" onclick="saveSingleTemplate('appt')">💾 Save</button>
+            <div id="preview-appt" class="email-preview-box" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SMTP CONFIG TAB ── -->
+      <div id="atab-smtp-config" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>Email / SMTP Configuration</h2><p>Configure how emails are sent from EuroVisa Pro</p></div>
+        </div>
+        <div class="admin-card" style="max-width:680px">
+          <div class="admin-card-head"><h3>⚙️ SMTP Server Settings</h3></div>
+          <div style="padding:24px">
+            <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:12px 16px;font-size:12px;color:#92400E;margin-bottom:20px">
+              ⚠️ These settings are stored in Firestore (<code>settings/smtp</code>). For production use, actual email delivery requires a server-side function (Firebase Cloud Functions). The client-side implementation here stores config and queues emails in Firestore for your backend to process.
+            </div>
+            <div class="smtp-grid">
+              <div class="form-group"><label>SMTP Host</label><input type="text" id="smtp-host" placeholder="smtp.gmail.com"></div>
+              <div class="form-group"><label>SMTP Port</label><input type="text" id="smtp-port" placeholder="587"></div>
+              <div class="form-group"><label>Username / Email</label><input type="text" id="smtp-user" placeholder="noreply@yourcompany.com"></div>
+              <div class="form-group"><label>Password / App Key</label><input type="password" id="smtp-pass" placeholder="••••••••••••"></div>
+              <div class="form-group"><label>From Name</label><input type="text" id="smtp-from-name" placeholder="EuroVisa Pro"></div>
+              <div class="form-group"><label>From Email</label><input type="email" id="smtp-from-email" placeholder="noreply@eurovisa.ma"></div>
+              <div class="form-group"><label>Encryption</label><select id="smtp-enc"><option>TLS</option><option>SSL</option><option>None</option></select></div>
+              <div class="form-group"><label>Admin Notification Email</label><input type="email" id="smtp-admin-notif" placeholder="admin@yourcompany.com"></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+              <button class="btn-gold" onclick="saveSmtpConfig()" style="padding:10px 22px;border-radius:8px;font-size:14px">💾 Save SMTP Config</button>
+              <button class="btn-sm btn-sm-navy" onclick="testSmtpConfig()">📧 Send Test Email</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-card" style="max-width:680px;margin-top:20px">
+          <div class="admin-card-head"><h3>🔔 Notification Settings</h3></div>
+          <div style="padding:24px;display:flex;flex-direction:column;gap:14px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+              <input type="checkbox" id="notif-on-submit" checked style="width:16px;height:16px;accent-color:var(--gold)">
+              Send confirmation email to applicant on submission
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+              <input type="checkbox" id="notif-on-status" checked style="width:16px;height:16px;accent-color:var(--gold)">
+              Send email to applicant on status change
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+              <input type="checkbox" id="notif-admin-new" checked style="width:16px;height:16px;accent-color:var(--gold)">
+              Notify admin email on new application received
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+              <input type="checkbox" id="notif-on-appt" style="width:16px;height:16px;accent-color:var(--gold)">
+              Send appointment reminder 24h before appointment
+            </label>
+            <button class="btn-gold" onclick="saveNotifSettings()" style="width:fit-content;padding:9px 20px;border-radius:8px;font-size:13px;margin-top:4px">💾 Save Notification Settings</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EMAIL LOG TAB ── -->
+      <div id="atab-email-log" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>Email Log</h2><p>History of all emails sent to applicants</p></div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-head"><h3>Sent Emails</h3></div>
+          <div id="email-log-list" style="padding:16px 20px">
+            <div style="text-align:center;color:var(--muted);font-size:13px;padding:16px">No emails logged yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SETTINGS TAB ── -->
+      <div id="atab-settings" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>System Settings</h2></div>
+        </div>
+        <div class="admin-card" style="max-width:500px">
+          <div class="admin-card-head"><h3>Admin Credentials</h3></div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+            <div class="form-group" style="display:flex;flex-direction:column;gap:5px">
+              <label style="font-size:12px;font-weight:600">Admin Email</label>
+              <input type="email" id="adm-new-email" placeholder="admin@yourcompany.com" style="border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;">
+            </div>
+            <div class="form-group" style="display:flex;flex-direction:column;gap:5px">
+              <label style="font-size:12px;font-weight:600">New Password</label>
+              <input type="password" id="adm-new-pwd" placeholder="Leave blank to keep current" style="border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;">
+            </div>
+            <button class="btn-gold" style="width:fit-content;padding:9px 20px;border-radius:8px;font-size:13px" onclick="showNotif('✅','Settings saved (demo)')">Save Changes</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /admin-main -->
+  </div><!-- /admin-layout -->
+</div><!-- /page-admin -->
+
+<!-- APPLICATION DETAIL DRAWER -->
+<div id="drawer-backdrop" onclick="closeDrawer()"></div>
+<div id="app-drawer">
+  <div class="drawer-head">
+    <div>
+      <h3 id="drawer-title">Application Details</h3>
+      <p id="drawer-ref">Loading…</p>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <!-- Applicant info -->
+    <div class="drawer-section">
+      <h4>👤 Applicant</h4>
+      <div class="detail-grid" id="drawer-applicant"></div>
+    </div>
+    <!-- Application info -->
+    <div class="drawer-section">
+      <h4>📋 Application Info</h4>
+      <div class="detail-grid" id="drawer-appinfo"></div>
+    </div>
+    <!-- Services -->
+    <div class="drawer-section">
+      <h4>🧾 Services & Pricing</h4>
+      <div id="drawer-services"></div>
+    </div>
+    <!-- Status update -->
+    <div class="drawer-section">
+      <h4>🔄 Update Status</h4>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select id="drawer-status-sel" style="border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;flex:1">
+          <option value="pending">Pending</option>
+          <option value="processing">Processing</option>
+          <option value="docs-ready">Docs Ready</option>
+          <option value="appointment">Appointment Booked</option>
+          <option value="submitted">Submitted</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <button class="btn-sm btn-sm-gold" onclick="updateAppStatus()">Update →</button>
+      </div>
+      <textarea id="drawer-admin-note" placeholder="Add an internal note (visible only to admin)…" style="width:100%;margin-top:10px;border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;min-height:70px;resize:vertical;background:var(--cream)"></textarea>
+    </div>
+    <!-- Appointment -->
+    <div class="drawer-section">
+      <h4>🗓 Appointment Details</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font-size:11px;color:var(--muted)">Date</label>
+          <input type="date" id="drawer-appt-date" style="border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:13px;outline:none;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font-size:11px;color:var(--muted)">Time</label>
+          <input type="time" id="drawer-appt-time" style="border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:13px;outline:none;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;grid-column:1/-1">
+          <label style="font-size:11px;color:var(--muted)">Venue</label>
+          <input type="text" id="drawer-appt-venue" placeholder="e.g. VFS Global — Casablanca, 5 Rue des Roses" style="border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:13px;outline:none;">
+        </div>
+      </div>
+      <button class="btn-sm btn-sm-navy" onclick="saveAppointment()">💾 Save Appointment</button>
+    </div>
+    <!-- Actions -->
+    <div class="drawer-section">
+      <h4>📧 Email Actions</h4>
+      <div class="drawer-actions">
+        <button class="btn-sm btn-sm-gold" onclick="sendConfirmEmail()">📬 Resend Confirmation</button>
+        <button class="btn-sm btn-sm-navy" onclick="sendStatusEmail()">📣 Send Status Update</button>
+        <button class="btn-sm btn-sm-green" onclick="sendApptEmail()">🗓 Send Appt. Reminder</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- AUTH MODAL -->
 <div id="auth-modal">
   <div class="auth-card" style="position:relative">
@@ -1559,7 +2398,85 @@ tr:hover td { background: var(--cream); }
 </div>
 
 <script type="module">
-// Data
+// ── ADMIN CONFIG ──
+const ADMIN_EMAILS = ['user@admin.com'];
+
+// Default email templates
+const DEFAULT_TEMPLATES = {
+  confirm: {
+    subject: '✅ We received your visa request — EuroVisa Pro [{{ref}}]',
+    body: `<h2 style="color:#0B1D35;font-family:Georgia,serif">Your request has been received ✅</h2>
+
+<p>Dear <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<p>Thank you for choosing <strong>EuroVisa Pro</strong>. We have successfully received your visa application request and our team will get in touch with you within <strong>2 hours</strong> to confirm the details and next steps.</p>
+
+<table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px">
+  <tr style="background:#F7F4EE"><td style="padding:10px 14px;font-weight:600;color:#6B7280;width:40%">Reference</td><td style="padding:10px 14px;font-weight:700;color:#0B1D35">{{ref}}</td></tr>
+  <tr><td style="padding:10px 14px;font-weight:600;color:#6B7280">Destination</td><td style="padding:10px 14px">{{destination}}</td></tr>
+  <tr style="background:#F7F4EE"><td style="padding:10px 14px;font-weight:600;color:#6B7280">Visa Type</td><td style="padding:10px 14px">{{visaType}}</td></tr>
+  <tr><td style="padding:10px 14px;font-weight:600;color:#6B7280">Package</td><td style="padding:10px 14px">{{package}}</td></tr>
+  <tr style="background:#F7F4EE"><td style="padding:10px 14px;font-weight:600;color:#6B7280">Travel Date</td><td style="padding:10px 14px">{{travelDate}}</td></tr>
+  <tr><td style="padding:10px 14px;font-weight:600;color:#6B7280">Total Amount</td><td style="padding:10px 14px;font-weight:700;color:#C8952A">{{total}} MAD</td></tr>
+</table>
+
+<p>To track your application at any time, visit our website and use reference number <strong>{{ref}}</strong>.</p>
+
+<p style="color:#6B7280;font-size:12px">If you have any questions, reply to this email or contact us via WhatsApp. Our team is available Monday–Saturday, 8AM–8PM.</p>
+
+<p>Best regards,<br><strong>EuroVisa Pro Team</strong></p>`
+  },
+  status: {
+    subject: '📣 Update on your visa application {{ref}} — EuroVisa Pro',
+    body: `<h2 style="color:#0B1D35;font-family:Georgia,serif">Application Status Update 📣</h2>
+
+<p>Dear <strong>{{firstName}}</strong>,</p>
+
+<p>There is an update on your visa application <strong>{{ref}}</strong> for <strong>{{destination}}</strong>.</p>
+
+<div style="background:#F7F4EE;border-left:4px solid #C8952A;padding:14px 18px;margin:20px 0;border-radius:0 8px 8px 0">
+  <strong style="color:#6B7280;font-size:12px;text-transform:uppercase;letter-spacing:.06em">New Status</strong><br>
+  <span style="font-size:18px;font-weight:700;color:#0B1D35">{{status}}</span>
+</div>
+
+{{adminNote}}
+
+<p>You can track your full application timeline on our website using reference <strong>{{ref}}</strong>.</p>
+
+<p style="color:#6B7280;font-size:12px">Questions? Contact our helpdesk by replying to this email.</p>
+
+<p>Best regards,<br><strong>EuroVisa Pro Team</strong></p>`
+  },
+  appt: {
+    subject: '🗓 Your visa appointment is confirmed — {{appointmentDate}}',
+    body: `<h2 style="color:#0B1D35;font-family:Georgia,serif">Appointment Confirmed 🗓</h2>
+
+<p>Dear <strong>{{firstName}}</strong>,</p>
+
+<p>Your visa appointment has been successfully booked. Please find the details below:</p>
+
+<table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px">
+  <tr style="background:#F7F4EE"><td style="padding:10px 14px;font-weight:600;color:#6B7280;width:40%">Reference</td><td style="padding:10px 14px;font-weight:700">{{ref}}</td></tr>
+  <tr><td style="padding:10px 14px;font-weight:600;color:#6B7280">Date</td><td style="padding:10px 14px;font-weight:700;color:#1B7A4A">{{appointmentDate}}</td></tr>
+  <tr style="background:#F7F4EE"><td style="padding:10px 14px;font-weight:600;color:#6B7280">Time</td><td style="padding:10px 14px">{{appointmentTime}}</td></tr>
+  <tr><td style="padding:10px 14px;font-weight:600;color:#6B7280">Venue</td><td style="padding:10px 14px">{{venueName}}</td></tr>
+  <tr style="background:#F7F4EE"><td style="padding:10px 14px;font-weight:600;color:#6B7280">Address</td><td style="padding:10px 14px">{{venueAddress}}</td></tr>
+</table>
+
+<div style="background:#FEF3C7;border-radius:8px;padding:14px;margin:16px 0;font-size:13px">
+  ⚠️ <strong>Important:</strong> Please arrive 15 minutes early. Bring your complete document file and this confirmation email.
+</div>
+
+<p>Best regards,<br><strong>EuroVisa Pro Team</strong></p>`
+  }
+};
+
+let allApplications = [];
+let allUsers = [];
+let currentDrawerApp = null;
+let isAdmin = false;
+
+// ── DATA ──
 const COUNTRIES = [
   {name:"France",flag:"🇫🇷",provider:"TLScontact",tag:"tag-tls",visaFee:"80€",processing:"15 days"},
   {name:"Germany",flag:"🇩🇪",provider:"VFS Global",tag:"tag-vfs",visaFee:"80€",processing:"10-15 days"},
@@ -1607,12 +2524,750 @@ if (grid) {
 
 // Pages
 window.showPage = function(page) {
+  if (page === 'admin') {
+    if (!isAdmin) { document.getElementById('admin-login-overlay').classList.add('open'); return; }
+    loadAdminData();
+    loadTemplatesFromStorage();
+    loadSmtpConfig();
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   window.scrollTo(0, 0);
   if (page === 'dashboard') loadDashboard();
 };
+
+// ── ADMIN LOGIN ──
+window.doAdminLogin = async function() {
+  const { auth, signInWithEmailAndPassword } = window._fb;
+  const email = document.getElementById('adm-email').value.trim();
+  const pwd = document.getElementById('adm-pwd').value;
+  const errEl = document.getElementById('admin-login-error');
+  errEl.style.display = 'none';
+  try {
+    await signInWithEmailAndPassword(auth, email, pwd);
+    if (ADMIN_EMAILS.includes(email)) {
+      isAdmin = true;
+      document.getElementById('admin-login-overlay').classList.remove('open');
+      showPage('admin');
+    } else {
+      errEl.style.display = 'block';
+      errEl.textContent = 'Access denied. This account does not have admin privileges.';
+      const { signOut } = window._fb;
+      await signOut(auth);
+    }
+  } catch(e) {
+    errEl.style.display = 'block';
+    errEl.textContent = e.code === 'auth/invalid-credential' ? 'Invalid email or password.' : e.message;
+  }
+};
+
+window.adminLogOut = async function() {
+  const { auth, signOut } = window._fb;
+  await signOut(auth);
+  isAdmin = false;
+  showPage('home');
+  showNotif('👋', 'Admin signed out');
+};
+
+// Admin tabs
+window.showAdminTab = function(tab) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.style.display = 'none');
+  document.getElementById('atab-' + tab).style.display = 'block';
+  document.querySelectorAll('.admin-nav a').forEach(a => a.classList.remove('active'));
+  if (tab === 'applications') loadAdminAppsTable(allApplications);
+  if (tab === 'users') loadAdminUsersTable(allUsers);
+  if (tab === 'email-log') loadEmailLog();
+};
+
+// ── LOAD ALL DATA ──
+window.loadAdminData = async function() {
+  const { db, collection, getDocs, query, orderBy } = window._fb;
+  document.getElementById('admin-today').textContent = new Date().toLocaleDateString('en-GB', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  try {
+    // Load applications
+    const appsSnap = await getDocs(collection(db, 'applications'));
+    allApplications = [];
+    appsSnap.forEach(d => allApplications.push({ id: d.id, ...d.data() }));
+    allApplications.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+
+    // Load users
+    const usersSnap = await getDocs(collection(db, 'users'));
+    allUsers = [];
+    usersSnap.forEach(d => allUsers.push({ id: d.id, ...d.data() }));
+
+    updateAdminStats();
+    loadAdminRecentTable();
+    populateDestFilter();
+  } catch(e) {
+    console.error('Admin load error:', e);
+    showNotif('⚠️', 'Error loading data: ' + e.message);
+  }
+};
+
+function updateAdminStats() {
+  const pending = allApplications.filter(a => a.status === 'pending').length;
+  const processing = allApplications.filter(a => ['processing','docs-ready','appointment','submitted'].includes(a.status)).length;
+  const approved = allApplications.filter(a => a.status === 'approved').length;
+  const revenue = allApplications.reduce((s, a) => s + (a.total || 0), 0);
+  document.getElementById('as-total').textContent = allApplications.length;
+  document.getElementById('as-pending').textContent = pending;
+  document.getElementById('as-processing').textContent = processing;
+  document.getElementById('as-approved').textContent = approved;
+  document.getElementById('as-revenue').textContent = revenue.toLocaleString();
+  document.getElementById('as-users').textContent = allUsers.length;
+  document.getElementById('badge-pending').textContent = pending;
+}
+
+function loadAdminRecentTable() {
+  const recent = allApplications.slice(0, 8);
+  document.getElementById('admin-recent-table').innerHTML = buildAppsTableHTML(recent);
+}
+
+window.loadAdminAppsTable = function(apps) {
+  document.getElementById('apps-count').textContent = `${apps.length} Applications`;
+  document.getElementById('admin-apps-table').innerHTML = buildAppsTableHTML(apps);
+};
+
+window.loadAdminUsersTable = function(users) {
+  document.getElementById('users-count').textContent = `${users.length} Users`;
+  if (!users.length) { document.getElementById('admin-users-table').innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">No registered users yet.</div>'; return; }
+  const rows = users.map(u => {
+    const initials = (u.name || u.email || 'U').slice(0,2).toUpperCase();
+    const userApps = allApplications.filter(a => a.userId === u.uid || a.email === u.email);
+    return `<tr>
+      <td><span class="user-row-photo">${initials}</span><strong>${u.name || '—'}</strong></td>
+      <td>${u.email || '—'}</td>
+      <td>${u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString('en-GB') : '—'}</td>
+      <td>${userApps.length}</td>
+      <td>${userApps.reduce((s,a)=>s+(a.total||0),0).toLocaleString()} MAD</td>
+      <td><button class="btn-sm btn-sm-navy" onclick="viewUserApps('${u.uid||u.email}')">View Apps</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('admin-users-table').innerHTML = `<table><thead><tr><th>Name</th><th>Email</th><th>Registered</th><th>Apps</th><th>Total</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+};
+
+window.viewUserApps = function(uid) {
+  const apps = allApplications.filter(a => a.userId === uid || a.email === uid);
+  showAdminTab('applications');
+  loadAdminAppsTable(apps);
+};
+
+function buildAppsTableHTML(apps) {
+  if (!apps.length) return '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">No applications found.</div>';
+  const rows = apps.map(a => {
+    const date = a.createdAt?.toDate ? a.createdAt.toDate().toLocaleDateString('en-GB') : '—';
+    const statusColors = { pending:'status-pending', processing:'status-processing', approved:'status-approved', rejected:'status-rejected', 'docs-ready':'status-docs', appointment:'status-processing', submitted:'status-docs' };
+    return `<tr style="cursor:pointer" onclick="openDrawer('${a.id}')">
+      <td><strong style="font-size:12px">${a.ref || '—'}</strong></td>
+      <td>${a.firstName||''} ${a.lastName||''}</td>
+      <td style="font-size:12px;color:var(--muted)">${a.email||'—'}</td>
+      <td>${(a.destination||'—').split(' ')[0]}</td>
+      <td style="font-size:12px">${a.package||'—'}</td>
+      <td>${date}</td>
+      <td><span class="status-badge ${statusColors[a.status]||'status-pending'}">${a.status||'pending'}</span></td>
+      <td style="font-weight:600;color:var(--gold)">${(a.total||0).toLocaleString()} MAD</td>
+    </tr>`;
+  }).join('');
+  return `<table><thead><tr><th>Ref</th><th>Applicant</th><th>Email</th><th>Destination</th><th>Package</th><th>Date</th><th>Status</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function populateDestFilter() {
+  const dests = [...new Set(allApplications.map(a => (a.destination||'').split(' ')[0]).filter(Boolean))];
+  const sel = document.getElementById('filter-dest');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">All destinations</option>' + dests.map(d => `<option value="${d}">${d}</option>`).join('');
+}
+
+// Filter
+window.filterApps = function() {
+  const search = (document.getElementById('search-apps')?.value || '').toLowerCase();
+  const status = document.getElementById('filter-status')?.value || '';
+  const dest = document.getElementById('filter-dest')?.value || '';
+  const filtered = allApplications.filter(a => {
+    const matchSearch = !search || `${a.firstName} ${a.lastName} ${a.email} ${a.ref}`.toLowerCase().includes(search);
+    const matchStatus = !status || a.status === status;
+    const matchDest = !dest || (a.destination||'').includes(dest);
+    return matchSearch && matchStatus && matchDest;
+  });
+  loadAdminAppsTable(filtered);
+};
+
+window.filterUsers = function() {
+  const search = (document.getElementById('search-users')?.value || '').toLowerCase();
+  const filtered = allUsers.filter(u => `${u.name} ${u.email}`.toLowerCase().includes(search));
+  loadAdminUsersTable(filtered);
+};
+
+// ── DRAWER ──
+window.openDrawer = function(appId) {
+  const app = allApplications.find(a => a.id === appId);
+  if (!app) return;
+  currentDrawerApp = app;
+  document.getElementById('drawer-title').textContent = `${app.firstName||''} ${app.lastName||''}`;
+  document.getElementById('drawer-ref').textContent = app.ref || appId;
+  document.getElementById('drawer-applicant').innerHTML = detailGrid([
+    ['First Name', app.firstName],
+    ['Last Name', app.lastName],
+    ['Email', app.email],
+    ['Phone', app.phone],
+    ['Nationality', app.nationality||'—'],
+    ['Passport', app.passport||'—'],
+  ]);
+  document.getElementById('drawer-appinfo').innerHTML = detailGrid([
+    ['Reference', app.ref],
+    ['Destination', app.destination],
+    ['Visa Type', app.visaType],
+    ['Travel Date', app.travelDate||'—'],
+    ['Applicants', app.numApplicants],
+    ['Submitted', app.createdAt?.toDate ? app.createdAt.toDate().toLocaleDateString('en-GB') : '—'],
+  ]);
+  const addons = Array.isArray(app.addons) ? app.addons.join(', ') : (app.addons||'None');
+  document.getElementById('drawer-services').innerHTML = `
+    <div style="font-size:13px;line-height:2;color:var(--text)">
+      <div><strong>Package:</strong> ${app.package||'—'}</div>
+      <div><strong>Add-ons:</strong> ${addons}</div>
+      <div><strong>Total:</strong> <span style="color:var(--gold);font-weight:700">${(app.total||0).toLocaleString()} MAD</span></div>
+    </div>
+    ${app.notes ? `<div style="margin-top:10px;padding:10px;background:var(--cream);border-radius:7px;font-size:12px;color:var(--muted)"><strong>Client note:</strong> ${app.notes}</div>` : ''}
+  `;
+  document.getElementById('drawer-status-sel').value = app.status || 'pending';
+  document.getElementById('drawer-admin-note').value = app.adminNote || '';
+  document.getElementById('drawer-appt-date').value = app.appointmentDate || '';
+  document.getElementById('drawer-appt-time').value = app.appointmentTime || '';
+  document.getElementById('drawer-appt-venue').value = app.appointmentVenue || '';
+  document.getElementById('app-drawer').classList.add('open');
+  document.getElementById('drawer-backdrop').classList.add('open');
+};
+
+function detailGrid(fields) {
+  return fields.map(([lbl, val]) => `<div class="detail-item"><label>${lbl}</label><span>${val||'—'}</span></div>`).join('');
+}
+
+window.closeDrawer = function() {
+  document.getElementById('app-drawer').classList.remove('open');
+  document.getElementById('drawer-backdrop').classList.remove('open');
+  currentDrawerApp = null;
+};
+
+window.updateAppStatus = async function() {
+  if (!currentDrawerApp) return;
+  const { db, doc, updateDoc } = window._fb;
+  const newStatus = document.getElementById('drawer-status-sel').value;
+  const note = document.getElementById('drawer-admin-note').value;
+  try {
+    await updateDoc(doc(db, 'applications', currentDrawerApp.id), { status: newStatus, adminNote: note });
+    currentDrawerApp.status = newStatus;
+    currentDrawerApp.adminNote = note;
+    // Update local array
+    const idx = allApplications.findIndex(a => a.id === currentDrawerApp.id);
+    if (idx > -1) { allApplications[idx].status = newStatus; allApplications[idx].adminNote = note; }
+    showNotif('✅', `Status updated to "${newStatus}"`);
+    updateAdminStats();
+    // Auto-send status email if enabled
+    const sendOnStatus = document.getElementById('notif-on-status')?.checked ?? true;
+    if (sendOnStatus) await sendStatusEmailAuto(currentDrawerApp);
+  } catch(e) { showNotif('⚠️', 'Update failed: ' + e.message); }
+};
+
+window.saveAppointment = async function() {
+  if (!currentDrawerApp) return;
+  const { db, doc, updateDoc } = window._fb;
+  const date = document.getElementById('drawer-appt-date').value;
+  const time = document.getElementById('drawer-appt-time').value;
+  const venue = document.getElementById('drawer-appt-venue').value;
+  try {
+    await updateDoc(doc(db, 'applications', currentDrawerApp.id), { appointmentDate: date, appointmentTime: time, appointmentVenue: venue });
+    currentDrawerApp.appointmentDate = date;
+    currentDrawerApp.appointmentTime = time;
+    currentDrawerApp.appointmentVenue = venue;
+    showNotif('✅', 'Appointment details saved');
+  } catch(e) { showNotif('⚠️', 'Save failed: ' + e.message); }
+};
+
+// ── EMAIL TEMPLATES ──
+function loadTemplatesFromStorage() {
+  const confirmSubj = localStorage.getItem('tpl-confirm-subject') || DEFAULT_TEMPLATES.confirm.subject;
+  const confirmBody = localStorage.getItem('tpl-confirm-body') || DEFAULT_TEMPLATES.confirm.body;
+  const statusSubj = localStorage.getItem('tpl-status-subject') || DEFAULT_TEMPLATES.status.subject;
+  const statusBody = localStorage.getItem('tpl-status-body') || DEFAULT_TEMPLATES.status.body;
+  const apptSubj = localStorage.getItem('tpl-appt-subject') || DEFAULT_TEMPLATES.appt.subject;
+  const apptBody = localStorage.getItem('tpl-appt-body') || DEFAULT_TEMPLATES.appt.body;
+  if (document.getElementById('tpl-confirm-subject')) {
+    document.getElementById('tpl-confirm-subject').value = confirmSubj;
+    document.getElementById('tpl-confirm-body').value = confirmBody;
+    document.getElementById('tpl-status-subject').value = statusSubj;
+    document.getElementById('tpl-status-body').value = statusBody;
+    document.getElementById('tpl-appt-subject').value = apptSubj;
+    document.getElementById('tpl-appt-body').value = apptBody;
+  }
+}
+
+function getTemplate(type) {
+  return {
+    subject: document.getElementById(`tpl-${type}-subject`)?.value || DEFAULT_TEMPLATES[type].subject,
+    body: document.getElementById(`tpl-${type}-body`)?.value || DEFAULT_TEMPLATES[type].body,
+  };
+}
+
+window.saveSingleTemplate = function(type) {
+  const subj = document.getElementById(`tpl-${type}-subject`).value;
+  const body = document.getElementById(`tpl-${type}-body`).value;
+  localStorage.setItem(`tpl-${type}-subject`, subj);
+  localStorage.setItem(`tpl-${type}-body`, body);
+  showNotif('✅', `${type} template saved`);
+};
+
+window.saveAllTemplates = function() {
+  ['confirm','status','appt'].forEach(t => {
+    const s = document.getElementById(`tpl-${t}-subject`)?.value;
+    const b = document.getElementById(`tpl-${t}-body`)?.value;
+    if (s) localStorage.setItem(`tpl-${t}-subject`, s);
+    if (b) localStorage.setItem(`tpl-${t}-body`, b);
+  });
+  showNotif('✅', 'All templates saved successfully');
+};
+
+window.previewTemplate = function(type) {
+  const tpl = getTemplate(type);
+  const sampleData = {
+    firstName: 'Ahmed', lastName: 'Benali', ref: 'EVP-2026-0042',
+    destination: 'France 🇫🇷 — TLScontact', visaType: 'Tourist (Type C)',
+    package: 'Full Package', total: '2800', travelDate: '2026-04-15',
+    phone: '+212 6 12 34 56 78', status: 'Appointment Booked',
+    adminNote: '<p>Your appointment has been confirmed. Please arrive 15 minutes early with all documents.</p>',
+    appointmentDate: '2026-04-10', appointmentTime: '09:30',
+    venueName: 'TLScontact Casablanca', venueAddress: '123 Bd Mohammed V, Casablanca'
+  };
+  const rendered = fillTemplate(tpl.body, sampleData);
+  const el = document.getElementById(`preview-${type}`);
+  el.style.display = 'block';
+  el.innerHTML = rendered;
+};
+
+function fillTemplate(template, data) {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => data[key] || `[${key}]`);
+}
+
+window.insertVar = function(fieldId, variable) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  const pos = el.selectionStart;
+  el.value = el.value.slice(0, pos) + variable + el.value.slice(pos);
+  el.focus();
+  el.selectionStart = el.selectionEnd = pos + variable.length;
+};
+
+// ── EMAIL SENDING (queues to Firestore for Cloud Function pickup) ──
+async function queueEmail(to, subject, body, type, ref) {
+  const { db, collection, addDoc, serverTimestamp } = window._fb;
+  await addDoc(collection(db, 'email_queue'), { to, subject, body, type, ref, status: 'queued', createdAt: serverTimestamp() });
+  // Also log it
+  await addDoc(collection(db, 'email_log'), { to, subject, type, ref, sentAt: serverTimestamp(), status: 'queued' });
+}
+
+window.sendConfirmEmail = async function() {
+  if (!currentDrawerApp) return;
+  const a = currentDrawerApp;
+  const tpl = getTemplate('confirm');
+  const data = { firstName: a.firstName, lastName: a.lastName, ref: a.ref, destination: a.destination, visaType: a.visaType, package: a.package, total: a.total, travelDate: a.travelDate };
+  try {
+    await queueEmail(a.email, fillTemplate(tpl.subject, data), fillTemplate(tpl.body, data), 'confirmation', a.ref);
+    showNotif('📬', `Confirmation email queued for ${a.email}`);
+  } catch(e) { showNotif('⚠️', 'Error: ' + e.message); }
+};
+
+window.sendStatusEmail = async function() {
+  if (!currentDrawerApp) return;
+  await sendStatusEmailAuto(currentDrawerApp);
+  showNotif('📣', `Status update email queued for ${currentDrawerApp.email}`);
+};
+
+async function sendStatusEmailAuto(a) {
+  const tpl = getTemplate('status');
+  const statusLabels = { pending:'Pending Review', processing:'In Processing', 'docs-ready':'Documents Ready', appointment:'Appointment Booked', submitted:'File Submitted to Embassy', approved:'Visa Approved ✅', rejected:'Application Rejected' };
+  const data = { firstName: a.firstName, ref: a.ref, destination: a.destination, status: statusLabels[a.status]||a.status, adminNote: a.adminNote ? `<div style="background:#F7F4EE;padding:12px;border-radius:6px;margin:10px 0">${a.adminNote}</div>` : '' };
+  await queueEmail(a.email, fillTemplate(tpl.subject, data), fillTemplate(tpl.body, data), 'status_update', a.ref);
+}
+
+window.sendApptEmail = async function() {
+  if (!currentDrawerApp) return;
+  const a = currentDrawerApp;
+  if (!a.appointmentDate) { showNotif('⚠️', 'No appointment date set. Save appointment details first.'); return; }
+  const tpl = getTemplate('appt');
+  const venueparts = (a.appointmentVenue||'Visa Application Centre').split(',');
+  const data = { firstName: a.firstName, ref: a.ref, appointmentDate: a.appointmentDate, appointmentTime: a.appointmentTime||'—', venueName: venueparts[0]||'Visa Centre', venueAddress: a.appointmentVenue||'—' };
+  try {
+    await queueEmail(a.email, fillTemplate(tpl.subject, data), fillTemplate(tpl.body, data), 'appointment', a.ref);
+    showNotif('🗓', `Appointment reminder queued for ${a.email}`);
+  } catch(e) { showNotif('⚠️', 'Error: ' + e.message); }
+};
+
+// ── AUTO SEND ON SUBMISSION ──
+async function sendConfirmationOnSubmit(appData) {
+  const notifOn = document.getElementById('notif-on-submit')?.checked ?? true;
+  if (!notifOn) return;
+  const tpl = { subject: localStorage.getItem('tpl-confirm-subject') || DEFAULT_TEMPLATES.confirm.subject, body: localStorage.getItem('tpl-confirm-body') || DEFAULT_TEMPLATES.confirm.body };
+  const data = { firstName: appData.firstName, lastName: appData.lastName, ref: appData.ref, destination: appData.destination, visaType: appData.visaType, package: appData.package, total: appData.total, travelDate: appData.travelDate };
+  try {
+    await queueEmail(appData.email, fillTemplate(tpl.subject, data), fillTemplate(tpl.body, data), 'confirmation', appData.ref);
+  } catch(e) { console.warn('Email queue error:', e); }
+}
+
+// ── EMAIL LOG ──
+window.loadEmailLog = async function() {
+  const { db, collection, getDocs, query, orderBy } = window._fb;
+  try {
+    const snap = await getDocs(collection(db, 'email_log'));
+    const logs = [];
+    snap.forEach(d => logs.push(d.data()));
+    logs.sort((a,b) => (b.sentAt?.seconds||0) - (a.sentAt?.seconds||0));
+    if (!logs.length) return;
+    const typeIcons = { confirmation:'📬', status_update:'📣', appointment:'🗓' };
+    document.getElementById('email-log-list').innerHTML = logs.slice(0,50).map(l => `
+      <div class="email-log-item">
+        <div class="email-log-icon">${typeIcons[l.type]||'📧'}</div>
+        <div class="email-log-info">
+          <h5>${l.subject||l.type}</h5>
+          <p>To: ${l.to} · Ref: ${l.ref||'—'} · ${l.sentAt?.toDate ? l.sentAt.toDate().toLocaleString('en-GB') : '—'} <span style="background:#D1FAE5;color:#065f46;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:4px">${l.status||'queued'}</span></p>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { console.error(e); }
+};
+
+// ── SMTP CONFIG ──
+window.saveSmtpConfig = function() {
+  const cfg = {
+    host: document.getElementById('smtp-host').value,
+    port: document.getElementById('smtp-port').value,
+    user: document.getElementById('smtp-user').value,
+    fromName: document.getElementById('smtp-from-name').value,
+    fromEmail: document.getElementById('smtp-from-email').value,
+    encryption: document.getElementById('smtp-enc').value,
+    adminNotif: document.getElementById('smtp-admin-notif').value,
+  };
+  localStorage.setItem('smtp-config', JSON.stringify(cfg));
+  showNotif('✅', 'SMTP configuration saved');
+};
+
+window.loadSmtpConfig = function() {
+  const cfg = JSON.parse(localStorage.getItem('smtp-config') || '{}');
+  const map = { 'smtp-host':'host','smtp-port':'port','smtp-user':'user','smtp-from-name':'fromName','smtp-from-email':'fromEmail','smtp-admin-notif':'adminNotif' };
+  Object.entries(map).forEach(([id, key]) => { if (cfg[key] && document.getElementById(id)) document.getElementById(id).value = cfg[key]; });
+  if (cfg.encryption && document.getElementById('smtp-enc')) document.getElementById('smtp-enc').value = cfg.encryption;
+};
+
+window.saveNotifSettings = function() { showNotif('✅', 'Notification settings saved'); };
+window.testSmtpConfig = function() { showNotif('📧', 'Test email queued (requires Cloud Functions to deliver)'); };
+
+// ── FORM STEPS ──
+let currentStep = 1;
+window.nextStep = function(dir) {
+  currentStep += dir;
+  if (currentStep < 1) currentStep = 1;
+  if (currentStep > 4) currentStep = 4;
+  document.querySelectorAll('.step-content').forEach((s,i) => {
+    s.classList.toggle('active', i+1 === currentStep);
+  });
+  document.querySelectorAll('.form-step').forEach((s,i) => {
+    s.classList.remove('active','done');
+    if (i+1 === currentStep) s.classList.add('active');
+    if (i+1 < currentStep) s.classList.add('done');
+  });
+  if (currentStep === 4) buildSummary();
+};
+
+// Package selection
+let pkgPrice = 0;
+let pkgName = '';
+window.selectPackage = function(pkg) {
+  document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+  const el = document.getElementById('opt-' + pkg);
+  if (el) el.classList.add('selected');
+  const prices = {appt:500, docs:1700, full:2800, custom:0};
+  const names = {appt:'Appointment Only', docs:'Appointment + Documents', full:'Full Package', custom:'Custom'};
+  pkgPrice = prices[pkg];
+  pkgName = names[pkg];
+  document.getElementById('price-pkg').textContent = pkgPrice > 0 ? pkgPrice + ' MAD' : '—';
+  calcTotal();
+};
+
+let addonTotal = 0;
+window.toggleAddon = function(el) {
+  el.classList.toggle('selected');
+  addonTotal = 0;
+  document.querySelectorAll('.addon-item input:checked').forEach(cb => {
+    addonTotal += parseInt(cb.value);
+  });
+  document.getElementById('price-addons').textContent = addonTotal + ' MAD';
+  calcTotal();
+};
+
+function calcTotal() {
+  const t = pkgPrice + addonTotal;
+  document.getElementById('price-total').textContent = t > 0 ? t + ' MAD' : '—';
+}
+
+function buildSummary() {
+  const dest = document.getElementById('dest-country').value || '—';
+  const vtype = document.getElementById('visa-type').value || '—';
+  const tdate = document.getElementById('travel-date').value || '—';
+  const num = document.getElementById('num-applicants').value || '1';
+  const fn = document.getElementById('fname').value || '—';
+  const ln = document.getElementById('lname').value || '—';
+  const email = document.getElementById('app-email').value || '—';
+  const phone = document.getElementById('phone').value || '—';
+  const addons = Array.from(document.querySelectorAll('.addon-item input:checked')).map(c => c.dataset.name).join(', ') || 'None';
+  document.getElementById('summary-content').innerHTML = `
+    <strong>Applicant:</strong> ${fn} ${ln}<br>
+    <strong>Email:</strong> ${email}<br>
+    <strong>Phone:</strong> ${phone}<br>
+    <strong>Destination:</strong> ${dest}<br>
+    <strong>Visa Type:</strong> ${vtype}<br>
+    <strong>Travel Date:</strong> ${tdate}<br>
+    <strong>Applicants:</strong> ${num}<br>
+    <strong>Package:</strong> ${pkgName || '—'}<br>
+    <strong>Add-ons:</strong> ${addons}<br>
+    <strong>Total:</strong> <span style="color:var(--gold);font-weight:600">${pkgPrice + addonTotal} MAD</span>
+  `;
+}
+
+// ── SUBMIT APPLICATION ──
+window.submitApplication = async function() {
+  const { db, collection, addDoc, serverTimestamp } = window._fb;
+  const fn = document.getElementById('fname').value.trim();
+  const ln = document.getElementById('lname').value.trim();
+  const email = document.getElementById('app-email').value.trim();
+  if (!fn || !email) { showNotif('⚠️', 'Please fill in at least name and email'); return; }
+
+  const ref = 'EVP-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random()*9000);
+  const data = {
+    ref, firstName: fn, lastName: ln, email,
+    phone: document.getElementById('phone').value,
+    destination: document.getElementById('dest-country').value,
+    visaType: document.getElementById('visa-type').value,
+    travelDate: document.getElementById('travel-date').value,
+    numApplicants: document.getElementById('num-applicants').value,
+    package: pkgName,
+    addons: Array.from(document.querySelectorAll('.addon-item input:checked')).map(c => c.dataset.name),
+    total: pkgPrice + addonTotal,
+    notes: document.getElementById('notes').value,
+    nationality: document.getElementById('nationality').value,
+    passport: document.getElementById('passport').value,
+    status: 'pending',
+    createdAt: serverTimestamp(),
+    userId: window._fb.auth.currentUser ? window._fb.auth.currentUser.uid : 'guest',
+  };
+
+  try {
+    await addDoc(collection(db, 'applications'), data);
+    // Auto-send confirmation email
+    await sendConfirmationOnSubmit(data);
+    showNotif('✅', `Request submitted! Ref: ${ref} — Confirmation email sent.`);
+    currentStep = 1;
+    nextStep(0);
+    showPage('track');
+    document.getElementById('track-ref').value = ref;
+  } catch(e) {
+    showNotif('⚠️', 'Error submitting. Please try again or contact us.');
+    console.error(e);
+  }
+};
+
+// ── TRACK ──
+window.trackApplication = function() {
+  const ref = document.getElementById('track-ref').value.trim();
+  if (!ref) return;
+  document.getElementById('track-result').style.display = 'block';
+  document.getElementById('track-ref-display').textContent = ref;
+  document.getElementById('track-name').textContent = 'Applicant';
+  document.getElementById('track-dest').textContent = 'Processing...';
+};
+
+// ── AUTH ──
+window.openAuth = function() { document.getElementById('auth-modal').classList.add('open'); };
+window.closeAuth = function() { document.getElementById('auth-modal').classList.remove('open'); };
+window.switchAuth = function(mode) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&mode==='login')||(i===1&&mode==='register')));
+  document.getElementById('login-form').classList.toggle('active', mode==='login');
+  document.getElementById('reg-form').classList.toggle('active', mode==='register');
+};
+
+window.doLogin = async function() {
+  const { auth, signInWithEmailAndPassword } = window._fb;
+  const email = document.getElementById('login-email').value.trim();
+  const pwd = document.getElementById('login-pwd').value;
+  try {
+    await signInWithEmailAndPassword(auth, email, pwd);
+    closeAuth();
+    if (ADMIN_EMAILS.includes(email)) {
+      isAdmin = true;
+      showNotif('🔐', 'Signed in as Admin');
+    } else {
+      showNotif('✅', 'Signed in successfully!');
+    }
+  } catch(e) {
+    const err = document.getElementById('login-error');
+    err.style.display = 'block';
+    err.textContent = e.code === 'auth/invalid-credential' ? 'Invalid email or password' : e.message;
+  }
+};
+
+window.doRegister = async function() {
+  const { auth, db, createUserWithEmailAndPassword, collection, addDoc, serverTimestamp } = window._fb;
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pwd = document.getElementById('reg-pwd').value;
+  if (!name || !email || !pwd) { document.getElementById('reg-error').style.display='block'; document.getElementById('reg-error').textContent='All fields required'; return; }
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pwd);
+    await addDoc(collection(db, 'users'), { uid: cred.user.uid, name, email, createdAt: serverTimestamp() });
+    closeAuth();
+    showNotif('✅', 'Account created! Welcome, ' + name.split(' ')[0]);
+  } catch(e) {
+    const err = document.getElementById('reg-error');
+    err.style.display = 'block';
+    err.textContent = e.code === 'auth/email-already-in-use' ? 'Email already in use' : e.message;
+  }
+};
+
+window.logOut = async function() {
+  const { auth, signOut } = window._fb;
+  await signOut(auth);
+  isAdmin = false;
+  showNotif('👋', 'Signed out successfully');
+  showPage('home');
+};
+
+// Auth state
+const { auth, onAuthStateChanged } = window._fb;
+onAuthStateChanged(auth, user => {
+  const loginBtn = document.getElementById('nav-login-btn');
+  const badge = document.getElementById('user-badge');
+  const dashBtn = document.getElementById('nav-dash-btn');
+  const adminBtn = document.getElementById('nav-admin-btn');
+  if (user) {
+    isAdmin = ADMIN_EMAILS.includes(user.email);
+    loginBtn.style.display = 'none';
+    badge.style.display = 'flex';
+    dashBtn.style.display = isAdmin ? 'none' : 'inline-block';
+    adminBtn.style.display = isAdmin ? 'inline-block' : 'none';
+    const initials = (user.email || 'U').slice(0,2).toUpperCase();
+    document.getElementById('user-avatar').textContent = initials;
+    document.getElementById('user-name-nav').textContent = isAdmin ? 'Admin' : user.email.split('@')[0];
+    const safeEl = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
+    safeEl('dash-avatar', initials);
+    safeEl('profile-avatar-lg', initials);
+    safeEl('dash-user-email', user.email);
+    safeEl('profile-email-txt', user.email);
+    const displayName = user.email.split('@')[0];
+    safeEl('dash-user-name', displayName);
+    safeEl('dash-first-name', displayName);
+    safeEl('profile-name', displayName);
+  } else {
+    isAdmin = false;
+    loginBtn.style.display = 'inline-block';
+    badge.style.display = 'none';
+    dashBtn.style.display = 'none';
+    adminBtn.style.display = 'none';
+  }
+});
+
+// ── USER DASHBOARD ──
+window.loadDashboard = async function() {
+  const { db, auth, collection, query, where, getDocs } = window._fb;
+  const user = auth.currentUser;
+  const today = new Date().toLocaleDateString('en-GB', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  document.getElementById('dash-today').textContent = today;
+  if (!user) return;
+  try {
+    const q = query(collection(db, 'applications'), where('userId', '==', user.uid));
+    const snap = await getDocs(q);
+    const apps = [];
+    snap.forEach(d => apps.push({id: d.id, ...d.data()}));
+    document.getElementById('dash-total-apps').textContent = apps.length;
+    document.getElementById('dash-pending').textContent = apps.filter(a => a.status === 'pending' || a.status === 'processing').length;
+    document.getElementById('dash-approved').textContent = apps.filter(a => a.status === 'approved').length;
+    if (apps.length > 0) {
+      const rows = apps.slice(0,5).map(a => `
+        <tr>
+          <td><strong>${a.ref || '—'}</strong></td>
+          <td>${a.destination || '—'}</td>
+          <td>${a.visaType || '—'}</td>
+          <td>${a.createdAt?.toDate ? a.createdAt.toDate().toLocaleDateString('en-GB') : '—'}</td>
+          <td><span class="status-badge status-${a.status || 'pending'}">${a.status || 'pending'}</span></td>
+          <td style="font-weight:500">${a.total || 0} MAD</td>
+        </tr>
+      `).join('');
+      const tbl = `<table><thead><tr><th>Ref</th><th>Destination</th><th>Type</th><th>Date</th><th>Status</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+      document.getElementById('dash-apps-table').innerHTML = tbl;
+      document.getElementById('all-apps-table').innerHTML = tbl;
+    }
+  } catch(e) { console.error(e); }
+};
+
+window.showDashTab = function(tab) {
+  document.querySelectorAll('.dash-tab').forEach(t => t.style.display = 'none');
+  document.getElementById('dash-'+tab).style.display = 'block';
+  document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
+};
+
+// ── CHAT ──
+window.toggleChat = function() {
+  document.getElementById('chat-bubble').classList.toggle('open');
+};
+
+const chatResponses = {
+  'appointment': "To book an appointment, simply click 'Start My Application' and select 'Appointment Only'. We monitor slots daily at VFS Global, TLScontact, and BLS International and secure yours as soon as one becomes available.",
+  'price': "Our prices start at 500 MAD for appointment-only. Document preparation is 1,200 MAD, and our full package (everything included) is 2,800 MAD. Would you like details on any specific service?",
+  'france': "For France, visa applications go through TLScontact. The embassy fee is €80. Processing typically takes 15 working days. Required documents include a cover letter, bank statements, hotel and flight reservations, and travel insurance.",
+  'spain': "For Spain, we work with BLS International. The embassy fee is €80. You'll need a cover letter, itinerary, hotel bookings, bank statements (last 3 months), and insurance.",
+  'document': "Required Schengen documents typically include: valid passport, application form, photos, travel insurance (€30k minimum), bank statements, employment/financial proof, accommodation proof, and flight reservation.",
+  'track': "You can track your application from the 'Track' menu at the top. Enter your reference number (format: EVP-YYYY-XXXX) to see real-time status updates.",
+  'email': "You will receive an automatic confirmation email as soon as you submit your request. You'll also get updates when your status changes.",
+  'default': "Thank you for your message! Our helpdesk team typically responds within 2 hours during business hours (Mon–Sat, 8AM–8PM). Is there anything specific I can help you with about our visa services?"
+};
+
+window.sendChat = function() {
+  const inp = document.getElementById('chat-input');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  const msgs = document.getElementById('chat-msgs');
+  msgs.innerHTML += `<div class="msg user"><div class="msg-bubble">${msg}</div></div>`;
+  inp.value = '';
+  const lower = msg.toLowerCase();
+  let reply = chatResponses.default;
+  for (const [key, val] of Object.entries(chatResponses)) {
+    if (lower.includes(key)) { reply = val; break; }
+  }
+  setTimeout(() => {
+    msgs.innerHTML += `<div class="msg bot"><div class="msg-bubble">${reply}</div></div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 600);
+  msgs.scrollTop = msgs.scrollHeight;
+};
+
+// ── NOTIFICATION ──
+window.showNotif = function(icon, msg) {
+  document.getElementById('notif-icon').textContent = icon;
+  document.getElementById('notif-msg').textContent = msg;
+  const n = document.getElementById('notif');
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 4500);
+};
+
+document.getElementById('auth-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAuth();
+});
+
+// Add admin access link in footer nav area — keyboard shortcut
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+    document.getElementById('admin-login-overlay').classList.add('open');
+  }
+});
+</script>
 
 // Form steps
 let currentStep = 1;
@@ -1779,128 +3434,5 @@ window.doRegister = async function() {
   }
 };
 
-window.logOut = async function() {
-  const { auth, signOut } = window._fb;
-  await signOut(auth);
-  showNotif('👋', 'Signed out successfully');
-  showPage('home');
-};
-
-// Auth state listener
-const { auth, onAuthStateChanged } = window._fb;
-onAuthStateChanged(auth, user => {
-  const loginBtn = document.getElementById('nav-login-btn');
-  const badge = document.getElementById('user-badge');
-  const dashBtn = document.getElementById('nav-dash-btn');
-  if (user) {
-    loginBtn.style.display = 'none';
-    badge.style.display = 'flex';
-    dashBtn.style.display = 'inline-block';
-    const initials = (user.email || 'U').slice(0,2).toUpperCase();
-    document.getElementById('user-avatar').textContent = initials;
-    document.getElementById('user-name-nav').textContent = user.email.split('@')[0];
-    document.getElementById('dash-avatar').textContent = initials;
-    document.getElementById('profile-avatar-lg').textContent = initials;
-    document.getElementById('dash-user-email').textContent = user.email;
-    document.getElementById('profile-email-txt').textContent = user.email;
-    const displayName = user.email.split('@')[0];
-    document.getElementById('dash-user-name').textContent = displayName;
-    document.getElementById('dash-first-name').textContent = displayName;
-    document.getElementById('profile-name').textContent = displayName;
-  } else {
-    loginBtn.style.display = 'inline-block';
-    badge.style.display = 'none';
-    dashBtn.style.display = 'none';
-  }
-});
-
-// Dashboard
-window.loadDashboard = async function() {
-  const { db, auth, collection, query, where, getDocs, orderBy } = window._fb;
-  const user = auth.currentUser;
-  const today = new Date().toLocaleDateString('en-GB', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-  document.getElementById('dash-today').textContent = today;
-  if (!user) return;
-  try {
-    const q = query(collection(db, 'applications'), where('userId', '==', user.uid));
-    const snap = await getDocs(q);
-    const apps = [];
-    snap.forEach(d => apps.push({id: d.id, ...d.data()}));
-    document.getElementById('dash-total-apps').textContent = apps.length;
-    document.getElementById('dash-pending').textContent = apps.filter(a => a.status === 'pending' || a.status === 'processing').length;
-    document.getElementById('dash-approved').textContent = apps.filter(a => a.status === 'approved').length;
-    if (apps.length > 0) {
-      const rows = apps.slice(0,5).map(a => `
-        <tr>
-          <td><strong>${a.ref || '—'}</strong></td>
-          <td>${a.destination || '—'}</td>
-          <td>${a.visaType || '—'}</td>
-          <td>${a.createdAt?.toDate ? a.createdAt.toDate().toLocaleDateString('en-GB') : '—'}</td>
-          <td><span class="status-badge status-${a.status || 'pending'}">${a.status || 'pending'}</span></td>
-          <td style="font-weight:500">${a.total || 0} MAD</td>
-        </tr>
-      `).join('');
-      const tbl = `<table><thead><tr><th>Ref</th><th>Destination</th><th>Type</th><th>Date</th><th>Status</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>`;
-      document.getElementById('dash-apps-table').innerHTML = tbl;
-      document.getElementById('all-apps-table').innerHTML = tbl;
-    }
-  } catch(e) { console.error(e); }
-};
-
-// Dashboard tabs
-window.showDashTab = function(tab) {
-  document.querySelectorAll('.dash-tab').forEach(t => t.style.display = 'none');
-  document.getElementById('dash-'+tab).style.display = 'block';
-  document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
-};
-
-// Chat
-window.toggleChat = function() {
-  document.getElementById('chat-bubble').classList.toggle('open');
-};
-
-const chatResponses = {
-  'appointment': "To book an appointment, simply click 'Start My Application' and select 'Appointment Only'. We monitor slots daily at VFS Global, TLScontact, and BLS International and secure yours as soon as one becomes available.",
-  'price': "Our prices start at 500 MAD for appointment-only. Document preparation is 1,200 MAD, and our full package (everything included) is 2,800 MAD. Would you like details on any specific service?",
-  'france': "For France, visa applications go through TLScontact. The embassy fee is €80. Processing typically takes 15 working days. Required documents include a cover letter, bank statements, hotel and flight reservations, and travel insurance.",
-  'spain': "For Spain, we work with BLS International. The embassy fee is €80. You'll need a cover letter, itinerary, hotel bookings, bank statements (last 3 months), and insurance.",
-  'document': "Required Schengen documents typically include: valid passport, application form, photos, travel insurance (€30k minimum), bank statements, employment/financial proof, accommodation proof, and flight reservation.",
-  'track': "You can track your application from the 'Track' menu at the top. Enter your reference number (format: EVP-YYYY-XXXX) to see real-time status updates.",
-  'default': "Thank you for your message! Our helpdesk team typically responds within 2 hours during business hours (Mon–Sat, 8AM–8PM). For urgent requests, please call us directly. Is there anything specific I can help you with about our visa services?"
-};
-
-window.sendChat = function() {
-  const inp = document.getElementById('chat-input');
-  const msg = inp.value.trim();
-  if (!msg) return;
-  const msgs = document.getElementById('chat-msgs');
-  msgs.innerHTML += `<div class="msg user"><div class="msg-bubble">${msg}</div></div>`;
-  inp.value = '';
-  const lower = msg.toLowerCase();
-  let reply = chatResponses.default;
-  for (const [key, val] of Object.entries(chatResponses)) {
-    if (lower.includes(key)) { reply = val; break; }
-  }
-  setTimeout(() => {
-    msgs.innerHTML += `<div class="msg bot"><div class="msg-bubble">${reply}</div></div>`;
-    msgs.scrollTop = msgs.scrollHeight;
-  }, 600);
-  msgs.scrollTop = msgs.scrollHeight;
-};
-
-// Notification
-window.showNotif = function(icon, msg) {
-  document.getElementById('notif-icon').textContent = icon;
-  document.getElementById('notif-msg').textContent = msg;
-  const n = document.getElementById('notif');
-  n.classList.add('show');
-  setTimeout(() => n.classList.remove('show'), 4000);
-};
-
-// Close modal on backdrop click
-document.getElementById('auth-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeAuth();
-});
-</script>
 </body>
 </html>
