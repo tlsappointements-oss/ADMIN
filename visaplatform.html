@@ -1357,6 +1357,8 @@ tr:hover td { background: var(--cream); }
     <button class="nav-cta" id="nav-login-btn" onclick="openAuth()">Sign In</button>
     <button class="nav-btn" id="nav-dash-btn" style="display:none" onclick="showPage('dashboard')">My Portal</button>
     <button class="nav-btn" id="nav-admin-btn" style="display:none;color:#F87171" onclick="showPage('admin')">🔐 Admin</button>
+    <!-- Hidden admin access: also reachable via the overlay trigger below -->
+
   </div>
 </nav>
 
@@ -1923,6 +1925,16 @@ tr:hover td { background: var(--cream); }
   </div>
 </div>
 
+<!-- PERSISTENT ADMIN ACCESS BUTTON -->
+<div id="admin-access-btn" style="position:fixed;bottom:24px;left:24px;z-index:150">
+  <button onclick="document.getElementById('admin-login-overlay').classList.add('open')"
+    style="background:rgba(11,29,53,0.85);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:7px 13px;font-size:11px;font-family:inherit;cursor:pointer;transition:.2s;backdrop-filter:blur(8px)"
+    onmouseover="this.style.color='#fff';this.style.borderColor='rgba(255,255,255,0.3)'"
+    onmouseout="this.style.color='rgba(255,255,255,0.5)';this.style.borderColor='rgba(255,255,255,0.1)'">
+    🔐 Admin Login
+  </button>
+</div>
+
 <!-- ADMIN LOGIN OVERLAY -->
 <div id="admin-login-overlay">
   <div class="admin-login-card">
@@ -1935,8 +1947,8 @@ tr:hover td { background: var(--cream); }
     </div>
     <h2>Welcome back</h2>
     <p>Sign in with your administrator credentials</p>
-    <input type="email" id="adm-email" placeholder="admin@yourdomain.com">
-    <input type="password" id="adm-pwd" placeholder="Password">
+    <input type="email" id="adm-email" placeholder="admin@yourdomain.com" value="user@admin.com">
+    <input type="password" id="adm-pwd" placeholder="Your password (min 6 chars)" onkeypress="if(event.key==='Enter')doAdminLogin()">
     <p id="admin-login-error"></p>
     <button class="btn-gold" onclick="doAdminLogin()" style="width:100%;padding:13px;font-size:15px;border-radius:8px">Sign In to Admin Panel →</button>
     <div style="text-align:center;margin-top:16px">
@@ -2525,10 +2537,17 @@ if (grid) {
 // Pages
 window.showPage = function(page) {
   if (page === 'admin') {
-    if (!isAdmin) { document.getElementById('admin-login-overlay').classList.add('open'); return; }
+    if (!isAdmin) {
+      document.getElementById('admin-login-overlay').classList.add('open');
+      return;
+    }
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-admin').classList.add('active');
+    window.scrollTo(0, 0);
     loadAdminData();
     loadTemplatesFromStorage();
     loadSmtpConfig();
+    return;
   }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
@@ -2539,26 +2558,55 @@ window.showPage = function(page) {
 
 // ── ADMIN LOGIN ──
 window.doAdminLogin = async function() {
-  const { auth, signInWithEmailAndPassword } = window._fb;
+  const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window._fb;
   const email = document.getElementById('adm-email').value.trim();
   const pwd = document.getElementById('adm-pwd').value;
   const errEl = document.getElementById('admin-login-error');
-  errEl.style.display = 'none';
+  const btn = document.querySelector('#admin-login-overlay .btn-gold');
+  errEl.style.display = 'none'; errEl.textContent = '';
+
+  if (!email || !pwd) { errEl.style.display = 'block'; errEl.textContent = 'Please enter email and password.'; return; }
+  if (!ADMIN_EMAILS.includes(email)) { errEl.style.display = 'block'; errEl.textContent = 'This email is not an admin account.'; return; }
+
+  btn.textContent = 'Signing in…'; btn.disabled = true;
   try {
-    await signInWithEmailAndPassword(auth, email, pwd);
-    if (ADMIN_EMAILS.includes(email)) {
-      isAdmin = true;
-      document.getElementById('admin-login-overlay').classList.remove('open');
-      showPage('admin');
-    } else {
-      errEl.style.display = 'block';
-      errEl.textContent = 'Access denied. This account does not have admin privileges.';
-      const { signOut } = window._fb;
-      await signOut(auth);
+    // Try login first; if account doesn't exist, auto-create it
+    try {
+      await signInWithEmailAndPassword(auth, email, pwd);
+    } catch(loginErr) {
+      if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
+        // First time — create the admin account automatically
+        await createUserWithEmailAndPassword(auth, email, pwd);
+      } else {
+        throw loginErr;
+      }
     }
+    // At this point user is signed in
+    isAdmin = true;
+    document.getElementById('admin-login-overlay').classList.remove('open');
+    // Force show admin page
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-admin').classList.add('active');
+    document.getElementById('nav-admin-btn').style.display = 'inline-block';
+    document.getElementById('nav-login-btn').style.display = 'none';
+    document.getElementById('user-badge').style.display = 'flex';
+    document.getElementById('user-avatar').textContent = 'AD';
+    document.getElementById('user-name-nav').textContent = 'Admin';
+    document.getElementById('nav-dash-btn').style.display = 'none';
+    document.getElementById('admin-access-btn').style.display = 'none';
+    window.scrollTo(0,0);
+    await loadAdminData();
+    loadTemplatesFromStorage();
+    loadSmtpConfig();
+    showNotif('🔐', 'Welcome to the Admin Panel');
   } catch(e) {
     errEl.style.display = 'block';
-    errEl.textContent = e.code === 'auth/invalid-credential' ? 'Invalid email or password.' : e.message;
+    if (e.code === 'auth/wrong-password') errEl.textContent = 'Wrong password.';
+    else if (e.code === 'auth/invalid-credential') errEl.textContent = 'Invalid credentials. Check email and password.';
+    else if (e.code === 'auth/weak-password') errEl.textContent = 'Password must be at least 6 characters.';
+    else errEl.textContent = e.message;
+  } finally {
+    btn.textContent = 'Sign In to Admin Panel →'; btn.disabled = false;
   }
 };
 
@@ -2566,6 +2614,7 @@ window.adminLogOut = async function() {
   const { auth, signOut } = window._fb;
   await signOut(auth);
   isAdmin = false;
+  document.getElementById('admin-access-btn').style.display = 'block';
   showPage('home');
   showNotif('👋', 'Admin signed out');
 };
