@@ -829,6 +829,11 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
+// ── Startup connectivity check ──
+firebase.auth().onAuthStateChanged(function(){}, function(e){
+  console.error('[FIREBASE] Auth connectivity error:', e);
+});
+
 // ══════════════════════════════════════════
 //  CONSTANTS & STATE
 // ══════════════════════════════════════════
@@ -931,6 +936,7 @@ loadSmtpConfig();
 //  AUTH STATE — runs once Firebase is ready
 // ══════════════════════════════════════════
 auth.onAuthStateChanged(user => {
+  console.log('[AUTH] State changed:', user ? 'signed in as ' + user.email : 'signed out');
   const loginBtn  = document.getElementById('nav-login-btn');
   const badge     = document.getElementById('user-badge');
   const dashBtn   = document.getElementById('nav-dash-btn');
@@ -1013,6 +1019,9 @@ window.doLogin = async function() {
       setTimeout(() => showPage('dashboard'), 300);
     }
   } catch(e) {
+    console.error('[AUTH] Login error code:', e.code, '| message:', e.message);
+    const dbg=document.getElementById('auth-debug');
+    if(dbg){dbg.style.display='block';dbg.textContent='Code: '+e.code+' | '+e.message;}
     showErr(errEl, friendlyError(e.code));
   }
 };
@@ -1032,6 +1041,9 @@ window.doRegister = async function() {
     showNotif('✅','Account created! Welcome, '+name.split(' ')[0]);
     setTimeout(() => showPage('dashboard'), 300);
   } catch(e) {
+    console.error('[AUTH] Register error code:', e.code, '| message:', e.message);
+    const dbg=document.getElementById('auth-debug');
+    if(dbg){dbg.style.display='block';dbg.textContent='Code: '+e.code+' | '+e.message;}
     showErr(errEl, friendlyError(e.code));
   }
 };
@@ -1626,15 +1638,19 @@ function showErr(el, msg) { el.textContent=msg; el.style.display='block'; }
 
 function friendlyError(code) {
   const map = {
-    'auth/invalid-credential':   'Wrong email or password.',
-    'auth/user-not-found':       'No account found with this email.',
-    'auth/wrong-password':       'Wrong password.',
-    'auth/email-already-in-use': 'This email is already registered.',
-    'auth/weak-password':        'Password must be at least 6 characters.',
-    'auth/invalid-email':        'Please enter a valid email address.',
-    'auth/too-many-requests':    'Too many attempts. Please try again later.',
+    'auth/invalid-credential':        'Email ou mot de passe incorrect.',
+    'auth/user-not-found':            'Aucun compte trouvé avec cet email.',
+    'auth/wrong-password':            'Mot de passe incorrect.',
+    'auth/email-already-in-use':      'Cet email est déjà utilisé.',
+    'auth/weak-password':             'Le mot de passe doit avoir au moins 6 caractères.',
+    'auth/invalid-email':             'Adresse email invalide.',
+    'auth/too-many-requests':         'Trop de tentatives. Réessayez plus tard.',
+    'auth/network-request-failed':    'Erreur réseau. Vérifiez votre connexion internet.',
+    'auth/operation-not-allowed':     'Connexion email/mot de passe non activée dans Firebase.',
+    'auth/internal-error':            'Erreur interne Firebase. Réessayez.',
+    'auth/configuration-not-found':   'Configuration Firebase manquante. Vérifiez les paramètres.',
   };
-  return map[code] || 'Something went wrong. Please try again.';
+  return map[code] || ('Erreur: ' + (code || 'inconnue') + '. Vérifiez la console (F12).');
 }
 
 // Close auth modal on backdrop click
