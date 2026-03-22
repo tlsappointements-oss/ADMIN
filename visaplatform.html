@@ -683,32 +683,34 @@ tr:hover td{background:var(--cream)}
       <!-- SMTP -->
       <div id="atab-smtp-config" class="admin-tab" style="display:none">
         <div class="admin-topbar"><div><h2>SMTP / Email Config</h2></div></div>
-        <div class="admin-card" style="max-width:680px"><div class="admin-card-head"><h3>⚙️ SMTP Settings</h3></div>
+        <div class="admin-card" style="max-width:680px"><div class="admin-card-head"><h3>⚙️ Email Setup — Google Apps Script ✅</h3>
+</div>
           <div style="padding:24px">
-            <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:12px 16px;font-size:12px;color:#92400E;margin-bottom:20px">⚠️ Config saved to Firestore <code>settings/smtp</code>. Email delivery requires Firebase Cloud Functions.</div>
-            <div class="smtp-grid">
-              <div class="form-group"><label>SMTP Host</label><input type="text" id="smtp-host" placeholder="smtp.gmail.com"></div>
-              <div class="form-group"><label>SMTP Port</label><input type="text" id="smtp-port" placeholder="587"></div>
-              <div class="form-group"><label>Username / Email</label><input type="text" id="smtp-user" placeholder="noreply@yourcompany.com"></div>
-              <div class="form-group"><label>Password / App Key</label><input type="password" id="smtp-pass" placeholder="••••••••••••"></div>
-              <div class="form-group"><label>From Name</label><input type="text" id="smtp-from-name" placeholder="EuroVisa Pro"></div>
-              <div class="form-group"><label>From Email</label><input type="email" id="smtp-from-email" placeholder="noreply@eurovisa.ma"></div>
-              <div class="form-group"><label>Encryption</label><select id="smtp-enc"><option>TLS</option><option>SSL</option><option>None</option></select></div>
-              <div class="form-group"><label>Admin Notification Email</label><input type="email" id="smtp-admin-notif" placeholder="admin@yourcompany.com"></div>
+            <div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:10px;padding:16px 20px;font-size:13px;color:#065f46;margin-bottom:20px;line-height:1.8">
+              ✅ <strong>Emails activés via Google Apps Script</strong><br>
+              Envoyés directement depuis <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="94e0f8e7baf5e4e4fbfdfae0f1f9f1fae0e7d4f3f9f5fdf8baf7fbf9">[email&#160;protected]</a></strong> — aucune action requise.
             </div>
-            <div style="display:flex;gap:10px;margin-top:8px">
-              <button class="btn-gold" onclick="saveSmtpConfig()" style="padding:10px 22px;border-radius:8px;font-size:14px">💾 Save Config</button>
-              <button class="btn-sm btn-sm-navy" onclick="showNotif('📧','Test email queued')">📧 Test</button>
+            <div style="background:var(--cream);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;font-family:monospace;color:var(--muted);word-break:break-all" id="gas-url-display">https://script.google.com/macros/s/AKfycby9vRm5IveouUDQqZyZTDx375wc3S6YGF0Abaqq2zQI3LqNAxVq9Asi-WCqtcUfb7Emzg/exec</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <label style="font-size:12px;font-weight:600;color:var(--navy)">Email expéditeur</label>
+                <input type="email" value="tls.appointements@gmail.com" readonly style="border:1.5px solid var(--border);border-radius:7px;padding:9px 11px;font-family:inherit;font-size:13px;background:var(--cream2);color:var(--muted)">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <label style="font-size:12px;font-weight:600;color:var(--navy)">Email de test</label>
+                <input type="email" id="gas-test-email" value="tls.appointements@gmail.com" style="border:1.5px solid var(--border);border-radius:7px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none;background:var(--cream)">
+              </div>
             </div>
-          </div>
-        </div>
-        <div class="admin-card" style="max-width:680px;margin-top:20px"><div class="admin-card-head"><h3>🔔 Notifications</h3></div>
-          <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px"><input type="checkbox" id="notif-on-submit" checked style="width:16px;height:16px;accent-color:var(--gold)">Send confirmation email to applicant on submission</label>
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px"><input type="checkbox" id="notif-on-status" checked style="width:16px;height:16px;accent-color:var(--gold)">Send email to applicant on status change</label>
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px"><input type="checkbox" id="notif-admin-new" checked style="width:16px;height:16px;accent-color:var(--gold)">Notify admin on new application</label>
-            <button class="btn-gold" onclick="showNotif('✅','Notification settings saved')" style="width:fit-content;padding:9px 20px;border-radius:8px;font-size:13px">💾 Save</button>
-          </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+              <button class="btn-gold" onclick="testGasEmail()" style="padding:10px 22px;border-radius:8px;font-size:14px">📧 Envoyer Email Test</button>
+              <a href="https://script.google.com" target="_blank" style="background:var(--navy);color:#fff;text-decoration:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;line-height:2.2">🔗 Voir le script</a>
+            </div>
+            <div id="gas-test-result" style="display:none;padding:12px 16px;border-radius:8px;font-size:13px"></div>
+            <div style="background:var(--cream);border-radius:8px;padding:14px 16px;margin-top:16px;font-size:13px;color:var(--muted)">
+              <strong style="color:var(--navy)">Emails automatiques :</strong><br>
+              ✅ <strong>Confirmation</strong> → client + copie à <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="13677f603d7263637c7a7d67767e767d676053747e727a7f3d707c7e">[email&#160;protected]</a> à chaque soumission<br>
+              ✅ <strong>Mise à jour statut</strong> → client quand vous changez le statut dans l'admin<br>
+              ✅ <strong>Rappel rendez-vous</strong> → client depuis la fiche de la demande
         </div>
       </div>
       <!-- EMAIL LOG -->
@@ -1166,7 +1168,10 @@ window.submitApplication = async function() {
   };
   try {
     await db.collection('applications').add(data);
-    await queueEmail(email, fillTpl(getTpl('confirm-subject'),data), fillTpl(getTpl('confirm-body'),data), 'confirmation', ref);
+    const emailResult = await sendEmail('confirmation', email, `${fn} ${ln}`,
+      { ref, firstName:fn, lastName:ln, destination:data.destination,
+        visaType:data.visaType, package:data.package, travelDate:data.travelDate,
+        total:data.total, phone:data.phone });
     showNotif('✅',`✅ Request submitted! Ref: ${ref}`);
     // Reset form
     pkgPrice=0; pkgName=''; addonTotal=0;
@@ -1408,8 +1413,17 @@ window.updateAppStatus = async function() {
     showNotif('✅',`Status → "${newStatus}"`);
     const statusLabels = {pending:'Pending',processing:'In Processing','docs-ready':'Documents Ready',appointment:'Appointment Booked',submitted:'Submitted to Embassy',approved:'Visa Approved ✅',rejected:'Application Rejected'};
     const data = {firstName:currentDrawerApp.firstName, ref:currentDrawerApp.ref, destination:currentDrawerApp.destination, status:statusLabels[newStatus]||newStatus, adminNote:note?`<div style="background:#F7F4EE;padding:12px;border-radius:6px;margin:10px 0">${note}</div>`:''};
-    if (document.getElementById('notif-on-status')?.checked!==false)
-      await queueEmail(currentDrawerApp.email, fillTpl(getTpl('status-subject'),data), fillTpl(getTpl('status-body'),data), 'status_update', currentDrawerApp.ref);
+    const notifToggle = document.getElementById('notif-on-status');
+    if (!notifToggle || notifToggle.checked) {
+      const statusLabels = {pending:'En attente',processing:'En traitement',
+        'docs-ready':'Documents prêts',appointment:'Rendez-vous confirmé',
+        submitted:'Dossier soumis',approved:'Visa approuvé ✅',rejected:'Demande refusée'};
+      await sendEmail('status', currentDrawerApp.email,
+        `${currentDrawerApp.firstName} ${currentDrawerApp.lastName||''}`,
+        { ref:currentDrawerApp.ref, firstName:currentDrawerApp.firstName,
+          destination:currentDrawerApp.destination,
+          status:statusLabels[newStatus]||newStatus, adminNote:note||'' });
+    }
   } catch(e) { showNotif('⚠️','Update failed: '+e.message); }
 };
 
@@ -1425,26 +1439,36 @@ window.saveAppointment = async function() {
 
 window.sendConfirmEmail = async function() {
   if (!currentDrawerApp) return;
-  const a=currentDrawerApp;
-  await queueEmail(a.email, fillTpl(getTpl('confirm-subject'),a), fillTpl(getTpl('confirm-body'),a), 'confirmation', a.ref);
-  showNotif('📬',`Confirmation queued for ${a.email}`);
+  const a = currentDrawerApp;
+  showNotif('📤','Envoi en cours…');
+  const r = await sendEmail('confirmation', a.email, `${a.firstName} ${a.lastName||''}`,
+    { ref:a.ref, firstName:a.firstName, lastName:a.lastName||'', destination:a.destination,
+      visaType:a.visaType, package:a.package, travelDate:a.travelDate, total:a.total, phone:a.phone });
+  showNotif(r.status==='sent'?'📬':'⚠️', r.status==='sent'?`Email envoyé à ${a.email}`:`Erreur: ${r.error?.message||r.status}`);
 };
 
 window.sendStatusEmail = async function() {
   if (!currentDrawerApp) return;
-  const a=currentDrawerApp;
-  const data={firstName:a.firstName,ref:a.ref,destination:a.destination,status:a.status,adminNote:a.adminNote||''};
-  await queueEmail(a.email, fillTpl(getTpl('status-subject'),data), fillTpl(getTpl('status-body'),data), 'status_update', a.ref);
-  showNotif('📣',`Status email queued for ${a.email}`);
+  const a = currentDrawerApp;
+  const statusLabels = {pending:'En attente',processing:'En traitement','docs-ready':'Documents prêts',
+    appointment:'Rendez-vous confirmé',submitted:'Dossier soumis',approved:'Visa approuvé ✅',rejected:'Demande refusée'};
+  showNotif('📤','Envoi en cours…');
+  const r = await sendEmail('status', a.email, `${a.firstName} ${a.lastName||''}`,
+    { ref:a.ref, firstName:a.firstName, destination:a.destination,
+      status:statusLabels[a.status]||a.status, adminNote:a.adminNote||'' });
+  showNotif(r.status==='sent'?'📣':'⚠️', r.status==='sent'?`Email envoyé à ${a.email}`:`Erreur: ${r.error?.message||r.status}`);
 };
 
 window.sendApptEmail = async function() {
   if (!currentDrawerApp) return;
-  const a=currentDrawerApp;
-  if (!a.appointmentDate) { showNotif('⚠️','Set appointment date first'); return; }
-  const data={firstName:a.firstName,ref:a.ref,appointmentDate:a.appointmentDate,appointmentTime:a.appointmentTime||'—',venueName:a.appointmentVenue||'Visa Centre'};
-  await queueEmail(a.email, fillTpl(getTpl('appt-subject'),data), fillTpl(getTpl('appt-body'),data), 'appointment', a.ref);
-  showNotif('🗓',`Appointment reminder queued for ${a.email}`);
+  const a = currentDrawerApp;
+  if (!a.appointmentDate) { showNotif('⚠️','Enregistrez la date de rendez-vous d\'abord'); return; }
+  showNotif('📤','Envoi en cours…');
+  const r = await sendEmail('appointment', a.email, `${a.firstName} ${a.lastName||''}`,
+    { ref:a.ref, firstName:a.firstName, appointmentDate:a.appointmentDate,
+      appointmentTime:a.appointmentTime||'—', venueName:a.appointmentVenue||'Centre de visa',
+      venueAddress:a.appointmentVenue||'—' });
+  showNotif(r.status==='sent'?'🗓':'⚠️', r.status==='sent'?`Email RDV envoyé à ${a.email}`:`Erreur: ${r.error?.message||r.status}`);
 };
 
 // ══════════════════════════════════════════
@@ -1518,17 +1542,34 @@ function fillTpl(tpl, data) {
 // ══════════════════════════════════════════
 //  SMTP CONFIG
 // ══════════════════════════════════════════
-window.saveSmtpConfig = function() {
-  const fields=['smtp-host','smtp-port','smtp-user','smtp-from-name','smtp-from-email','smtp-admin-notif'];
-  const cfg={encryption:document.getElementById('smtp-enc')?.value};
+
+window.testGasEmail = async function() {
+  const to = document.getElementById('gas-test-email')?.value.trim() || YOUR_EMAIL;
+  const resultEl = document.getElementById('gas-test-result');
+  if (!resultEl) return;
+  resultEl.style.display = 'block';
+  resultEl.style.background = '#FEF3C7'; resultEl.style.color = '#92400E';
+  resultEl.textContent = '📤 Envoi du test en cours…';
+  const r = await sendEmail('confirmation', to, 'Client Test', {
+    ref:'TEST-001', firstName:'Test', lastName:'Client',
+    destination:'France 🇫🇷 — TLScontact', visaType:'Touriste (Type C)',
+    package:'Full Package', travelDate:'2026-05-15', total:'2800', phone:'+212 600 000 000'
+  });
+  if (r.status === 'sent') {
+    resultEl.style.background = '#D1FAE5'; resultEl.style.color = '#065f46';
+    resultEl.textContent = '✅ Email test envoyé! Vérifiez tls.appointements@gmail.com.';
+  } else {
+    resultEl.style.background = '#FEE2E2'; resultEl.style.color = '#991b1b';
+    resultEl.textContent = `❌ Erreur: ${r.error?.message || 'Vérifiez le script GAS'}`;
+  }
+};
+window.saveSmtpConfig = function() { showNotif('✅','Configuration active.'); };
   fields.forEach(id=>{ cfg[id]=document.getElementById(id)?.value||''; });
   localStorage.setItem('smtp-config',JSON.stringify(cfg));
   showNotif('✅','SMTP config saved');
 };
 
-function loadSmtpConfig() {
-  try {
-    const cfg=JSON.parse(localStorage.getItem('smtp-config')||'{}');
+function loadSmtpConfig() { const el=document.getElementById('gas-url-display'); if(el) el.textContent=GAS_URL; }');
     ['smtp-host','smtp-port','smtp-user','smtp-from-name','smtp-from-email','smtp-admin-notif'].forEach(id=>{
       const el=document.getElementById(id); if(el&&cfg[id]) el.value=cfg[id];
     });
@@ -1598,6 +1639,112 @@ function friendlyError(code) {
 
 // Close auth modal on backdrop click
 document.getElementById('auth-modal').addEventListener('click', e=>{ if(e.target===document.getElementById('auth-modal')) closeAuth(); });
+
+
+const YOUR_EMAIL = 'tls.appointements@gmail.com';
+const GAS_URL    = 'https://script.google.com/macros/s/AKfycby9vRm5IveouUDQqZyZTDx375wc3S6YGF0Abaqq2zQI3LqNAxVq9Asi-WCqtcUfb7Emzg/exec';
+
+async function sendEmail(type, toEmail, toName, params) {
+  console.log('[EMAIL] Sending type='+type+' to='+toEmail);
+  var logRef;
+  try { logRef = await db.collection('email_log').add({to:toEmail,type:type,ref:params.ref||'',status:'sending',sentAt:firebase.firestore.FieldValue.serverTimestamp()}); } catch(e) { console.warn('[EMAIL] Log error:',e); }
+
+  try {
+    var subject = params.subject || buildSubject(type, params);
+    var html    = buildEmailHTML(type, toName, params);
+    var payload = JSON.stringify({to:toEmail, subject:subject, html:html, name:toName||toEmail});
+
+    console.log('[EMAIL] Calling GAS URL...');
+    var res = await fetch('https://script.google.com/macros/s/AKfycby9vRm5IveouUDQqZyZTDx375wc3S6YGF0Abaqq2zQI3LqNAxVq9Asi-WCqtcUfb7Emzg/exec', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'application/json'},
+      body: payload
+    });
+    console.log('[EMAIL] GAS response type:', res.type, 'status:', res.status);
+
+    // Send admin copy on every new submission
+    if (type === 'confirmation') {
+      var adminHtml = '<div style="font-family:Arial,sans-serif;padding:20px">'
+        +'<h2 style="color:#0B1D35;border-bottom:2px solid #C8952A;padding-bottom:8px">🔔 Nouvelle demande</h2>'
+        +'<p><strong>Client:</strong> '+toName+' ('+toEmail+')</p>'
+        +'<p><strong>Réf:</strong> <strong style="color:#0B1D35">'+params.ref+'</strong></p>'
+        +'<p><strong>Destination:</strong> '+params.destination+'</p>'
+        +'<p><strong>Package:</strong> '+params.package+'</p>'
+        +'<p><strong>Total:</strong> <span style="color:#C8952A;font-weight:700">'+params.total+' MAD</span></p>'
+        +'<p><strong>Tél:</strong> '+(params.phone||'—')+'</p>'
+        +'<p><strong>Date voyage:</strong> '+(params.travelDate||'—')+'</p></div>';
+      fetch('https://script.google.com/macros/s/AKfycby9vRm5IveouUDQqZyZTDx375wc3S6YGF0Abaqq2zQI3LqNAxVq9Asi-WCqtcUfb7Emzg/exec', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({to:'tls.appointements@gmail.com', subject:'🔔 Nouvelle demande — '+params.ref+' — '+toName, html:adminHtml, name:'Admin'})
+      }).catch(function(e){ console.warn('[EMAIL] Admin notify error:',e); });
+    }
+
+    if (logRef) logRef.update({status:'sent'}).catch(function(){});
+    console.log('[EMAIL] Success!');
+    return {status:'sent'};
+
+  } catch(e) {
+    console.error('[EMAIL] Error:', e);
+    if (logRef) logRef.update({status:'error', error:e.message}).catch(function(){});
+    return {status:'error', error:e};
+  }
+}
+
+function buildSubject(type, p) {
+  if (type==='confirmation') return 'Demande recue — Ref: '+p.ref+' — EuroVisa Pro';
+  if (type==='status')       return 'Mise a jour demande '+p.ref+' — EuroVisa Pro';
+  if (type==='appointment')  return 'Rendez-vous confirme — '+p.appointmentDate+' — EuroVisa Pro';
+  return 'EuroVisa Pro';
+}
+
+function buildEmailHTML(type, toName, p) {
+  function wrap(body) {
+    return '<!DOCTYPE html><html><body style="margin:0;padding:20px;background:#F7F4EE;font-family:Arial,sans-serif">'
+      +'<div style="max-width:600px;margin:0 auto;border-radius:12px;overflow:hidden">'
+      +'<div style="background:#0B1D35;padding:24px 32px"><h1 style="color:#E8B04A;margin:0;font-size:22px">EuroVisa Pro</h1>'
+      +'<p style="color:rgba(255,255,255,.5);margin:4px 0 0;font-size:12px">Services Visa Schengen · Casablanca</p></div>'
+      +'<div style="background:#fff;padding:32px;font-size:14px;line-height:1.8;color:#222">'+body+'</div>'
+      +'<div style="background:#F7F4EE;padding:16px 32px;font-size:11px;color:#999;text-align:center">EuroVisa Pro · tls.appointements@gmail.com</div>'
+      +'</div></body></html>';
+  }
+  function row(l,v,c) { return '<tr><td style="padding:6px 0;color:#6B7280;font-size:13px;width:42%">'+l+'</td>'+'<td style="font-size:13px;'+(c?'font-weight:700;color:'+c:'')+'">'+(v||'—')+'</td></tr>'; }
+  function tbl(rows) { return '<div style="background:#F7F4EE;border-radius:8px;padding:14px 18px;margin:16px 0"><table style="width:100%;border-collapse:collapse">'+rows+'</table></div>'; }
+
+  if (type==='confirmation') return wrap(
+    '<p>Bonjour <strong>'+toName+'</strong>,</p>'
+    +'<p>Merci. Nous avons bien recu votre demande et nous vous contacterons dans les <strong>2 heures</strong>.</p>'
+    +tbl(row('Reference','<strong>'+p.ref+'</strong>')+row('Destination',p.destination)
+        +row('Type de visa',p.visaType)+row('Package',p.package)
+        +row('Date',p.travelDate)+row('Total',p.total+' MAD','#C8952A'))
+    +'<p>Utilisez la reference <strong>'+p.ref+'</strong> pour suivre votre demande.</p>'
+    +"<p>Cordialement,<br><strong>L'equipe EuroVisa Pro</strong></p>");
+
+  if (type==='status') return wrap(
+    '<p>Bonjour <strong>'+p.firstName+'</strong>,</p>'
+    +'<p>Mise a jour sur votre demande <strong>'+p.ref+'</strong>.</p>'
+    +'<div style="background:#F7F4EE;border-left:4px solid #C8952A;padding:14px 18px;margin:16px 0">'
+    +'<div style="font-size:11px;color:#6B7280;text-transform:uppercase;margin-bottom:4px">Nouveau statut</div>'
+    +'<div style="font-size:20px;font-weight:700;color:#0B1D35">'+p.status+'</div></div>'
+    +(p.adminNote?'<div style="background:#FEF3C7;border-radius:8px;padding:12px;font-size:13px;color:#92400E;margin:12px 0">'+p.adminNote+'</div>':'')
+    +"<p>Cordialement,<br><strong>L'equipe EuroVisa Pro</strong></p>");
+
+  if (type==='appointment') return wrap(
+    '<p>Bonjour <strong>'+p.firstName+'</strong>,</p>'
+    +'<p>Votre rendez-vous visa est confirme :</p>'
+    +tbl(row('Reference',p.ref)
+        +row('Date','<strong style="color:#1B7A4A">'+p.appointmentDate+'</strong>')
+        +row('Heure',p.appointmentTime)+row('Centre',p.venueName))
+    +'<div style="background:#FEF3C7;border-radius:8px;padding:12px;font-size:13px;color:#92400E">'
+    +'Veuillez arriver <strong>15 minutes avant</strong> avec votre dossier complet.</div>'
+    +"<p style='margin-top:16px'>Cordialement,<br><strong>L'equipe EuroVisa Pro</strong></p>");
+
+  return wrap('<p>'+JSON.stringify(p)+'</p>');
+}
+
+async function queueEmail() {} // replaced by sendEmail
 </script>
 </body>
 </html>
