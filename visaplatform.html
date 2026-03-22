@@ -1796,224 +1796,133 @@ function getUltraConfig() {
 
 async function sendWhatsApp(phone, message) {
   var cfg = getUltraConfig();
-  if (!cfg.instanceId || !cfg.token) {
-    console.warn('[WA] UltraMsg not configured');
-    return { status: 'not_configured' };
-  }
-
-  // Normalize phone number
-  var clean = (phone || '').replace(/[^0-9]/g, '');
+  if (!cfg.instanceId || !cfg.token) { console.warn('[WA] Not configured'); return {status:'not_configured'}; }
+  var clean = (phone||'').replace(/[^0-9]/g,'');
   if (clean.startsWith('0')) clean = '212' + clean.slice(1);
-  if (!clean || clean.length < 10) {
-    console.warn('[WA] Invalid phone number:', phone);
-    return { status: 'invalid_phone' };
-  }
+  if (!clean || clean.length < 10) { console.warn('[WA] Invalid phone:', phone); return {status:'invalid_phone'}; }
   if (!clean.startsWith('+')) clean = '+' + clean;
-
   try {
     var res = await fetch('https://api.ultramsg.com/' + cfg.instanceId + '/messages/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ token: cfg.token, to: clean, body: message }).toString()
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({token: cfg.token, to: clean, body: message}).toString()
     });
     var json = await res.json();
-    console.log('[WA] Sent to', clean, '→', json);
-    return { status: 'sent', response: json };
+    console.log('[WA] Sent to', clean, json);
+    return {status:'sent', response:json};
   } catch(e) {
     console.error('[WA] Error:', e);
-    return { status: 'error', error: e };
+    return {status:'error', error:e};
   }
 }
 
 async function sendAdminWhatsApp(message) {
-  // Always send to YOUR number for admin notifications
   return sendWhatsApp('+212682652382', message);
 }
 
+function nl(s) { return s + '\n'; } // helper
+
 function buildWAConfirmation(clientName, p) {
-  return (
-    '🌟 *EuroVisa Pro — Confirmation de demande*
-'
-    + '━━━━━━━━━━━━━━━━━━━━━━
-
-'
-    + 'Bonjour *' + clientName + '* 👋
-
-'
-    + 'Votre demande de visa a bien été reçue et enregistrée dans notre système. '
-    + 'Notre équipe spécialisée va prendre en charge votre dossier immédiatement.
-
-'
-    + '📋 *Récapitulatif de votre demande:*
-'
-    + '┌─────────────────────────
-'
-    + '│ 🔖 Référence : *' + p.ref + '*
-'
-    + '│ 🌍 Destination : ' + p.destination + '
-'
-    + '│ 📄 Type : ' + p.visaType + '
-'
-    + '│ 📦 Package : ' + p.package + '
-'
-    + '│ 📅 Date voyage : ' + (p.travelDate || 'À définir') + '
-'
-    + '│ 💰 Total : *' + p.total + ' MAD*
-'
-    + '└─────────────────────────
-
-'
-    + '⏰ *Prochaine étape :* Notre conseiller vous contactera dans les *2 heures* pour confirmer les détails et le paiement.
-
-'
-    + '📲 Suivez votre dossier en temps réel sur notre site avec la référence *' + p.ref + '*
-
-'
-    + '_Merci de votre confiance — EuroVisa Pro_ 🙏'
-  );
+  var m = '';
+  m += nl('🌟 *EuroVisa Pro — Confirmation de demande*');
+  m += nl('━━━━━━━━━━━━━━━━━━━━━━');
+  m += nl('');
+  m += nl('Bonjour *' + clientName + '* 👋');
+  m += nl('');
+  m += nl('Votre demande de visa a bien été reçue. Notre équipe prend en charge votre dossier immédiatement.');
+  m += nl('');
+  m += nl('📋 *Récapitulatif:*');
+  m += nl('┌─────────────────────────');
+  m += nl('│ 🔖 Référence : *' + p.ref + '*');
+  m += nl('│ 🌍 Destination : ' + p.destination);
+  m += nl('│ 📄 Type : ' + (p.visaType||'—'));
+  m += nl('│ 📦 Package : ' + p.package);
+  m += nl('│ 📅 Date voyage : ' + (p.travelDate||'À définir'));
+  m += nl('│ 💰 Total : *' + p.total + ' MAD*');
+  m += nl('└─────────────────────────');
+  m += nl('');
+  m += nl('⏰ Notre conseiller vous contacte dans les *2 heures*.');
+  m += nl('');
+  m += nl('📲 Suivez votre dossier avec la référence *' + p.ref + '*');
+  m += nl('');
+  m += '_Merci de votre confiance — EuroVisa Pro_ 🙏';
+  return m;
 }
 
 function buildWAStatus(clientName, p) {
-  var icons = {
-    'En attente':             '⏳',
-    'En traitement':          '⚙️',
-    'Documents prêts':        '📋',
-    'Rendez-vous confirmé':   '📅',
-    'Dossier soumis':         '📨',
-    'Visa approuvé ✅':        '🎉',
-    'Demande refusée':        '❌'
-  };
-  var icon = icons[p.status] || '📣';
+  var icons = {pending:'⏳',processing:'⚙️','docs-ready':'📋',appointment:'📅',submitted:'📨',approved:'🎉',rejected:'❌'};
+  var statusKeys = {'En attente':'pending','En traitement':'processing','Documents prêts':'docs-ready',
+    'Rendez-vous confirmé':'appointment','Dossier soumis':'submitted','Visa approuvé ✅':'approved','Demande refusée':'rejected'};
+  var rawKey = statusKeys[p.status] || p.rawStatus || '';
+  var icon = icons[rawKey] || '📣';
   var extra = '';
-  if (p.status === 'Visa approuvé ✅') {
-    extra = '
-
-🎊 *Félicitations !* Votre visa a été approuvé. Vous pouvez récupérer votre passeport au centre de visa.
-';
-  } else if (p.status === 'Rendez-vous confirmé') {
-    extra = '
-
-📍 Vérifiez les détails de votre rendez-vous sur notre site.
-';
-  } else if (p.status === 'Demande refusée') {
-    extra = '
-
-💬 Notre équipe vous contactera pour analyser les raisons du refus et explorer les options disponibles.
-';
-  }
-  return (
-    icon + ' *EuroVisa Pro — Mise à jour de votre dossier*
-'
-    + '━━━━━━━━━━━━━━━━━━━━━━
-
-'
-    + 'Bonjour *' + clientName + '*,
-
-'
-    + 'Une mise à jour importante concernant votre demande de visa :
-
-'
-    + '🔖 Référence : *' + p.ref + '*
-'
-    + '🌍 Destination : ' + (p.destination || '—') + '
-
-'
-    + '━━━━━━━━━━━━━━━━━━━━━━
-'
-    + icon + ' Statut actuel : *' + p.status + '*
-'
-    + '━━━━━━━━━━━━━━━━━━━━━━
-'
-    + extra
-    + (p.adminNote ? '
-💬 *Message de notre équipe :*
-' + p.adminNote + '
-' : '')
-    + '
-📲 Suivez l'évolution de votre dossier sur notre site.
-
-'
-    + '_EuroVisa Pro — À votre service_ 🌟'
-  );
+  if (rawKey==='approved') extra = nl('') + nl('🎊 *Félicitations!* Votre visa est approuvé. Récupérez votre passeport au centre.');
+  if (rawKey==='appointment') extra = nl('') + nl('📍 Vérifiez les détails du rendez-vous sur notre site.');
+  if (rawKey==='rejected') extra = nl('') + nl('💬 Notre équipe vous contactera pour analyser les options disponibles.');
+  var m = '';
+  m += nl(icon + ' *EuroVisa Pro — Mise à jour dossier*');
+  m += nl('━━━━━━━━━━━━━━━━━━━━━━');
+  m += nl('');
+  m += nl('Bonjour *' + clientName + '*,');
+  m += nl('');
+  m += nl('Mise à jour sur votre demande *' + p.ref + '*');
+  if (p.destination) m += nl('🌍 Destination : ' + p.destination);
+  m += nl('');
+  m += nl('━━━━━━━━━━━━━━━━━━━━━━');
+  m += nl(icon + ' Statut : *' + p.status + '*');
+  m += nl('━━━━━━━━━━━━━━━━━━━━━━');
+  m += extra;
+  if (p.adminNote) { m += nl(''); m += nl('💬 *Message:* ' + p.adminNote); }
+  m += nl('');
+  m += '_EuroVisa Pro — À votre service_ 🌟';
+  return m;
 }
 
 function buildWAAppointment(clientName, p) {
-  return (
-    '📅 *EuroVisa Pro — Rendez-vous Confirmé !*
-'
-    + '━━━━━━━━━━━━━━━━━━━━━━
-
-'
-    + 'Bonjour *' + clientName + '* 🎉
-
-'
-    + 'Excellente nouvelle ! Votre rendez-vous au centre de visa a été confirmé avec succès.
-
-'
-    + '🗓 *Détails du rendez-vous :*
-'
-    + '┌─────────────────────────
-'
-    + '│ 🔖 Référence : *' + p.ref + '*
-'
-    + '│ 📆 Date : *' + p.appointmentDate + '*
-'
-    + '│ 🕐 Heure : *' + (p.appointmentTime || 'À confirmer') + '*
-'
-    + '│ 📍 Centre : *' + (p.venueName || 'Centre de visa') + '*
-'
-    + '└─────────────────────────
-
-'
-    + '⚠️ *Rappels importants :*
-'
-    + '• Arrivez *15 minutes avant* l'heure du rendez-vous
-'
-    + '• Apportez votre *dossier complet* préparé par notre équipe
-'
-    + '• Votre *passeport original* est obligatoire
-'
-    + '• Portez des vêtements *corrects et propres*
-
-'
-    + '📞 En cas de problème, contactez-nous immédiatement.
-
-'
-    + '_Bonne chance ! EuroVisa Pro est avec vous_ 🍀'
-  );
+  var m = '';
+  m += nl('📅 *EuroVisa Pro — Rendez-vous Confirmé!*');
+  m += nl('━━━━━━━━━━━━━━━━━━━━━━');
+  m += nl('');
+  m += nl('Bonjour *' + clientName + '* 🎉');
+  m += nl('');
+  m += nl('Votre rendez-vous au centre de visa est confirmé avec succès.');
+  m += nl('');
+  m += nl('🗓 *Détails du rendez-vous:*');
+  m += nl('┌─────────────────────────');
+  m += nl('│ 🔖 Référence : *' + p.ref + '*');
+  m += nl('│ 📆 Date : *' + p.appointmentDate + '*');
+  m += nl('│ 🕐 Heure : *' + (p.appointmentTime||'À confirmer') + '*');
+  m += nl('│ 📍 Centre : *' + (p.venueName||'Centre de visa') + '*');
+  m += nl('└─────────────────────────');
+  m += nl('');
+  m += nl('⚠️ *Rappels importants:*');
+  m += nl('• Arrivez *15 minutes avant* votre rendez-vous');
+  m += nl('• Apportez votre *dossier complet*');
+  m += nl('• Votre *passeport original* est obligatoire');
+  m += nl('');
+  m += '_Bonne chance! EuroVisa Pro est avec vous_ 🍀';
+  return m;
 }
 
 function buildWAAdminNew(clientName, clientPhone, p) {
-  return (
-    '🔔 *NOUVELLE DEMANDE — EuroVisa Pro*
-'
-    + '━━━━━━━━━━━━━━━━━━━━━━
-
-'
-    + '👤 *Client :* ' + clientName + '
-'
-    + '📞 *Téléphone :* ' + (clientPhone || '—') + '
-'
-    + '📧 *Email :* ' + (p.email || '—') + '
-
-'
-    + '📋 *Détails de la demande :*
-'
-    + '• Référence : *' + p.ref + '*
-'
-    + '• Destination : ' + p.destination + '
-'
-    + '• Type : ' + p.visaType + '
-'
-    + '• Package : ' + p.package + '
-'
-    + '• Date voyage : ' + (p.travelDate || 'Non précisée') + '
-'
-    + '• Total : *' + p.total + ' MAD*
-
-'
-    + '⏰ À traiter dans les 2 heures.'
-  );
+  var m = '';
+  m += nl('🔔 *NOUVELLE DEMANDE — EuroVisa Pro*');
+  m += nl('━━━━━━━━━━━━━━━━━━━━━━');
+  m += nl('');
+  m += nl('👤 Client : *' + clientName + '*');
+  m += nl('📞 Téléphone : ' + (clientPhone||'—'));
+  m += nl('📧 Email : ' + (p.email||'—'));
+  m += nl('');
+  m += nl('📋 *Détails:*');
+  m += nl('• Référence : *' + p.ref + '*');
+  m += nl('• Destination : ' + p.destination);
+  m += nl('• Type : ' + (p.visaType||'—'));
+  m += nl('• Package : ' + p.package);
+  m += nl('• Date voyage : ' + (p.travelDate||'—'));
+  m += nl('• Total : *' + p.total + ' MAD*');
+  m += nl('');
+  m += '⏰ À traiter dans les 2 heures.';
+  return m;
 }
 
 function buildSubject(type, p) {
