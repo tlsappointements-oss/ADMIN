@@ -1575,18 +1575,11 @@ window.testGasEmail = async function() {
     resultEl.textContent = `❌ Erreur: ${r.error?.message || 'Vérifiez le script GAS'}`;
   }
 };
-window.saveSmtpConfig = function() { showNotif('✅','Configuration active.'); };
-  fields.forEach(id=>{ cfg[id]=document.getElementById(id)?.value||''; });
-  localStorage.setItem('smtp-config',JSON.stringify(cfg));
-  showNotif('✅','SMTP config saved');
-};
+window.saveSmtpConfig = function() { showNotif('✅','Configuration active — Google Apps Script connecté.'); };
 
-function loadSmtpConfig() { const el=document.getElementById('gas-url-display'); if(el) el.textContent=GAS_URL; }');
-    ['smtp-host','smtp-port','smtp-user','smtp-from-name','smtp-from-email','smtp-admin-notif'].forEach(id=>{
-      const el=document.getElementById(id); if(el&&cfg[id]) el.value=cfg[id];
-    });
-    const enc=document.getElementById('smtp-enc'); if(enc&&cfg.encryption) enc.value=cfg.encryption;
-  } catch(e){}
+function loadSmtpConfig() {
+  var el = document.getElementById('gas-url-display');
+  if (el) el.textContent = GAS_URL;
 }
 
 // ══════════════════════════════════════════
@@ -1763,4 +1756,4 @@ function buildEmailHTML(type, toName, p) {
 async function queueEmail() {} // replaced by sendEmail
 </script>
 </body>
-</html>
+</html>	
