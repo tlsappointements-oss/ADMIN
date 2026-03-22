@@ -706,6 +706,33 @@ tr:hover td{background:var(--cream)}
               <a href="https://script.google.com" target="_blank" style="background:var(--navy);color:#fff;text-decoration:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;line-height:2.2">🔗 Voir le script</a>
             </div>
             <div id="gas-test-result" style="display:none;padding:12px 16px;border-radius:8px;font-size:13px"></div>
+
+            <div style="border-top:1px solid var(--border);margin-top:24px;padding-top:20px">
+              <h4 style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">📱 WhatsApp Automatique — UltraMsg</h4>
+              <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+                Envoi WhatsApp en arrière-plan à chaque mise à jour. Créez un compte gratuit sur
+                <a href="https://ultramsg.com" target="_blank" style="color:var(--gold)">ultramsg.com</a>,
+                connectez votre numéro WhatsApp et entrez les clés ci-dessous.
+              </p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <label style="font-size:12px;font-weight:600;color:var(--navy)">Instance ID</label>
+                  <input type="text" id="ultramsg-instance" placeholder="instance12345"
+                    style="border:1.5px solid var(--border);border-radius:7px;padding:9px 11px;font-family:monospace;font-size:12px;outline:none;background:var(--cream)">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <label style="font-size:12px;font-weight:600;color:var(--navy)">Token</label>
+                  <input type="password" id="ultramsg-token" placeholder="xxxxxxxxxxxxxxxxxxxx"
+                    style="border:1.5px solid var(--border);border-radius:7px;padding:9px 11px;font-family:monospace;font-size:12px;outline:none;background:var(--cream)">
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn-gold" onclick="saveUltraConfig()" style="padding:9px 20px;border-radius:8px;font-size:13px">💾 Sauvegarder</button>
+                <button class="btn-sm btn-sm-navy" onclick="testUltraMsg()">📱 Tester WhatsApp</button>
+                <a href="https://ultramsg.com" target="_blank" style="background:var(--navy);color:#fff;text-decoration:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;line-height:2.2">🔗 UltraMsg</a>
+              </div>
+              <div id="ultra-test-result" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px"></div>
+            </div>
             <div style="background:var(--cream);border-radius:8px;padding:14px 16px;margin-top:16px;font-size:13px;color:var(--muted)">
               <strong style="color:var(--navy)">Emails automatiques :</strong><br>
               ✅ <strong>Confirmation</strong> → client + copie à <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="13677f603d7263637c7a7d67767e767d676053747e727a7f3d707c7e">[email&#160;protected]</a> à chaque soumission<br>
@@ -1189,9 +1216,13 @@ window.submitApplication = async function() {
         visaType:data.visaType, package:data.package, travelDate:data.travelDate,
         total:data.total, phone:data.phone });
     showNotif('✅',`✅ Demande soumise! Réf: ${ref}`);
-    sendWhatsApp('confirmation', data.phone, fn+' '+ln,
-      {ref:ref, destination:data.destination, package:data.package,
-       total:data.total, travelDate:data.travelDate, phone:data.phone});
+    // Send WhatsApp to client + admin (background)
+    var waMsg = buildWAConfirmation(fn+' '+ln, {ref:ref, destination:data.destination,
+      visaType:data.visaType, package:data.package, travelDate:data.travelDate, total:data.total});
+    sendWhatsApp(data.phone, waMsg);
+    var adminMsg = buildWAAdminNew(fn+' '+ln, data.phone, {ref:ref, destination:data.destination,
+      visaType:data.visaType, package:data.package, travelDate:data.travelDate, total:data.total, email:email});
+    sendAdminWhatsApp(adminMsg);
     // Reset form
     pkgPrice=0; pkgName=''; addonTotal=0;
     document.querySelectorAll('.addon-item').forEach(el=>el.classList.remove('selected'));
@@ -1442,10 +1473,11 @@ window.updateAppStatus = async function() {
         { ref:currentDrawerApp.ref, firstName:currentDrawerApp.firstName,
           destination:currentDrawerApp.destination,
           status:statusLabels[newStatus]||newStatus, adminNote:note||'' });
-      sendWhatsApp('status', currentDrawerApp.phone,
-        `${currentDrawerApp.firstName} ${currentDrawerApp.lastName||''}`,
-        {ref:currentDrawerApp.ref, status:statusLabels[newStatus]||newStatus,
-         rawStatus:newStatus, adminNote:note||''});
+      // WhatsApp status update (background)
+      var waStatusMsg = buildWAStatus(currentDrawerApp.firstName+' '+(currentDrawerApp.lastName||''), {
+        ref:currentDrawerApp.ref, destination:currentDrawerApp.destination,
+        status:statusLabels[newStatus]||newStatus, adminNote:note||''});
+      sendWhatsApp(currentDrawerApp.phone, waStatusMsg);
     }
   } catch(e) { showNotif('⚠️','Update failed: '+e.message); }
 };
@@ -1467,10 +1499,10 @@ window.sendConfirmEmail = async function() {
   const r = await sendEmail('confirmation', a.email, `${a.firstName} ${a.lastName||''}`,
     { ref:a.ref, firstName:a.firstName, lastName:a.lastName||'', destination:a.destination,
       visaType:a.visaType, package:a.package, travelDate:a.travelDate, total:a.total, phone:a.phone });
-  showNotif(r.status==='sent'?'📬':'⚠️', r.status==='sent'?`Email + WhatsApp envoyés!`:`Erreur: ${r.error?.message||r.status}`);
-  if (r.status==='sent') sendWhatsApp('confirmation', a.phone, a.firstName+' '+(a.lastName||''),
-    {ref:a.ref, destination:a.destination, package:a.package, total:a.total,
-     travelDate:a.travelDate, phone:a.phone});
+  showNotif(r.status==='sent'?'📬':'⚠️', r.status==='sent'?'Email envoyé!':'Erreur: '+(r.error?.message||r.status));
+  if (r.status==='sent') sendWhatsApp(a.phone, buildWAConfirmation(a.firstName+' '+(a.lastName||''),
+    {ref:a.ref, destination:a.destination, visaType:a.visaType||'—',
+     package:a.package, travelDate:a.travelDate, total:a.total}));
 };
 
 window.sendStatusEmail = async function() {
@@ -1482,28 +1514,24 @@ window.sendStatusEmail = async function() {
   const r = await sendEmail('status', a.email, `${a.firstName} ${a.lastName||''}`,
     { ref:a.ref, firstName:a.firstName, destination:a.destination,
       status:statusLabels[a.status]||a.status, adminNote:a.adminNote||'' });
-  showNotif(r.status==='sent'?'📣':'⚠️', r.status==='sent'?`Email + WhatsApp envoyés!`:`Erreur: ${r.error?.message||r.status}`);
-  if (r.status==='sent') {
-    var sLbls={pending:'En attente',processing:'En traitement','docs-ready':'Documents prêts',
-      appointment:'Rendez-vous confirmé',submitted:'Dossier soumis',approved:'Visa approuvé ✅',rejected:'Demande refusée'};
-    sendWhatsApp('status', a.phone, a.firstName+' '+(a.lastName||''),
-      {ref:a.ref, status:sLbls[a.status]||a.status, rawStatus:a.status, adminNote:a.adminNote||''});
-  }
+  showNotif(r.status==='sent'?'📣':'⚠️', r.status==='sent'?'Email envoyé!':'Erreur: '+(r.error?.message||r.status));
+  if (r.status==='sent') sendWhatsApp(a.phone, buildWAStatus(a.firstName+' '+(a.lastName||''),
+    {ref:a.ref, destination:a.destination, status:statusLabels[a.status]||a.status, adminNote:a.adminNote||''}));
 };
 
 window.sendApptEmail = async function() {
   if (!currentDrawerApp) return;
   const a = currentDrawerApp;
-  if (!a.appointmentDate) { showNotif('⚠️','Enregistrez la date de rendez-vous d\'abord'); return; }
+  if (!a.appointmentDate) { showNotif('⚠️',"Enregistrez la date de rendez-vous d'abord"); return; }
   showNotif('📤','Envoi en cours…');
   const r = await sendEmail('appointment', a.email, `${a.firstName} ${a.lastName||''}`,
     { ref:a.ref, firstName:a.firstName, appointmentDate:a.appointmentDate,
       appointmentTime:a.appointmentTime||'—', venueName:a.appointmentVenue||'Centre de visa',
       venueAddress:a.appointmentVenue||'—' });
-  showNotif(r.status==='sent'?'🗓':'⚠️', r.status==='sent'?`Email + WhatsApp RDV envoyés!`:`Erreur: ${r.error?.message||r.status}`);
-  if (r.status==='sent') sendWhatsApp('appointment', a.phone, a.firstName+' '+(a.lastName||''),
+  showNotif(r.status==='sent'?'🗓':'⚠️', r.status==='sent'?'Email envoyé!':'Erreur: '+(r.error?.message||r.status));
+  if (r.status==='sent') sendWhatsApp(a.phone, buildWAAppointment(a.firstName+' '+(a.lastName||''),
     {ref:a.ref, appointmentDate:a.appointmentDate,
-     appointmentTime:a.appointmentTime||'—', venueName:a.appointmentVenue||'Centre de visa'});
+     appointmentTime:a.appointmentTime||'—', venueName:a.appointmentVenue||'Centre de visa'}));
 };
 
 // ══════════════════════════════════════════
@@ -1598,11 +1626,44 @@ window.testGasEmail = async function() {
     resultEl.textContent = `❌ Erreur: ${r.error?.message || 'Vérifiez le script GAS'}`;
   }
 };
-window.saveSmtpConfig = function() { showNotif('✅','Configuration active — Google Apps Script connecté.'); };
+window.saveSmtpConfig = function() { showNotif('✅','Configuration active.'); };
+
+window.saveUltraConfig = function() {
+  var instanceId = document.getElementById('ultramsg-instance')?.value.trim();
+  var token      = document.getElementById('ultramsg-token')?.value.trim();
+  if (!instanceId || !token) { showNotif('⚠️','Entrez Instance ID et Token'); return; }
+  localStorage.setItem('ultramsg-config', JSON.stringify({instanceId:instanceId, token:token}));
+  showNotif('✅','WhatsApp UltraMsg configuré et actif!');
+};
+
+window.testUltraMsg = async function() {
+  var resultEl = document.getElementById('ultra-test-result');
+  resultEl.style.display='block';
+  resultEl.style.background='#FEF3C7'; resultEl.style.color='#92400E';
+  resultEl.textContent='📤 Envoi test WhatsApp...';
+  var r = await sendWhatsApp('+212682652382',
+    '✅ *Test EuroVisa Pro*\n\nWhatsApp API opérationnel! Les messages seront envoyés automatiquement en arrière-plan.');
+  if (r.status==='sent') {
+    resultEl.style.background='#D1FAE5'; resultEl.style.color='#065f46';
+    resultEl.textContent='✅ WhatsApp test envoyé! Vérifiez le +212682652382.';
+  } else if (r.status==='not_configured') {
+    resultEl.style.background='#FEE2E2'; resultEl.style.color='#991b1b';
+    resultEl.textContent='❌ Non configuré. Entrez Instance ID et Token puis sauvegardez.';
+  } else {
+    resultEl.style.background='#FEE2E2'; resultEl.style.color='#991b1b';
+    resultEl.textContent='❌ Erreur: '+(r.error?.message||JSON.stringify(r.error));
+  }
+};
 
 function loadSmtpConfig() {
   var el = document.getElementById('gas-url-display');
   if (el) el.textContent = GAS_URL;
+  // Load UltraMsg config
+  var cfg = getUltraConfig();
+  var iEl = document.getElementById('ultramsg-instance');
+  var tEl = document.getElementById('ultramsg-token');
+  if (iEl && cfg.instanceId) iEl.value = cfg.instanceId;
+  if (tEl && cfg.token) tEl.value = cfg.token;
 }
 
 // ══════════════════════════════════════════
@@ -1723,77 +1784,236 @@ async function sendEmail(type, toEmail, toName, params) {
   }
 }
 
-// ── WhatsApp Notifications ──
-const YOUR_WA_NUMBER = '212682652382'; // tls.appointements@gmail.com WhatsApp
 
-function sendWhatsApp(type, clientPhone, clientName, params) {
-  var msg = buildWhatsAppMsg(type, clientName, params);
-  if (!msg) return;
+// ══════════════════════════════════════════════════════
+//  WHATSAPP — UltraMsg API (background, no popup)
+//  Setup: ultramsg.com → create account → connect WhatsApp
+// ══════════════════════════════════════════════════════
 
-  // Clean the client phone number (remove spaces, dashes, +)
-  var cleanPhone = (clientPhone||'').replace(/[^0-9]/g,'');
-  // If starts with 0, replace with 212 (Morocco)
-  if (cleanPhone.startsWith('0')) cleanPhone = '212' + cleanPhone.slice(1);
+function getUltraConfig() {
+  try { return JSON.parse(localStorage.getItem('ultramsg-config') || '{}'); } catch(e) { return {}; }
+}
 
-  // Open WhatsApp to send to CLIENT
-  if (cleanPhone.length >= 10) {
-    var clientUrl = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(msg);
-    window.open(clientUrl, '_blank');
-  } else {
-    // No client phone — just show the message to copy
-    showNotif('📱', 'WhatsApp: ' + msg.substring(0, 60) + '...');
+async function sendWhatsApp(phone, message) {
+  var cfg = getUltraConfig();
+  if (!cfg.instanceId || !cfg.token) {
+    console.warn('[WA] UltraMsg not configured');
+    return { status: 'not_configured' };
   }
 
-  // Also notify yourself (admin) for new submissions
-  if (type === 'confirmation') {
-    var adminMsg = '🔔 *Nouvelle demande reçue*\n'
-      + 'Client: ' + clientName + '\n'
-      + 'Réf: *' + params.ref + '*\n'
-      + 'Destination: ' + params.destination + '\n'
-      + 'Package: ' + params.package + '\n'
-      + 'Total: *' + params.total + ' MAD*\n'
-      + 'Tél: ' + (params.phone||'—') + '\n'
-      + 'Date: ' + (params.travelDate||'—');
-    var adminUrl = 'https://wa.me/212682652382?text=' + encodeURIComponent(adminMsg);
-    window.open(adminUrl, '_blank');
+  // Normalize phone number
+  var clean = (phone || '').replace(/[^0-9]/g, '');
+  if (clean.startsWith('0')) clean = '212' + clean.slice(1);
+  if (!clean || clean.length < 10) {
+    console.warn('[WA] Invalid phone number:', phone);
+    return { status: 'invalid_phone' };
+  }
+  if (!clean.startsWith('+')) clean = '+' + clean;
+
+  try {
+    var res = await fetch('https://api.ultramsg.com/' + cfg.instanceId + '/messages/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ token: cfg.token, to: clean, body: message }).toString()
+    });
+    var json = await res.json();
+    console.log('[WA] Sent to', clean, '→', json);
+    return { status: 'sent', response: json };
+  } catch(e) {
+    console.error('[WA] Error:', e);
+    return { status: 'error', error: e };
   }
 }
 
-function buildWhatsAppMsg(type, clientName, p) {
-  if (type === 'confirmation') return (
-    '✅ *Demande reçue — EuroVisa Pro*\n\n'
-    + 'Bonjour *' + clientName + '*,\n'
-    + 'Nous avons bien reçu votre demande de visa.\n\n'
-    + '📋 *Détails:*\n'
-    + '• Référence: *' + p.ref + '*\n'
-    + '• Destination: ' + p.destination + '\n'
-    + '• Package: ' + p.package + '\n'
-    + '• Total: *' + p.total + ' MAD*\n\n'
-    + 'Notre équipe vous contacte dans les 2h. 🙏'
+async function sendAdminWhatsApp(message) {
+  // Always send to YOUR number for admin notifications
+  return sendWhatsApp('+212682652382', message);
+}
+
+function buildWAConfirmation(clientName, p) {
+  return (
+    '🌟 *EuroVisa Pro — Confirmation de demande*
+'
+    + '━━━━━━━━━━━━━━━━━━━━━━
+
+'
+    + 'Bonjour *' + clientName + '* 👋
+
+'
+    + 'Votre demande de visa a bien été reçue et enregistrée dans notre système. '
+    + 'Notre équipe spécialisée va prendre en charge votre dossier immédiatement.
+
+'
+    + '📋 *Récapitulatif de votre demande:*
+'
+    + '┌─────────────────────────
+'
+    + '│ 🔖 Référence : *' + p.ref + '*
+'
+    + '│ 🌍 Destination : ' + p.destination + '
+'
+    + '│ 📄 Type : ' + p.visaType + '
+'
+    + '│ 📦 Package : ' + p.package + '
+'
+    + '│ 📅 Date voyage : ' + (p.travelDate || 'À définir') + '
+'
+    + '│ 💰 Total : *' + p.total + ' MAD*
+'
+    + '└─────────────────────────
+
+'
+    + '⏰ *Prochaine étape :* Notre conseiller vous contactera dans les *2 heures* pour confirmer les détails et le paiement.
+
+'
+    + '📲 Suivez votre dossier en temps réel sur notre site avec la référence *' + p.ref + '*
+
+'
+    + '_Merci de votre confiance — EuroVisa Pro_ 🙏'
   );
-  if (type === 'status') {
-    var statusEmoji = {pending:'⏳',processing:'⚙️','docs-ready':'📋',appointment:'📅',submitted:'📨',approved:'✅',rejected:'❌'};
-    var em = statusEmoji[p.rawStatus] || '📣';
-    return (
-      em + ' *Mise à jour — EuroVisa Pro*\n\n'
-      + 'Bonjour *' + clientName + '*,\n'
-      + 'Votre demande *' + p.ref + '* a été mise à jour.\n\n'
-      + '📌 Nouveau statut: *' + p.status + '*\n'
-      + (p.adminNote ? '\n💬 Message: ' + p.adminNote + '\n' : '')
-      + '\nSuivez votre dossier sur notre site.'
-    );
+}
+
+function buildWAStatus(clientName, p) {
+  var icons = {
+    'En attente':             '⏳',
+    'En traitement':          '⚙️',
+    'Documents prêts':        '📋',
+    'Rendez-vous confirmé':   '📅',
+    'Dossier soumis':         '📨',
+    'Visa approuvé ✅':        '🎉',
+    'Demande refusée':        '❌'
+  };
+  var icon = icons[p.status] || '📣';
+  var extra = '';
+  if (p.status === 'Visa approuvé ✅') {
+    extra = '
+
+🎊 *Félicitations !* Votre visa a été approuvé. Vous pouvez récupérer votre passeport au centre de visa.
+';
+  } else if (p.status === 'Rendez-vous confirmé') {
+    extra = '
+
+📍 Vérifiez les détails de votre rendez-vous sur notre site.
+';
+  } else if (p.status === 'Demande refusée') {
+    extra = '
+
+💬 Notre équipe vous contactera pour analyser les raisons du refus et explorer les options disponibles.
+';
   }
-  if (type === 'appointment') return (
-    '📅 *Rendez-vous confirmé — EuroVisa Pro*\n\n'
-    + 'Bonjour *' + clientName + '*,\n'
-    + 'Votre rendez-vous visa est confirmé!\n\n'
-    + '📋 Référence: *' + p.ref + '*\n'
-    + '📆 Date: *' + p.appointmentDate + '*\n'
-    + '🕐 Heure: *' + (p.appointmentTime||'—') + '*\n'
-    + '📍 Centre: *' + (p.venueName||'—') + '*\n\n'
-    + '⚠️ Arrivez 15 min en avance avec votre dossier complet.'
+  return (
+    icon + ' *EuroVisa Pro — Mise à jour de votre dossier*
+'
+    + '━━━━━━━━━━━━━━━━━━━━━━
+
+'
+    + 'Bonjour *' + clientName + '*,
+
+'
+    + 'Une mise à jour importante concernant votre demande de visa :
+
+'
+    + '🔖 Référence : *' + p.ref + '*
+'
+    + '🌍 Destination : ' + (p.destination || '—') + '
+
+'
+    + '━━━━━━━━━━━━━━━━━━━━━━
+'
+    + icon + ' Statut actuel : *' + p.status + '*
+'
+    + '━━━━━━━━━━━━━━━━━━━━━━
+'
+    + extra
+    + (p.adminNote ? '
+💬 *Message de notre équipe :*
+' + p.adminNote + '
+' : '')
+    + '
+📲 Suivez l'évolution de votre dossier sur notre site.
+
+'
+    + '_EuroVisa Pro — À votre service_ 🌟'
   );
-  return null;
+}
+
+function buildWAAppointment(clientName, p) {
+  return (
+    '📅 *EuroVisa Pro — Rendez-vous Confirmé !*
+'
+    + '━━━━━━━━━━━━━━━━━━━━━━
+
+'
+    + 'Bonjour *' + clientName + '* 🎉
+
+'
+    + 'Excellente nouvelle ! Votre rendez-vous au centre de visa a été confirmé avec succès.
+
+'
+    + '🗓 *Détails du rendez-vous :*
+'
+    + '┌─────────────────────────
+'
+    + '│ 🔖 Référence : *' + p.ref + '*
+'
+    + '│ 📆 Date : *' + p.appointmentDate + '*
+'
+    + '│ 🕐 Heure : *' + (p.appointmentTime || 'À confirmer') + '*
+'
+    + '│ 📍 Centre : *' + (p.venueName || 'Centre de visa') + '*
+'
+    + '└─────────────────────────
+
+'
+    + '⚠️ *Rappels importants :*
+'
+    + '• Arrivez *15 minutes avant* l'heure du rendez-vous
+'
+    + '• Apportez votre *dossier complet* préparé par notre équipe
+'
+    + '• Votre *passeport original* est obligatoire
+'
+    + '• Portez des vêtements *corrects et propres*
+
+'
+    + '📞 En cas de problème, contactez-nous immédiatement.
+
+'
+    + '_Bonne chance ! EuroVisa Pro est avec vous_ 🍀'
+  );
+}
+
+function buildWAAdminNew(clientName, clientPhone, p) {
+  return (
+    '🔔 *NOUVELLE DEMANDE — EuroVisa Pro*
+'
+    + '━━━━━━━━━━━━━━━━━━━━━━
+
+'
+    + '👤 *Client :* ' + clientName + '
+'
+    + '📞 *Téléphone :* ' + (clientPhone || '—') + '
+'
+    + '📧 *Email :* ' + (p.email || '—') + '
+
+'
+    + '📋 *Détails de la demande :*
+'
+    + '• Référence : *' + p.ref + '*
+'
+    + '• Destination : ' + p.destination + '
+'
+    + '• Type : ' + p.visaType + '
+'
+    + '• Package : ' + p.package + '
+'
+    + '• Date voyage : ' + (p.travelDate || 'Non précisée') + '
+'
+    + '• Total : *' + p.total + ' MAD*
+
+'
+    + '⏰ À traiter dans les 2 heures.'
+  );
 }
 
 function buildSubject(type, p) {
