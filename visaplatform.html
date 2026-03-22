@@ -829,6 +829,10 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
+// ── Constants (must be at top — used by loadSmtpConfig on init) ──
+const YOUR_EMAIL = 'tls.appointements@gmail.com';
+const GAS_URL    = 'https://script.google.com/macros/s/AKfycby9vRm5IveouUDQqZyZTDx375wc3S6YGF0Abaqq2zQI3LqNAxVq9Asi-WCqtcUfb7Emzg/exec';
+
 // ── Startup connectivity check ──
 firebase.auth().onAuthStateChanged(function(){}, function(e){
   console.error('[FIREBASE] Auth connectivity error:', e);
@@ -1650,8 +1654,6 @@ function friendlyError(code) {
 document.getElementById('auth-modal').addEventListener('click', e=>{ if(e.target===document.getElementById('auth-modal')) closeAuth(); });
 
 
-const YOUR_EMAIL = 'tls.appointements@gmail.com';
-const GAS_URL    = 'https://script.google.com/macros/s/AKfycby9vRm5IveouUDQqZyZTDx375wc3S6YGF0Abaqq2zQI3LqNAxVq9Asi-WCqtcUfb7Emzg/exec';
 
 async function sendEmail(type, toEmail, toName, params) {
   console.log('[EMAIL] Sending type='+type+' to='+toEmail);
@@ -1756,4 +1758,4 @@ function buildEmailHTML(type, toName, p) {
 async function queueEmail() {} // replaced by sendEmail
 </script>
 </body>
-</html>	
+</html>
