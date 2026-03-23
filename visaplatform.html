@@ -701,7 +701,7 @@ tr:hover td{background:var(--cream)}
           <div style="padding:24px">
             <div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:10px;padding:16px 20px;font-size:13px;color:#065f46;margin-bottom:20px;line-height:1.8">
               ✅ <strong>Emails activés via Google Apps Script</strong><br>
-              Envoyés directement depuis <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="90e4fce3bef1e0e0fff9fee4f5fdf5fee4e3d0f7fdf1f9fcbef3fffd">[email&#160;protected]</a></strong> — aucune action requise.
+              Envoyés directement depuis <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="93e7ffe0bdf2e3e3fcfafde7f6fef6fde7e0d3f4fef2faffbdf0fcfe">[email&#160;protected]</a></strong> — aucune action requise.
             </div>
             <div style="background:var(--cream);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;font-family:monospace;color:var(--muted);word-break:break-all" id="gas-url-display">https://script.google.com/macros/s/AKfycby9vRm5IveouUDQqZyZTDx375wc3S6YGF0Abaqq2zQI3LqNAxVq9Asi-WCqtcUfb7Emzg/exec</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
@@ -748,7 +748,7 @@ tr:hover td{background:var(--cream)}
             </div>
             <div style="background:var(--cream);border-radius:8px;padding:14px 16px;margin-top:16px;font-size:13px;color:var(--muted)">
               <strong style="color:var(--navy)">Emails automatiques :</strong><br>
-              ✅ <strong>Confirmation</strong> → client + copie à <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a6d2cad588c7d6d6c9cfc8d2c3cbc3c8d2d5e6c1cbc7cfca88c5c9cb">[email&#160;protected]</a> à chaque soumission<br>
+              ✅ <strong>Confirmation</strong> → client + copie à <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c3b7afb0eda2b3b3acaaadb7a6aea6adb7b083a4aea2aaafeda0acae">[email&#160;protected]</a> à chaque soumission<br>
               ✅ <strong>Mise à jour statut</strong> → client quand vous changez le statut dans l'admin<br>
               ✅ <strong>Rappel rendez-vous</strong> → client depuis la fiche de la demande
         </div>
@@ -871,7 +871,7 @@ tr:hover td{background:var(--cream)}
 </div>
 
 <!-- Firebase Compat (works on file:// and HTTP) -->
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
@@ -1617,6 +1617,7 @@ window.sendApptEmail = async function() {
     .then(wr=>{ if(wr.status==='sent') showNotif('💬','WhatsApp envoyé à '+a.phone); else if(wr.status==='not_configured') showNotif('⚠️','WhatsApp non configuré (Admin > SMTP Config)'); });
 };
 
+
 // ── WhatsApp-only send functions ──
 async function sendWAOnly(msgFn, label) {
   if (!currentDrawerApp) return;
@@ -1625,8 +1626,8 @@ async function sendWAOnly(msgFn, label) {
   showNotif('💬','Envoi WhatsApp à '+a.phone+'…');
   const msg = msgFn(a);
   const wr = await sendWhatsApp(a.phone, msg);
-  if (wr.status === 'sent')             showNotif('✅', 'WhatsApp '+label+' envoyé à '+a.phone);
-  else if (wr.status === 'not_configured') showNotif('⚠️','WhatsApp non configuré — allez dans Admin > SMTP Config pour configurer UltraMsg');
+  if (wr.status === 'sent')              showNotif('✅', 'WhatsApp '+label+' envoyé à '+a.phone);
+  else if (wr.status === 'not_configured') showNotif('⚠️','WhatsApp non configuré — Admin > SMTP Config');
   else if (wr.status === 'invalid_phone')  showNotif('⚠️','Numéro invalide: '+a.phone);
   else showNotif('⚠️','Erreur WhatsApp: '+(wr.error?.message||JSON.stringify(wr.error)));
 }
@@ -1651,6 +1652,9 @@ window.sendWAApptOnly = function() {
     ref:a.ref, appointmentDate:a.appointmentDate,
     appointmentTime:a.appointmentTime||'—', venueName:a.appointmentVenue||'Centre de visa'}), 'Rendez-vous');
 };
+
+// ══════════════════════════════════════════
+//  EMAIL QUEUE
 // ══════════════════════════════════════════
 async function queueEmail(to, subject, body, type, ref) {
   await db.collection('email_queue').add({to,subject,body,type,ref:ref||'',status:'queued',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
@@ -2162,4 +2166,52 @@ function buildEmailHTML(type, toName, p) {
     +tbl(row('Reference',p.ref)
         +row('Date','<strong style="color:#1B7A4A">'+p.appointmentDate+'</strong>')
         +row('Heure',p.appointmentTime)+row('Centre',p.venueName))
-    +'<div style="background:#FEF3C7;border-radius:8
+    +'<div style="background:#FEF3C7;border-radius:8    +'<div style="background:#FEF3C7;border-radius:8px;padding:14px 18px;margin:16px 0;font-size:13px;color:#92400E">'
+    +'<strong>⏰ Rappel:</strong> Présentez-vous 15 à 20 minutes avant l\'heure de votre rendez-vous avec votre passeport original et dossier complet.'
+    +'</div>'
+    +"<p>Cordialement,<br><strong>L'equipe EuroVisa Pro</strong></p>");
+}
+
+function getTpl(key) {
+  return localStorage.getItem('tpl-'+key) || '';
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('admin-today') && (document.getElementById('admin-today').textContent =
+    new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'}));
+  loadSmtpConfig();
+  loadTemplateFields();
+  auth.onAuthStateChanged(function(user) {
+    if (user) {
+      if (user.email === ADMIN_EMAIL) {
+        isAdmin = true;
+        document.getElementById('admin-access-btn').style.display = 'none';
+        document.getElementById('nav-login-btn').style.display  = 'none';
+        document.getElementById('user-badge').style.display     = 'flex';
+        document.getElementById('nav-admin-btn').style.display  = 'inline-block';
+        document.getElementById('nav-dash-btn').style.display   = 'none';
+        document.getElementById('user-avatar').textContent      = 'AD';
+        document.getElementById('user-name-nav').textContent    = 'Admin';
+      } else {
+        const name = user.displayName || user.email.split('@')[0];
+        document.getElementById('nav-login-btn').style.display  = 'none';
+        document.getElementById('user-badge').style.display     = 'flex';
+        document.getElementById('nav-dash-btn').style.display   = 'inline-block';
+        document.getElementById('nav-admin-btn').style.display  = 'none';
+        document.getElementById('user-avatar').textContent      = name.charAt(0).toUpperCase();
+        document.getElementById('user-name-nav').textContent    = name;
+      }
+    } else {
+      document.getElementById('nav-login-btn').style.display  = 'inline-block';
+      document.getElementById('user-badge').style.display     = 'none';
+      document.getElementById('nav-dash-btn').style.display   = 'none';
+      document.getElementById('nav-admin-btn').style.display  = 'none';
+    }
+  });
+});
+</script>
+</body>
+</html>
