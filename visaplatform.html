@@ -1872,10 +1872,36 @@ function normalizePhone(phone) {
   return clean.replace(/[^+0-9]/g, '');
 }
 
+function sanitizeWA(s) {
+  // Map accented chars to plain ASCII so wa.me URL never garbles on any device
+  var map = {
+    '\u00e0':'a','\u00e1':'a','\u00e2':'a','\u00e3':'a','\u00e4':'a','\u00e5':'a',
+    '\u00c0':'A','\u00c1':'A','\u00c2':'A','\u00c3':'A','\u00c4':'A','\u00c5':'A',
+    '\u00e8':'e','\u00e9':'e','\u00ea':'e','\u00eb':'e',
+    '\u00c8':'E','\u00c9':'E','\u00ca':'E','\u00cb':'E',
+    '\u00ec':'i','\u00ed':'i','\u00ee':'i','\u00ef':'i',
+    '\u00cc':'I','\u00cd':'I','\u00ce':'I','\u00cf':'I',
+    '\u00f2':'o','\u00f3':'o','\u00f4':'o','\u00f5':'o','\u00f6':'o',
+    '\u00d2':'O','\u00d3':'O','\u00d4':'O','\u00d5':'O','\u00d6':'O',
+    '\u00f9':'u','\u00fa':'u','\u00fb':'u','\u00fc':'u',
+    '\u00d9':'U','\u00da':'U','\u00db':'U','\u00dc':'U',
+    '\u00fd':'y','\u00ff':'y','\u00dd':'Y',
+    '\u00f1':'n','\u00d1':'N',
+    '\u00e7':'c','\u00c7':'C',
+    '\u0153':'oe','\u0152':'OE',
+    '\u00e6':'ae','\u00c6':'AE',
+    '\u2014':'-','\u2013':'-',
+    '\u2018':"'",'\u2019':"'"
+  };
+  return (s || '').replace(/[\u00c0-\u024f\u2013\u2014\u2018\u2019]/g, function(c) {
+    return map[c] !== undefined ? map[c] : c;
+  });
+}
+
 function sendWhatsApp(phone, message) {
   var clean = normalizePhone(phone);
   if (clean.length < 10) { console.warn('[WA] Invalid phone:', phone); return {status:'invalid_phone'}; }
-  var url = 'https://wa.me/' + clean.replace('+','') + '?text=' + encodeURIComponent(message);
+  var url = 'https://wa.me/' + clean.replace('+','') + '?text=' + encodeURIComponent(sanitizeWA(message));
   window.open(url, '_blank');
   return {status:'sent'};
 }
