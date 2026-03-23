@@ -163,17 +163,17 @@ tr:hover td{background:var(--cream)}
 .track-input-row{display:flex;gap:10px;margin-bottom:32px}
 .track-input-row input{flex:1;border:2px solid var(--border);border-radius:10px;padding:12px 16px;font-family:inherit;font-size:15px;outline:none;transition:border-color .2s;background:var(--white)}
 .track-input-row input:focus{border-color:var(--gold);background:#fff}
-.timeline{position:relative;padding-left:40px}
-.timeline::before{content:'';position:absolute;left:13px;top:10px;bottom:10px;width:2px;background:linear-gradient(to bottom,var(--gold),var(--border))}
-.timeline-item{position:relative;margin-bottom:24px}
+.timeline{position:relative;padding-left:44px}
+.timeline::before{content:'';position:absolute;left:10px;top:14px;bottom:14px;width:2px;background:linear-gradient(to bottom,var(--gold),var(--border));border-radius:2px}
+.timeline-item{position:relative;margin-bottom:28px}
 .timeline-item:last-child{margin-bottom:0}
-.timeline-dot{position:absolute;left:-27px;top:2px;width:20px;height:20px;border-radius:50%;background:var(--white);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;transition:.3s}
+.timeline-dot{position:absolute;left:-31px;top:0;width:22px;height:22px;border-radius:50%;background:var(--white);border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:.3s;z-index:1}
 .timeline-dot.done{background:#1B7A4A;border-color:#1B7A4A;color:#fff;box-shadow:0 0 0 3px rgba(27,122,74,.12)}
 .timeline-dot.active{background:var(--gold);border-color:var(--gold);color:var(--navy);box-shadow:0 0 0 4px rgba(200,149,42,.2)}
-.timeline-title{font-weight:600;font-size:14px;color:var(--navy);margin-bottom:3px}
+.timeline-title{font-weight:600;font-size:14px;color:var(--navy);margin-bottom:3px;line-height:1.4}
 .timeline-title.faded{color:var(--muted);font-weight:500}
 .timeline-desc{font-size:13px;color:var(--muted);line-height:1.5}
-.timeline-current-tag{display:inline-block;font-size:10px;font-weight:700;background:var(--gold);color:var(--navy);padding:2px 8px;border-radius:10px;margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+.timeline-current-tag{display:inline-block;font-size:10px;font-weight:700;background:var(--gold);color:var(--navy);padding:2px 10px;border-radius:10px;margin-bottom:4px;margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
 /* CHAT */
 #chat-widget{position:fixed;bottom:24px;right:24px;z-index:200}
 .chat-btn{width:56px;height:56px;background:var(--navy);border-radius:28px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(11,29,53,.3);transition:.2s;font-size:24px}
@@ -544,8 +544,8 @@ tr:hover td{background:var(--cream)}
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#92400E;margin-bottom:6px">📌 Message from our team</div>
         <div id="track-admin-note-text" style="font-size:14px;color:#78350F;line-height:1.6"></div>
       </div>
-      <div style="background:var(--white);border-radius:16px;border:1px solid var(--border);padding:24px 28px;margin-bottom:20px">
-        <h3 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:20px;text-transform:uppercase;letter-spacing:.06em">Application Progress</h3>
+      <div style="background:var(--white);border-radius:16px;border:1px solid var(--border);padding:28px 32px;margin-bottom:20px">
+        <h3 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:24px;text-transform:uppercase;letter-spacing:.06em">Application Progress</h3>
         <div class="timeline" id="track-timeline"></div>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
@@ -1866,11 +1866,18 @@ function getUltraConfig() {
 
 async function sendWhatsApp(phone, message) {
   var cfg = getUltraConfig();
-  if (!cfg.instanceId || !cfg.token) { console.warn('[WA] Not configured'); return {status:'not_configured'}; }
-  var clean = (phone||'').replace(/[^0-9]/g,'');
-  if (clean.startsWith('0')) clean = '212' + clean.slice(1);
-  if (!clean || clean.length < 10) { console.warn('[WA] Invalid phone:', phone); return {status:'invalid_phone'}; }
+  if (!cfg.instanceId || !cfg.token) {
+    console.warn('[WA] Not configured — set Instance ID and Token in Admin > SMTP Config');
+    return {status:'not_configured'};
+  }
+  // Normalize to E.164: +212XXXXXXXXX
+  var clean = (phone || '').trim().replace(/[\s\-().]/g, '');
+  if (clean.startsWith('00')) clean = '+' + clean.slice(2);
+  else if (/^0[^0]/.test(clean)) clean = '+212' + clean.slice(1);
   if (!clean.startsWith('+')) clean = '+' + clean;
+  clean = '+' + clean.slice(1).replace(/[^0-9]/g, '');
+  if (clean.length < 10) { console.warn('[WA] Invalid phone:', phone, '->', clean); return {status:'invalid_phone'}; }
+  console.log('[WA] Sending to', clean);
   try {
     var res = await fetch('https://api.ultramsg.com/' + cfg.instanceId + '/messages/chat', {
       method: 'POST',
@@ -1878,11 +1885,13 @@ async function sendWhatsApp(phone, message) {
       body: new URLSearchParams({token: cfg.token, to: clean, body: message}).toString()
     });
     var json = await res.json();
-    console.log('[WA] Sent to', clean, json);
-    return {status:'sent', response:json};
+    if (json.sent === 'true' || json.sent === true) {
+      console.log('[WA] ✅ Sent to', clean); return {status:'sent', response:json};
+    } else {
+      console.warn('[WA] API error:', json); return {status:'error', error:json};
+    }
   } catch(e) {
-    console.error('[WA] Error:', e);
-    return {status:'error', error:e};
+    console.error('[WA] Fetch error:', e); return {status:'error', error:e};
   }
 }
 
