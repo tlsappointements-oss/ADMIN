@@ -1898,11 +1898,65 @@ function sanitizeWA(s) {
   });
 }
 
+// WA modal element — created once
+function ensureWAModal() {
+  if (document.getElementById('wa-modal')) return;
+  var el = document.createElement('div');
+  el.id = 'wa-modal';
+  el.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;';
+  el.innerHTML = [
+    '<div style="background:#fff;border-radius:16px;width:480px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;font-family:DM Sans,sans-serif">',
+      '<div style="background:#0B1D35;padding:20px 24px;display:flex;align-items:center;justify-content:space-between">',
+        '<div style="display:flex;align-items:center;gap:10px">',
+          '<span style="font-size:22px">💬</span>',
+          '<div>',
+            '<div style="color:#fff;font-weight:600;font-size:15px">Envoyer via WhatsApp</div>',
+            '<div style="color:rgba(255,255,255,.5);font-size:12px" id="wa-modal-phone"></div>',
+          '</div>',
+        '</div>',
+        '<button onclick="document.getElementById(\'wa-modal\').style.display=\'none\'" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;line-height:1">✕</button>',
+      '</div>',
+      '<div style="padding:20px 24px">',
+        '<div style="background:#F7F4EE;border-radius:10px;padding:14px;font-size:13px;line-height:1.7;color:#1A1A2E;white-space:pre-wrap;max-height:280px;overflow-y:auto;border:1px solid #e5e0d5;font-family:monospace" id="wa-modal-text"></div>',
+        '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">',
+          '<button id="wa-copy-btn" onclick="waModalCopy()" style="flex:1;background:#F7F4EE;border:1.5px solid #e5e0d5;color:#0B1D35;font-family:inherit;font-weight:600;font-size:13px;padding:10px 16px;border-radius:8px;cursor:pointer">📋 Copier</button>',
+          '<button id="wa-open-btn" onclick="waModalOpen()" style="flex:2;background:#25D366;color:#fff;font-family:inherit;font-weight:600;font-size:13px;padding:10px 16px;border-radius:8px;border:none;cursor:pointer">📱 Ouvrir WhatsApp</button>',
+        '</div>',
+        '<div style="font-size:11px;color:#9CA3AF;margin-top:10px;text-align:center">Le message est copie dans le presse-papiers. Collez-le dans WhatsApp apres ouverture.</div>',
+      '</div>',
+    '</div>'
+  ].join('');
+  document.body.appendChild(el);
+  el.addEventListener('click', function(e){ if(e.target===el) el.style.display='none'; });
+}
+
+var _waCurrentPhone = '';
+var _waCurrentMsg   = '';
+
+function waModalCopy() {
+  navigator.clipboard.writeText(_waCurrentMsg).then(function() {
+    var btn = document.getElementById('wa-copy-btn');
+    btn.textContent = '✅ Copie!';
+    setTimeout(function(){ btn.textContent = '📋 Copier'; }, 2000);
+  });
+}
+
+function waModalOpen() {
+  var clean = _waCurrentPhone.replace('+','');
+  window.open('https://wa.me/' + clean, '_blank');
+}
+
 function sendWhatsApp(phone, message) {
   var clean = normalizePhone(phone);
   if (clean.length < 10) { console.warn('[WA] Invalid phone:', phone); return {status:'invalid_phone'}; }
-  var url = 'https://wa.me/' + clean.replace('+','') + '?text=' + encodeURIComponent(sanitizeWA(message));
-  window.open(url, '_blank');
+  ensureWAModal();
+  _waCurrentPhone = clean;
+  _waCurrentMsg   = message;
+  document.getElementById('wa-modal-phone').textContent = clean;
+  document.getElementById('wa-modal-text').textContent  = message;
+  document.getElementById('wa-modal').style.display     = 'flex';
+  // Auto-copy to clipboard immediately
+  navigator.clipboard.writeText(message).catch(function(){});
   return {status:'sent'};
 }
 
@@ -1915,43 +1969,43 @@ function nl(s) { return s + '\n'; } // helper
 function buildWAConfirmation(clientName, p) {
   var firstName = clientName.split(' ')[0];
   var m = '';
-  m += '✅ *DEMANDE RECUE - EuroVisa Pro*\n\n';
-  m += 'Bonjour *' + firstName + '* 🌟\n\n';
+  m += ' *DEMANDE RECUE - EuroVisa Pro*\n\n';
+  m += 'Bonjour *' + firstName + '* \n\n';
   m += 'Nous avons bien enregistre votre demande de visa.\n';
   m += 'Votre dossier est entre les mains de notre equipe.\n\n';
   m += '----------------------------\n';
-  m += '🔐 *Reference dossier :* *' + p.ref + '*\n';
+  m += ' *Reference dossier :* *' + p.ref + '*\n';
   m += 'Conservez ce numero pour toute communication.\n';
   m += '----------------------------\n\n';
-  m += '📋 *Details de votre demande*\n\n';
-  m += '🌍 Destination   : ' + p.destination + '\n';
-  m += '📄 Type de visa  : ' + (p.visaType||'-') + '\n';
-  m += '📦 Package       : ' + p.package + '\n';
-  m += '📅 Date voyage   : ' + (p.travelDate||'A preciser') + '\n';
-  m += '💳 Total         : *' + p.total + ' MAD*\n\n';
+  m += ' *Details de votre demande*\n\n';
+  m += ' Destination   : ' + p.destination + '\n';
+  m += ' Type de visa  : ' + (p.visaType||'-') + '\n';
+  m += ' Package       : ' + p.package + '\n';
+  m += ' Date voyage   : ' + (p.travelDate||'A preciser') + '\n';
+  m += ' Total         : *' + p.total + ' MAD*\n\n';
   m += '----------------------------\n';
   m += '⏱ *Prochaine etape*\n\n';
   m += 'Un conseiller vous contactera dans les *2 heures* pour confirmer votre dossier et les instructions de paiement.\n\n';
   m += '----------------------------\n\n';
-  m += '_EuroVisa Pro - Votre visa, notre mission_ 🇲🇦✈️';
+  m += '_EuroVisa Pro - Votre visa, notre mission_ ';
   return m;
 }
 
 
 function buildWAStatus(clientName, p) {
   var firstName = clientName.split(' ')[0];
-  var icons = {pending:'⏳',processing:'⚙️','docs-ready':'📂',appointment:'🗓',submitted:'📨',approved:'🎉',rejected:'⛔'};
+  var icons = {pending:'⏳',processing:'','docs-ready':'',appointment:'',submitted:'',approved:'',rejected:''};
   var statusKeys = {'En attente':'pending','En traitement':'processing','Documents prets':'docs-ready',
-    'Rendez-vous confirme':'appointment','Dossier soumis':'submitted','Visa approuve ✅':'approved','Demande refusee':'rejected'};
+    'Rendez-vous confirme':'appointment','Dossier soumis':'submitted','Visa approuve ':'approved','Demande refusee':'rejected'};
   var rawKey = statusKeys[p.status] || p.rawStatus || '';
-  var icon = icons[rawKey] || '📣';
+  var icon = icons[rawKey] || '';
 
   var extra = '';
   if (rawKey==='processing')   extra = 'Notre equipe travaille activement sur votre dossier. Vous serez informe des que les documents sont prets.\n\n';
-  else if (rawKey==='docs-ready') extra = '✨ Votre dossier complet est pret. Nous procedons a la prise de rendez-vous au centre de visa.\n\n';
-  else if (rawKey==='appointment') extra = '📅 Votre rendez-vous a ete confirme. Vous recevrez tres prochainement tous les details.\n\n';
-  else if (rawKey==='submitted') extra = '📨 Votre dossier a ete soumis a l\'ambassade. Delai : *5 a 15 jours ouvrables*.\n\n';
-  else if (rawKey==='approved')  extra = '🥂 *Felicitations ' + firstName + '!*\n\nVotre visa a ete *approuve*! Vous pouvez recuperer votre passeport au centre de visa.\n\nBon voyage! ✈️🌍\n\n';
+  else if (rawKey==='docs-ready') extra = ' Votre dossier complet est pret. Nous procedons a la prise de rendez-vous au centre de visa.\n\n';
+  else if (rawKey==='appointment') extra = ' Votre rendez-vous a ete confirme. Vous recevrez tres prochainement tous les details.\n\n';
+  else if (rawKey==='submitted') extra = ' Votre dossier a ete soumis a l\'ambassade. Delai : *5 a 15 jours ouvrables*.\n\n';
+  else if (rawKey==='approved')  extra = ' *Felicitations ' + firstName + '!*\n\nVotre visa a ete *approuve*! Vous pouvez recuperer votre passeport au centre de visa.\n\nBon voyage! \n\n';
   else if (rawKey==='rejected')  extra = 'Nous comprenons que cette nouvelle est decevante. Notre equipe va analyser votre dossier et vous proposera les meilleures options pour une nouvelle demande.\n\n';
 
   var m = '';
@@ -1959,20 +2013,20 @@ function buildWAStatus(clientName, p) {
   m += 'Bonjour *' + firstName + '*,\n\n';
   m += 'Mise a jour sur votre dossier visa :\n\n';
   m += '----------------------------\n';
-  m += '📌 Reference  : *' + p.ref + '*\n';
-  if (p.destination) m += '🌍 Destination : ' + p.destination + '\n';
+  m += ' Reference  : *' + p.ref + '*\n';
+  if (p.destination) m += ' Destination : ' + p.destination + '\n';
   m += '----------------------------\n\n';
   m += icon + ' Nouveau statut :\n\n';
   m += '      *' + p.status + '*\n\n';
   m += extra;
   if (p.adminNote) {
     m += '----------------------------\n';
-    m += '💬 *Message de notre equipe :*\n\n';
+    m += ' *Message de notre equipe :*\n\n';
     m += p.adminNote + '\n';
     m += '----------------------------\n\n';
   }
   m += 'Pour toute question, repondez a ce message.\n\n';
-  m += '_EuroVisa Pro - Votre visa, notre mission_ 🇲🇦✈️';
+  m += '_EuroVisa Pro - Votre visa, notre mission_ ';
   return m;
 }
 
@@ -1980,27 +2034,27 @@ function buildWAStatus(clientName, p) {
 function buildWAAppointment(clientName, p) {
   var firstName = clientName.split(' ')[0];
   var m = '';
-  m += '🗓 *RENDEZ-VOUS CONFIRME - EuroVisa Pro*\n\n';
-  m += 'Bonjour *' + firstName + '* 🎉\n\n';
+  m += ' *RENDEZ-VOUS CONFIRME - EuroVisa Pro*\n\n';
+  m += 'Bonjour *' + firstName + '* \n\n';
   m += 'Excellente nouvelle ! Votre rendez-vous au centre de visa est confirme.\n\n';
   m += '----------------------------\n';
-  m += '📋 *Informations du rendez-vous*\n\n';
-  m += '🔐 Reference : *' + p.ref + '*\n';
-  m += '📆 Date      : *' + p.appointmentDate + '*\n';
-  m += '🕐 Heure     : *' + (p.appointmentTime||'Voir confirmation') + '*\n';
-  m += '📍 Centre    : *' + (p.venueName||'Centre de visa') + '*\n';
+  m += ' *Informations du rendez-vous*\n\n';
+  m += ' Reference : *' + p.ref + '*\n';
+  m += ' Date      : *' + p.appointmentDate + '*\n';
+  m += ' Heure     : *' + (p.appointmentTime||'Voir confirmation') + '*\n';
+  m += ' Centre    : *' + (p.venueName||'Centre de visa') + '*\n';
   m += '----------------------------\n\n';
-  m += '✅ *Ce que vous devez apporter :*\n\n';
-  m += '  📗 Passeport original + copies\n';
-  m += '  📁 Dossier complet EuroVisa Pro\n';
-  m += '  🖼 Photos biometriques (si non fournies)\n';
-  m += '  💳 Frais de visa (especes ou carte)\n\n';
+  m += ' *Ce que vous devez apporter :*\n\n';
+  m += '   Passeport original + copies\n';
+  m += '   Dossier complet EuroVisa Pro\n';
+  m += '   Photos biometriques (si non fournies)\n';
+  m += '   Frais de visa (especes ou carte)\n\n';
   m += '----------------------------\n';
   m += '⏰ *Rappel important*\n\n';
   m += 'Presentez-vous *15 a 20 minutes avant* l\'heure. Tout retard peut entrainer l\'annulation du creneau.\n';
   m += '----------------------------\n\n';
   m += 'Notre equipe reste disponible pour toute question.\n\n';
-  m += '_Bonne chance ' + firstName + ' ! EuroVisa Pro est avec vous_ 🍀✈️';
+  m += '_Bonne chance ' + firstName + ' ! EuroVisa Pro est avec vous_ ';
   return m;
 }
 
@@ -2008,21 +2062,21 @@ function buildWAAppointment(clientName, p) {
 function buildWAAdminNew(clientName, clientPhone, p) {
   var now = new Date().toLocaleString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   var m = '';
-  m += '🔔 *NOUVELLE DEMANDE RECUE*\n';
+  m += ' *NOUVELLE DEMANDE RECUE*\n';
   m += '----------------------------\n';
   m += '⏰ ' + now + '\n\n';
-  m += '👤 *' + clientName + '*\n';
-  m += '📞 ' + (clientPhone||'Non renseigne') + '\n';
-  m += '📧 ' + (p.email||'Non renseigne') + '\n\n';
+  m += ' *' + clientName + '*\n';
+  m += ' ' + (clientPhone||'Non renseigne') + '\n';
+  m += ' ' + (p.email||'Non renseigne') + '\n\n';
   m += '----------------------------\n';
-  m += '🔐 Ref     : *' + p.ref + '*\n';
-  m += '🌍 Dest    : ' + p.destination + '\n';
-  m += '📄 Type    : ' + (p.visaType||'-') + '\n';
-  m += '📦 Package : ' + p.package + '\n';
-  m += '📅 Voyage  : ' + (p.travelDate||'-') + '\n';
-  m += '💳 Total   : *' + p.total + ' MAD*\n';
+  m += ' Ref     : *' + p.ref + '*\n';
+  m += ' Dest    : ' + p.destination + '\n';
+  m += ' Type    : ' + (p.visaType||'-') + '\n';
+  m += ' Package : ' + p.package + '\n';
+  m += ' Voyage  : ' + (p.travelDate||'-') + '\n';
+  m += ' Total   : *' + p.total + ' MAD*\n';
   m += '----------------------------\n\n';
-  m += '⚡ A traiter sous *2 heures*.';
+  m += ' A traiter sous *2 heures*.';
   return m;
 }
 
