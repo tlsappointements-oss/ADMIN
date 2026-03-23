@@ -164,10 +164,10 @@ tr:hover td{background:var(--cream)}
 .track-input-row input{flex:1;border:2px solid var(--border);border-radius:10px;padding:12px 16px;font-family:inherit;font-size:15px;outline:none;transition:border-color .2s;background:var(--white)}
 .track-input-row input:focus{border-color:var(--gold);background:#fff}
 .timeline{position:relative;padding-left:44px}
-.timeline::before{content:'';position:absolute;left:10px;top:14px;bottom:14px;width:2px;background:linear-gradient(to bottom,var(--gold),var(--border));border-radius:2px}
+.timeline::before{content:'';position:absolute;left:21px;top:11px;bottom:11px;width:2px;background:linear-gradient(to bottom,var(--gold),var(--border));border-radius:2px}
 .timeline-item{position:relative;margin-bottom:28px}
 .timeline-item:last-child{margin-bottom:0}
-.timeline-dot{position:absolute;left:-31px;top:0;width:22px;height:22px;border-radius:50%;background:var(--white);border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:.3s;z-index:1}
+.timeline-dot{position:absolute;left:-33px;top:0;width:22px;height:22px;border-radius:50%;background:var(--white);border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:.3s;z-index:1}
 .timeline-dot.done{background:#1B7A4A;border-color:#1B7A4A;color:#fff;box-shadow:0 0 0 3px rgba(27,122,74,.12)}
 .timeline-dot.active{background:var(--gold);border-color:var(--gold);color:var(--navy);box-shadow:0 0 0 4px rgba(200,149,42,.2)}
 .timeline-title{font-weight:600;font-size:14px;color:var(--navy);margin-bottom:3px;line-height:1.4}
@@ -701,7 +701,7 @@ tr:hover td{background:var(--cream)}
           <div style="padding:24px">
             <div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:10px;padding:16px 20px;font-size:13px;color:#065f46;margin-bottom:20px;line-height:1.8">
               ✅ <strong>Emails activés via Google Apps Script</strong><br>
-              Envoyés directement depuis <strong>tls.appointements@gmail.com</strong> — aucune action requise.
+              Envoyés directement depuis <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="90e4fce3bef1e0e0fff9fee4f5fdf5fee4e3d0f7fdf1f9fcbef3fffd">[email&#160;protected]</a></strong> — aucune action requise.
             </div>
             <div style="background:var(--cream);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;font-family:monospace;color:var(--muted);word-break:break-all" id="gas-url-display">https://script.google.com/macros/s/AKfycby9vRm5IveouUDQqZyZTDx375wc3S6YGF0Abaqq2zQI3LqNAxVq9Asi-WCqtcUfb7Emzg/exec</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
@@ -748,7 +748,7 @@ tr:hover td{background:var(--cream)}
             </div>
             <div style="background:var(--cream);border-radius:8px;padding:14px 16px;margin-top:16px;font-size:13px;color:var(--muted)">
               <strong style="color:var(--navy)">Emails automatiques :</strong><br>
-              ✅ <strong>Confirmation</strong> → client + copie à tls.appointements@gmail.com à chaque soumission<br>
+              ✅ <strong>Confirmation</strong> → client + copie à <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a6d2cad588c7d6d6c9cfc8d2c3cbc3c8d2d5e6c1cbc7cfca88c5c9cb">[email&#160;protected]</a> à chaque soumission<br>
               ✅ <strong>Mise à jour statut</strong> → client quand vous changez le statut dans l'admin<br>
               ✅ <strong>Rappel rendez-vous</strong> → client depuis la fiche de la demande
         </div>
@@ -808,6 +808,14 @@ tr:hover td{background:var(--cream)}
         <button class="btn-sm btn-sm-green" onclick="sendApptEmail()">🗓 Appt. Reminder</button>
       </div>
     </div>
+    <div class="drawer-section"><h4>💬 WhatsApp Direct</h4>
+      <div id="drawer-wa-phone" style="font-size:12px;color:var(--muted);margin-bottom:8px">📞 Loading…</div>
+      <div class="drawer-actions">
+        <button class="btn-sm btn-sm-gold" onclick="sendWAConfirmOnly()">✅ Confirmation</button>
+        <button class="btn-sm btn-sm-navy" onclick="sendWAStatusOnly()">📣 Status Update</button>
+        <button class="btn-sm btn-sm-green" onclick="sendWAApptOnly()">🗓 Appt. Reminder</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -863,7 +871,7 @@ tr:hover td{background:var(--cream)}
 </div>
 
 <!-- Firebase Compat (works on file:// and HTTP) -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
@@ -1492,6 +1500,8 @@ window.openDrawer = function(id) {
   document.getElementById('drawer-appt-date').value    = a.appointmentDate||'';
   document.getElementById('drawer-appt-time').value    = a.appointmentTime||'';
   document.getElementById('drawer-appt-venue').value   = a.appointmentVenue||'';
+  var waPhoneEl = document.getElementById('drawer-wa-phone');
+  if (waPhoneEl) waPhoneEl.textContent = '📞 Sending to: ' + (a.phone || 'No phone on file');
   document.getElementById('app-drawer').classList.add('open');
   document.getElementById('drawer-backdrop').classList.add('open');
 };
@@ -1569,10 +1579,11 @@ window.sendConfirmEmail = async function() {
   const r = await sendEmail('confirmation', a.email, `${a.firstName} ${a.lastName||''}`,
     { ref:a.ref, firstName:a.firstName, lastName:a.lastName||'', destination:a.destination,
       visaType:a.visaType, package:a.package, travelDate:a.travelDate, total:a.total, phone:a.phone });
-  showNotif(r.status==='sent'?'📬':'⚠️', r.status==='sent'?'Email envoyé!':'Erreur: '+(r.error?.message||r.status));
-  if (r.status==='sent') sendWhatsApp(a.phone, buildWAConfirmation(a.firstName+' '+(a.lastName||''),
+  showNotif(r.status==='sent'?'📬':'⚠️', r.status==='sent'?'Email envoyé!':'Erreur email: '+(r.error?.message||r.status));
+  sendWhatsApp(a.phone, buildWAConfirmation(a.firstName+' '+(a.lastName||''),
     {ref:a.ref, destination:a.destination, visaType:a.visaType||'—',
-     package:a.package, travelDate:a.travelDate, total:a.total}));
+     package:a.package, travelDate:a.travelDate, total:a.total}))
+    .then(wr=>{ if(wr.status==='sent') showNotif('💬','WhatsApp envoyé à '+a.phone); else if(wr.status==='not_configured') showNotif('⚠️','WhatsApp non configuré (Admin > SMTP Config)'); });
 };
 
 window.sendStatusEmail = async function() {
@@ -1584,9 +1595,10 @@ window.sendStatusEmail = async function() {
   const r = await sendEmail('status', a.email, `${a.firstName} ${a.lastName||''}`,
     { ref:a.ref, firstName:a.firstName, destination:a.destination,
       status:statusLabels[a.status]||a.status, adminNote:a.adminNote||'' });
-  showNotif(r.status==='sent'?'📣':'⚠️', r.status==='sent'?'Email envoyé!':'Erreur: '+(r.error?.message||r.status));
-  if (r.status==='sent') sendWhatsApp(a.phone, buildWAStatus(a.firstName+' '+(a.lastName||''),
-    {ref:a.ref, destination:a.destination, status:statusLabels[a.status]||a.status, adminNote:a.adminNote||''}));
+  showNotif(r.status==='sent'?'📣':'⚠️', r.status==='sent'?'Email envoyé!':'Erreur email: '+(r.error?.message||r.status));
+  sendWhatsApp(a.phone, buildWAStatus(a.firstName+' '+(a.lastName||''),
+    {ref:a.ref, destination:a.destination, status:statusLabels[a.status]||a.status, adminNote:a.adminNote||''}))
+    .then(wr=>{ if(wr.status==='sent') showNotif('💬','WhatsApp envoyé à '+a.phone); else if(wr.status==='not_configured') showNotif('⚠️','WhatsApp non configuré (Admin > SMTP Config)'); });
 };
 
 window.sendApptEmail = async function() {
@@ -1598,14 +1610,47 @@ window.sendApptEmail = async function() {
     { ref:a.ref, firstName:a.firstName, appointmentDate:a.appointmentDate,
       appointmentTime:a.appointmentTime||'—', venueName:a.appointmentVenue||'Centre de visa',
       venueAddress:a.appointmentVenue||'—' });
-  showNotif(r.status==='sent'?'🗓':'⚠️', r.status==='sent'?'Email envoyé!':'Erreur: '+(r.error?.message||r.status));
-  if (r.status==='sent') sendWhatsApp(a.phone, buildWAAppointment(a.firstName+' '+(a.lastName||''),
+  showNotif(r.status==='sent'?'🗓':'⚠️', r.status==='sent'?'Email envoyé!':'Erreur email: '+(r.error?.message||r.status));
+  sendWhatsApp(a.phone, buildWAAppointment(a.firstName+' '+(a.lastName||''),
     {ref:a.ref, appointmentDate:a.appointmentDate,
-     appointmentTime:a.appointmentTime||'—', venueName:a.appointmentVenue||'Centre de visa'}));
+     appointmentTime:a.appointmentTime||'—', venueName:a.appointmentVenue||'Centre de visa'}))
+    .then(wr=>{ if(wr.status==='sent') showNotif('💬','WhatsApp envoyé à '+a.phone); else if(wr.status==='not_configured') showNotif('⚠️','WhatsApp non configuré (Admin > SMTP Config)'); });
 };
 
-// ══════════════════════════════════════════
-//  EMAIL QUEUE
+// ── WhatsApp-only send functions ──
+async function sendWAOnly(msgFn, label) {
+  if (!currentDrawerApp) return;
+  const a = currentDrawerApp;
+  if (!a.phone) { showNotif('⚠️','Pas de numéro de téléphone pour ce client'); return; }
+  showNotif('💬','Envoi WhatsApp à '+a.phone+'…');
+  const msg = msgFn(a);
+  const wr = await sendWhatsApp(a.phone, msg);
+  if (wr.status === 'sent')             showNotif('✅', 'WhatsApp '+label+' envoyé à '+a.phone);
+  else if (wr.status === 'not_configured') showNotif('⚠️','WhatsApp non configuré — allez dans Admin > SMTP Config pour configurer UltraMsg');
+  else if (wr.status === 'invalid_phone')  showNotif('⚠️','Numéro invalide: '+a.phone);
+  else showNotif('⚠️','Erreur WhatsApp: '+(wr.error?.message||JSON.stringify(wr.error)));
+}
+
+window.sendWAConfirmOnly = function() {
+  sendWAOnly(a => buildWAConfirmation(a.firstName+' '+(a.lastName||''), {
+    ref:a.ref, destination:a.destination, visaType:a.visaType||'—',
+    package:a.package, travelDate:a.travelDate, total:a.total}), 'Confirmation');
+};
+
+window.sendWAStatusOnly = function() {
+  const statusLabels = {pending:'En attente',processing:'En traitement','docs-ready':'Documents prêts',
+    appointment:'Rendez-vous confirmé',submitted:'Dossier soumis',approved:'Visa approuvé ✅',rejected:'Demande refusée'};
+  sendWAOnly(a => buildWAStatus(a.firstName+' '+(a.lastName||''), {
+    ref:a.ref, destination:a.destination,
+    status:statusLabels[a.status]||a.status, adminNote:a.adminNote||''}), 'Mise à jour');
+};
+
+window.sendWAApptOnly = function() {
+  if (!currentDrawerApp?.appointmentDate) { showNotif('⚠️',"Enregistrez la date de rendez-vous d'abord"); return; }
+  sendWAOnly(a => buildWAAppointment(a.firstName+' '+(a.lastName||''), {
+    ref:a.ref, appointmentDate:a.appointmentDate,
+    appointmentTime:a.appointmentTime||'—', venueName:a.appointmentVenue||'Centre de visa'}), 'Rendez-vous');
+};
 // ══════════════════════════════════════════
 async function queueEmail(to, subject, body, type, ref) {
   await db.collection('email_queue').add({to,subject,body,type,ref:ref||'',status:'queued',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
@@ -2117,14 +2162,4 @@ function buildEmailHTML(type, toName, p) {
     +tbl(row('Reference',p.ref)
         +row('Date','<strong style="color:#1B7A4A">'+p.appointmentDate+'</strong>')
         +row('Heure',p.appointmentTime)+row('Centre',p.venueName))
-    +'<div style="background:#FEF3C7;border-radius:8px;padding:12px;font-size:13px;color:#92400E">'
-    +'Veuillez arriver <strong>15 minutes avant</strong> avec votre dossier complet.</div>'
-    +"<p style='margin-top:16px'>Cordialement,<br><strong>L'equipe EuroVisa Pro</strong></p>");
-
-  return wrap('<p>'+JSON.stringify(p)+'</p>');
-}
-
-async function queueEmail() {} // replaced by sendEmail
-</script>
-</body>
-</html>
+    +'<div style="background:#FEF3C7;border-radius:8
