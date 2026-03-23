@@ -908,8 +908,8 @@ let pkgPrice = 0, pkgName = '', addonTotal = 0, currentStep = 1;
 //  EMAIL TEMPLATE DEFAULTS
 // ══════════════════════════════════════════
 const DEFAULT_TPL = {
-  'confirm-subject': '✅ We received your visa request [{{ref}}] — EuroVisa Pro',
-  'confirm-body': `<h2 style="color:#0B1D35;font-family:Georgia,serif">Request received ✅</h2>
+  'confirm-subject': 'Demande recue [{{ref}}] — EuroVisa Pro',
+  'confirm-body': `<h2 style="color:#0B1D35;font-family:Georgia,serif">Demande recue</h2>
 <p>Dear <strong>{{firstName}}</strong>,</p>
 <p>Thank you for choosing EuroVisa Pro. We received your application and will contact you within <strong>2 hours</strong>.</p>
 <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
@@ -921,8 +921,8 @@ const DEFAULT_TPL = {
 </table>
 <p>Track your application at any time using reference <strong>{{ref}}</strong>.</p>
 <p>Best regards,<br><strong>EuroVisa Pro Team</strong></p>`,
-  'status-subject': '📣 Update on your application {{ref}} — EuroVisa Pro',
-  'status-body': `<h2 style="color:#0B1D35;font-family:Georgia,serif">Status Update 📣</h2>
+  'status-subject': 'Mise a jour demande {{ref}} — EuroVisa Pro',
+  'status-body': `<h2 style="color:#0B1D35;font-family:Georgia,serif">Mise a jour de votre dossier</h2>
 <p>Dear <strong>{{firstName}}</strong>,</p>
 <p>Your application <strong>{{ref}}</strong> has been updated.</p>
 <div style="background:#F7F4EE;border-left:4px solid #C8952A;padding:14px 18px;margin:16px 0;border-radius:0 8px 8px 0">
@@ -930,8 +930,8 @@ const DEFAULT_TPL = {
 <span style="font-size:18px;font-weight:700;color:#0B1D35">{{status}}</span></div>
 {{adminNote}}
 <p>Best regards,<br><strong>EuroVisa Pro Team</strong></p>`,
-  'appt-subject': '🗓 Your appointment is confirmed — {{appointmentDate}}',
-  'appt-body': `<h2 style="color:#0B1D35;font-family:Georgia,serif">Appointment Confirmed 🗓</h2>
+  'appt-subject': 'Rendez-vous confirme — {{appointmentDate}}',
+  'appt-body': `<h2 style="color:#0B1D35;font-family:Georgia,serif">Rendez-vous Confirme</h2>
 <p>Dear <strong>{{firstName}}</strong>,</p>
 <p>Your visa appointment has been booked:</p>
 <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
@@ -1335,7 +1335,7 @@ window.submitApplication = async function() {
   try {
     await db.collection('applications').add(data);
     const emailResult = await sendEmail('confirmation', email, `${fn} ${ln}`,
-      { ref, firstName:fn, lastName:ln, destination:data.destination,
+      { ref, firstName:fn, lastName:ln, email:email, destination:data.destination,
         visaType:data.visaType, package:data.package, travelDate:data.travelDate,
         numApplicants:data.numApplicants, nationality:data.nationality,
         addons:data.addons, total:data.total, phone:data.phone });
@@ -1678,7 +1678,7 @@ window.sendConfirmEmail = async function() {
   const a = currentDrawerApp;
   showNotif('📤','Envoi en cours…');
   const r = await sendEmail('confirmation', a.email, `${a.firstName} ${a.lastName||''}`,
-    { ref:a.ref, firstName:a.firstName, lastName:a.lastName||'', destination:a.destination,
+    { ref:a.ref, firstName:a.firstName, lastName:a.lastName||'', email:a.email, destination:a.destination,
       visaType:a.visaType, package:a.package, travelDate:a.travelDate, total:a.total, phone:a.phone });
   showNotif(r.status==='sent'?'📬':'⚠️', r.status==='sent'?'Email envoyé!':'Erreur email: '+(r.error?.message||r.status));
   sendWhatsApp(a.phone, buildWAConfirmation(a.firstName+' '+(a.lastName||''),
@@ -2002,7 +2002,127 @@ window.closeReceipt = function() {
 };
 
 window.downloadReceiptPDF = function() {
-  window.print();
+  if (!_receiptData) return;
+  var d = _receiptData;
+  var now = document.getElementById('receipt-date') ? document.getElementById('receipt-date').textContent : new Date().toLocaleDateString('fr-FR');
+
+  // Build addons row
+  var addonsRow = '';
+  if (d.addons && d.addons.length > 0) {
+    addonsRow = '<tr><td style="padding:9px 12px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6">Services add.</td>'
+      + '<td style="padding:9px 12px;font-size:13px;color:#0B1D35;border-top:1px solid #F3F4F6">' + d.addons.join(', ') + '</td></tr>';
+  }
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    + '<title>Recu EuroVisa Pro - ' + d.ref + '</title>'
+    + '<style>'
+    + 'body{margin:0;padding:24px;background:#F0EDE6;font-family:Arial,sans-serif;color:#1A1A2E}'
+    + '.wrap{max-width:620px;margin:0 auto}'
+    + '.header{background:linear-gradient(135deg,#0B1D35 0%,#132645 100%);border-radius:16px 16px 0 0;padding:32px 36px 28px}'
+    + '.ref-box{margin-top:20px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}'
+    + '.body{background:#fff;padding:28px 36px;border:1px solid #E5E7EB;border-top:none}'
+    + '.footer{background:#E8E3DA;border-radius:0 0 16px 16px;padding:14px 36px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}'
+    + 'table{width:100%;border-collapse:collapse}'
+    + '.section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9CA3AF;margin-bottom:10px;margin-top:20px}'
+    + '.support-box{background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:14px 18px;margin:18px 0}'
+    + '.steps-box{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px 18px;margin:18px 0}'
+    + '@media print{body{padding:0;background:#fff}.wrap{max-width:100%}}'
+    + '</style></head><body>'
+    + '<div class="wrap">'
+
+    // ── HEADER ──
+    + '<div class="header">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">'
+        + '<div>'
+          + '<div style="font-family:Georgia,serif;color:#E8B04A;font-size:24px">EuroVisa Pro</div>'
+          + '<div style="color:rgba(255,255,255,.4);font-size:12px;margin-top:3px">Services Visa Schengen &middot; Casablanca, Maroc</div>'
+        + '</div>'
+        + '<div style="text-align:right">'
+          + '<div style="background:#1B7A4A;color:#fff;font-size:10px;font-weight:700;padding:5px 14px;border-radius:20px;letter-spacing:.08em;text-transform:uppercase;display:inline-block">Recu confirme</div>'
+          + '<div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:8px">' + now + '</div>'
+        + '</div>'
+      + '</div>'
+      + '<div class="ref-box">'
+        + '<div>'
+          + '<div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Numero de reference</div>'
+          + '<div style="font-family:Georgia,serif;font-size:22px;color:#E8B04A;letter-spacing:.04em">' + d.ref + '</div>'
+        + '</div>'
+        + '<div style="text-align:center">'
+          + '<div style="font-size:40px;line-height:1">' + (document.getElementById('receipt-flag') ? document.getElementById('receipt-flag').textContent : '') + '</div>'
+          + '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px">' + (d.destination||'').split(' ')[0] + '</div>'
+        + '</div>'
+      + '</div>'
+    + '</div>'
+
+    // ── BODY ──
+    + '<div class="body">'
+
+      // Status pill
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:22px">'
+        + '<div style="width:9px;height:9px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>'
+        + '<span style="font-size:12px;font-weight:600;color:#92400E">En attente de confirmation &nbsp;&middot;&nbsp; Notre equipe vous contacte sous 2h</span>'
+      + '</div>'
+
+      // Applicant
+      + '<div class="section-label">Informations du demandeur</div>'
+      + '<table style="margin-bottom:20px">'
+        + '<tr><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;color:#6B7280;width:45%">Nom complet</td><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;font-weight:600;color:#0B1D35">' + d.firstName + ' ' + (d.lastName||'') + '</td></tr>'
+        + '<tr><td style="padding:9px 12px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6">Email</td><td style="padding:9px 12px;font-size:13px;color:#0B1D35;border-top:1px solid #F3F4F6">' + d.email + '</td></tr>'
+        + '<tr><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;color:#6B7280">Telephone</td><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;font-weight:600;color:#0B1D35">' + (d.phone||'—') + '</td></tr>'
+        + '<tr><td style="padding:9px 12px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6">Nationalite</td><td style="padding:9px 12px;font-size:13px;color:#0B1D35;border-top:1px solid #F3F4F6">' + (d.nationality||'—') + '</td></tr>'
+      + '</table>'
+
+      // Application
+      + '<div class="section-label">Details de la demande</div>'
+      + '<table style="margin-bottom:20px">'
+        + '<tr><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;color:#6B7280;width:45%">Destination</td><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;font-weight:600;color:#0B1D35">' + (d.destination||'—') + '</td></tr>'
+        + '<tr><td style="padding:9px 12px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6">Type de visa</td><td style="padding:9px 12px;font-size:13px;color:#0B1D35;border-top:1px solid #F3F4F6">' + (d.visaType||'—') + '</td></tr>'
+        + '<tr><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;color:#6B7280">Package</td><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;font-weight:600;color:#0B1D35">' + (d.package||'—') + '</td></tr>'
+        + '<tr><td style="padding:9px 12px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6">Date de voyage</td><td style="padding:9px 12px;font-size:13px;color:#0B1D35;border-top:1px solid #F3F4F6">' + (d.travelDate||'A preciser') + '</td></tr>'
+        + '<tr><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;color:#6B7280">Nombre de voyageurs</td><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;color:#0B1D35">' + (d.numApplicants||'1') + '</td></tr>'
+        + addonsRow
+        + '<tr style="background:#0B1D35"><td style="padding:12px 14px;font-size:14px;font-weight:700;color:rgba(255,255,255,.7)">TOTAL</td><td style="padding:12px 14px;font-size:18px;font-weight:700;color:#E8B04A">' + (d.total||0) + ' MAD</td></tr>'
+      + '</table>'
+
+      // Support
+      + '<div class="support-box">'
+        + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#92400E;margin-bottom:4px">Support client</div>'
+        + '<div style="font-size:15px;font-weight:700;color:#78350F">+212 682 652 382</div>'
+        + '<div style="font-size:11px;color:#92400E;margin-top:2px">WhatsApp &middot; Lun&ndash;Sam 8h&ndash;20h</div>'
+      + '</div>'
+
+      // Next steps
+      + '<div class="steps-box">'
+        + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#166534;margin-bottom:8px">Prochaines etapes</div>'
+        + '<ol style="margin:0;padding-left:18px;font-size:13px;color:#166534;line-height:2">'
+          + '<li>Notre equipe vous contacte dans les <strong>2 heures</strong></li>'
+          + '<li>Confirmation du dossier et instructions de paiement</li>'
+          + '<li>Preparation des documents par nos experts</li>'
+          + '<li>Prise de rendez-vous au centre de visa</li>'
+          + '<li>Depot du dossier a l\'ambassade</li>'
+        + '</ol>'
+      + '</div>'
+
+      + '<p style="font-size:13px;color:#6B7280;margin:16px 0 0">Cordialement,<br><strong style="color:#0B1D35">L\'equipe EuroVisa Pro</strong></p>'
+    + '</div>'
+
+    // ── FOOTER ──
+    + '<div class="footer">'
+      + '<span style="font-size:11px;color:#9CA3AF">EuroVisa Pro &middot; Casablanca, Maroc</span>'
+      + '<span style="font-size:11px;color:#9CA3AF">tls.appointements@gmail.com &middot; +212 682 652 382</span>'
+    + '</div>'
+
+    + '</div>'
+    + '<script>window.onload=function(){window.print();}<\/script>'
+    + '</body></html>';
+
+  var win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+  } else {
+    alert('Veuillez autoriser les popups pour imprimer le recu.');
+  }
 };
 
 // Close on backdrop click
@@ -2035,7 +2155,7 @@ async function sendEmail(type, toEmail, toName, params) {
     // Send admin copy on every new submission
     if (type === 'confirmation') {
       var adminHtml = '<div style="font-family:Arial,sans-serif;padding:20px">'
-        +'<h2 style="color:#0B1D35;border-bottom:2px solid #C8952A;padding-bottom:8px">🔔 Nouvelle demande</h2>'
+        +'<h2 style="color:#0B1D35;border-bottom:2px solid #C8952A;padding-bottom:8px">Nouvelle demande</h2>'
         +'<p><strong>Client:</strong> '+toName+' ('+toEmail+')</p>'
         +'<p><strong>Réf:</strong> <strong style="color:#0B1D35">'+params.ref+'</strong></p>'
         +'<p><strong>Destination:</strong> '+params.destination+'</p>'
@@ -2047,7 +2167,7 @@ async function sendEmail(type, toEmail, toName, params) {
         method: 'POST',
         mode: 'no-cors',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({to:'tls.appointements@gmail.com', subject:'🔔 Nouvelle demande — '+params.ref+' — '+toName, html:adminHtml, name:'Admin'})
+        body: JSON.stringify({to:'tls.appointements@gmail.com', subject:'Nouvelle demande — '+params.ref+' — '+toName, html:adminHtml, name:'Admin'})
       }).catch(function(e){ console.warn('[EMAIL] Admin notify error:',e); });
     }
 
@@ -2164,7 +2284,20 @@ function sendWhatsApp(phone, message) {
 }
 
 function sendAdminWhatsApp(message) {
-  return sendWhatsApp('+212682652382', message);
+  // Silent: no popup shown to client. Copies msg + tries UltraMsg if configured.
+  navigator.clipboard.writeText(message).catch(function(){});
+  try {
+    var cfg = JSON.parse(localStorage.getItem('ultramsg-config')||'{}');
+    if (cfg.instanceId && cfg.token) {
+      var clean = '+212682652382'.replace('+','');
+      fetch('https://api.ultramsg.com/'+cfg.instanceId+'/messages/chat', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({token:cfg.token, to:clean, body:message})
+      }).catch(function(){});
+    }
+  } catch(e){}
+  return {status:'sent'};
 }
 
 function nl(s) { return s + '\n'; } // helper
@@ -2349,7 +2482,7 @@ function buildEmailHTML(type, toName, p) {
       +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9CA3AF;margin-bottom:10px">Demandeur</div>'
       +'<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'
         +'<tr><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;color:#6B7280;width:45%">Nom complet</td><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;font-weight:600;color:#0B1D35">'+toName+'</td></tr>'
-        +'<tr><td style="padding:9px 12px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6">Email</td><td style="padding:9px 12px;font-size:13px;color:#0B1D35;border-top:1px solid #F3F4F6">'+toName+'</td></tr>'
+        +'<tr><td style="padding:9px 12px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6">Email</td><td style="padding:9px 12px;font-size:13px;color:#0B1D35;border-top:1px solid #F3F4F6">'+(p.email||'—')+'</td></tr>'
         +'<tr><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;color:#6B7280">Telephone</td><td style="padding:9px 12px;background:#F7F4EE;font-size:13px;font-weight:600;color:#0B1D35">'+(p.phone||'—')+'</td></tr>'
         +'<tr><td style="padding:9px 12px;font-size:13px;color:#6B7280;border-top:1px solid #F3F4F6">Nationalite</td><td style="padding:9px 12px;font-size:13px;color:#0B1D35;border-top:1px solid #F3F4F6">'+(p.nationality||'—')+'</td></tr>'
       +'</table>'
@@ -2412,7 +2545,7 @@ function buildEmailHTML(type, toName, p) {
         +row('Date','<strong style="color:#1B7A4A">'+p.appointmentDate+'</strong>')
         +row('Heure',p.appointmentTime)+row('Centre',p.venueName))
     +'<div style="background:#FEF3C7;border-radius:8px;padding:14px 18px;margin:16px 0;font-size:13px;color:#92400E">'
-    +'<strong>⏰ Rappel:</strong> Présentez-vous 15 à 20 minutes avant l\'heure de votre rendez-vous avec votre passeport original et dossier complet.'
+    +'<strong>Rappel:</strong> Presentez-vous 15 a 20 minutes avant l\'heure de votre rendez-vous avec votre passeport original et dossier complet.'
     +'</div>'
     +"<p>Cordialement,<br><strong>L'equipe EuroVisa Pro</strong></p>");
 }
@@ -2573,16 +2706,8 @@ window.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
-<!-- Print styles -->
-<style>
-@media print {
-  body > *:not(#receipt-printable) { display: none !important; }
-  #receipt-printable { display: block !important; }
-  #receipt-modal { display: block !important; position: static !important; background: none !important; padding: 0 !important; }
-  #receipt-box { box-shadow: none !important; max-height: none !important; border-radius: 0 !important; }
-  button { display: none !important; }
-}
-</style>
+
+
 
 </body>
 </html>
