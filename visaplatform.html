@@ -351,8 +351,8 @@ tr:hover td{background:var(--cream)}
     <h1>Your Schengen Visa,<br><em>Done Right</em></h1>
     <p>We handle your entire European visa application — from appointment booking at BLS, TLScontact & VFS Global to full document preparation, hotel reservations, and flight booking.</p>
     <div class="hero-btns">
-      <button class="btn-primary" onclick="showPage('booking')">Start My Application →</button>
-      <button class="btn-outline" onclick="showPage('track')">Track My Request</button>
+      <button class="btn-primary" onclick="startApplication()">Start My Application →</button>
+      <button class="btn-outline" onclick="goToTrack()">Track My Request</button>
     </div>
   </div>
   <div class="stats-bar">
@@ -471,6 +471,9 @@ tr:hover td{background:var(--cream)}
           </div>
           <!-- Step 3 -->
           <div class="step-content" id="step-3">
+            <div id="booking-auth-banner" style="display:none;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#0369a1">
+              <div id="booking-auth-banner-text"></div>
+            </div>
             <div class="form-row">
               <div class="form-group"><label>First Name *</label><input type="text" id="fname" placeholder="Your first name"></div>
               <div class="form-group"><label>Last Name *</label><input type="text" id="lname" placeholder="Your last name"></div>
@@ -514,9 +517,16 @@ tr:hover td{background:var(--cream)}
       <h2 style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--navy);margin-bottom:8px">Track Your Application</h2>
       <p style="color:var(--muted);font-size:15px">Enter your reference number to see your application status</p>
     </div>
-    <div class="track-input-row">
+    <div id="track-login-prompt" style="display:none;background:#FEF3C7;border:1px solid #FCD34D;border-radius:12px;padding:18px 22px;margin-bottom:20px;text-align:center">
+      <p style="font-size:14px;color:#92400E;margin-bottom:12px">Please sign in to track your application and see team updates.</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn-gold" onclick="openAuth();document.getElementById('track-login-prompt').style.display='none'" style="padding:9px 22px;font-size:13px">Sign In / Register</button>
+        <button onclick="document.getElementById('track-login-prompt').style.display='none';document.getElementById('track-ref-row').style.display='flex'" style="background:none;border:1.5px solid #F59E0B;color:#92400E;font-family:inherit;font-size:13px;padding:9px 18px;border-radius:8px;cursor:pointer">Continue with Reference Number</button>
+      </div>
+    </div>
+    <div id="track-ref-row" class="track-input-row" style="display:none">
       <input type="text" id="track-ref" placeholder="e.g. EVP-2026-0042" style="font-size:15px">
-      <button class="btn-gold" onclick="trackApplication()" style="padding:12px 24px;font-size:15px">🔍 Track</button>
+      <button class="btn-gold" onclick="trackApplication()" style="padding:12px 24px;font-size:15px">Track</button>
     </div>
     <div id="track-result" style="display:none">
       <div style="background:var(--navy);border-radius:16px;padding:28px 32px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
@@ -547,6 +557,10 @@ tr:hover td{background:var(--cream)}
       <div style="background:var(--white);border-radius:16px;border:1px solid var(--border);padding:28px 32px;margin-bottom:20px">
         <h3 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:24px;text-transform:uppercase;letter-spacing:.06em">Application Progress</h3>
         <div class="timeline" id="track-timeline"></div>
+      </div>
+      <div id="track-auth-gate" style="display:none;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:12px;padding:16px 20px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0369a1;margin-bottom:6px">Stay updated</div>
+        <div id="track-auth-gate-msg" style="font-size:13px;color:#0369a1;line-height:1.6"></div>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
         <button class="btn-gold" onclick="document.getElementById('track-ref').value='';document.getElementById('track-result').style.display='none'" style="font-size:13px;padding:10px 20px">← Track Another</button>
@@ -1021,7 +1035,6 @@ window.showPage = function(page) {
   }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
-  // Highlight active nav button
   document.querySelectorAll('.nav-btn').forEach(b=>b.style.color='');
   const navMap = {home:'Home',countries:'Countries',services:'Services',track:'Track',booking:'Booking'};
   document.querySelectorAll('.nav-btn').forEach(b=>{
@@ -1029,7 +1042,76 @@ window.showPage = function(page) {
   });
   window.scrollTo(0,0);
   if (page === 'dashboard') loadDashboard();
+  if (page === 'booking')   prefillBookingForm();
+  if (page === 'track')     initTrackPage();
 };
+
+// Called when clicking "Start My Application"
+window.startApplication = function() {
+  showPage('booking');
+};
+
+// Called when clicking "Track My Request"
+window.goToTrack = function() {
+  showPage('track');
+};
+
+// Pre-fill form with logged-in user data
+function prefillBookingForm() {
+  var user = auth.currentUser;
+  var banner = document.getElementById('booking-auth-banner');
+  var bannerText = document.getElementById('booking-auth-banner-text');
+  var emailEl = document.getElementById('app-email');
+  var fnameEl = document.getElementById('fname');
+  if (user && !isAdmin) {
+    // Fill email
+    if (emailEl && !emailEl.value) emailEl.value = user.email;
+    // Try fill name from displayName
+    if (user.displayName && fnameEl && !fnameEl.value) {
+      var parts = user.displayName.split(' ');
+      var fnEl = document.getElementById('fname');
+      var lnEl = document.getElementById('lname');
+      if (fnEl && !fnEl.value) fnEl.value = parts[0] || '';
+      if (lnEl && !lnEl.value) lnEl.value = parts.slice(1).join(' ') || '';
+    }
+    if (banner) {
+      banner.style.display = 'block';
+      banner.style.background = '#F0FDF4';
+      banner.style.borderColor = '#BBF7D0';
+      bannerText.style.color = '#166534';
+      bannerText.innerHTML = 'Signed in as <strong>' + user.email + '</strong>. Your details have been pre-filled. '
+        + '<a href="#" onclick="doLogOut();return false;" style="color:#166534;font-weight:600">Sign out</a>';
+    }
+  } else if (!user) {
+    if (banner) {
+      banner.style.display = 'block';
+      banner.style.background = '#F0F9FF';
+      banner.style.borderColor = '#BAE6FD';
+      bannerText.style.color = '#0369a1';
+      bannerText.innerHTML = '<strong>Sign in for a better experience</strong> — track your application, see team updates, and access your portal. '
+        + '<a href="#" onclick="openAuth();return false;" style="color:#0284c7;font-weight:600">Sign in / Register</a>'
+        + ' &nbsp; <span style="color:#94a3b8">or continue below as a guest.</span>';
+    }
+  }
+}
+
+// Show login prompt or ref input depending on auth state
+function initTrackPage() {
+  var user = auth.currentUser;
+  var prompt = document.getElementById('track-login-prompt');
+  var refRow = document.getElementById('track-ref-row');
+  var trackResult = document.getElementById('track-result');
+  if (trackResult) trackResult.style.display = 'none';
+  if (user) {
+    // Logged in: show ref input directly
+    if (prompt) prompt.style.display = 'none';
+    if (refRow) refRow.style.display = 'flex';
+  } else {
+    // Not logged in: show prompt first
+    if (prompt) prompt.style.display = 'block';
+    if (refRow) refRow.style.display = 'none';
+  }
+}
 
 // ══════════════════════════════════════════
 //  AUTH FUNCTIONS
@@ -1269,7 +1351,12 @@ window.submitApplication = async function() {
       const el=document.getElementById(id); if(el) el.value='';
     });
     currentStep=1; nextStep(0);
+    // Show track page — make ref input visible regardless of auth state
     showPage('track');
+    var refRow = document.getElementById('track-ref-row');
+    var prompt = document.getElementById('track-login-prompt');
+    if (refRow) refRow.style.display = 'flex';
+    if (prompt) prompt.style.display = 'none';
     document.getElementById('track-ref').value = ref;
     setTimeout(()=> window.trackApplication(), 500);
   } catch(e) {
@@ -1282,58 +1369,82 @@ window.submitApplication = async function() {
 //  TRACK
 // ══════════════════════════════════════════
 window.trackApplication = async function() {
-  const ref = document.getElementById('track-ref').value.trim();
+  const refEl = document.getElementById('track-ref');
+  if (!refEl) return;
+  const ref = refEl.value.trim();
   if (!ref) { showNotif('⚠️','Please enter a reference number'); return; }
-  const btn = document.querySelector('.track-input-row .btn-gold');
-  const orig = btn.textContent;
-  btn.textContent = 'Searching…'; btn.disabled = true;
+  const btn = document.getElementById('track-ref-row') 
+    ? document.querySelector('#track-ref-row .btn-gold') 
+    : document.querySelector('.track-input-row .btn-gold');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = 'Searching...'; btn.disabled = true; }
   try {
     const snap = await db.collection('applications').where('ref','==',ref).get();
     if (snap.empty) {
       showNotif('⚠️',`No application found for ${ref}`);
-      btn.textContent = orig; btn.disabled = false;
+      if (btn) { btn.textContent = orig; btn.disabled = false; }
       return;
     }
     const a = snap.docs[0].data();
-    const statusLabels = {pending:'Pending Review',processing:'In Processing','docs-ready':'Documents Ready',appointment:'Appointment Booked',submitted:'Submitted to Embassy',approved:'Visa Approved ✅',rejected:'Application Rejected'};
+    const user = auth.currentUser;
+    const statusLabels = {pending:'Pending Review',processing:'In Processing','docs-ready':'Documents Ready',appointment:'Appointment Booked',submitted:'Submitted to Embassy',approved:'Visa Approved',rejected:'Application Rejected'};
     const statusClasses = {pending:'status-pending',processing:'status-processing','docs-ready':'status-docs',appointment:'status-processing',submitted:'status-docs',approved:'status-approved',rejected:'status-rejected'};
     document.getElementById('track-ref-display').textContent = ref;
-    document.getElementById('track-applicant-name').textContent = `${a.firstName||''} ${a.lastName||''}`.trim();
+    document.getElementById('track-applicant-name').textContent = (a.firstName||'') + (a.lastName ? ' '+a.lastName : '');
     document.getElementById('track-destination').textContent = a.destination || '—';
     document.getElementById('track-package').textContent = a.package || '—';
-    document.getElementById('track-status-badge').className = `status-badge ${statusClasses[a.status]||'status-pending'}`;
+    document.getElementById('track-status-badge').className = 'status-badge ' + (statusClasses[a.status]||'status-pending');
     document.getElementById('track-status-badge').textContent = statusLabels[a.status] || a.status || 'Pending';
-    // Build timeline
+
+    // Timeline
     const stages = [
-      {key:'received',   label:'Request Received',        desc:'Your application has been received and assigned to our team.',   done:true},
-      {key:'processing', label:'In Processing',           desc:'Our team is preparing your document file.',                      done:['processing','docs-ready','appointment','submitted','approved','rejected'].includes(a.status)},
-      {key:'docs',       label:'Documents Ready',         desc:'Your complete application file has been prepared.',              done:['docs-ready','appointment','submitted','approved','rejected'].includes(a.status)},
-      {key:'appt',       label:'Appointment Booked',      desc: a.appointmentDate ? `Appointment on ${a.appointmentDate}${a.appointmentTime?' at '+a.appointmentTime:''}.${a.appointmentVenue?' — '+a.appointmentVenue:''}` : 'Appointment slot being secured.', done:['appointment','submitted','approved','rejected'].includes(a.status)},
-      {key:'submitted',  label:'File Submitted to Embassy', desc:'Your complete file has been submitted to the embassy for processing.', done:['submitted','approved','rejected'].includes(a.status)},
-      {key:'decision',   label:'Decision',                desc: a.status==='approved' ? '🎉 Your visa has been approved!' : a.status==='rejected' ? 'Unfortunately your application was rejected.' : 'Awaiting embassy decision.', done:['approved','rejected'].includes(a.status)},
+      {key:'received',   label:'Request Received',          desc:'Your application has been received and assigned to our team.',                 done:true},
+      {key:'processing', label:'In Processing',             desc:'Our team is preparing your document file.',                                    done:['processing','docs-ready','appointment','submitted','approved','rejected'].includes(a.status)},
+      {key:'docs',       label:'Documents Ready',           desc:'Your complete application file has been prepared.',                            done:['docs-ready','appointment','submitted','approved','rejected'].includes(a.status)},
+      {key:'appt',       label:'Appointment Booked',        desc:a.appointmentDate ? 'Appointment on '+a.appointmentDate+(a.appointmentTime?' at '+a.appointmentTime:'')+(a.appointmentVenue?' — '+a.appointmentVenue:'') : 'Appointment slot being secured.', done:['appointment','submitted','approved','rejected'].includes(a.status)},
+      {key:'submitted',  label:'File Submitted to Embassy', desc:'Your complete file has been submitted to the embassy.',                        done:['submitted','approved','rejected'].includes(a.status)},
+      {key:'decision',   label:'Decision',                  desc:a.status==='approved' ? 'Your visa has been approved!' : a.status==='rejected' ? 'Unfortunately your application was rejected.' : 'Awaiting embassy decision.', done:['approved','rejected'].includes(a.status)},
     ];
     const currentIdx = stages.reduceRight((acc,s,i)=> s.done && acc===-1 ? i : acc, -1);
     document.getElementById('track-timeline').innerHTML = stages.map((s,i)=>{
-      const isDone    = s.done;
-      const isCurrent = !isDone && i===currentIdx+1;
-      const isFuture  = !isDone && !isCurrent;
-      return `<div class="timeline-item">
-        <div class="timeline-dot ${isDone?'done':isCurrent?'active':''}">${isDone?'✓':isCurrent?'→':''}</div>
-        <div class="timeline-title${isFuture?' faded':''}">${s.label}</div>
-        ${isCurrent?'<span class="timeline-current-tag">Current stage</span>':''}
-        <div class="timeline-desc" style="${isFuture?'opacity:.5':''}">${s.desc}</div>
-      </div>`;
+      const isDone=s.done, isCurrent=!isDone&&i===currentIdx+1, isFuture=!isDone&&!isCurrent;
+      return '<div class="timeline-item">'
+        +'<div class="timeline-dot '+(isDone?'done':isCurrent?'active':'')+'">'+( isDone?'✓':isCurrent?'→':'' )+'</div>'
+        +'<div class="timeline-title'+(isFuture?' faded':'')+'">'+s.label+'</div>'
+        +(isCurrent?'<span class="timeline-current-tag">Current stage</span>':'')
+        +'<div class="timeline-desc" style="'+(isFuture?'opacity:.5':'')+'">'+s.desc+'</div>'
+        +'</div>';
     }).join('');
-    document.getElementById('track-result').style.display = 'block';
-    if (a.adminNote) {
-      document.getElementById('track-admin-note').style.display = 'block';
-      document.getElementById('track-admin-note-text').textContent = a.adminNote;
+
+    // Admin note — show to everyone (it's meant for the client)
+    const noteBox  = document.getElementById('track-admin-note');
+    const noteText = document.getElementById('track-admin-note-text');
+    if (a.adminNote && noteBox && noteText) {
+      noteBox.style.display = 'block';
+      noteText.textContent  = a.adminNote;
+    } else if (noteBox) {
+      noteBox.style.display = 'none';
     }
+
+    // Auth-gated section: show login prompt if not signed in
+    var authGate = document.getElementById('track-auth-gate');
+    var authGateMsg = document.getElementById('track-auth-gate-msg');
+    if (!user) {
+      if (authGate) {
+        authGate.style.display = 'block';
+        if (authGateMsg) authGateMsg.innerHTML = 'Sign in to get real-time updates, see all team comments, and access your full application history. '
+          + '<a href="#" onclick="openAuth();return false;" style="color:#0284c7;font-weight:600">Sign in / Register</a>';
+      }
+    } else {
+      if (authGate) authGate.style.display = 'none';
+    }
+
+    document.getElementById('track-result').style.display = 'block';
   } catch(e) {
     showNotif('⚠️','Error: '+e.message);
     console.error(e);
   }
-  btn.textContent = orig; btn.disabled = false;
+  if (btn) { btn.textContent = orig; btn.disabled = false; }
 };
 
 // ══════════════════════════════════════════
