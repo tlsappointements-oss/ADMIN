@@ -1760,7 +1760,7 @@ window.testUltraMsg = async function() {
   resultEl.style.display='block';
   resultEl.style.background='#FEF3C7'; resultEl.style.color='#92400E';
   resultEl.textContent='📤 Envoi test WhatsApp...';
-  var r = await sendWhatsApp('+212682652382',
+  var r = await sendWhatsApp('212682652382',
     '✅ *Test EuroVisa Pro*\n\nWhatsApp API opérationnel! Les messages seront envoyés automatiquement en arrière-plan.');
   if (r.status==='sent') {
     resultEl.style.background='#D1FAE5'; resultEl.style.color='#065f46';
@@ -1919,12 +1919,12 @@ async function sendWhatsApp(phone, message) {
     console.warn('[WA] Not configured — set Instance ID and Token in Admin > SMTP Config');
     return {status:'not_configured'};
   }
-  // Normalize to E.164: +212XXXXXXXXX
+  // Normalize for UltraMsg: digits only, no + prefix (e.g. 212XXXXXXXXX)
   var clean = (phone || '').trim().replace(/[\s\-().]/g, '');
-  if (clean.startsWith('00')) clean = '+' + clean.slice(2);
-  else if (/^0[^0]/.test(clean)) clean = '+212' + clean.slice(1);
-  if (!clean.startsWith('+')) clean = '+' + clean;
-  clean = '+' + clean.slice(1).replace(/[^0-9]/g, '');
+  if (clean.startsWith('00')) clean = clean.slice(2);           // 00212... → 212...
+  else if (clean.startsWith('+')) clean = clean.slice(1);       // +212...  → 212...
+  else if (/^0[^0]/.test(clean)) clean = '212' + clean.slice(1); // 06...  → 2126...
+  clean = clean.replace(/[^0-9]/g, '');                         // strip any remaining non-digits
   if (clean.length < 10) { console.warn('[WA] Invalid phone:', phone, '->', clean); return {status:'invalid_phone'}; }
   console.log('[WA] Sending to', clean);
   try {
@@ -1945,7 +1945,7 @@ async function sendWhatsApp(phone, message) {
 }
 
 async function sendAdminWhatsApp(message) {
-  return sendWhatsApp('+212682652382', message);
+  return sendWhatsApp('212682652382', message);
 }
 
 function nl(s) { return s + '\n'; } // helper
