@@ -739,12 +739,18 @@ tr:hover td{background:var(--cream)}
                     style="border:1.5px solid var(--border);border-radius:7px;padding:9px 11px;font-family:monospace;font-size:12px;outline:none;background:var(--cream)">
                 </div>
               </div>
-              <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <div id="ultra-config-status" style="margin-bottom:10px;font-size:12px;color:var(--muted)">⚪ Config non chargée</div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
+                <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px">
+                  <label style="font-size:11px;font-weight:600;color:var(--navy)">Numéro de test</label>
+                  <input type="text" id="ultra-test-phone" placeholder="212682652382" value="212682652382"
+                    style="border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-family:monospace;font-size:12px;outline:none;background:var(--cream)">
+                </div>
                 <button class="btn-gold" onclick="saveUltraConfig()" style="padding:9px 20px;border-radius:8px;font-size:13px">💾 Sauvegarder</button>
                 <button class="btn-sm btn-sm-navy" onclick="testUltraMsg()">📱 Tester WhatsApp</button>
                 <a href="https://ultramsg.com" target="_blank" style="background:var(--navy);color:#fff;text-decoration:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;line-height:2.2">🔗 UltraMsg</a>
               </div>
-              <div id="ultra-test-result" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px"></div>
+              <div id="ultra-test-result" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.8"></div>
             </div>
             <div style="background:var(--cream);border-radius:8px;padding:14px 16px;margin-top:16px;font-size:13px;color:var(--muted)">
               <strong style="color:var(--navy)">Emails automatiques :</strong><br>
@@ -1748,10 +1754,11 @@ window.testGasEmail = async function() {
 window.saveSmtpConfig = function() { showNotif('✅','Configuration active.'); };
 
 window.saveUltraConfig = function() {
-  var instanceId = document.getElementById('ultramsg-instance')?.value.trim();
-  var token      = document.getElementById('ultramsg-token')?.value.trim();
+  var instanceId = document.getElementById('ultramsg-instance') ? document.getElementById('ultramsg-instance').value.trim() : '';
+  var token      = document.getElementById('ultramsg-token') ? document.getElementById('ultramsg-token').value.trim() : '';
   if (!instanceId || !token) { showNotif('⚠️','Entrez Instance ID et Token'); return; }
   localStorage.setItem('ultramsg-config', JSON.stringify({instanceId:instanceId, token:token}));
+  updateUltraStatus();
   showNotif('✅','WhatsApp UltraMsg configuré et actif!');
 };
 
@@ -1759,30 +1766,62 @@ window.testUltraMsg = async function() {
   var resultEl = document.getElementById('ultra-test-result');
   resultEl.style.display='block';
   resultEl.style.background='#FEF3C7'; resultEl.style.color='#92400E';
-  resultEl.textContent='📤 Envoi test WhatsApp...';
-  var r = await sendWhatsApp('212682652382',
-    '✅ *Test EuroVisa Pro*\n\nWhatsApp API opérationnel! Les messages seront envoyés automatiquement en arrière-plan.');
-  if (r.status==='sent') {
-    resultEl.style.background='#D1FAE5'; resultEl.style.color='#065f46';
-    resultEl.textContent='✅ WhatsApp test envoyé! Vérifiez le +212682652382.';
-  } else if (r.status==='not_configured') {
+
+  var cfg = getUltraConfig();
+  if (!cfg.instanceId || !cfg.token) {
+    resultEl.innerHTML='❌ <strong>Non configuré</strong> — Entrez Instance ID et Token puis cliquez Sauvegarder.';
+    return;
+  }
+
+  var testPhone = document.getElementById('ultra-test-phone') ? document.getElementById('ultra-test-phone').value.trim() : '212682652382';
+  var clean = testPhone.replace(/[\s\-().+]/g,'');
+  if (clean.startsWith('00')) clean = clean.slice(2);
+  else if (/^0[^0]/.test(clean)) clean = '212' + clean.slice(1);
+  clean = clean.replace(/[^0-9]/g,'');
+
+  resultEl.innerHTML='📤 Envoi en cours...<br><small>Instance: <code>'+cfg.instanceId+'</code> &nbsp; Token: <code>'+cfg.token.slice(0,6)+'…</code> &nbsp; To: <code>'+clean+'</code></small>';
+
+  try {
+    var res = await fetch('https://api.ultramsg.com/'+cfg.instanceId+'/messages/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({token:cfg.token, to:clean, body:'✅ *Test EuroVisa Pro*\n\nAPI opérationnel!'}).toString()
+    });
+    var json = await res.json();
+    var sent = json.sent==='true'||json.sent===true;
+    resultEl.style.background = sent ? '#D1FAE5' : '#FEE2E2';
+    resultEl.style.color      = sent ? '#065f46' : '#991b1b';
+    resultEl.innerHTML = (sent ? '✅ <strong>Envoyé avec succès!</strong>' : '❌ <strong>Échec API</strong>')
+      + '<br><small>HTTP&nbsp;'+res.status+' &nbsp; Réponse: <code>'+JSON.stringify(json)+'</code></small>';
+  } catch(e) {
     resultEl.style.background='#FEE2E2'; resultEl.style.color='#991b1b';
-    resultEl.textContent='❌ Non configuré. Entrez Instance ID et Token puis sauvegardez.';
-  } else {
-    resultEl.style.background='#FEE2E2'; resultEl.style.color='#991b1b';
-    resultEl.textContent='❌ Erreur: '+(r.error?.message||JSON.stringify(r.error));
+    resultEl.innerHTML='❌ <strong>Erreur réseau</strong>: '+e.message
+      +'<br><small>Vérifiez l\'Instance ID (ex: instance12345) et votre connexion.</small>';
   }
 };
 
 function loadSmtpConfig() {
   var el = document.getElementById('gas-url-display');
   if (el) el.textContent = GAS_URL;
-  // Load UltraMsg config
   var cfg = getUltraConfig();
   var iEl = document.getElementById('ultramsg-instance');
   var tEl = document.getElementById('ultramsg-token');
   if (iEl && cfg.instanceId) iEl.value = cfg.instanceId;
   if (tEl && cfg.token) tEl.value = cfg.token;
+  updateUltraStatus();
+}
+
+function updateUltraStatus() {
+  var st = document.getElementById('ultra-config-status');
+  if (!st) return;
+  var cfg = getUltraConfig();
+  if (cfg.instanceId && cfg.token) {
+    st.innerHTML = '✅ Config chargée &nbsp;|&nbsp; Instance: <code>'+cfg.instanceId+'</code> &nbsp; Token: <code>'+cfg.token.slice(0,6)+'…</code>';
+    st.style.color = '#065f46';
+  } else {
+    st.innerHTML = '⚠️ Aucune config — entrez Instance ID et Token ci-dessus puis sauvegardez.';
+    st.style.color = '#92400E';
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1921,10 +1960,10 @@ async function sendWhatsApp(phone, message) {
   }
   // Normalize for UltraMsg: digits only, no + prefix (e.g. 212XXXXXXXXX)
   var clean = (phone || '').trim().replace(/[\s\-().]/g, '');
-  if (clean.startsWith('00')) clean = clean.slice(2);           // 00212... → 212...
-  else if (clean.startsWith('+')) clean = clean.slice(1);       // +212...  → 212...
-  else if (/^0[^0]/.test(clean)) clean = '212' + clean.slice(1); // 06...  → 2126...
-  clean = clean.replace(/[^0-9]/g, '');                         // strip any remaining non-digits
+  if (clean.startsWith('00')) clean = clean.slice(2);
+  else if (clean.startsWith('+')) clean = clean.slice(1);
+  else if (/^0[^0]/.test(clean)) clean = '212' + clean.slice(1);
+  clean = clean.replace(/[^0-9]/g, '');
   if (clean.length < 10) { console.warn('[WA] Invalid phone:', phone, '->', clean); return {status:'invalid_phone'}; }
   console.log('[WA] Sending to', clean);
   try {
