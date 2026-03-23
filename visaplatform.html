@@ -351,8 +351,8 @@ tr:hover td{background:var(--cream)}
     <h1>Your Schengen Visa,<br><em>Done Right</em></h1>
     <p>We handle your entire European visa application — from appointment booking at BLS, TLScontact & VFS Global to full document preparation, hotel reservations, and flight booking.</p>
     <div class="hero-btns">
-      <button class="btn-primary" onclick="startApplication()">Start My Application →</button>
-      <button class="btn-outline" onclick="goToTrack()">Track My Request</button>
+      <button class="btn-primary" onclick="showPage('booking')">Start My Application →</button>
+      <button class="btn-outline" onclick="showPage('track')">Track My Request</button>
     </div>
   </div>
   <div class="stats-bar">
@@ -1041,9 +1041,9 @@ window.showPage = function(page) {
     if(b.textContent.trim()===navMap[page]) b.style.color='var(--gold2)';
   });
   window.scrollTo(0,0);
-  if (page === 'dashboard') loadDashboard();
-  if (page === 'booking')   prefillBookingForm();
-  if (page === 'track')     initTrackPage();
+  if (page === 'dashboard') { try { loadDashboard(); } catch(e) { console.warn(e); } }
+  if (page === 'booking')   { try { prefillBookingForm(); } catch(e) { console.warn(e); } }
+  if (page === 'track')     { try { initTrackPage(); } catch(e) { console.warn(e); } }
 };
 
 // Called when clicking "Start My Application"
@@ -1058,7 +1058,7 @@ window.goToTrack = function() {
 
 // Pre-fill form with logged-in user data
 function prefillBookingForm() {
-  var user = auth.currentUser;
+  var user = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
   var banner = document.getElementById('booking-auth-banner');
   var bannerText = document.getElementById('booking-auth-banner-text');
   var emailEl = document.getElementById('app-email');
@@ -1097,7 +1097,7 @@ function prefillBookingForm() {
 
 // Show login prompt or ref input depending on auth state
 function initTrackPage() {
-  var user = auth.currentUser;
+  var user = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
   var prompt = document.getElementById('track-login-prompt');
   var refRow = document.getElementById('track-ref-row');
   var trackResult = document.getElementById('track-result');
@@ -1386,7 +1386,7 @@ window.trackApplication = async function() {
       return;
     }
     const a = snap.docs[0].data();
-    const user = auth.currentUser;
+    const user = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
     const statusLabels = {pending:'Pending Review',processing:'In Processing','docs-ready':'Documents Ready',appointment:'Appointment Booked',submitted:'Submitted to Embassy',approved:'Visa Approved',rejected:'Application Rejected'};
     const statusClasses = {pending:'status-pending',processing:'status-processing','docs-ready':'status-docs',appointment:'status-processing',submitted:'status-docs',approved:'status-approved',rejected:'status-rejected'};
     document.getElementById('track-ref-display').textContent = ref;
