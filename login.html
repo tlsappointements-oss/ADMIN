@@ -1,22 +1,238 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="style.css">
-    <title>Admin Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS — SECURE ACCESS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
-        /* Cinematic Pop-up Styles */
+        :root {
+            --bg: #020a14; --bg2: #050f1c; --bg3: #0a1828;
+            --panel: rgba(0,200,255,0.04); --border: rgba(0,200,255,0.14); --border-h: rgba(0,200,255,0.5);
+            --cyan: #00c8ff; --cyan2: #00f5ff; --orange: #ff6b35; --gold: #ffd700;
+            --green: #00ff88; --red: #ff3355; --purple: #a855f7; --blue: #3b9eff;
+            --text: #c8e8ff; --dim: #5a8aaa; --text3: #3d4a6b;
+            --glow: 0 0 20px rgba(0,200,255,0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* CRT scanline overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,200,255,0.012) 3px, rgba(0,200,255,0.012) 4px);
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        /* Animated background grid */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,200,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,200,255,0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 0;
+        }
+
+        .bg-glow {
+            position: fixed;
+            top: -200px; left: 50%;
+            transform: translateX(-50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(0,200,255,0.07) 0%, transparent 70%);
+            z-index: 0;
+        }
+
+        /* Login card */
+        .login-wrap {
+            position: relative;
+            z-index: 10;
+            width: 420px;
+        }
+
+        .login-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 40px 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Top accent line */
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent);
+        }
+
+        /* Corner marks */
+        .login-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 40px; height: 40px;
+            border-bottom: 1px solid var(--border-h);
+            border-right: 1px solid var(--border-h);
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .brand-sub {
+            font-size: 8px;
+            letter-spacing: 6px;
+            color: var(--dim);
+            margin-bottom: 6px;
+        }
+
+        .brand-main {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--cyan2);
+            text-shadow: 0 0 30px rgba(0,200,255,0.5);
+            letter-spacing: 4px;
+            margin-bottom: 4px;
+        }
+
+        .brand-tagline {
+            font-size: 9px;
+            letter-spacing: 4px;
+            color: var(--orange);
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 24px 0;
+        }
+
+        .field-group {
+            margin-bottom: 14px;
+        }
+
+        .field-label {
+            font-size: 8px;
+            letter-spacing: 3px;
+            color: var(--dim);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .field-input {
+            width: 100%;
+            background: rgba(0,200,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 13px;
+            padding: 10px 14px;
+            outline: none;
+            transition: .2s;
+            letter-spacing: 1px;
+        }
+
+        .field-input::placeholder { color: var(--text3); }
+
+        .field-input:focus {
+            border-color: var(--cyan);
+            background: rgba(0,200,255,0.07);
+            box-shadow: 0 0 12px rgba(0,200,255,0.15);
+        }
+
+        .recaptcha-wrap {
+            display: flex;
+            justify-content: center;
+            margin: 18px 0;
+            transform: scale(0.9);
+            transform-origin: center;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, rgba(0,200,255,0.15), rgba(0,200,255,0.08));
+            border: 1px solid var(--cyan);
+            border-radius: 2px;
+            color: var(--cyan2);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: .2s;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,200,255,0.1), transparent);
+            transition: .4s;
+        }
+
+        .btn-login:hover {
+            background: linear-gradient(135deg, rgba(0,200,255,0.25), rgba(0,200,255,0.12));
+            box-shadow: 0 0 20px rgba(0,200,255,0.2);
+        }
+
+        .btn-login:hover::before { left: 100%; }
+
+        .login-footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--text3);
+            line-height: 2;
+        }
+
+        /* ─────────────────────────────────────────────
+           BIOMETRIC OVERLAY
+        ───────────────────────────────────────────── */
         #biometric-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.98);
+            background: rgba(2, 10, 20, 0.98);
             z-index: 9999;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             backdrop-filter: blur(20px);
+        }
+
+        .bio-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            letter-spacing: 6px;
+            color: var(--dim);
+            margin-bottom: 30px;
         }
 
         .scanner-container {
@@ -28,39 +244,54 @@
             align-items: center;
         }
 
-        .progress-ring {
-            position: absolute;
-            transform: rotate(-90deg);
-        }
+        .progress-ring { position: absolute; transform: rotate(-90deg); }
 
         .progress-ring__circle {
             transition: stroke-dashoffset 0.1s;
-            stroke: #e30613;
-            stroke-width: 6;
+            stroke: var(--cyan);
+            stroke-width: 3;
             fill: transparent;
-            stroke-dasharray: 816.8; 
+            stroke-dasharray: 816.8;
             stroke-dashoffset: 816.8;
-            filter: drop-shadow(0 0 10px #e30613);
+            filter: drop-shadow(0 0 8px var(--cyan));
         }
 
+        /* Rotating dashed outer ring */
+        .progress-ring__track {
+            stroke: var(--border);
+            stroke-width: 3;
+            fill: transparent;
+            stroke-dasharray: 12 8;
+            animation: spin 8s linear infinite;
+        }
+
+        @keyframes spin { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -816.8; } }
+
         #video {
-            width: 240px;
-            height: 240px;
+            width: 240px; height: 240px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid #333;
+            border: 1px solid var(--border);
         }
 
         #percentage-text {
-            color: white;
-            font-size: 2.5rem;
-            font-weight: 100;
+            color: var(--cyan2);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 900;
             margin-top: 20px;
-            font-family: 'Segoe UI', sans-serif;
             letter-spacing: 4px;
+            text-shadow: 0 0 20px rgba(0,200,255,0.5);
         }
 
-        /* Breach UI Styles */
+        #status-label {
+            color: var(--dim);
+            letter-spacing: 4px;
+            font-size: 8px;
+            margin-top: 10px;
+        }
+
+        /* Breach UI */
         #breach-display {
             display: none;
             flex-direction: row;
@@ -69,71 +300,137 @@
         }
 
         .comp-box { text-align: center; position: relative; }
-        .comp-img { width: 180px; height: 180px; border-radius: 10px; object-fit: cover; border: 2px solid #333; }
-        .mark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 80px; font-weight: bold; }
+
+        .comp-img {
+            width: 180px; height: 180px;
+            border-radius: 4px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+        }
+
+        .mark {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            font-weight: bold;
+        }
 
         #success-icon {
             display: none;
             position: absolute;
-            font-size: 100px;
-            color: #00ff00;
-            filter: drop-shadow(0 0 20px #00ff00);
+            font-size: 80px;
+            color: var(--green);
+            filter: drop-shadow(0 0 20px var(--green));
             z-index: 10000;
         }
+
+        #breach-msg {
+            display: none;
+            color: var(--text);
+            text-align: center;
+            margin-top: 30px;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        #breach-msg h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--red);
+            letter-spacing: 4px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        #breach-msg p { color: var(--dim); font-size: 12px; letter-spacing: 1px; line-height: 1.8; }
     </style>
 </head>
 <body>
-    <div style="max-width:400px; margin: 100px auto; padding: 20px; text-align: center;">
-        <div class="logo" style="text-align:center; margin-bottom:30px;">MERCEDES LOGIN</div>
-        <input type="email" id="email" placeholder="Email Address" autocomplete="email">
-        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
-        <div class="g-recaptcha" data-sitekey="6Ldl4VMsAAAAAH9KZ7pHmZS8tYozgU3TovKNUkSt" style="margin-bottom: 20px; margin-top: 10px; display: inline-block;"></div>
-        <button class="btn-mb" id="loginBtn">Enter Dashboard</button>
+
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <!-- LOGIN CARD -->
+    <div class="login-wrap">
+        <div class="login-card">
+            <div class="brand">
+                <div class="brand-sub">L74 / D74 SYSTEM</div>
+                <div class="brand-main">NEXUS</div>
+                <div class="brand-tagline">PROCUREMENT PLATFORM — SECURE ACCESS</div>
+            </div>
+
+            <hr class="divider">
+
+            <div class="field-group">
+                <label class="field-label">OPERATOR EMAIL</label>
+                <input class="field-input" type="email" id="email" placeholder="user@domain.com" autocomplete="email">
+            </div>
+
+            <div class="field-group">
+                <label class="field-label">PASSPHRASE</label>
+                <input class="field-input" type="password" id="password" placeholder="••••••••••••" autocomplete="current-password">
+            </div>
+
+            <div class="recaptcha-wrap">
+                <div class="g-recaptcha" data-sitekey="6Ldl4VMsAAAAAH9KZ7pHmZS8tYozgU3TovKNUkSt" data-theme="dark"></div>
+            </div>
+
+            <button class="btn-login" id="loginBtn">⬡ INITIATE SECURE LOGIN</button>
+
+            <div class="login-footer">
+                ENCRYPTED BIOMETRIC VERIFICATION REQUIRED<br>
+                UNAUTHORIZED ACCESS IS PROHIBITED · NEXUS © 2025
+            </div>
+        </div>
     </div>
 
+    <!-- BIOMETRIC OVERLAY -->
     <div id="biometric-overlay">
+        <div class="bio-title">BIOMETRIC IDENTITY VERIFICATION</div>
+
         <div id="scan-zone" style="display: flex; flex-direction: column; align-items: center;">
             <div class="scanner-container">
                 <svg class="progress-ring" width="300" height="300">
+                    <circle class="progress-ring__track" r="130" cx="150" cy="150"/>
                     <circle class="progress-ring__circle" r="130" cx="150" cy="150"/>
                 </svg>
                 <video id="video" autoplay muted></video>
                 <div id="success-icon">✓</div>
             </div>
             <div id="percentage-text">0%</div>
-            <p id="status-label" style="color: #e30613; letter-spacing: 2px; font-size: 0.7rem; margin-top: 15px;">BIOMETRIC ENCRYPTED SCAN</p>
+            <p id="status-label">SCANNING FACIAL GEOMETRY…</p>
         </div>
 
         <div id="breach-display">
             <div class="comp-box">
-                <p style="color:#00ff00; font-size: 0.8rem;">AUTHORIZED OWNER</p>
+                <p style="color:var(--green); font-size:8px; letter-spacing:3px; margin-bottom:8px;">AUTHORIZED OWNER</p>
                 <img id="owner-img" class="comp-img">
-                <div class="mark" style="color:#00ff00;">✓</div>
+                <div class="mark" style="color:var(--green);">✓</div>
             </div>
             <div class="comp-box">
-                <p style="color:#e30613; font-size: 0.8rem;">UNAUTHORIZED INTRUDER</p>
+                <p style="color:var(--red); font-size:8px; letter-spacing:3px; margin-bottom:8px;">UNAUTHORIZED INTRUDER</p>
                 <canvas id="intruder-canvas" class="comp-img" width="180" height="180"></canvas>
-                <div class="mark" style="color:#e30613;">✕</div>
+                <div class="mark" style="color:var(--red);">✕</div>
             </div>
         </div>
-        <div id="breach-msg" style="display:none; color:white; text-align:center; margin-top:30px; font-family: sans-serif;">
-            <h2 style="color:#e30613; margin-bottom: 5px;">ACCESS DENIED</h2>
-            <p>FACE DOESN'T MATCH! YOU ARE NOT THE OWNER OF THE ACCOUNT.<br>
-            <span style="color:#888;">AN HR ADMIN WILL CONTACT YOU IMMEDIATELY!</span></p>
+
+        <div id="breach-msg">
+            <h2>⚠ ACCESS DENIED</h2>
+            <p>FACE DOESN'T MATCH — YOU ARE NOT THE REGISTERED OWNER.<br>
+            <span style="color:var(--text3);">AN HR ADMIN WILL BE NOTIFIED IMMEDIATELY.</span></p>
         </div>
     </div>
 
     <script type="module">
         import { auth } from './firebase.js';
-        import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        const loginBtn = document.getElementById('loginBtn');
-        const video = document.getElementById('video');
-        const overlay = document.getElementById('biometric-overlay');
-        const pctText = document.getElementById('percentage-text');
+        const loginBtn       = document.getElementById('loginBtn');
+        const video          = document.getElementById('video');
+        const overlay        = document.getElementById('biometric-overlay');
+        const pctText        = document.getElementById('percentage-text');
         const progressCircle = document.querySelector('.progress-ring__circle');
-        const successIcon = document.getElementById('success-icon');
-        const circumference = 130 * 2 * Math.PI;
+        const successIcon    = document.getElementById('success-icon');
+        const circumference  = 130 * 2 * Math.PI;
 
         function updateProgress(value) {
             const offset = circumference - (value / 100 * circumference);
@@ -141,31 +438,22 @@
             pctText.innerText = `${Math.floor(value)}%`;
         }
 
-        // New Loading Tracker
         let modelsLoadedPromise = null;
 
         async function loadSecurityModels() {
-            try {
-                const MODEL_URL = './models';
-                await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                ]);
-                console.log("Models Ready.");
-            } catch (e) { 
-                console.error("Model load error", e); 
-                throw e; // Pass error to runFaceVerification
-            }
+            const MODEL_URL = './models';
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            ]);
         }
-        
-        // Start loading and store the promise
+
         modelsLoadedPromise = loadSecurityModels();
 
         async function runFaceVerification(email) {
             try {
-                // WAIT FOR MODELS TO FINISH DOWNLOADING BEFORE PROCEEDING
                 await modelsLoadedPromise;
 
                 const [username, fullDomain] = email.split('@');
@@ -173,19 +461,25 @@
                 const imagePath = `./images/${domain}/${username}.jpg`;
 
                 const referenceImg = await faceapi.fetchImage(imagePath);
-                const refResult = await faceapi.detectSingleFace(referenceImg, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
+                const refResult = await faceapi
+                    .detectSingleFace(referenceImg, new faceapi.SsdMobilenetv1Options())
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
 
                 const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
                 video.srcObject = stream;
                 overlay.style.display = 'flex';
-                
+
                 let progress = 0;
-                let isMatch = false;
+                let isMatch  = false;
 
                 return new Promise((resolve) => {
                     const scanInterval = setInterval(async () => {
-                        const live = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-                        
+                        const live = await faceapi
+                            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks()
+                            .withFaceDescriptor();
+
                         if (live && refResult) {
                             const match = new faceapi.FaceMatcher(refResult, 0.6).findBestMatch(live.descriptor);
                             if (match.label !== 'unknown') isMatch = true;
@@ -196,7 +490,7 @@
 
                         if (progress >= 100) {
                             clearInterval(scanInterval);
-                            
+
                             if (isMatch) {
                                 successIcon.style.display = 'block';
                                 setTimeout(() => {
@@ -205,14 +499,14 @@
                                     resolve(true);
                                 }, 1500);
                             } else {
-                                document.getElementById('scan-zone').style.display = 'none';
+                                document.getElementById('scan-zone').style.display    = 'none';
                                 document.getElementById('breach-display').style.display = 'flex';
-                                document.getElementById('breach-msg').style.display = 'block';
+                                document.getElementById('breach-msg').style.display    = 'block';
                                 document.getElementById('owner-img').src = imagePath;
-                                
+
                                 const ctx = document.getElementById('intruder-canvas').getContext('2d');
                                 ctx.drawImage(video, 0, 0, 180, 180);
-                                
+
                                 stream.getTracks().forEach(t => t.stop());
                                 setTimeout(() => { window.location.reload(); }, 8000);
                                 resolve(false);
@@ -228,7 +522,7 @@
 
         loginBtn.addEventListener('click', async () => {
             const email = document.getElementById('email').value.toLowerCase();
-            const pass = document.getElementById('password').value;
+            const pass  = document.getElementById('password').value;
 
             if (grecaptcha.getResponse().length === 0) {
                 alert("Please complete reCAPTCHA.");
@@ -239,10 +533,18 @@
             if (isAuthorized) {
                 try {
                     await signInWithEmailAndPassword(auth, email, pass);
-                    window.location.href = email.endsWith('@alten.com') ? "prestation.html" : 
-                                          email.endsWith('@jobson.com') ? "maintenance.html" : "admin.html";
-                } catch (e) { 
-                    alert("Login Failed: " + e.message); 
+
+                    // ── Routing ─────────────────────────────────────
+                    if (email.endsWith('@alten.com')) {
+                        window.location.href = "procurement.html";
+                    } else if (email.endsWith('@jobson.com')) {
+                        window.location.href = "maintenance.html";
+                    } else {
+                        window.location.href = "admin.html";
+                    }
+
+                } catch (e) {
+                    alert("Login Failed: " + e.message);
                     overlay.style.display = 'none';
                 }
             }
