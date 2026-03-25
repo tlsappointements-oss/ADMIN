@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ODEMAZ — Secure Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Instrument+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <style>
+    /* ===== TOKENS ===== */
+    :root {
+      --bg:       #0a0e14;
+      --surface:  #0f1520;
+      --surface-2:#141c2b;
+      --border:   rgba(255,255,255,0.07);
+      --text:     #e8eaf0;
+      --muted:    rgba(255,255,255,0.35);
+      --red:      #c8002e;
+      --red-glow: rgba(200,0,46,0.25);
+      --gold:     #b8892e;
+      --teal:     #00c4a7;
+      --green:    #00ff94;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Instrument Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+    }
+
+    /* Ambient glow */
+    .glow-blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+    }
+    .glow-1 { width: 500px; height: 500px; background: rgba(200,0,46,0.08); top: -150px; left: -150px; }
+    .glow-2 { width: 400px; height: 400px; background: rgba(0,196,167,0.06); bottom: -100px; right: -100px; }
+
+    /* ===== LAYOUT ===== */
+    .page {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    /* Left panel — branding */
+    .brand-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3rem;
+      background: linear-gradient(160deg, rgba(200,0,46,0.06) 0%, transparent 60%);
+      border-right: 1px solid var(--border);
+    }
+
+    .brand-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.6rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .brand-logo span { color: var(--red); }
+
+    .brand-center {
+      padding: 2rem 0;
+    }
+
+    .brand-tagline {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 1rem;
+    }
+
+    .brand-headline {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2rem, 3.5vw, 3.2rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 1.5rem;
+    }
+
+    .brand-sub {
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--muted);
+      max-width: 38ch;
+      font-weight: 300;
+    }
+
+    /* Portal chips */
+    .portal-chips {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 2.5rem;
+    }
+
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 0.85rem 1.1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.02);
+      transition: background 0.2s, border-color 0.2s;
+      cursor: default;
+    }
+    .chip:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); }
+
+    .chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .chip-info { flex: 1; }
+    .chip-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.85rem; }
+    .chip-domain { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; color: var(--muted); margin-top: 1px; }
+    .chip-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.12em;
+      color: var(--green);
+      background: rgba(0,255,148,0.08);
+      border: 1px solid rgba(0,255,148,0.15);
+      padding: 0.2rem 0.55rem;
+      border-radius: 100px;
+    }
+
+    .brand-footer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.2);
+    }
+
+    /* Right panel — form */
+    .login-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 3rem 3.5rem;
+      max-width: 480px;
+      justify-self: center;
+      width: 100%;
+    }
+
+    .login-header {
+      margin-bottom: 2.5rem;
+      animation: fadeUp 0.7s ease 0.1s both;
+    }
+
+    .login-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.8rem;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.4rem;
+    }
+
+    .login-sub {
+      font-size: 0.88rem;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    /* Domain indicator */
+    .domain-hint {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: fadeUp 0.7s ease 0.2s both;
+      min-height: 52px;
+      transition: border-color 0.3s;
+    }
+    .domain-hint.matched { border-color: rgba(0,255,148,0.3); }
+
+    .domain-hint-icon {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 500;
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+      transition: background 0.3s;
+    }
+
+    .domain-hint-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      line-height: 1.4;
+      transition: color 0.3s;
+    }
+    .domain-hint-text strong { color: var(--text); display: block; font-size: 0.72rem; }
+
+    /* Form fields */
+    .field {
+      margin-bottom: 1.1rem;
+      animation: fadeUp 0.7s ease both;
+    }
+    .field:nth-child(1) { animation-delay: 0.25s; }
+    .field:nth-child(2) { animation-delay: 0.32s; }
+
+    .field label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .field-wrap {
+      position: relative;
+    }
+
+    .field-wrap svg {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px; height: 16px;
+      stroke: var(--muted);
+      fill: none;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 0.85rem 1rem 0.85rem 2.75rem;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 0.92rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .field input::placeholder { color: rgba(255,255,255,0.2); }
+    .field input:focus { border-color: var(--red); background: rgba(200,0,46,0.04); }
+
+    /* reCAPTCHA wrapper */
+    .recaptcha-wrap {
+      margin-bottom: 1.25rem;
+      display: flex;
+      justify-content: center;
+      animation: fadeUp 0.7s ease 0.4s both;
+      transform: scale(0.9);
+      transform-origin: left;
+    }
+
+    /* Login button */
+    .btn-login {
+      width: 100%;
+      padding: 0.95rem;
+      background: var(--red);
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.05em;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      animation: fadeUp 0.7s ease 0.45s both;
+    }
+    .btn-login:hover { background: #a50025; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(200,0,46,0.35); }
+    .btn-login:active { transform: translateY(0); }
+    .btn-login svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--text); }
+
+    /* ===== BIOMETRIC OVERLAY ===== */
+    #biometric-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.97);
+      z-index: 9999;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(24px);
+    }
+
+    .scanner-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 2rem;
+    }
+
+    .scanner-container {
+      position: relative;
+      width: 280px; height: 280px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .progress-ring { position: absolute; transform: rotate(-90deg); }
+    .progress-ring__circle {
+      stroke: var(--red);
+      stroke-width: 5;
+      fill: transparent;
+      stroke-dasharray: 753;
+      stroke-dashoffset: 753;
+      filter: drop-shadow(0 0 10px var(--red));
+      transition: stroke-dashoffset 0.08s;
+    }
+
+    #video {
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255,255,255,0.1);
+    }
+
+    #percentage-text {
+      margin-top: 1.5rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 3rem;
+      letter-spacing: -0.04em;
+      color: var(--text);
+    }
+
+    #status-label {
+      margin-top: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    #success-icon {
+      display: none;
+      position: absolute;
+      font-size: 90px;
+      color: var(--green);
+      filter: drop-shadow(0 0 20px var(--green));
+      z-index: 10;
+    }
+
+    /* Breach UI */
+    #breach-display {
+      display: none;
+      flex-direction: row;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .comp-box { text-align: center; position: relative; }
+
+    .comp-img {
+      width: 160px; height: 160px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 2px solid rgba(255,255,255,0.1);
+      display: block;
+    }
+
+    .mark {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 60px;
+      font-weight: bold;
+      text-shadow: 0 0 20px currentColor;
+    }
+
+    .comp-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    #breach-msg {
+      display: none;
+      text-align: center;
+      margin-top: 2rem;
+      max-width: 380px;
+    }
+
+    #breach-msg h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      color: var(--red);
+      margin-bottom: 0.5rem;
+    }
+
+    #breach-msg p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    #breach-msg .breach-timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.25);
+      margin-top: 1rem;
+      letter-spacing: 0.1em;
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .page { grid-template-columns: 1fr; }
+      .brand-panel { display: none; }
+      .login-panel { padding: 2rem; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="glow-blob glow-1"></div>
+<div class="glow-blob glow-2"></div>
+
+<div class="page">
+
+  <!-- BRAND PANEL -->
+  <div class="brand-panel">
+    <a class="brand-logo" href="index.html"><span>O</span>DEMAZ</a>
+
+    <div class="brand-center">
+      <p class="brand-tagline">▸ Secure Access Portal</p>
+      <h2 class="brand-headline">Welcome<br>back.</h2>
+      <p class="brand-sub">Your identity is verified biometrically before granting access to your assigned portal.</p>
+
+      <div class="portal-chips">
+        <div class="chip">
+          <div class="chip-dot" style="background: var(--gold);"></div>
+          <div class="chip-info">
+            <div class="chip-name">VisaMa Portal</div>
+            <div class="chip-domain">@visama.com · @alten.com</div>
+          </div>
+          <span class="chip-badge">LIVE</span>
+        </div>
+        <div class="chip">
+          <div class="chip-dot" style="background: var(--red);"></div>
+          <div class="chip-info">
+            <div class="chip-name">Plant Operations</div>
+            <div class="chip-domain">@jobson.com · @mercedes.com</div>
+          </div>
+          <span class="chip-badge">LIVE</span>
+        </div>
+        <div class="chip">
+          <div class="chip-dot" style="background: var(--teal);"></div>
+          <div class="chip-info">
+            <div class="chip-name">NEXUS Procurement</div>
+            <div class="chip-domain">@nexus.com · @procurement.com</div>
+          </div>
+          <span class="chip-badge">LIVE</span>
+        </div>
+        <div class="chip">
+          <div class="chip-dot" style="background: #7c6de8;"></div>
+          <div class="chip-info">
+            <div class="chip-name">Admin Dashboard</div>
+            <div class="chip-domain">@odemaz.ma · @admin.com</div>
+          </div>
+          <span class="chip-badge">LIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-footer">© 2025 ODEMAZ · SECURE LOGIN v2.0</div>
+  </div>
+
+  <!-- LOGIN PANEL -->
+  <div class="login-panel">
+
+    <div class="login-header">
+      <div class="login-title">Employee Sign In</div>
+      <div class="login-sub">Enter your credentials — you'll be routed to your portal automatically.</div>
+    </div>
+
+    <!-- Domain routing indicator -->
+    <div class="domain-hint" id="domainHint">
+      <div class="domain-hint-icon" id="domainIcon">?</div>
+      <div class="domain-hint-text" id="domainText">Type your email to see your assigned portal</div>
+    </div>
+
+    <div class="field">
+      <label>Email Address</label>
+      <div class="field-wrap">
+        <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <input type="email" id="email" placeholder="you@company.com" autocomplete="email">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <div class="field-wrap">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <input type="password" id="password" placeholder="••••••••••" autocomplete="current-password">
+      </div>
+    </div>
+
+    <div class="recaptcha-wrap">
+      <div class="g-recaptcha" data-sitekey="6Ldl4VMsAAAAAH9KZ7pHmZS8tYozgU3TovKNUkSt"></div>
+    </div>
+
+    <button class="btn-login" id="loginBtn">
+      Verify & Sign In
+      <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+    </button>
+
+    <a href="index.html" class="back-link">← Back to ODEMAZ website</a>
+  </div>
+
+</div>
+
+<!-- BIOMETRIC OVERLAY -->
+<div id="biometric-overlay">
+  <p class="scanner-label">▸ Biometric Identity Verification</p>
+
+  <div id="scan-zone" style="display:flex; flex-direction:column; align-items:center;">
+    <div class="scanner-container">
+      <svg class="progress-ring" width="280" height="280">
+        <circle class="progress-ring__circle" r="120" cx="140" cy="140"/>
+      </svg>
+      <video id="video" autoplay muted></video>
+      <div id="success-icon">✓</div>
+    </div>
+    <div id="percentage-text">0%</div>
+    <div id="status-label">Scanning face…</div>
+  </div>
+
+  <div id="breach-display">
+    <div class="comp-box">
+      <p class="comp-label" style="color:var(--green);">Authorized Owner</p>
+      <img id="owner-img" class="comp-img" alt="Owner">
+      <div class="mark" style="color:var(--green);">✓</div>
+    </div>
+    <div class="comp-box">
+      <p class="comp-label" style="color:var(--red);">Unrecognized Face</p>
+      <canvas id="intruder-canvas" class="comp-img" width="160" height="160"></canvas>
+      <div class="mark" style="color:var(--red);">✕</div>
+    </div>
+  </div>
+
+  <div id="breach-msg">
+    <h2>ACCESS DENIED</h2>
+    <p>Your face does not match the registered account owner.<br>
+    <span style="color:rgba(255,255,255,0.3);">An HR Administrator will be notified immediately.</span></p>
+    <p class="breach-timer" id="breach-timer">Reloading in 8s…</p>
+  </div>
+</div>
+
+<script type="module">
+  import { auth } from './firebase.js';
+  import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  /* ===== PORTAL ROUTING MAP ===== */
+  // Add or change domains here to control which portal each email domain accesses
+  const PORTAL_MAP = {
+    // Visa portal
+    'alten.com':       { page: 'visa-portal.html',  label: 'VisaMa — Visa Portal',        color: '#b8892e', bg: 'rgba(184,137,46,0.2)',  code: 'VM' },
+    'visama.com':      { page: 'visa-portal.html',  label: 'VisaMa — Visa Portal',        color: '#b8892e', bg: 'rgba(184,137,46,0.2)',  code: 'VM' },
+
+    // Maintenance portal
+    'jobson.com':      { page: 'maintenance.html',  label: 'Plant Ops — Mercedes-Benz',   color: '#c8002e', bg: 'rgba(200,0,46,0.2)',    code: 'MB' },
+    'mercedes.com':    { page: 'maintenance.html',  label: 'Plant Ops — Mercedes-Benz',   color: '#c8002e', bg: 'rgba(200,0,46,0.2)',    code: 'MB' },
+
+    // Procurement portal
+    'nexus.com':       { page: 'procurement.html',  label: 'NEXUS — Procurement',         color: '#00c4a7', bg: 'rgba(0,196,167,0.2)',   code: 'NX' },
+    'procurement.com': { page: 'procurement.html',  label: 'NEXUS — Procurement',         color: '#00c4a7', bg: 'rgba(0,196,167,0.2)',   code: 'NX' },
+
+    // Admin / fallback
+    'odemaz.ma':       { page: 'hub.html',          label: 'Admin — Operations Hub',      color: '#7c6de8', bg: 'rgba(124,109,232,0.2)', code: 'OD' },
+    'admin.com':       { page: 'hub.html',          label: 'Admin — Operations Hub',      color: '#7c6de8', bg: 'rgba(124,109,232,0.2)', code: 'OD' },
+  };
+
+  function getPortalForEmail(email) {
+    const domain = email.split('@')[1] || '';
+    return PORTAL_MAP[domain] || null;
+  }
+
+  /* ===== DOMAIN HINT ===== */
+  const emailInput = document.getElementById('email');
+  const domainHint = document.getElementById('domainHint');
+  const domainIcon = document.getElementById('domainIcon');
+  const domainText = document.getElementById('domainText');
+
+  emailInput.addEventListener('input', () => {
+    const email = emailInput.value.toLowerCase().trim();
+    const portal = getPortalForEmail(email);
+
+    if (portal) {
+      domainHint.classList.add('matched');
+      domainIcon.style.background = portal.bg;
+      domainIcon.style.color = '#fff';
+      domainIcon.textContent = portal.code;
+      domainText.innerHTML = `<strong>${portal.label}</strong>You'll be redirected here after verification`;
+    } else {
+      domainHint.classList.remove('matched');
+      domainIcon.style.background = 'rgba(255,255,255,0.06)';
+      domainIcon.textContent = '@';
+      domainText.innerHTML = email.includes('@')
+        ? 'Domain not recognized — defaulting to main hub'
+        : 'Type your email to see your assigned portal';
+    }
+  });
+
+  /* ===== FACE VERIFICATION ===== */
+  const video      = document.getElementById('video');
+  const overlay    = document.getElementById('biometric-overlay');
+  const pctText    = document.getElementById('percentage-text');
+  const circle     = document.querySelector('.progress-ring__circle');
+  const successIcon = document.getElementById('success-icon');
+  const statusLabel = document.getElementById('status-label');
+  const circumference = 120 * 2 * Math.PI; // ≈ 753
+
+  function updateProgress(val) {
+    circle.style.strokeDashoffset = circumference - (val / 100 * circumference);
+    pctText.textContent = `${Math.floor(val)}%`;
+  }
+
+  // Pre-load models on page load
+  const modelsReady = (async () => {
+    try {
+      const MODEL_URL = './models';
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+      ]);
+    } catch (e) { console.warn('Face-api model load:', e); }
+  })();
+
+  async function runFaceVerification(email) {
+    try {
+      await modelsReady;
+
+      const [username, fullDomain] = email.split('@');
+      const domain = fullDomain.split('.')[0];
+      const imagePath = `./images/${domain}/${username}.jpg`;
+
+      const refImg    = await faceapi.fetchImage(imagePath);
+      const refResult = await faceapi
+        .detectSingleFace(refImg, new faceapi.SsdMobilenetv1Options())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      overlay.style.display = 'flex';
+
+      let progress = 0;
+      let isMatch  = false;
+
+      return new Promise((resolve) => {
+        const timer = setInterval(async () => {
+          const live = await faceapi
+            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+          if (live && refResult) {
+            const match = new faceapi.FaceMatcher(refResult, 0.6).findBestMatch(live.descriptor);
+            if (match.label !== 'unknown') isMatch = true;
+          }
+
+          progress += 2;
+          updateProgress(Math.min(progress, 100));
+
+          if (progress >= 100) {
+            clearInterval(timer);
+
+            if (isMatch) {
+              statusLabel.textContent = 'Identity confirmed ✓';
+              statusLabel.style.color = '#00ff94';
+              successIcon.style.display = 'block';
+              setTimeout(() => {
+                overlay.style.display = 'none';
+                stream.getTracks().forEach(t => t.stop());
+                resolve(true);
+              }, 1500);
+            } else {
+              // Breach mode
+              document.getElementById('scan-zone').style.display = 'none';
+              document.getElementById('breach-display').style.display = 'flex';
+              document.getElementById('breach-msg').style.display = 'block';
+              document.getElementById('owner-img').src = imagePath;
+
+              const canvas = document.getElementById('intruder-canvas');
+              canvas.getContext('2d').drawImage(video, 0, 0, 160, 160);
+              stream.getTracks().forEach(t => t.stop());
+
+              // Countdown
+              let secs = 8;
+              const countdown = setInterval(() => {
+                secs--;
+                document.getElementById('breach-timer').textContent = `Reloading in ${secs}s…`;
+                if (secs <= 0) { clearInterval(countdown); window.location.reload(); }
+              }, 1000);
+
+              resolve(false);
+            }
+          }
+        }, 50);
+      });
+
+    } catch (err) {
+      alert('Identity verification error: ' + err.message);
+      return false;
+    }
+  }
+
+  /* ===== LOGIN CLICK ===== */
+  document.getElementById('loginBtn').addEventListener('click', async () => {
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const pass  = document.getElementById('password').value;
+
+    if (!email || !pass) { alert('Please enter your email and password.'); return; }
+
+    if (typeof grecaptcha !== 'undefined' && grecaptcha.getResponse().length === 0) {
+      alert('Please complete the reCAPTCHA check.'); return;
+    }
+
+    // Face verify
+    const authorized = await runFaceVerification(email);
+    if (!authorized) return;
+
+    // Firebase sign-in
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+
+      // Smart routing
+      const portal = getPortalForEmail(email);
+      window.location.href = portal ? portal.page : 'hub.html';
+
+    } catch (e) {
+      overlay.style.display = 'none';
+      alert('Login failed: ' + e.message);
+    }
+  });
+</script>
+
+</body>
+</html>
