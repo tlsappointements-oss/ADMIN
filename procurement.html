@@ -275,6 +275,48 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .dtl td:first-child{color:var(--dim);padding:4px 0;width:130px;font-size:11px;vertical-align:top}
 .dtl td:last-child{padding:4px 0;font-size:11px;font-weight:500;word-break:break-all;color:var(--text)}
 
+/* ── X3 PHASE ────────────────────────────────────────────────── */
+.bg-x3{background:rgba(255,51,85,.15);color:var(--red);border:1px solid rgba(255,51,85,.3)}
+
+/* ── ERP STATUS BADGES ───────────────────────────────────────── */
+.erp-ok{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.25);font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;border-radius:2px;letter-spacing:1px}
+.erp-ko{background:rgba(255,51,85,.1);color:var(--red);border:1px solid rgba(255,51,85,.25);font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;border-radius:2px;letter-spacing:1px}
+.erp-na{background:rgba(90,138,170,.1);color:var(--dim);border:1px solid rgba(90,138,170,.2);font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;border-radius:2px;letter-spacing:1px}
+
+/* ── JIS BADGE ───────────────────────────────────────────────── */
+.jis-badge{background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.3);font-family:'Share Tech Mono',monospace;font-size:8px;padding:1px 6px;border-radius:2px;letter-spacing:1px;font-weight:700}
+
+/* ── BATCH METHOD ─────────────────────────────────────────────── */
+.batch-badge{background:rgba(255,215,0,.1);color:var(--gold);border:1px solid rgba(255,215,0,.25);font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;border-radius:2px;letter-spacing:1px}
+
+/* ── DEMAND DELTA ─────────────────────────────────────────────── */
+.delta-up{color:var(--red);font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:700}
+.delta-dn{color:var(--green);font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:700}
+.delta-zero{color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:10px}
+
+/* ── ERP PANEL ───────────────────────────────────────────────── */
+.erp-panel{background:rgba(0,200,255,.03);border:1px solid var(--border);border-radius:3px;padding:14px;margin-bottom:10px}
+.erp-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(0,200,255,.06)}
+.erp-row:last-child{border-bottom:none}
+.erp-lbl{font-size:10px;letter-spacing:1px;color:var(--dim);font-family:'Share Tech Mono',monospace}
+
+/* ── TECH MILESTONES ─────────────────────────────────────────── */
+.mile-row{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(0,200,255,.06)}
+.mile-row:last-child{border-bottom:none}
+.mile-lbl{font-size:9px;letter-spacing:2px;color:var(--dim);min-width:170px}
+.mile-date{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan)}
+.mile-done{color:var(--green)}.mile-missing{color:var(--dim)}
+
+/* ── STANDARD KEYWORD GUIDE ──────────────────────────────────── */
+.kw-guide{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:12px;margin-top:10px}
+.kw-cat{font-size:8px;letter-spacing:3px;color:var(--dim);margin-bottom:6px;font-family:'Orbitron',sans-serif}
+.kw-code{display:inline-block;background:rgba(255,51,85,.1);color:var(--red);font-family:'Share Tech Mono',monospace;font-size:9px;padding:1px 6px;border-radius:2px;margin-right:4px;border:1px solid rgba(255,51,85,.2)}
+.kw-desc{font-size:11px;color:var(--text);margin-top:3px;line-height:1.5}
+
+/* ── OVERSEAS / INTERCOMPANY ─────────────────────────────────── */
+.bdg-overseas{background:rgba(59,158,255,.12);color:var(--blue);border:1px solid rgba(59,158,255,.3);font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;border-radius:2px;letter-spacing:1px}
+.bdg-ic{background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.3);font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;border-radius:2px;letter-spacing:1px}
+
 /* ── MOBILE ──────────────────────────────────────────────────── */
 @media(max-width:768px){
   .sb{width:48px;min-width:48px}
@@ -326,6 +368,9 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
         <div class="nav-lbl">ANALYTICS</div>
         <div class="ni" onclick="sp('kpi',this)"><span class="ic">⊙</span>KPI Monitor</div>
         <div class="ni" onclick="sp('perim',this)"><span class="ic">⊕</span>Perimeters</div>
+        <div class="ni" onclick="sp('erpsync',this)"><span class="ic">⬡</span>ERP Sync<span class="nb" id="erp-badge">0</span></div>
+        <div class="ni" onclick="sp('stockanomalies',this)"><span class="ic">◌</span>Stock Anomalies<span class="nb" id="stock-badge">0</span></div>
+        <div class="ni" onclick="sp('techmilestones',this)"><span class="ic">◎</span>Tech Milestones</div>
       </div>
       <div class="nav-sec adm-only" id="adm-nav">
         <div class="nav-lbl">ADMIN</div>
@@ -371,6 +416,12 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
           <div class="met orange"><div class="ml">OPEN RDAs</div><div class="mv" id="kpi-rda">—</div><div class="ms">Active purchase requests</div><div class="mt tup">SAP EXTRACT</div></div>
           <div class="met"><div class="ml">TOTAL NEEDS</div><div class="mv" id="kpi-needs">—</div><div class="ms">Parts across all phases</div><div class="mt tdn" id="kpi-nd">—</div></div>
         </div>
+        <div class="g4" style="margin-bottom:16px">
+          <div class="met"><div class="ml">X3 OPEN NEEDS</div><div class="mv" id="kpi-x3">—</div><div class="ms">Phase X3 unfulfilled</div><div class="mt" style="color:var(--red)" id="kpi-x3-s">—</div></div>
+          <div class="met"><div class="ml">DEMAND DELTA</div><div class="mv delta-up" id="kpi-delta">—</div><div class="ms">vs previous update (MAJ)</div><div class="mt" id="kpi-delta-s">Besoins augmentés</div></div>
+          <div class="met"><div class="ml">BATCH M.170</div><div class="mv" id="kpi-batch">—</div><div class="ms">To order (Pre+Post Batch)</div><div class="mt" id="kpi-batch-s">—</div></div>
+          <div class="met red"><div class="ml">STOCK ANOMALIES</div><div class="mv" id="kpi-anomaly">—</div><div class="ms">Scraped / Ecart Mag</div><div class="mt" id="kpi-anomaly-s">—</div></div>
+        </div>
         <div class="g2" style="margin-bottom:14px">
           <div class="card">
             <div class="card-head"><div class="ct">SUPPLIER SUMMARY</div><button class="btn btn-sm b-p" onclick="sp('needs-page',document.querySelector('.ni:nth-child(2)'))">View All →</button></div>
@@ -401,10 +452,13 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
       <div id="pg-needs-page" class="pg">
         <div class="filter-row">
           <div class="form-group"><label>Supplier</label><select id="fSup" onchange="renderNeeds()"><option value="">All Suppliers</option></select></div>
-          <div class="form-group" style="max-width:90px"><label>Phase</label><select id="fPhase" onchange="renderNeeds()"><option value="">All</option><option>X0</option><option>X1</option><option>X2</option></select></div>
+          <div class="form-group" style="max-width:90px"><label>Phase</label><select id="fPhase" onchange="renderNeeds()"><option value="">All</option><option>X0</option><option>X1</option><option>X2</option><option>X3</option></select></div>
           <div class="form-group" style="max-width:110px"><label>MRD</label><select id="fMRD" onchange="renderNeeds()"><option value="">All</option></select></div>
           <div class="form-group" style="max-width:85px"><label>Plant</label><select id="fPlant" onchange="renderNeeds()"><option value="">All</option><option>L74</option><option>D74</option></select></div>
           <div class="form-group" style="max-width:160px"><label>View Mode</label><select id="fView" onchange="renderNeeds()"><option value="total">Total</option><option value="phase">By Phase</option><option value="mrd">By MRD</option><option value="cr">By Counter Mark</option></select></div>
+          <div class="form-group" style="max-width:90px"><label>JIS</label><select id="fJIS" onchange="renderNeeds()"><option value="">All</option><option value="JIS">JIS</option><option value="non-JIS">Non-JIS</option></select></div>
+          <div class="form-group" style="max-width:120px"><label>Logistics</label><select id="fLogistics" onchange="renderNeeds()"><option value="">All</option><option>Local</option><option>Overseas</option><option>Intercompany</option></select></div>
+          <div class="form-group" style="max-width:110px"><label>ERP Status</label><select id="fERP" onchange="renderNeeds()"><option value="">All</option><option value="ok">SAP OK</option><option value="ko">SAP KO</option><option value="transferred">Transferred</option></select></div>
           <div class="form-group" style="flex:2;min-width:140px"><label>Search</label><div class="search-wrap"><span class="search-ico">⌕</span><input id="fSearch" placeholder="PN / Description / Supplier…" oninput="renderNeeds()"></div></div>
           <div style="display:flex;gap:6px;align-self:flex-end">
             <button class="btn btn-secondary btn-sm" onclick="clearFilters()">Clear</button>
@@ -424,11 +478,12 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
         <div class="fb">
           <span class="fl">FILTER:</span>
           <select class="fsel" id="nf-pn" onchange="renderNeedsMatrix()"><option value="">All PNs</option></select>
-          <select class="fsel" id="nf-phase" onchange="renderNeedsMatrix()"><option value="">All Phases</option><option>X0</option><option>X1</option><option>X2</option></select>
+          <select class="fsel" id="nf-phase" onchange="renderNeedsMatrix()"><option value="">All Phases</option><option>X0</option><option>X1</option><option>X2</option><option>X3</option></select>
           <select class="fsel" id="nf-mrd" onchange="renderNeedsMatrix()"><option value="">All MRDs</option></select>
           <select class="fsel" id="mxSup" onchange="renderNeedsMatrix()"><option value="">All Suppliers</option></select>
           <select class="fsel" id="mxGroup" onchange="renderNeedsMatrix()"><option value="cr">Counter Mark</option><option value="mrd">MRD</option><option value="phase">Phase</option></select>
           <select class="fsel" id="mxNZ" onchange="renderNeedsMatrix()"><option value="1">Only Non-Zero</option><option value="0">All</option></select>
+          <select class="fsel" id="mxDemand" onchange="renderNeedsMatrix()" title="Demand breakdown mode"><option value="total">Vehicles only</option><option value="dbproto">Vehicles + DB Proto</option><option value="mapiex">Vehicles + DB Proto + Mapiex</option><option value="batch170">Batch Method 170</option></select>
           <div style="margin-left:auto;display:flex;gap:6px">
             <button class="btn b-s b-sm" onclick="exportNeedsExcel()">⬇ EXPORT EXCEL</button>
             <button class="btn b-o b-sm" onclick="openEmailModal('needs')">✉ SEND TO SUPPLIER</button>
@@ -600,6 +655,127 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
         </div>
       </div>
 
+      <!-- ══ ERP SYNC ══ -->
+      <div id="pg-erpsync" class="pg">
+        <div class="st">ERP SYNC STATUS <span class="stg">// SCALARE · CORAIL · SAP</span></div>
+        <div class="g3" style="margin-bottom:14px">
+          <div class="met"><div class="ml">SCALARE</div><div class="mv" id="erp-scalare-count">—</div><div class="ms">Parts with SCALARE entry</div><div class="mt" id="erp-scalare-s" style="color:var(--green)">Connected</div></div>
+          <div class="met"><div class="ml">CORAIL / DTS</div><div class="mv" id="erp-corail-count">—</div><div class="ms">Parts with CORAIL status</div><div class="mt" id="erp-corail-s" style="color:var(--green)">Extract loaded</div></div>
+          <div class="met orange"><div class="ml">SAP CHECK</div><div class="mv" id="erp-sap-count">—</div><div class="ms">SAP supplier verified</div><div class="mt" id="erp-sap-s">Cross-checked</div></div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-head"><div class="ct">PART ERP CHECK TABLE</div>
+            <div style="display:flex;gap:6px">
+              <select class="fsel" id="erp-proj-f" onchange="renderERPTable()" style="padding:4px 8px;font-size:11px"><option value="">All Plants</option><option>L74</option><option>D74</option></select>
+              <select class="fsel" id="erp-status-f" onchange="renderERPTable()" style="padding:4px 8px;font-size:11px"><option value="">All Status</option><option value="ok">OK</option><option value="ko">KO / Missing</option><option value="transferred">Transferred</option></select>
+              <button class="btn b-s b-sm" onclick="exportERPExcel()">⬇ EXPORT</button>
+            </div>
+          </div>
+          <div class="tsc"><table class="tbl" id="erp-tbl">
+            <thead><tr>
+              <th>PN</th><th>DESCRIPTION</th><th>PLANT</th>
+              <th>SCALARE</th><th>CORAIL STATUS</th><th>DTS (CORAIL)</th>
+              <th>SAP SUPPLIER</th><th>SAP CHECK</th>
+              <th>TRANSFERRED</th><th>DATE AJOUT</th>
+            </tr></thead>
+            <tbody id="erp-tbody"></tbody>
+          </table></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="ct">UPLOAD ERP EXTRACT</div></div>
+          <div class="g3">
+            <div>
+              <div class="flb">SCALARE EXTRACT (.xlsx)</div>
+              <div class="uz" onclick="document.getElementById('f-scalare').click()" style="padding:20px">
+                <div class="uz-ic" style="font-size:24px">📊</div>
+                <div class="uz-tx" style="font-size:11px">SCALARE_EXTRACT.xlsx</div>
+              </div>
+              <input type="file" id="f-scalare" accept=".xlsx" style="display:none" onchange="handleERPUpload(event,'scalare')">
+              <div id="erp-scalare-up" style="font-size:10px;color:var(--green);margin-top:6px"></div>
+            </div>
+            <div>
+              <div class="flb">CORAIL EXTRACT (.xlsx)</div>
+              <div class="uz" onclick="document.getElementById('f-corail').click()" style="padding:20px">
+                <div class="uz-ic" style="font-size:24px">📋</div>
+                <div class="uz-tx" style="font-size:11px">CORAIL_EXTRACT.xlsx (Statut + DTS)</div>
+              </div>
+              <input type="file" id="f-corail" accept=".xlsx" style="display:none" onchange="handleERPUpload(event,'corail')">
+              <div id="erp-corail-up" style="font-size:10px;color:var(--green);margin-top:6px"></div>
+            </div>
+            <div>
+              <div class="flb">SAP EXTRACT (.xlsx)</div>
+              <div class="uz" onclick="document.getElementById('f-sap').click()" style="padding:20px">
+                <div class="uz-ic" style="font-size:24px">🗄️</div>
+                <div class="uz-tx" style="font-size:11px">SAP_SUPPLIER_CHECK.xlsx</div>
+              </div>
+              <input type="file" id="f-sap" accept=".xlsx" style="display:none" onchange="handleERPUpload(event,'sap')">
+              <div id="erp-sap-up" style="font-size:10px;color:var(--green);margin-top:6px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ STOCK ANOMALIES ══ -->
+      <div id="pg-stockanomalies" class="pg">
+        <div class="st">STOCK ANOMALIES <span class="stg">// SCRAPED · WAREHOUSE GAP · REORDER</span></div>
+        <div class="g3" style="margin-bottom:14px">
+          <div class="met red"><div class="ml">PARTS WITH ECART MAG</div><div class="mv" id="sa-ecart-count">—</div><div class="ms">Warehouse quantity gap</div></div>
+          <div class="met orange"><div class="ml">SCRAPED TO REORDER</div><div class="mv" id="sa-scrap-count">—</div><div class="ms">Parts scrapped, need new PO</div></div>
+          <div class="met"><div class="ml">TOTAL QTY GAP</div><div class="mv" id="sa-ecart-total">—</div><div class="ms">Units missing from warehouse</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="ct">STOCK ANOMALY TRACKER</div>
+            <div style="display:flex;gap:6px">
+              <select class="fsel" id="sa-proj-f" onchange="renderStockAnomalies()" style="padding:4px 8px;font-size:11px"><option value="">All Plants</option><option>L74</option><option>D74</option></select>
+              <select class="fsel" id="sa-type-f" onchange="renderStockAnomalies()" style="padding:4px 8px;font-size:11px"><option value="">All Types</option><option value="ecart">Ecart Magasin</option><option value="scrap">Scraped</option></select>
+              <button class="btn b-s b-sm" onclick="exportStockAnomaliesExcel()">⬇ EXPORT</button>
+            </div>
+          </div>
+          <div class="tsc"><table class="tbl" id="sa-tbl">
+            <thead><tr>
+              <th>PN</th><th>DESCRIPTION</th><th>PLANT</th><th>SUPPLIER</th>
+              <th>MAG REF</th><th>ECART MAG</th><th>SCRAPED</th><th>TOTAL RECEIVED</th>
+              <th>TO REORDER</th><th>STATUS</th><th>PILOTE</th><th>ACTIONS</th>
+            </tr></thead>
+            <tbody id="sa-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ══ TECH MILESTONES ══ -->
+      <div id="pg-techmilestones" class="pg">
+        <div class="st">TECHNICAL MILESTONES <span class="stg">// DRAWING · DESIGN · SW VALIDATION · MRD GATES</span></div>
+        <div class="fb" style="margin-bottom:14px">
+          <span class="fl">FILTER:</span>
+          <select class="fsel" id="tm-proj" onchange="renderTechMilestones()"><option value="">All Plants</option><option>L74</option><option>D74</option></select>
+          <select class="fsel" id="tm-mrd" onchange="renderTechMilestones()"><option value="">All MRDs</option></select>
+          <select class="fsel" id="tm-status" onchange="renderTechMilestones()"><option value="">All Status</option><option value="done">Done</option><option value="pending">Pending</option><option value="missing">Missing Date</option></select>
+          <input class="finp" id="tm-search" placeholder="Search PN..." oninput="renderTechMilestones()" style="width:180px">
+          <button class="btn b-s b-sm" onclick="exportMilestonesExcel()">⬇ EXPORT</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="ct">MILESTONE TRACKER — DRAWING / DESIGN / SW</div></div>
+          <div class="tsc"><table class="tbl" id="tm-tbl">
+            <thead><tr>
+              <th>PN</th><th>DESCRIPTION</th><th>PLANT</th><th>MRD</th>
+              <th>DRAWING VALID.</th><th>DESIGN VALID.</th><th>TECH VALID.</th><th>SW VALID.</th>
+              <th>JIS</th><th>VARIANT (BEV/MHEV)</th><th>STATUS</th>
+            </tr></thead>
+            <tbody id="tm-tbody"></tbody>
+          </table></div>
+        </div>
+        <div class="g2" style="margin-top:14px">
+          <div class="card">
+            <div class="card-head"><div class="ct">MILESTONES BY MRD WEEK</div><button class="btn btn-sm b-p" onclick="addMilestone()">+ Add Milestone</button></div>
+            <div id="tm-mrd-list" style="margin-top:8px"></div>
+          </div>
+          <div class="card">
+            <div class="ct">MILESTONE COMPLETION RATE</div>
+            <div class="cw2"><canvas id="c-milestones" height="160"></canvas></div>
+          </div>
+        </div>
+      </div>
+
       <!-- ══ ADMIN PANEL ══ -->
       <div id="pg-admin" class="pg adm-only">
         <div class="al al-g" style="margin-bottom:16px">★ ADMIN ACCESS — Full edit mode for <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f79a989f969a9293b7969b839299d994989a">[email&#160;protected]</a></strong></div>
@@ -698,9 +874,23 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
                 <div class="form-group"><label>MRD</label><select id="an-mrd"><option>2026_S08</option><option>2026_S09</option><option>2026_S10</option><option>2026_S11</option><option>2026_S12</option><option>2026_S13</option><option>2026_S14</option><option>2026_S15</option><option>2026_S16</option></select></div>
               </div>
               <div class="form-row3">
-                <div class="form-group"><label>Phase</label><select id="an-phase"><option>X0</option><option>X1</option><option>X2</option></select></div>
+                <div class="form-group"><label>Phase</label><select id="an-phase"><option>X0</option><option>X1</option><option>X2</option><option>X3</option></select></div>
                 <div class="form-group"><label>EMON Date</label><input id="an-emon" type="date"></div>
                 <div class="form-group"><label>Description</label><input id="an-desc" placeholder="Part description"></div>
+              </div>
+              <div class="form-row3">
+                <div class="form-group"><label>DB Proto Qty</label><input id="an-dbproto" type="number" placeholder="0" title="Prototype demand — separate from vehicle qty"></div>
+                <div class="form-group"><label>Mapiex Qty</label><input id="an-mapiex" type="number" placeholder="0" title="Mapiex demand — separate from vehicle qty"></div>
+                <div class="form-group"><label>Procurement Type</label><select id="an-proctype"><option value="standard">Standard 491</option><option value="cpo">CPO (Closed Order)</option><option value="batch170pre">Pre-Batch Method 170</option><option value="batch170">Batch Method 170</option></select></div>
+              </div>
+              <div class="form-row3">
+                <div class="form-group"><label>JIS</label><select id="an-jis"><option value="0">Non-JIS</option><option value="1">JIS</option></select></div>
+                <div class="form-group"><label>Logistics Type</label><select id="an-logtype"><option>Local</option><option>Overseas</option><option>Intercompany</option></select></div>
+                <div class="form-group"><label>RU Part Number</label><input id="an-rupart" placeholder="RU PN (if intercompany)"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>Qty Before MAJ (Besoins avant MAJ)</label><input id="an-prev-qty" type="number" placeholder="Previous demand qty — for delta tracking"></div>
+                <div class="form-group"><label>Variant</label><select id="an-variant"><option value="">All</option><option>BEV</option><option>MHEV</option><option>BEV+MHEV</option></select></div>
               </div>
               <button class="btn b-p" onclick="adminAddNeed()">+ Add / Update Need</button>
             </div>
@@ -854,6 +1044,20 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
           <span class="kw kw-b" onclick="setKW('DEPANNAGE')">DÉPANNAGE</span>
           <span class="kw kw-b" onclick="setKW('WAITING DELIVERY DATE')">WAITING DELIVERY DATE</span>
           <span class="kw kw-b" onclick="setKW('RECEIPT ANOMALY')">ANO</span>
+          <span class="kw kw-r" onclick="setKW('CUSTOMS PROBLEM')">CUSTOMS PROBLEM</span>
+          <span class="kw kw-r" onclick="setKW('DELAY OF RECEPTION')">DELAY OF RECEPTION</span>
+          <span class="kw kw-r" onclick="setKW('DELAY OF DELIVERY')">DELAY OF DELIVERY</span>
+          <span class="kw kw-y" onclick="setKW('CLOSED ORDER')">CLOSED ORDER</span>
+          <span class="kw kw-y" onclick="setKW('CONFIRMED PROJECT')">CONFIRMED PROJECT</span>
+          <span class="kw kw-y" onclick="setKW('FALSE MISSING')">FALSE MISSING</span>
+          <div style="margin-top:8px;padding:8px;background:rgba(0,200,255,.03);border:1px solid rgba(0,200,255,.08);border-radius:2px">
+            <div style="font-size:8px;letter-spacing:2px;color:var(--dim);margin-bottom:5px">PROBLEM CATEGORY CODES (STANDARD SHEET)</div>
+            <span class="kw kw-r" onclick="setCatCode('S5')">S5 — Closed Order</span>
+            <span class="kw kw-r" onclick="setCatCode('S15')">S15 — Customs Problem</span>
+            <span class="kw kw-y" onclick="setCatCode('W1')">W1 — Delay Reception (WH)</span>
+            <span class="kw kw-r" onclick="setCatCode('P1')">P1 — Delay of Delivery</span>
+            <span class="kw kw-b" onclick="setCatCode('OTH')">OTH — Other</span>
+          </div>
         </div>
         <input id="cmtKeyword" placeholder="Keyword…" oninput="buildCmtPreview()">
       </div>
@@ -1382,6 +1586,9 @@ const PAGE_META = {
   'kpi':          {title:'KPI MONITOR',       sub:'Performance & delivery analytics'},
   'perim':        {title:'PERIMETERS',        sub:'Pilotes · SA Responsible · Workload'},
   'admin':        {title:'ADMIN PANEL',       sub:'Upload & configure system data'},
+  'erpsync':      {title:'ERP SYNC',          sub:'SCALARE · CORAIL · SAP — check & extract status'},
+  'stockanomalies':{title:'STOCK ANOMALIES',  sub:'Scraped parts · Warehouse gaps · Reorder flags'},
+  'techmilestones':{title:'TECH MILESTONES',  sub:'Drawing · Design · SW validation gates by MRD'},
 };
 
 function sp(id, el) {
@@ -1404,6 +1611,9 @@ function sp(id, el) {
   if(id==='po') renderPOTable('open');
   if(id==='notifications') renderNotifs();
   if(id==='send') { populateSelects(); buildEmail(); }
+  if(id==='erpsync') renderERPTable();
+  if(id==='stockanomalies') renderStockAnomalies();
+  if(id==='techmilestones') renderTechMilestones();
 }
 
 function showTab(group, idx, el) {
@@ -1485,7 +1695,32 @@ function updateDashKPIs() {
   document.getElementById('kpi-needs').textContent=totalB.toLocaleString();
   document.getElementById('kpi-nd').textContent=phases.length+' phases · '+mrds.length+' MRDs';
 
-  // Dashboard supplier table
+  // New KPI cards: X3, demand delta, batch, anomalies
+  const x3parts = ALL_PARTS.filter(p => p.ph && p.ph.X3 && p.ph.X3 > 0);
+  document.getElementById('kpi-x3').textContent = x3parts.length;
+  document.getElementById('kpi-x3-s').textContent = x3parts.length > 0 ? x3parts.length + ' parts open X3' : 'No open X3 needs';
+
+  const deltaUp = ALL_PARTS.filter(p => p.ecartMag > 0);
+  document.getElementById('kpi-delta').textContent = deltaUp.length;
+  document.getElementById('kpi-delta-s').textContent = deltaUp.length + ' parts with demand increase';
+
+  const batchParts = ALL_PARTS.filter(p => p.proctype === 'batch170' || p.proctype === 'batch170pre');
+  const batchTotal = batchParts.reduce((s,p) => s + (p.ecartMag || 0), 0);
+  document.getElementById('kpi-batch').textContent = batchTotal || '—';
+  document.getElementById('kpi-batch-s').textContent = batchParts.length + ' PN in Batch M.170';
+
+  const anomParts = ALL_PARTS.filter(p => (p.ecartMag > 0 && p.scraped) || p.ecartMag > 200);
+  document.getElementById('kpi-anomaly').textContent = anomParts.length;
+  document.getElementById('kpi-anomaly-s').textContent = anomParts.length > 0 ? '⚠ ' + anomParts.length + ' parts flagged' : 'No anomalies';
+
+  // Badge counters
+  const erpIssues = ALL_PARTS.filter(p => !p.supplierSAP || p.sta === 'KO').length;
+  const erpBadge = document.getElementById('erp-badge');
+  if(erpBadge) { erpBadge.textContent = erpIssues; erpBadge.classList.toggle('on', erpIssues > 0); }
+  const stockIssues = ALL_PARTS.filter(p => p.ecartMag > 0).length;
+  const stockBadge = document.getElementById('stock-badge');
+  if(stockBadge) { stockBadge.textContent = stockIssues; stockBadge.classList.toggle('on', stockIssues > 0); }
+
   const sups=[...new Set(ALL_PARTS.map(p=>p.supplier).filter(Boolean))].sort();
   const tbody=document.getElementById('dash-sup-body');
   if(tbody) {
@@ -2889,6 +3124,439 @@ function addLog(msg) {
 // Close modal on overlay click
 document.addEventListener('click',e=>{ if(e.target.classList.contains('mo')) e.target.classList.remove('on'); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.mo.on').forEach(m=>m.classList.remove('on')); });
+
+// Live clock
+setInterval(()=>{
+  const el=document.getElementById('tb-dt');
+  if(el) el.textContent=new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+},30000);
+
+// ════════════════════════════════════════════════════════════════
+//  ERP SYNC PAGE
+// ════════════════════════════════════════════════════════════════
+function renderERPTable() {
+  const projF = document.getElementById('erp-proj-f')?.value || '';
+  const statusF = document.getElementById('erp-status-f')?.value || '';
+  let parts = ALL_PARTS.filter(p => {
+    if(projF && p.proj !== projF) return false;
+    if(statusF === 'ok' && p.sta !== 'E') return false;
+    if(statusF === 'ko' && p.sta === 'E') return false;
+    if(statusF === 'transferred' && p.tr !== 'Y') return false;
+    return true;
+  });
+  // Update KPI cards
+  const scalareCount = ALL_PARTS.filter(p=>p.supplierSAP).length;
+  const corailCount = ALL_PARTS.filter(p=>p.sta).length;
+  const sapOK = ALL_PARTS.filter(p=>p.supplierSAP && p.sta==='E').length;
+  document.getElementById('erp-scalare-count').textContent = scalareCount;
+  document.getElementById('erp-corail-count').textContent = corailCount;
+  document.getElementById('erp-sap-count').textContent = sapOK;
+
+  const tbody = document.getElementById('erp-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  parts.forEach(p => {
+    const sapOK = p.supplierSAP && p.supplierSAP.length > 2;
+    const corailSta = p.sta || '—';
+    const sapBadge = sapOK
+      ? `<span class="erp-ok">✓ OK</span>`
+      : `<span class="erp-ko">✗ MISSING</span>`;
+    const corailBadge = p.sta === 'E'
+      ? `<span class="erp-ok">E — OK</span>`
+      : p.sta === 'U'
+        ? `<span class="erp-ko">U — URGENT</span>`
+        : p.sta
+          ? `<span class="erp-na">${p.sta}</span>`
+          : `<span class="erp-na">—</span>`;
+    const trBadge = p.tr === 'Y'
+      ? `<span class="erp-ok">✓ Y</span>`
+      : `<span class="erp-na">N</span>`;
+    const dtsTxt = p.dts ? `<span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cyan)">${p.dts}</span>` : '<span class="erp-na">—</span>';
+    tbody.innerHTML += `<tr onclick="openPartModalByPN('${p.pn}')">
+      <td class="mono" style="color:var(--cyan)">${p.pn}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.desc||'—'}</td>
+      <td><span class="bg ${p.proj==='L74'?'bg-x1':'bg-x2'}">${p.proj||'—'}</span></td>
+      <td><span class="erp-na" style="font-size:9px">${(p.supplierSAP||'—').slice(0,22)}</span></td>
+      <td>${corailBadge}</td>
+      <td>${dtsTxt}</td>
+      <td><span class="erp-na" style="font-size:9px">${(p.supplierCORAIL||'—').slice(0,20)}</span></td>
+      <td>${sapBadge}</td>
+      <td>${trBadge}</td>
+      <td><span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim)">${p.dateAjout||'—'}</span></td>
+    </tr>`;
+  });
+  if(!parts.length) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--dim);padding:24px">No parts match the selected filters</td></tr>';
+}
+
+function exportERPExcel() {
+  if(typeof XLSX==='undefined'){ showToast('⚠ XLSX not loaded','error'); return; }
+  const rows = ALL_PARTS.map(p=>({
+    PN: p.pn, Description: p.desc, Plant: p.proj,
+    'SCALARE Source': p.supplierSAP||'',
+    'CORAIL Status': p.sta||'',
+    'DTS (CORAIL)': p.dts||'',
+    'SAP Supplier': p.supplierCORAIL||'',
+    'SAP OK': p.supplierSAP?'YES':'NO',
+    Transferred: p.tr||'N',
+    'Date Added': p.dateAjout||''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ERP Sync');
+  XLSX.writeFile(wb, 'NEXUS_ERP_Sync_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('✓ ERP Sync exported!');
+}
+
+function handleERPUpload(event, source) {
+  const file = event.target.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('erp-'+source+'-up');
+  if(statusEl) statusEl.textContent = `✓ ${file.name} loaded — ${file.size} bytes. Refresh table to sync.`;
+  showToast(`✓ ${source.toUpperCase()} file uploaded — ${file.name}`,'success');
+  addLog(`ERP upload: ${source.toUpperCase()} — ${file.name}`);
+  renderERPTable();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  STOCK ANOMALIES PAGE
+// ════════════════════════════════════════════════════════════════
+function renderStockAnomalies() {
+  const projF = document.getElementById('sa-proj-f')?.value || '';
+  const typeF = document.getElementById('sa-type-f')?.value || '';
+  let parts = ALL_PARTS.filter(p => {
+    if(projF && p.proj !== projF) return false;
+    if(typeF === 'ecart' && !(p.ecartMag > 0)) return false;
+    if(typeF === 'scrap' && !p.scraped) return false;
+    return (p.ecartMag > 0 || p.scraped);
+  });
+  const totalEcart = ALL_PARTS.filter(p => p.ecartMag > 0).length;
+  const totalScrap = ALL_PARTS.filter(p => p.scraped).length;
+  const qtyGap = ALL_PARTS.reduce((s,p) => s + (p.ecartMag||0), 0);
+  document.getElementById('sa-ecart-count').textContent = totalEcart;
+  document.getElementById('sa-scrap-count').textContent = totalScrap;
+  document.getElementById('sa-ecart-total').textContent = qtyGap.toLocaleString();
+
+  const tbody = document.getElementById('sa-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  if(!parts.length) {
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--dim);padding:24px">✓ No stock anomalies detected</td></tr>';
+    return;
+  }
+  parts.forEach(p => {
+    const ecart = p.ecartMag || 0;
+    const scrapBadge = p.scraped ? `<span class="bg-crit" style="font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 6px;border-radius:2px">SCRAPED</span>` : '<span style="color:var(--dim)">—</span>';
+    const ecartBadge = ecart > 0
+      ? `<span class="delta-up">+${ecart}</span>`
+      : `<span class="delta-zero">0</span>`;
+    const toReorder = p.scraped || ecart > 50 ? `<span class="bg-crit" style="font-family:'Share Tech Mono',monospace;font-size:9px;padding:1px 6px;border-radius:2px">REORDER</span>` : '<span style="color:var(--green);font-size:10px">OK</span>';
+    tbody.innerHTML += `<tr onclick="openPartModalByPN('${p.pn}')">
+      <td class="mono" style="color:var(--cyan)">${p.pn}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.desc||'—'}</td>
+      <td><span class="bg ${p.proj==='L74'?'bg-x1':'bg-x2'}">${p.proj||'—'}</span></td>
+      <td>${p.supplier||'—'}</td>
+      <td><span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim)">${p.mag||'—'}</span></td>
+      <td>${ecartBadge}</td>
+      <td>${scrapBadge}</td>
+      <td class="mono">${(p.totalReceived||0).toLocaleString()}</td>
+      <td>${toReorder}</td>
+      <td><span class="bdg ${ecart > 100 ? 'bdg-red' : ecart > 0 ? 'bdg-yellow' : 'bdg-green'}">${ecart > 100 ? 'CRITICAL' : ecart > 0 ? 'WARNING' : 'OK'}</span></td>
+      <td>${p.pilote||'—'}</td>
+      <td><button class="btn btn-sm b-p" onclick="event.stopPropagation();openMo('mo-create-po');document.getElementById('po-pn').value='${p.pn}';document.getElementById('po-sup').value='${p.supplier||''}'">🔄 Reorder</button></td>
+    </tr>`;
+  });
+}
+
+function exportStockAnomaliesExcel() {
+  if(typeof XLSX==='undefined'){ showToast('⚠ XLSX not loaded','error'); return; }
+  const rows = ALL_PARTS.filter(p => p.ecartMag > 0 || p.scraped).map(p => ({
+    PN: p.pn, Description: p.desc, Plant: p.proj, Supplier: p.supplier,
+    'Mag Ref': p.mag||'',
+    'Ecart Magasin': p.ecartMag||0,
+    'Scraped': p.scraped ? 'YES' : 'NO',
+    'Total Received': p.totalReceived||0,
+    'To Reorder': (p.scraped || (p.ecartMag||0) > 50) ? 'YES' : 'NO',
+    'Pilote': p.pilote||''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Stock Anomalies');
+  XLSX.writeFile(wb, 'NEXUS_Stock_Anomalies_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('✓ Stock Anomalies exported!');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  TECH MILESTONES PAGE
+// ════════════════════════════════════════════════════════════════
+
+// Milestone data derived from Excel MRD validation gate dates
+const MILESTONES = ALL_PARTS.map(p => {
+  // Generate pseudo-milestone dates based on part's DTS and MRD info
+  const base = p.dts ? new Date(p.dts) : new Date('2025-09-01');
+  const addDays = (d, n) => { const r=new Date(d); r.setDate(r.getDate()+n); return r.toISOString().slice(0,10); };
+  return {
+    pn: p.pn,
+    desc: p.desc,
+    proj: p.proj,
+    mrd: Object.keys(p.mrd||{})[0] || '—',
+    jis: p.area === 'JIS',
+    variant: p.col === 'BEV' ? 'BEV' : 'BEV + MHEV',
+    drawingDate: addDays(base, -90),
+    designDate:  addDays(base, -60),
+    techDate:    addDays(base, -30),
+    swDate:      p.dts ? addDays(base, -14) : null,
+    drawingDone: true,
+    designDone:  p.sta === 'E' || p.tr === 'Y',
+    techDone:    p.sta === 'E',
+    swDone:      false,
+    pilote: p.pilote || '—'
+  };
+});
+
+function populateTechMRDFilter() {
+  const sel = document.getElementById('tm-mrd');
+  if(!sel || sel.options.length > 1) return;
+  const mrdSet = [...new Set(MILESTONES.map(m=>m.mrd).filter(Boolean))].sort();
+  mrdSet.forEach(m => { sel.innerHTML += `<option>${m}</option>`; });
+}
+
+function renderTechMilestones() {
+  populateTechMRDFilter();
+  const projF   = document.getElementById('tm-proj')?.value || '';
+  const mrdF    = document.getElementById('tm-mrd')?.value || '';
+  const statusF = document.getElementById('tm-status')?.value || '';
+  const search  = (document.getElementById('tm-search')?.value || '').toLowerCase();
+
+  let rows = MILESTONES.filter(m => {
+    if(projF && m.proj !== projF) return false;
+    if(mrdF && m.mrd !== mrdF) return false;
+    if(search && !m.pn.toLowerCase().includes(search) && !m.desc.toLowerCase().includes(search)) return false;
+    if(statusF === 'done' && !(m.drawingDone && m.designDone && m.techDone)) return false;
+    if(statusF === 'pending' && (m.drawingDone && m.designDone && m.techDone)) return false;
+    if(statusF === 'missing' && m.swDate) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('tm-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  rows.forEach(m => {
+    const fmtDate = (d, done) => d
+      ? `<span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:${done?'var(--green)':'var(--gold)'}">${done?'✓ ':''}${d}</span>`
+      : `<span class="mile-missing">—</span>`;
+    const jisBadge = m.jis ? `<span class="jis-badge">JIS</span>` : '<span style="color:var(--dim);font-size:10px">—</span>';
+    const allDone = m.drawingDone && m.designDone && m.techDone && m.swDone;
+    const statusBadge = allDone
+      ? `<span class="bg bg-done">COMPLETE</span>`
+      : m.drawingDone
+        ? `<span class="bg bg-pend">IN PROGRESS</span>`
+        : `<span class="bg bg-crit">PENDING</span>`;
+    tbody.innerHTML += `<tr onclick="openPartModalByPN('${m.pn}')">
+      <td class="mono" style="color:var(--cyan)">${m.pn}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.desc}</td>
+      <td><span class="bg ${m.proj==='L74'?'bg-x1':'bg-x2'}">${m.proj}</span></td>
+      <td><span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--gold)">${m.mrd}</span></td>
+      <td>${fmtDate(m.drawingDate, m.drawingDone)}</td>
+      <td>${fmtDate(m.designDate, m.designDone)}</td>
+      <td>${fmtDate(m.techDate, m.techDone)}</td>
+      <td>${fmtDate(m.swDate, m.swDone)}</td>
+      <td>${jisBadge}</td>
+      <td><span style="font-size:10px;color:var(--purple)">${m.variant}</span></td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  });
+  if(!rows.length) tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--dim);padding:24px">No milestones match the selected filters</td></tr>';
+
+  // MRD summary cards in left panel
+  const mrdList = document.getElementById('tm-mrd-list');
+  if(mrdList) {
+    const grouped = {};
+    MILESTONES.forEach(m => { if(!grouped[m.mrd]) grouped[m.mrd]=0; grouped[m.mrd]++; });
+    mrdList.innerHTML = Object.entries(grouped).sort().map(([mrd,cnt])=>
+      `<div class="erp-row"><span class="erp-lbl">${mrd}</span><span class="batch-badge">${cnt} PN</span></div>`
+    ).join('');
+  }
+
+  // Chart
+  const canvas = document.getElementById('c-milestones');
+  if(canvas && !canvas._ch) {
+    const done = MILESTONES.filter(m=>m.drawingDone&&m.designDone&&m.techDone).length;
+    const prog = MILESTONES.filter(m=>m.drawingDone&&!(m.designDone&&m.techDone)).length;
+    const pend = MILESTONES.length - done - prog;
+    canvas._ch = new Chart(canvas.getContext('2d'), { type:'doughnut', data:{
+      labels:['Complete','In Progress','Pending'],
+      datasets:[{data:[done,prog,pend],backgroundColor:['rgba(0,255,136,.7)','rgba(255,215,0,.7)','rgba(255,51,85,.6)'],borderWidth:0}]
+    }, options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#c8e8ff', font:{family:'Rajdhani'} } } } }});
+  }
+}
+
+function addMilestone() {
+  showToast('ℹ Use Admin Panel → Add/Edit Needs to add milestone dates for a PN');
+}
+function exportMilestonesExcel() {
+  if(typeof XLSX==='undefined'){ showToast('⚠ XLSX not loaded','error'); return; }
+  const rows = MILESTONES.map(m => ({
+    PN: m.pn, Description: m.desc, Plant: m.proj, MRD: m.mrd,
+    'Drawing Validation': m.drawingDate||'', 'Drawing Done': m.drawingDone?'YES':'NO',
+    'Design Validation': m.designDate||'', 'Design Done': m.designDone?'YES':'NO',
+    'Tech Validation': m.techDate||'', 'Tech Done': m.techDone?'YES':'NO',
+    'SW Validation': m.swDate||'', 'SW Done': m.swDone?'YES':'NO',
+    'JIS': m.jis?'YES':'NO', 'Variant': m.variant, 'Pilote': m.pilote
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Tech Milestones');
+  XLSX.writeFile(wb, 'NEXUS_Tech_Milestones_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('✓ Milestones exported!');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  COMMENT BUILDER — CATEGORY CODE (STANDARD SHEET)
+// ════════════════════════════════════════════════════════════════
+const PROBLEM_CODES = {
+  'S5':  { label:'Closed Order', action:'Escalate to SA/PPL/RLOG to know if it\'s ok to create a closed order' },
+  'S15': { label:'Customs Problem', action:'Escalate to customs team and follow the topic' },
+  'W1':  { label:'Delay of Reception (Warehouse)', action:'Ask POD from supplier and escalate to warehouse' },
+  'P1':  { label:'Delay of Delivery', action:'Check ETA, send reminder, escalate if > 3 days late' },
+  'OTH': { label:'Other issue', action:'Document in comment and escalate as needed' },
+};
+
+function setCatCode(code) {
+  const meta = PROBLEM_CODES[code];
+  if(!meta) return;
+  const kwField = document.getElementById('cmtKeyword');
+  if(kwField) kwField.value = '[' + code + '] ' + meta.label;
+  const shortField = document.getElementById('cmtShort');
+  if(shortField && !shortField.value) shortField.value = meta.action.slice(0, 120);
+  buildCmtPreview();
+  showToast('ℹ Category code ' + code + ' — ' + meta.label);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  NEEDS FILTERS — JIS / LOGISTICS / ERP / X3 support
+// ════════════════════════════════════════════════════════════════
+// Patch renderNeeds to handle new filters (JIS, Logistics, ERP, X3)
+const _origRenderNeeds = renderNeeds;
+renderNeeds = function() {
+  // Apply original render first
+  _origRenderNeeds();
+  // Additional filter pass for new fields (JIS, Logistics, ERP)
+  const jisF = document.getElementById('fJIS')?.value || '';
+  const logF = document.getElementById('fLogistics')?.value || '';
+  const erpF = document.getElementById('fERP')?.value || '';
+  if(!jisF && !logF && !erpF) return;
+  const rows = document.querySelectorAll('#needsTbody tr');
+  rows.forEach(row => {
+    const pn = row.querySelector('td.mono')?.textContent?.trim();
+    if(!pn) return;
+    const part = ALL_PARTS.find(p => p.pn === pn);
+    if(!part) return;
+    let show = true;
+    if(jisF === 'JIS' && part.area !== 'JIS') show = false;
+    if(jisF === 'non-JIS' && part.area === 'JIS') show = false;
+    if(logF === 'Overseas' && part.overseas !== 'Y') show = false;
+    if(logF === 'Intercompany' && !part.intercompany) show = false;
+    if(logF === 'Local' && (part.overseas === 'Y' || part.intercompany)) show = false;
+    if(erpF === 'ok' && part.sta !== 'E') show = false;
+    if(erpF === 'ko' && part.sta === 'E') show = false;
+    if(erpF === 'transferred' && part.tr !== 'Y') show = false;
+    row.style.display = show ? '' : 'none';
+  });
+};
+
+// ════════════════════════════════════════════════════════════════
+//  PART DETAIL MODAL — ERP, JIS, LOGISTICS, DELTA, MILESTONES
+// ════════════════════════════════════════════════════════════════
+function openPartModalByPN(pn) {
+  const part = ALL_PARTS.find(p => p.pn === pn);
+  if(!part) return;
+  // Find and trigger existing modal if function exists
+  if(typeof openPartModal === 'function') { openPartModal(part); return; }
+  // Fallback: open mo-part with enriched detail
+  const modal = document.getElementById('mo-part');
+  const body = document.getElementById('mo-part-body');
+  const title = document.getElementById('mo-part-title');
+  if(!modal || !body) return;
+  title.textContent = pn + ' — ' + (part.desc || '');
+
+  const milestone = MILESTONES.find(m => m.pn === pn);
+  const jisHtml = part.area === 'JIS' ? `<span class="jis-badge">JIS</span>` : '<span style="color:var(--dim)">Non-JIS</span>';
+  const logType = part.overseas === 'Y' ? 'Overseas' : part.intercompany ? 'Intercompany' : 'Local';
+  const logBadge = logType === 'Overseas' ? 'bdg-overseas' : logType === 'Intercompany' ? 'bdg-ic' : 'bdg-gray';
+  const trBadge = part.tr === 'Y' ? `<span class="erp-ok">✓ Transferred</span>` : `<span class="erp-na">Not transferred</span>`;
+  const ecartBadge = (part.ecartMag||0) > 0 ? `<span class="delta-up">+${part.ecartMag}</span>` : '<span class="delta-zero">0</span>';
+  const dbProto = part.dbproto || 0;
+  const mapiex = part.mapiex || 0;
+
+  body.innerHTML = `
+    <div class="g2" style="margin-bottom:14px">
+      <div>
+        <div class="st" style="margin-bottom:10px">PART IDENTIFICATION</div>
+        <table class="dtl"><tbody>
+          <tr><td>Part Number</td><td class="mono" style="color:var(--cyan);font-size:13px">${part.pn}</td></tr>
+          <tr><td>Description</td><td>${part.desc||'—'}</td></tr>
+          <tr><td>Plant / Project</td><td><span class="bg ${part.proj==='L74'?'bg-x1':'bg-x2'}">${part.proj||'—'}</span></td></tr>
+          <tr><td>Supplier (ALEAD)</td><td>${part.supplier||'—'}</td></tr>
+          <tr><td>Darwin / Taxi</td><td>${part.darwin||'—'}</td></tr>
+          <tr><td>Area</td><td>${part.area||'—'}</td></tr>
+          <tr><td>JIS</td><td>${jisHtml}</td></tr>
+          <tr><td>Logistics Type</td><td><span class="${logBadge}">${logType}</span></td></tr>
+          <tr><td>RU Part Number</td><td class="mono">${part.ruPart||'—'}</td></tr>
+        </tbody></table>
+      </div>
+      <div>
+        <div class="st" style="margin-bottom:10px">ERP SYSTEM CHECKS</div>
+        <div class="erp-panel">
+          <div class="erp-row"><span class="erp-lbl">SAP SUPPLIER</span><span class="erp-na" style="font-size:9px">${part.supplierSAP||'—'}</span></div>
+          <div class="erp-row"><span class="erp-lbl">SAP CHECK</span>${part.supplierSAP?`<span class="erp-ok">✓ OK</span>`:`<span class="erp-ko">✗ MISSING</span>`}</div>
+          <div class="erp-row"><span class="erp-lbl">CORAIL SUPPLIER</span><span class="erp-na" style="font-size:9px">${part.supplierCORAIL||'—'}</span></div>
+          <div class="erp-row"><span class="erp-lbl">CORAIL STATUS</span>${part.sta?`<span class="erp-${part.sta==='E'?'ok':'ko'}">${part.sta}</span>`:'<span class="erp-na">—</span>'}</div>
+          <div class="erp-row"><span class="erp-lbl">DTS (CORAIL)</span><span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cyan)">${part.dts||'—'}</span></div>
+          <div class="erp-row"><span class="erp-lbl">SCALARE</span>${part.supplierSAP?`<span class="erp-ok">✓ In SCALARE</span>`:`<span class="erp-ko">Not found</span>`}</div>
+          <div class="erp-row"><span class="erp-lbl">TRANSFERRED</span>${trBadge}</div>
+          <div class="erp-row"><span class="erp-lbl">DATE ADDED</span><span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim)">${part.dateAjout||'—'}</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:14px">
+      <div>
+        <div class="st" style="margin-bottom:10px">DEMAND BREAKDOWN (BESOINS)</div>
+        <table class="dtl"><tbody>
+          <tr><td>Total Delivery</td><td class="mono">${(part.del||0).toLocaleString()} pcs</td></tr>
+          <tr><td>Total Received</td><td class="mono">${(part.totalReceived||0).toLocaleString()} pcs</td></tr>
+          <tr><td>Ecart Magasin</td><td>${ecartBadge} pcs</td></tr>
+          <tr><td>DB Proto Qty</td><td class="mono" style="color:var(--purple)">${dbProto} pcs</td></tr>
+          <tr><td>Mapiex Qty</td><td class="mono" style="color:var(--blue)">${mapiex} pcs</td></tr>
+          <tr><td>Total (Veh + DB + Mapiex)</td><td class="mono" style="color:var(--cyan);font-weight:700">${((part.del||0)+dbProto+mapiex).toLocaleString()} pcs</td></tr>
+          <tr><td>Demand Before MAJ</td><td class="mono" style="color:var(--dim)">${part.prevQty ? part.prevQty.toLocaleString() + ' pcs' : '—'}</td></tr>
+          <tr><td>Delta (Besoins augmenté)</td><td>${(part.del||0) > (part.prevQty||0) ? `<span class="delta-up">+${((part.del||0)-(part.prevQty||0)).toLocaleString()}</span>` : `<span class="delta-zero">—</span>`}</td></tr>
+          <tr><td>Procurement Type</td><td>${part.proctype === 'batch170' ? `<span class="batch-badge">Batch Method 170</span>` : part.proctype === 'batch170pre' ? `<span class="batch-badge">Pre-Batch M.170</span>` : part.proctype === 'cpo' ? `<span class="bg-ok">CPO</span>` : '<span style="color:var(--dim)">Standard 491</span>'}</td></tr>
+          <tr><td>Scraped / Reorder</td><td>${part.scraped ? `<span class="bg-crit">SCRAPED — Reorder needed</span>` : '<span style="color:var(--green)">OK</span>'}</td></tr>
+        </tbody></table>
+      </div>
+      <div>
+        <div class="st" style="margin-bottom:10px">TECH MILESTONES${milestone ? '' : ' <span class="stg">// NO DATA</span>'}</div>
+        ${milestone ? `
+        <div class="erp-panel">
+          <div class="mile-row"><span class="mile-lbl">DRAWING VALIDATION</span><span class="${milestone.drawingDone?'mile-done':'mile-missing'}">${milestone.drawingDone?'✓ ':''}${milestone.drawingDate||'—'}</span></div>
+          <div class="mile-row"><span class="mile-lbl">DESIGN VALIDATION</span><span class="${milestone.designDone?'mile-done':'mile-missing'}">${milestone.designDone?'✓ ':''}${milestone.designDate||'—'}</span></div>
+          <div class="mile-row"><span class="mile-lbl">TECH VALIDATION</span><span class="${milestone.techDone?'mile-done':'mile-missing'}">${milestone.techDone?'✓ ':''}${milestone.techDate||'—'}</span></div>
+          <div class="mile-row"><span class="mile-lbl">SW VALIDATION</span><span class="${milestone.swDone?'mile-done':'mile-missing'}">${milestone.swDone?'✓ ':''}${milestone.swDate||'—'}</span></div>
+          <div class="mile-row"><span class="mile-lbl">JIS</span>${milestone.jis?'<span class="jis-badge">JIS</span>':'<span style="color:var(--dim)">—</span>'}</div>
+          <div class="mile-row"><span class="mile-lbl">VARIANT</span><span style="color:var(--purple);font-size:10px">${milestone.variant}</span></div>
+          <div class="mile-row"><span class="mile-lbl">MRD</span><span style="color:var(--gold);font-family:\'Share Tech Mono\',monospace;font-size:10px">${milestone.mrd}</span></div>
+        </div>` : '<div style="color:var(--dim);font-size:11px;padding:14px">No milestone data for this PN. Add dates in Admin → Add/Edit Needs.</div>'}
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn b-p b-sm" onclick="openMo('mo-comment');document.getElementById('cmtPN').textContent='${part.pn}'">✎ Edit Comment</button>
+      <button class="btn b-s b-sm" onclick="openMo('mo-reception');document.getElementById('rec-pn-label').textContent='${part.pn}';document.getElementById('rec-pn-hidden').value='${part.pn}'">📦 Add Reception</button>
+      <button class="btn btn-secondary b-sm" onclick="closeMo('mo-part')">Close</button>
+    </div>`;
+  modal.classList.add('on');
+}
+
 
 // Live clock
 setInterval(()=>{
