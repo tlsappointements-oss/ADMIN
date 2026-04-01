@@ -6,325 +6,328 @@
 <title>CareerBlast — Smart Job Email Sender</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
-:root{
-  --navy:#0B1D35;--navy2:#132645;--accent:#2563EB;--accent2:#3B82F6;
-  --green:#059669;--green2:#10B981;--cream:#F8FAFC;--cream2:#EEF2F8;
-  --text:#1E293B;--muted:#64748B;--white:#fff;
-  --border:rgba(11,29,53,.1);--radius:12px;
-  --shadow:0 4px 24px rgba(11,29,53,.07);--shadow-lg:0 12px 48px rgba(11,29,53,.13)
-}
+:root{--navy:#0B1D35;--navy2:#132645;--accent:#2563EB;--accent2:#3B82F6;--green:#059669;--green2:#10B981;--cream:#F8FAFC;--cream2:#EEF2F8;--text:#1E293B;--muted:#64748B;--white:#fff;--border:rgba(11,29,53,.1);--radius:12px;--shadow:0 4px 24px rgba(11,29,53,.07);--shadow-lg:0 12px 48px rgba(11,29,53,.13)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;overflow-x:hidden}
-/* NAV */
-nav{background:var(--navy);padding:0 2rem;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.25)}
-.nav-brand{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
-.nav-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
-.nav-title{font-family:'DM Serif Display',serif;color:#fff;font-size:19px}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
+/* AUTH WALL */
+#auth-wall{display:flex;min-height:100vh;align-items:center;justify-content:center;background:var(--navy);position:relative;overflow:hidden}
+#auth-wall::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 800px 500px at 60% 40%,rgba(37,99,235,.18),transparent)}
+.auth-box{background:var(--white);border-radius:20px;padding:38px 34px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.35);position:relative;z-index:2}
+.auth-logo{text-align:center;margin-bottom:26px}
+.auth-logo-icon{width:50px;height:50px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 10px}
+.auth-logo h1{font-family:'DM Serif Display',serif;font-size:24px;color:var(--navy)}
+.auth-logo h1 span{color:var(--accent)}
+.auth-logo p{font-size:12px;color:var(--muted);margin-top:3px}
+.auth-tabs{display:flex;border-bottom:1.5px solid var(--border);margin-bottom:22px}
+.auth-tab{flex:1;text-align:center;padding:9px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;transition:.15s}
+.auth-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.auth-form{display:none}.auth-form.active{display:block}
+.afield{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
+.afield label{font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.04em}
+.afield input{border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);background:var(--cream);outline:none;transition:border-color .2s}
+.afield input:focus{border-color:var(--accent);background:#fff}
+.arow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-auth{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;margin-top:4px}
+.btn-auth:hover{background:var(--accent2)}.btn-auth:disabled{opacity:.55;cursor:not-allowed}
+.auth-err{background:#FEE2E2;color:#991b1b;border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
+.sep{text-align:center;font-size:11px;color:var(--muted);margin:13px 0;position:relative}
+.sep::before,.sep::after{content:'';position:absolute;top:50%;width:43%;height:1px;background:var(--border)}
+.sep::before{left:0}.sep::after{right:0}
+.btn-google{width:100%;padding:10px;background:#fff;color:var(--text);border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:9px}
+.btn-google:hover{border-color:var(--accent);background:#F0F7FF}
+/* APP */
+#app{display:none}
+nav{background:var(--navy);padding:0 2rem;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.25)}
+.nav-brand{display:flex;align-items:center;gap:9px;cursor:pointer}
+.nav-logo{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.nav-title{font-family:'DM Serif Display',serif;color:#fff;font-size:17px}
 .nav-title span{color:var(--accent2)}
-.nav-links{display:flex;gap:4px;align-items:center}
-.nav-btn{background:none;border:none;color:rgba(255,255,255,.65);font-family:inherit;font-size:14px;padding:7px 13px;border-radius:8px;cursor:pointer;transition:.2s}
-.nav-btn:hover{background:rgba(255,255,255,.08);color:#fff}
-.nav-btn.active{color:#fff;background:rgba(255,255,255,.1)}
+.nav-links{display:flex;gap:3px;align-items:center}
+.nav-btn{background:none;border:none;color:rgba(255,255,255,.62);font-family:inherit;font-size:13px;padding:6px 11px;border-radius:7px;cursor:pointer;transition:.2s}
+.nav-btn:hover,.nav-btn.active{background:rgba(255,255,255,.1);color:#fff}
+.user-chip{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 11px 4px 5px;cursor:pointer;transition:.2s}
+.user-chip:hover{background:rgba(255,255,255,.12)}
+.u-av{width:24px;height:24px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.u-name{font-size:12px;color:rgba(255,255,255,.78)}
 /* PAGES */
 .page{display:none}.page.active{display:block}
+.section{padding:52px 2rem;max-width:1060px;margin:0 auto}
+.sec-title{font-family:'DM Serif Display',serif;font-size:28px;color:var(--navy);margin-bottom:4px}
+.sec-sub{color:var(--muted);font-size:13px;margin-bottom:28px}
 /* HERO */
-.hero{background:var(--navy);padding:70px 2rem 90px;text-align:center;position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 700px 350px at 50% 100%,rgba(37,99,235,.18),transparent)}
-.hero h1{font-family:'DM Serif Display',serif;color:#fff;font-size:clamp(30px,4.5vw,52px);line-height:1.12;margin-bottom:14px;position:relative}
+.hero{background:var(--navy);padding:60px 2rem 76px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 700px 350px at 50% 100%,rgba(37,99,235,.17),transparent)}
+.hero h1{font-family:'DM Serif Display',serif;color:#fff;font-size:clamp(26px,4vw,46px);line-height:1.13;margin-bottom:11px;position:relative}
 .hero h1 em{font-style:italic;color:var(--accent2)}
-.hero p{color:rgba(255,255,255,.58);font-size:16px;max-width:500px;margin:0 auto 32px;line-height:1.7}
-.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn-primary{background:var(--accent);color:#fff;font-family:inherit;font-weight:600;font-size:15px;padding:13px 26px;border-radius:10px;border:none;cursor:pointer;transition:.2s}
-.btn-primary:hover{background:var(--accent2);transform:translateY(-1px)}
-.btn-outline{background:rgba(255,255,255,.07);color:#fff;font-family:inherit;font-weight:500;font-size:15px;padding:13px 26px;border-radius:10px;border:1px solid rgba(255,255,255,.18);cursor:pointer;transition:.2s}
-.btn-outline:hover{background:rgba(255,255,255,.12)}
-/* STATS */
+.hero p{color:rgba(255,255,255,.54);font-size:15px;max-width:460px;margin:0 auto 26px;line-height:1.7}
+.hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn-p{background:var(--accent);color:#fff;font-family:inherit;font-weight:600;font-size:14px;padding:10px 20px;border-radius:8px;border:none;cursor:pointer;transition:.2s}
+.btn-p:hover{background:var(--accent2);transform:translateY(-1px)}.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-o{background:rgba(255,255,255,.07);color:#fff;font-family:inherit;font-size:14px;padding:10px 20px;border-radius:8px;border:1px solid rgba(255,255,255,.17);cursor:pointer;transition:.2s}
+.btn-o:hover{background:rgba(255,255,255,.12)}
 .stats-bar{background:var(--navy2);border-top:1px solid rgba(255,255,255,.06);display:flex;justify-content:center;flex-wrap:wrap}
-.stat-item{padding:20px 36px;text-align:center;border-right:1px solid rgba(255,255,255,.06)}
-.stat-item:last-child{border-right:none}
-.stat-num{font-family:'DM Serif Display',serif;font-size:26px;color:var(--accent2);display:block}
-.stat-lbl{font-size:11px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
-/* SECTION */
-.section{padding:64px 2rem;max-width:1100px;margin:0 auto}
-.section-title{font-family:'DM Serif Display',serif;font-size:32px;color:var(--navy);margin-bottom:6px}
-.section-sub{color:var(--muted);font-size:14px;margin-bottom:36px}
+.stat{padding:17px 30px;text-align:center;border-right:1px solid rgba(255,255,255,.06)}.stat:last-child{border-right:none}
+.stat-n{font-family:'DM Serif Display',serif;font-size:23px;color:var(--accent2);display:block}
+.stat-l{font-size:10px;color:rgba(255,255,255,.36);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
 /* CARDS */
-.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
-.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.fcard{background:var(--white);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;max-width:800px;margin:0 auto}
+.fhead{background:var(--navy);padding:22px 28px;color:#fff}
+.fhead h2{font-family:'DM Serif Display',serif;font-size:19px;margin-bottom:2px}
+.fhead p{font-size:11px;color:rgba(255,255,255,.4)}
+.fbody{padding:26px 28px}
 /* FORM */
-.form-card{background:var(--white);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;max-width:820px;margin:0 auto}
-.form-header{background:var(--navy);padding:26px 32px;color:#fff}
-.form-header h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:3px}
-.form-header p{font-size:13px;color:rgba(255,255,255,.45)}
-.form-body{padding:32px}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-.form-row.full{grid-template-columns:1fr}
-.form-group{display:flex;flex-direction:column;gap:5px}
-.form-group label{font-size:12px;font-weight:600;color:var(--navy)}
-.form-group input,.form-group select,.form-group textarea{border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:14px;color:var(--text);background:var(--cream);outline:none;transition:border-color .2s}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent);background:#fff}
-.form-group textarea{resize:vertical;min-height:72px}
-/* TAGS */
-.tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500;background:#DBEAFE;color:#1e40af;border:1px solid #BFDBFE}
-.tag-green{background:#D1FAE5;color:#065f46;border-color:#A7F3D0}
-.tag-amber{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
-.tag-red{background:#FEE2E2;color:#991b1b;border-color:#FECACA}
-/* CONTACTS TABLE */
-.table-wrap{background:var(--white);border-radius:12px;border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)}
-.table-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-.table-head h3{font-size:14px;font-weight:600}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px}
+.frow.full{grid-template-columns:1fr}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--navy)}
+.fg input,.fg select,.fg textarea{border:1.5px solid var(--border);border-radius:7px;padding:8px 11px;font-family:inherit;font-size:13px;color:var(--text);background:var(--cream);outline:none;transition:border-color .2s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent);background:#fff}
+.fg textarea{resize:vertical;min-height:64px}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.slabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:9px}
+/* TONE */
+.tone-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.tp{padding:4px 12px;font-size:11px;border-radius:20px;border:1.5px solid var(--border);background:transparent;cursor:pointer;color:var(--muted);transition:.12s;font-family:inherit}
+.tp.active{background:#DBEAFE;color:#1e40af;border-color:#93C5FD}
+/* COMPETENCES */
+.ctags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.ctag{font-size:10px;padding:2px 7px;border-radius:20px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
+/* RESUME */
+.rzone{border:2px dashed var(--border);border-radius:9px;padding:16px;text-align:center;cursor:pointer;transition:.2s;background:var(--cream);position:relative}
+.rzone:hover{border-color:var(--accent);background:#F0F7FF}
+.rzone.has-file{border-color:var(--green);background:#F0FDF4;border-style:solid}
+.rzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.rattached{display:flex;align-items:center;gap:9px;background:#F0FDF4;border:1px solid #A7F3D0;border-radius:7px;padding:9px 13px;margin-top:7px}
+.rattached-info{flex:1}.rattached-info strong{font-size:12px;color:var(--navy)}
+.rattached-info span{font-size:11px;color:var(--muted);display:block}
+.rremove{background:none;border:none;cursor:pointer;font-size:15px;color:var(--muted)}.rremove:hover{color:#DC2626}
+/* EMAIL BOX */
+.ebox{background:var(--cream);border:1.5px solid var(--border);border-radius:9px;padding:13px;font-size:13px;line-height:1.8;white-space:pre-wrap;color:var(--text);min-height:130px;font-family:'DM Sans',sans-serif;outline:none}
+.sbox{font-size:11px;font-weight:600;color:var(--muted);background:var(--cream2);border-radius:5px;padding:5px 9px;margin-bottom:6px}
+/* TABLE */
+.twrap{background:var(--white);border-radius:11px;border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)}
+.thead-bar{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:7px}
+.thead-bar h3{font-size:13px;font-weight:600}
 table{width:100%;border-collapse:collapse}
-th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:9px 16px;text-align:left;border-bottom:1px solid var(--border);background:var(--cream)}
-td{font-size:13px;padding:12px 16px;border-bottom:1px solid rgba(11,29,53,.04)}
+th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:7px 13px;text-align:left;border-bottom:1px solid var(--border);background:var(--cream)}
+td{font-size:12px;padding:10px 13px;border-bottom:1px solid rgba(11,29,53,.04)}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#F1F5FB}
-/* BADGE */
-.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
-.badge-pending{background:#FEF3C7;color:#92400E}
-.badge-sent{background:#D1FAE5;color:#065f46}
-.badge-error{background:#FEE2E2;color:#991b1b}
-.badge-queued{background:#EDE9FE;color:#5b21b6}
-/* BTN SM */
-.btn-sm{font-size:12px;padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-family:inherit;font-weight:500;transition:.15s}
-.btn-sm-blue{background:#DBEAFE;color:#1e40af}.btn-sm-blue:hover{background:#BFDBFE}
-.btn-sm-red{background:#FEE2E2;color:#991b1b}.btn-sm-red:hover{background:#FECACA}
-.btn-sm-green{background:#D1FAE5;color:#065f46}.btn-sm-green:hover{background:#A7F3D0}
-/* STEPS */
-.steps-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;margin-top:36px}
-.step-item{text-align:center}
-.step-num{width:44px;height:44px;background:var(--navy);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:18px;margin:0 auto 14px}
-.step-item h4{font-size:14px;font-weight:600;margin-bottom:6px}
-.step-item p{font-size:12px;color:var(--muted);line-height:1.6}
-/* NOTIF */
-#notif{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lg);transform:translateY(80px);opacity:0;transition:.35s;z-index:999}
-#notif.show{transform:translateY(0);opacity:1}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
+.b-pend{background:#FEF3C7;color:#92400E}.b-sent{background:#D1FAE5;color:#065f46}.b-err{background:#FEE2E2;color:#991b1b}
+.bsm{font-size:11px;padding:3px 9px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;font-weight:500;transition:.15s}
+.bsm-r{background:#FEE2E2;color:#991b1b}.bsm-r:hover{background:#FECACA}
+.bsm-b{background:#DBEAFE;color:#1e40af}.bsm-b:hover{background:#BFDBFE}
+.bsm-g{background:#D1FAE5;color:#065f46}.bsm-g:hover{background:#A7F3D0}
+/* SEND BTN */
+.sbtn{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;border:none;padding:11px 22px;border-radius:8px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:7px}
+.sbtn:hover{opacity:.9;transform:translateY(-1px)}.sbtn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 /* PROGRESS */
-.progress-bar{height:4px;background:var(--cream2);border-radius:2px;overflow:hidden;margin:8px 0}
-.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s}
-/* EMAIL PREVIEW */
-.email-box{background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:16px;font-size:13px;line-height:1.8;white-space:pre-wrap;color:var(--text);min-height:160px;font-family:'DM Sans',sans-serif}
-.subject-box{font-size:12px;font-weight:600;color:var(--muted);background:var(--cream2);border-radius:6px;padding:6px 10px;margin-bottom:8px}
-/* BULK ACTIONS */
-.bulk-bar{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.bulk-bar span{font-size:13px;color:#1e40af;font-weight:500}
-/* SETUP STEPS */
-.setup-card{background:var(--navy);border-radius:14px;color:#fff;padding:28px 32px;margin-bottom:20px}
-.setup-card h3{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:6px}
-.setup-card p{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:18px}
-.setup-step{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 16px;margin-bottom:10px}
-.setup-step h4{font-size:13px;font-weight:600;margin-bottom:4px;color:#fff}
-.setup-step p{font-size:12px;color:rgba(255,255,255,.48);line-height:1.6}
-.code-block{background:rgba(0,0,0,.4);border-radius:8px;padding:12px 14px;font-family:monospace;font-size:12px;color:#93C5FD;margin-top:8px;word-break:break-all;position:relative}
-.copy-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:inherit}
-.copy-btn:hover{background:rgba(255,255,255,.18);color:#fff}
-/* GAS SCRIPT */
-.gas-script{background:#1E293B;border-radius:10px;padding:16px;font-family:monospace;font-size:11.5px;color:#94A3B8;line-height:1.7;overflow-x:auto;white-space:pre;margin-top:10px;position:relative}
-.gas-kw{color:#93C5FD}.gas-str{color:#86EFAC}.gas-cmt{color:#475569}
-/* TONE PILLS */
-.tone-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.tone-pill{padding:5px 14px;font-size:12px;border-radius:20px;border:1.5px solid var(--border);background:transparent;cursor:pointer;color:var(--muted);transition:.12s;font-family:inherit}
-.tone-pill.active{background:#DBEAFE;color:#1e40af;border-color:#93C5FD}
-/* RESPONSIVE */
-@media(max-width:768px){
-  .form-row{grid-template-columns:1fr}
-  .hero{padding:48px 1.5rem 64px}
-  nav{padding:0 1rem}
-  .nav-links .nav-btn:not(:last-child):not(.nav-btn-always){display:none}
-}
-/* LOADING */
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
-/* COMPETENCES */
-.comp-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.comp-tag{font-size:11px;padding:3px 9px;border-radius:20px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
-/* TABS */
-.tab-bar{display:flex;border-bottom:1.5px solid var(--border);margin-bottom:24px}
-.tab{padding:9px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;transition:.15s}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-/* INPUT WITH ICON */
-.input-wrap{position:relative}
-.input-wrap input{padding-left:36px}
-.input-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none}
-/* CONTACTS AREA */
-.contacts-area{min-height:200px}
-/* SEND ALL BTN */
-.send-all-btn{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;border:none;padding:13px 28px;border-radius:10px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:8px}
-.send-all-btn:hover{opacity:.9;transform:translateY(-1px)}
-.send-all-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.pbar{height:4px;background:var(--cream2);border-radius:2px;overflow:hidden;margin:5px 0}
+.pfill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+/* NOTIF */
+#notif{position:fixed;bottom:22px;right:22px;background:var(--navy);color:#fff;padding:10px 15px;border-radius:9px;font-size:13px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow-lg);transform:translateY(80px);opacity:0;transition:.3s;z-index:9999}
+#notif.show{transform:translateY(0);opacity:1}
+/* SETUP */
+.sblock{background:var(--navy);border-radius:13px;color:#fff;padding:22px 26px;margin-bottom:16px}
+.sblock h3{font-family:'DM Serif Display',serif;font-size:17px;margin-bottom:4px}
+.sblock p{font-size:11px;color:rgba(255,255,255,.42);margin-bottom:14px}
+.sstep{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;margin-bottom:8px}
+.sstep h4{font-size:11px;font-weight:600;color:#fff;margin-bottom:3px}
+.sstep p{font-size:11px;color:rgba(255,255,255,.42);line-height:1.6;margin:0}
+.gcode{background:#0F172A;border-radius:8px;padding:13px;font-family:monospace;font-size:10.5px;color:#94A3B8;line-height:1.7;overflow-x:auto;white-space:pre;margin-top:8px;position:relative}
+.gkw{color:#93C5FD}.gst{color:#86EFAC}.gcm{color:#334155}
+.cbtn{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.65);font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:inherit;margin-top:6px}
+.cbtn:hover{background:rgba(255,255,255,.18);color:#fff}
+.rules-block{background:#0F172A;border-radius:8px;padding:13px;font-family:monospace;font-size:10.5px;color:#86EFAC;line-height:1.7;margin-top:8px;white-space:pre}
+.warn-box{background:#FEF3C7;border:1px solid #FDE68A;border-radius:9px;padding:13px 15px;font-size:13px;color:#78350F;margin-bottom:18px;line-height:1.7}
+/* STEPS */
+.steps-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-top:28px}
+.step-item{text-align:center}
+.step-num{width:40px;height:40px;background:var(--navy);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:16px;margin:0 auto 11px}
+.step-item h4{font-size:13px;font-weight:600;margin-bottom:4px}
+.step-item p{font-size:11px;color:var(--muted);line-height:1.6}
+/* SPINNER */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(max-width:640px){.frow{grid-template-columns:1fr}.section{padding:32px 1rem}.nav-links .nav-btn:not(.always){display:none}}
 </style>
 </head>
 <body>
 
-<!-- NAVBAR -->
+<!-- ════════ AUTH WALL ════════ -->
+<div id="auth-wall">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">📧</div>
+      <h1>Career<span>Blast</span></h1>
+      <p>Sign in to your private job email workspace</p>
+    </div>
+    <div id="auth-err" class="auth-err"></div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchTab('login')">Sign In</div>
+      <div class="auth-tab" onclick="switchTab('register')">Create Account</div>
+    </div>
+    <!-- LOGIN -->
+    <div id="form-login" class="auth-form active">
+      <div class="afield"><label>Email</label><input type="email" id="li-email" placeholder="you@gmail.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="afield"><label>Password</label><input type="password" id="li-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn-auth" id="btn-login" onclick="doLogin()">Sign In</button>
+      <div class="sep">or</div>
+      <button class="btn-google" onclick="doGoogle()">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+    <!-- REGISTER -->
+    <div id="form-register" class="auth-form">
+      <div class="arow">
+        <div class="afield"><label>First Name</label><input type="text" id="rg-fn" placeholder="Youssef"></div>
+        <div class="afield"><label>Last Name</label><input type="text" id="rg-ln" placeholder="Benali"></div>
+      </div>
+      <div class="afield"><label>Email</label><input type="email" id="rg-email" placeholder="you@gmail.com"></div>
+      <div class="afield"><label>Password (min 6 chars)</label><input type="password" id="rg-pass" placeholder="••••••••"></div>
+      <button class="btn-auth" id="btn-reg" onclick="doRegister()">Create Account</button>
+      <div class="sep">or</div>
+      <button class="btn-google" onclick="doGoogle()">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ APP ════════ -->
+<div id="app">
 <nav>
-  <a class="nav-brand" onclick="showPage('home')" href="#">
+  <div class="nav-brand" onclick="showPage('home')">
     <div class="nav-logo">📧</div>
     <span class="nav-title">Career<span>Blast</span></span>
-  </a>
+  </div>
   <div class="nav-links">
-    <button class="nav-btn nav-btn-always" id="nb-home" onclick="showPage('home')">Home</button>
-    <button class="nav-btn nav-btn-always" id="nb-compose" onclick="showPage('compose')">Compose</button>
-    <button class="nav-btn nav-btn-always" id="nb-contacts" onclick="showPage('contacts')">Contacts</button>
-    <button class="nav-btn nav-btn-always" id="nb-logs" onclick="showPage('logs')">Email Logs</button>
-    <button class="nav-btn nav-btn-always" id="nb-setup" onclick="showPage('setup')">⚙️ Setup</button>
+    <button class="nav-btn always" id="nb-home" onclick="showPage('home')">Home</button>
+    <button class="nav-btn always" id="nb-compose" onclick="showPage('compose')">Compose</button>
+    <button class="nav-btn always" id="nb-contacts" onclick="showPage('contacts')">Contacts</button>
+    <button class="nav-btn always" id="nb-logs" onclick="showPage('logs')">Logs</button>
+    <button class="nav-btn always" id="nb-setup" onclick="showPage('setup')">⚙️ Setup</button>
+    <div class="user-chip" onclick="doLogout()">
+      <div class="u-av" id="nav-av">?</div>
+      <span class="u-name" id="nav-name">User</span>
+      <span style="font-size:9px;color:rgba(255,255,255,.3);margin-left:1px">↩</span>
+    </div>
   </div>
 </nav>
 
-<!-- ═══ HOME PAGE ═══ -->
+<!-- HOME -->
 <div id="page-home" class="page active">
   <div class="hero">
     <h1>Send <em>Perfectly Tailored</em><br>Job Emails at Scale</h1>
-    <p>Paste your recruiter list, pick your position, and blast AI-crafted emails adapted for every industry — all linked to your Gmail.</p>
+    <p>Add your recruiter list, choose your position, attach your CV, and blast AI-written emails from your own Gmail.</p>
     <div class="hero-btns">
-      <button class="btn-primary" onclick="showPage('compose')">Start Composing →</button>
-      <button class="btn-outline" onclick="showPage('setup')">⚙️ Setup Guide</button>
+      <button class="btn-p" onclick="showPage('compose')">Start Composing →</button>
+      <button class="btn-o" onclick="showPage('setup')">⚙️ Setup Guide</button>
     </div>
   </div>
   <div class="stats-bar">
-    <div class="stat-item"><span class="stat-num" id="stat-contacts">0</span><span class="stat-lbl">Contacts Saved</span></div>
-    <div class="stat-item"><span class="stat-num" id="stat-sent">0</span><span class="stat-lbl">Emails Sent</span></div>
-    <div class="stat-item"><span class="stat-num">15+</span><span class="stat-lbl">Industries</span></div>
-    <div class="stat-item"><span class="stat-num">300+</span><span class="stat-lbl">Positions</span></div>
+    <div class="stat"><span class="stat-n" id="stat-contacts">0</span><span class="stat-l">Contacts</span></div>
+    <div class="stat"><span class="stat-n" id="stat-sent">0</span><span class="stat-l">Emails Sent</span></div>
+    <div class="stat"><span class="stat-n">15+</span><span class="stat-l">Industries</span></div>
+    <div class="stat"><span class="stat-n">300+</span><span class="stat-l">Positions</span></div>
   </div>
   <div class="section">
-    <div class="section-title">How it works</div>
-    <div class="section-sub">Three steps from zero to inbox</div>
+    <div class="sec-title">How it works</div>
+    <div class="sec-sub">Four steps from zero to inbox</div>
     <div class="steps-row">
-      <div class="step-item">
-        <div class="step-num">1</div>
-        <h4>Setup Google Apps Script</h4>
-        <p>Copy our GAS script into Google Apps Script — takes 3 minutes. Links directly to your Gmail account.</p>
-      </div>
-      <div class="step-item">
-        <div class="step-num">2</div>
-        <h4>Add your contacts</h4>
-        <p>Paste a list of recruiter emails or add them one by one. Stored securely in your Firebase database.</p>
-      </div>
-      <div class="step-item">
-        <div class="step-num">3</div>
-        <h4>Choose position & send</h4>
-        <p>Pick your target role, let AI craft the perfect email, then blast it to all contacts in one click.</p>
-      </div>
+      <div class="step-item"><div class="step-num">1</div><h4>Link your Gmail</h4><p>Create a Google Apps Script in 3 minutes — sends emails directly from your Gmail.</p></div>
+      <div class="step-item"><div class="step-num">2</div><h4>Add contacts</h4><p>Paste recruiter emails in bulk. Stored privately in your account.</p></div>
+      <div class="step-item"><div class="step-num">3</div><h4>Upload your CV</h4><p>Drop your PDF resume — auto-attached to every email you send.</p></div>
+      <div class="step-item"><div class="step-num">4</div><h4>Choose role & blast</h4><p>Pick industry + position, AI writes the email, send to all in one click.</p></div>
     </div>
   </div>
 </div>
 
-<!-- ═══ COMPOSE PAGE ═══ -->
+<!-- COMPOSE -->
 <div id="page-compose" class="page">
   <div class="section">
-    <div class="section-title">Compose & Send</div>
-    <div class="section-sub">Configure your email campaign, generate it with AI, and blast to all saved contacts</div>
+    <div class="sec-title">Compose & Send</div>
+    <div class="sec-sub">Generate a tailored email and send to all your saved contacts</div>
+    <div class="fcard">
+      <div class="fhead"><h2>Email Campaign Builder</h2><p>Profile · Role · Resume · Generate · Send</p></div>
+      <div class="fbody">
 
-    <div class="form-card">
-      <div class="form-header">
-        <h2>Email Campaign Builder</h2>
-        <p>Fill in your profile, choose your role, generate & send</p>
-      </div>
-      <div class="form-body">
-
-        <!-- PROFILE -->
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px">Your Profile</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Full Name *</label>
-            <input type="text" id="c-name" placeholder="e.g. Youssef Benali">
-          </div>
-          <div class="form-group">
-            <label>Your Email (sender)</label>
-            <input type="email" id="c-email" placeholder="your.email@gmail.com">
-          </div>
+        <div class="slabel">Your Profile</div>
+        <div class="frow">
+          <div class="fg"><label>Full Name *</label><input type="text" id="c-name" placeholder="e.g. Youssef Benali"></div>
+          <div class="fg"><label>Your Email</label><input type="email" id="c-email" placeholder="your@gmail.com"></div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Years of Experience</label>
-            <input type="text" id="c-years" placeholder="e.g. 5 years">
-          </div>
-          <div class="form-group">
-            <label>Location</label>
-            <input type="text" id="c-location" placeholder="e.g. Casablanca, Morocco">
-          </div>
+        <div class="frow">
+          <div class="fg"><label>Years of Experience</label><input type="text" id="c-years" placeholder="5 years"></div>
+          <div class="fg"><label>Location</label><input type="text" id="c-location" placeholder="Casablanca, Morocco"></div>
         </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Key Skills & Tools</label>
-            <textarea id="c-skills" placeholder="Python, React, MBA, CFA, Salesforce, Agile, PMP..."></textarea>
-          </div>
+        <div class="frow full">
+          <div class="fg"><label>Key Skills & Tools</label><textarea id="c-skills" placeholder="Python, React, MBA, CFA, Salesforce, Agile, PMP..."></textarea></div>
         </div>
 
-        <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
-
-        <!-- TARGET ROLE -->
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px">Target Role</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Industry *</label>
-            <select id="c-industry" onchange="populatePositions()">
-              <option value="">— Select industry —</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Position *</label>
-            <select id="c-position" onchange="showCompetences()">
-              <option value="">— Select position —</option>
-            </select>
+        <hr class="divider">
+        <div class="slabel">Resume / CV Attachment</div>
+        <div id="rzone-wrap">
+          <div class="rzone" id="rzone">
+            <input type="file" id="r-file" accept=".pdf,.doc,.docx" onchange="handleResume(this)">
+            <div style="font-size:24px;margin-bottom:4px">📄</div>
+            <div style="font-size:13px;font-weight:500;color:var(--navy)">Drop your CV here or click to browse</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">PDF, DOC, DOCX — max 5MB · Auto-attached to every email</div>
           </div>
         </div>
-        <div id="comp-area" style="display:none;margin-bottom:14px">
-          <div style="font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px">Key competences highlighted in your email:</div>
-          <div class="comp-tags" id="comp-tags"></div>
+        <div id="r-preview"></div>
+        <div id="r-prog" style="display:none;margin-top:7px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Saving resume...</div>
+          <div class="pbar"><div class="pfill" id="r-prog-fill" style="width:0%"></div></div>
         </div>
 
-        <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
-
-        <!-- EMAIL SETTINGS -->
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px">Email Settings</div>
-        <div style="margin-bottom:12px">
-          <div style="font-size:12px;font-weight:500;color:var(--navy);margin-bottom:6px">Tone</div>
-          <div class="tone-pills">
-            <button class="tone-pill active" onclick="setTone('professional',this)">Professional</button>
-            <button class="tone-pill" onclick="setTone('confident',this)">Confident</button>
-            <button class="tone-pill" onclick="setTone('concise',this)">Concise</button>
-            <button class="tone-pill" onclick="setTone('enthusiastic',this)">Enthusiastic</button>
-            <button class="tone-pill" onclick="setTone('executive',this)">Executive</button>
-          </div>
+        <hr class="divider">
+        <div class="slabel">Target Role</div>
+        <div class="frow">
+          <div class="fg"><label>Industry *</label><select id="c-ind" onchange="popPos()"><option value="">— Select industry —</option></select></div>
+          <div class="fg"><label>Position *</label><select id="c-pos" onchange="showComps()"><option value="">— Select position —</option></select></div>
         </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Additional Instructions (optional)</label>
-            <textarea id="c-notes" placeholder="Mention my availability to start immediately, reference my portfolio at..." style="min-height:56px"></textarea>
-          </div>
+        <div id="comp-area" style="display:none;margin-bottom:11px">
+          <div style="font-size:11px;font-weight:500;color:var(--muted);margin-bottom:5px">Key competences highlighted in email:</div>
+          <div class="ctags" id="ctags"></div>
         </div>
 
-        <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+        <hr class="divider">
+        <div class="slabel">Tone</div>
+        <div class="tone-pills">
+          <button class="tp active" onclick="setTone('professional',this)">Professional</button>
+          <button class="tp" onclick="setTone('confident',this)">Confident</button>
+          <button class="tp" onclick="setTone('concise',this)">Concise</button>
+          <button class="tp" onclick="setTone('enthusiastic',this)">Enthusiastic</button>
+          <button class="tp" onclick="setTone('executive',this)">Executive</button>
+        </div>
+        <div class="frow full">
+          <div class="fg"><label>Extra Instructions (optional)</label><textarea id="c-notes" placeholder="Mention my portfolio at..., available immediately..." style="min-height:50px"></textarea></div>
+        </div>
 
-        <!-- GENERATE -->
-        <button class="btn-primary" style="width:100%;padding:13px;font-size:15px" onclick="generateEmail()" id="gen-btn">
-          ✨ Generate AI Email
-        </button>
+        <hr class="divider">
+        <button class="btn-p" style="width:100%;padding:12px;font-size:14px" onclick="genEmail()" id="gen-btn">✨ Generate AI Email</button>
 
-        <!-- PREVIEW -->
-        <div id="email-preview-section" style="display:none;margin-top:20px">
-          <hr style="border:none;border-top:1px solid var(--border);margin-bottom:18px">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px">Generated Email Preview</div>
-          <div class="subject-box" id="preview-subject">Subject: ...</div>
-          <div class="email-box" id="preview-body" contenteditable="true"></div>
-          <div style="font-size:11px;color:var(--muted);margin-top:5px;text-align:right" id="preview-chars"></div>
-
-          <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
-
-          <!-- SEND CONTROLS -->
-          <div id="contacts-summary" style="margin-bottom:14px"></div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-            <button class="send-all-btn" onclick="sendToAll()" id="send-all-btn">
-              📨 Send to All Contacts
-            </button>
-            <button class="btn-primary" style="background:transparent;border:1.5px solid var(--border);color:var(--navy);font-size:14px;padding:12px 20px" onclick="generateEmail()">
-              Regenerate ↺
-            </button>
+        <div id="preview-section" style="display:none;margin-top:18px">
+          <hr class="divider">
+          <div class="slabel">Generated Email — Edit if needed</div>
+          <div class="sbox" id="prev-subj">Subject: ...</div>
+          <div class="ebox" id="prev-body" contenteditable="true"></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:right" id="prev-chars"></div>
+          <div id="r-send-note" style="display:none;margin-top:9px;background:#F0FDF4;border:1px solid #A7F3D0;border-radius:7px;padding:8px 12px;font-size:12px;color:#065f46">📎 Your resume will be attached to all emails</div>
+          <hr class="divider">
+          <div id="contacts-summary" style="margin-bottom:11px"></div>
+          <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+            <button class="sbtn" onclick="sendAll()" id="send-btn">📨 Send to All Contacts</button>
+            <button class="btn-p" style="background:transparent;border:1.5px solid var(--border);color:var(--navy);font-size:13px;padding:10px 16px" onclick="genEmail()">Regenerate ↺</button>
           </div>
-          <div id="send-progress" style="display:none;margin-top:14px">
-            <div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:5px" id="send-progress-label">Sending...</div>
-            <div class="progress-bar"><div class="progress-fill" id="send-progress-fill" style="width:0%"></div></div>
+          <div id="send-prog" style="display:none;margin-top:11px">
+            <div style="font-size:12px;font-weight:500;color:var(--navy);margin-bottom:4px" id="send-prog-lbl">Sending...</div>
+            <div class="pbar"><div class="pfill" id="send-prog-fill" style="width:0%"></div></div>
           </div>
         </div>
 
@@ -333,842 +336,637 @@ tr:hover td{background:#F1F5FB}
   </div>
 </div>
 
-<!-- ═══ CONTACTS PAGE ═══ -->
+<!-- CONTACTS -->
 <div id="page-contacts" class="page">
   <div class="section">
-    <div class="section-title">Contact Manager</div>
-    <div class="section-sub">Add recruiters manually or paste a bulk list — all stored in Firebase</div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
-      <!-- ADD ONE -->
+    <div class="sec-title">Contact Manager</div>
+    <div class="sec-sub">Your private recruiter list — each account has its own separate data</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
       <div class="card">
-        <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px">Add Single Contact</div>
-        <div class="form-group" style="margin-bottom:10px">
-          <label>Full Name</label>
-          <input type="text" id="add-name" placeholder="Jane Smith">
-        </div>
-        <div class="form-group" style="margin-bottom:10px">
-          <label>Email *</label>
-          <input type="email" id="add-email" placeholder="jane@company.com">
-        </div>
-        <div class="form-group" style="margin-bottom:10px">
-          <label>Company</label>
-          <input type="text" id="add-company" placeholder="Acme Corp">
-        </div>
-        <div class="form-group" style="margin-bottom:14px">
-          <label>Industry / Sector</label>
-          <input type="text" id="add-sector" placeholder="Technology, Finance...">
-        </div>
-        <button class="btn-primary" style="width:100%" onclick="addContact()">+ Add Contact</button>
+        <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:11px">Add Single Contact</div>
+        <div class="fg" style="margin-bottom:8px"><label>Full Name</label><input type="text" id="add-name" placeholder="Jane Smith"></div>
+        <div class="fg" style="margin-bottom:8px"><label>Email *</label><input type="email" id="add-email" placeholder="jane@company.com"></div>
+        <div class="fg" style="margin-bottom:8px"><label>Company</label><input type="text" id="add-company" placeholder="Acme Corp"></div>
+        <div class="fg" style="margin-bottom:11px"><label>Sector</label><input type="text" id="add-sector" placeholder="Technology, Finance..."></div>
+        <button class="btn-p" style="width:100%" onclick="addContact()">+ Add Contact</button>
       </div>
-
-      <!-- BULK IMPORT -->
       <div class="card">
-        <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px">Bulk Import</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">
-          Paste one email per line, or CSV format:<br>
-          <code style="font-size:11px;background:var(--cream2);padding:2px 6px;border-radius:4px">email, name, company</code>
-        </div>
-        <div class="form-group" style="margin-bottom:14px">
-          <textarea id="bulk-emails" placeholder="hr@google.com&#10;recruiter@microsoft.com, John Doe, Microsoft&#10;talent@amazon.com, Sarah, Amazon" style="min-height:130px"></textarea>
-        </div>
-        <button class="btn-primary" style="width:100%" onclick="bulkImport()">Import All</button>
+        <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:7px">Bulk Import</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.6">One email per line, or CSV format:<br><code style="font-size:10px;background:var(--cream2);padding:1px 5px;border-radius:3px">email, name, company</code></div>
+        <div class="fg" style="margin-bottom:11px"><textarea id="bulk-txt" placeholder="hr@google.com&#10;recruiter@microsoft.com, John, Microsoft&#10;talent@amazon.com" style="min-height:115px"></textarea></div>
+        <button class="btn-p" style="width:100%" onclick="bulkImport()">Import All</button>
       </div>
     </div>
-
-    <!-- CONTACTS TABLE -->
-    <div class="table-wrap">
-      <div class="table-head">
-        <h3>Saved Contacts (<span id="contacts-count">0</span>)</h3>
-        <div style="display:flex;gap:8px">
-          <button class="btn-sm btn-sm-red" onclick="clearAllContacts()">Clear All</button>
-          <button class="btn-sm btn-sm-green" onclick="showPage('compose')">→ Compose Email</button>
+    <div class="twrap">
+      <div class="thead-bar">
+        <h3>Contacts (<span id="c-count">0</span>)</h3>
+        <div style="display:flex;gap:6px">
+          <button class="bsm bsm-r" onclick="clearContacts()">Clear All</button>
+          <button class="bsm bsm-g" onclick="showPage('compose')">→ Compose</button>
         </div>
       </div>
       <div style="overflow-x:auto">
-        <table>
-          <thead>
-            <tr>
-              <th><input type="checkbox" id="select-all" onchange="selectAllContacts(this.checked)"></th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Company</th>
-              <th>Sector</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="contacts-tbody">
-            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">No contacts yet — add some above</td></tr>
-          </tbody>
-        </table>
+        <table><thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Sector</th><th>Status</th><th></th></tr></thead>
+        <tbody id="c-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No contacts yet</td></tr></tbody></table>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══ LOGS PAGE ═══ -->
+<!-- LOGS -->
 <div id="page-logs" class="page">
   <div class="section">
-    <div class="section-title">Email Logs</div>
-    <div class="section-sub">Track every email sent — stored in Firebase</div>
-    <div class="table-wrap">
-      <div class="table-head">
-        <h3>Sent Emails (<span id="logs-count">0</span>)</h3>
-        <button class="btn-sm btn-sm-red" onclick="clearLogs()">Clear Logs</button>
+    <div class="sec-title">Email Logs</div>
+    <div class="sec-sub">Every email sent from your account</div>
+    <div class="twrap">
+      <div class="thead-bar">
+        <h3>Sent Emails (<span id="l-count">0</span>)</h3>
+        <button class="bsm bsm-r" onclick="clearLogs()">Clear</button>
       </div>
       <div style="overflow-x:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>To</th>
-              <th>Company</th>
-              <th>Position</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="logs-tbody">
-            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px">No emails logged yet</td></tr>
-          </tbody>
-        </table>
+        <table><thead><tr><th>Date</th><th>To</th><th>Company</th><th>Position</th><th>Resume</th><th>Status</th></tr></thead>
+        <tbody id="l-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No emails logged yet</td></tr></tbody></table>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══ SETUP PAGE ═══ -->
+<!-- SETUP -->
 <div id="page-setup" class="page">
   <div class="section">
-    <div class="section-title">Setup Guide</div>
-    <div class="section-sub">Link your Gmail in 3 minutes using Google Apps Script — exactly like your existing visa platform</div>
+    <div class="sec-title">Setup Guide</div>
+    <div class="sec-sub">Fix the Firebase error and link your Gmail — 5 minutes total</div>
 
-    <!-- STEP 1 -->
-    <div class="setup-card">
-      <div style="display:inline-block;background:rgba(255,255,255,.08);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:10px">STEP 1</div>
-      <h3>Create your Google Apps Script</h3>
-      <p>Go to <strong style="color:#93C5FD">script.google.com</strong> → New Project → paste this exact code → Save</p>
+    <div class="warn-box">
+      <strong>⚠️ Fix "Missing or insufficient permissions" first:</strong><br>
+      This error happens because Firestore blocks all writes unless you're authenticated AND the security rules allow it.<br>
+      Go to <strong>Firebase Console → Firestore Database → Rules tab</strong> and replace everything with the rules below.
+    </div>
 
-      <div class="setup-step">
-        <h4>1a. Open Google Apps Script</h4>
-        <p>Log into the Gmail account you want to send FROM, then go to <a href="https://script.google.com" target="_blank" style="color:#93C5FD">script.google.com</a> and create a new project.</p>
-      </div>
+    <!-- FIRESTORE RULES -->
+    <div class="sblock" style="background:#1a2744;margin-bottom:16px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.38);margin-bottom:9px">FIRESTORE RULES — Firebase Console → Firestore → Rules → Publish</div>
+      <div class="rules-block" id="rules-code">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
 
-      <div class="setup-step">
-        <h4>1b. Paste this script (replaces Code.gs)</h4>
-        <p>Delete all existing code and paste the script below:</p>
-        <div class="gas-script" id="gas-code-block"><span class="gas-cmt">// CareerBlast — Google Apps Script Email Sender
-// Paste this into script.google.com → Code.gs</span>
+    // Each user only accesses their own subcollection
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+  }
+}</div>
+      <button class="cbtn" onclick="copyEl('rules-code','Rules copied!')">Copy Rules</button>
+    </div>
 
-<span class="gas-kw">function</span> <span class="gas-str">doPost</span>(e) {
-  <span class="gas-kw">var</span> data = JSON.parse(e.postData.contents);
-  <span class="gas-kw">var</span> to      = data.to;
-  <span class="gas-kw">var</span> subject = data.subject;
-  <span class="gas-kw">var</span> html    = data.html;
-  <span class="gas-kw">var</span> name    = data.name || to;
+    <!-- ALSO ENABLE AUTH -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:9px">Also enable Firebase Authentication</div>
+      <ol style="font-size:12px;color:var(--muted);line-height:2.2;padding-left:16px">
+        <li>Go to <strong>Firebase Console → Authentication → Sign-in method</strong></li>
+        <li>Enable <strong>Email/Password</strong></li>
+        <li>Enable <strong>Google</strong> (for Google sign-in)</li>
+        <li>Add your domain to <strong>Authorized domains</strong> if deploying online</li>
+      </ol>
+    </div>
 
-  <span class="gas-kw">try</span> {
-    GmailApp.sendEmail(to, subject, <span class="gas-str">''</span>, {
-      htmlBody: html,
-      name: name
-    });
-    <span class="gas-kw">return</span> ContentService
-      .createTextOutput(JSON.stringify({status:<span class="gas-str">'sent'</span>}))
+    <!-- GAS -->
+    <div class="sblock">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.38);margin-bottom:9px">GOOGLE APPS SCRIPT — Link your Gmail</div>
+      <h3>Create GAS Script (3 minutes)</h3>
+      <p>Log into the Gmail you want to send FROM → <a href="https://script.google.com" target="_blank" style="color:#93C5FD">script.google.com</a> → New Project → paste below</p>
+      <div class="sstep"><h4>Step 1 — Open script.google.com (logged into your sending Gmail)</h4><p>Create a new project. Delete all existing code in Code.gs.</p></div>
+      <div class="sstep">
+        <h4>Step 2 — Paste this script</h4>
+        <div class="gcode" id="gas-code"><span class="gcm">// CareerBlast GAS Sender — paste in script.google.com → Code.gs</span>
+
+<span class="gkw">function</span> <span class="gst">doPost</span>(e) {
+  <span class="gkw">var</span> data    = JSON.parse(e.postData.contents);
+  <span class="gkw">var</span> opts    = { htmlBody: data.html, name: data.name || data.to };
+
+  <span class="gcm">// Attach resume if sent as base64</span>
+  <span class="gkw">if</span> (data.attachment) {
+    <span class="gkw">var</span> bytes = Utilities.base64Decode(data.attachment.data);
+    <span class="gkw">var</span> blob  = Utilities.newBlob(
+      bytes, data.attachment.mimeType, data.attachment.filename
+    );
+    opts.attachments = [blob];
+  }
+
+  <span class="gkw">try</span> {
+    GmailApp.sendEmail(data.to, data.subject, <span class="gst">''</span>, opts);
+    <span class="gkw">return</span> ContentService
+      .createTextOutput(JSON.stringify({ status: <span class="gst">'sent'</span> }))
       .setMimeType(ContentService.MimeType.JSON);
-  } <span class="gas-kw">catch</span>(err) {
-    <span class="gas-kw">return</span> ContentService
-      .createTextOutput(JSON.stringify({status:<span class="gas-str">'error'</span>, message: err.toString()}))
+  } <span class="gkw">catch</span>(err) {
+    <span class="gkw">return</span> ContentService
+      .createTextOutput(JSON.stringify({ status: <span class="gst">'error'</span>, message: err.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-<span class="gas-cmt">// Test function — run this first to authorize</span>
-<span class="gas-kw">function</span> <span class="gas-str">testSend</span>() {
-  GmailApp.sendEmail(<span class="gas-str">'your-email@gmail.com'</span>, <span class="gas-str">'CareerBlast Test'</span>, <span class="gas-str">''</span>, {
-    htmlBody: <span class="gas-str">'&lt;p&gt;CareerBlast is connected! ✅&lt;/p&gt;'</span>,
-    name: <span class="gas-str">'CareerBlast'</span>
-  });
+<span class="gcm">// Run this ONCE first to grant Gmail permission</span>
+<span class="gkw">function</span> <span class="gst">testSend</span>() {
+  GmailApp.sendEmail(
+    <span class="gst">'your-email@gmail.com'</span>,   <span class="gcm">// ← change this to your email</span>
+    <span class="gst">'CareerBlast Connected ✅'</span>,
+    <span class="gst">''</span>,
+    { htmlBody: <span class="gst">'&lt;p&gt;Your CareerBlast is linked!&lt;/p&gt;'</span>, name: <span class="gst">'CareerBlast'</span> }
+  );
 }</div>
-        <button class="copy-btn" style="position:relative;top:0;right:0;margin-top:8px;display:block" onclick="copyGasCode()">Copy Code</button>
+        <button class="cbtn" onclick="copyEl('gas-code','Script copied!')">Copy Script</button>
       </div>
-
-      <div class="setup-step">
-        <h4>1c. Deploy as Web App</h4>
-        <p>Click <strong>Deploy → New Deployment → Web App</strong><br>
-        — Execute as: <strong>Me</strong><br>
-        — Who has access: <strong>Anyone</strong><br>
-        — Click Deploy → authorize → copy the URL</p>
-      </div>
+      <div class="sstep"><h4>Step 3 — Run testSend() first (IMPORTANT)</h4><p>Select <strong>testSend</strong> from the function dropdown → click ▶ Run → click <strong>Allow</strong> when permission dialog appears. Without this, emails won't send.</p></div>
+      <div class="sstep"><h4>Step 4 — Deploy → New Deployment → Web App</h4><p><strong>Execute as:</strong> Me &nbsp;·&nbsp; <strong>Who has access:</strong> Anyone &nbsp;·&nbsp; Click Deploy → copy the long /exec URL</p></div>
     </div>
 
-    <!-- STEP 2 -->
-    <div class="card" style="margin-bottom:20px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:14px">STEP 2 — Paste your GAS URL here</div>
-      <div class="form-group" style="margin-bottom:12px">
+    <!-- PASTE URL -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="slabel" style="margin-bottom:11px">Step 3 — Paste your GAS URL</div>
+      <div class="fg" style="margin-bottom:9px">
         <label>Google Apps Script Web App URL</label>
-        <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/XXXXXX.../exec" style="font-family:monospace;font-size:12px">
+        <input type="url" id="gas-url-inp" placeholder="https://script.google.com/macros/s/XXXXXX.../exec" style="font-size:11px;font-family:monospace">
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn-primary" onclick="saveGasUrl()">Save URL</button>
-        <button class="btn-sm btn-sm-blue" style="padding:9px 16px;font-size:13px" onclick="testGasConnection()">📧 Send Test Email</button>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn-p" onclick="saveGas()">Save URL</button>
+        <button class="bsm bsm-b" style="padding:8px 13px;font-size:12px" onclick="document.getElementById('test-row').style.display='block'">📧 Test Connection</button>
       </div>
-      <div id="gas-test-email-row" style="display:none;margin-top:10px">
-        <div class="form-group">
-          <label>Test destination email</label>
-          <input type="email" id="gas-test-dest" placeholder="your-email@gmail.com">
-        </div>
-        <button class="btn-primary" style="margin-top:8px" onclick="runGasTest()">Send Test →</button>
+      <div id="test-row" style="display:none;margin-top:9px">
+        <div class="fg" style="margin-bottom:7px"><label>Test destination email</label><input type="email" id="test-dest" placeholder="your@gmail.com"></div>
+        <button class="btn-p" style="font-size:12px;padding:8px 16px" onclick="runTest()">Send Test →</button>
       </div>
-      <div id="gas-status" style="display:none;margin-top:10px;font-size:13px;padding:10px 14px;border-radius:8px"></div>
-      <div id="gas-url-display" style="font-size:11px;color:var(--muted);margin-top:8px;font-family:monospace;word-break:break-all"></div>
+      <div id="gas-status" style="display:none;margin-top:9px;padding:9px 12px;border-radius:7px;font-size:12px"></div>
+      <div id="gas-disp" style="font-size:10px;color:var(--muted);margin-top:6px;font-family:monospace;word-break:break-all"></div>
     </div>
 
-    <!-- STEP 3 -->
-    <div class="card" style="margin-bottom:20px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:14px">STEP 3 — Firebase (already configured)</div>
-      <div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:8px;padding:14px 16px;font-size:13px;color:#065f46;line-height:1.8">
-        ✅ <strong>Firebase is pre-configured</strong> with your project <code style="background:rgba(0,0,0,.06);padding:1px 6px;border-radius:3px">cars-website-558c0</code><br>
-        Contacts and email logs are stored automatically in Firestore.
-      </div>
-    </div>
-
-    <!-- TIPS -->
     <div class="card">
-      <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:12px">⚠️ Important Notes</div>
-      <ul style="font-size:13px;color:var(--muted);line-height:2;padding-left:18px">
-        <li>Gmail free accounts can send ~500 emails/day — Google Workspace allows 2,000/day</li>
-        <li>Always run the <code style="background:var(--cream2);padding:1px 6px;border-radius:3px">testSend()</code> function first in GAS to authorize permissions</li>
-        <li>The GAS script sends from <strong>whichever Gmail is logged in</strong> when you deploy</li>
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:9px">⚠️ Notes</div>
+      <ul style="font-size:12px;color:var(--muted);line-height:2.2;padding-left:15px">
+        <li>Gmail free accounts: ~500 emails/day · Google Workspace: 2,000/day</li>
+        <li>Always run <code style="background:var(--cream2);padding:1px 5px;border-radius:3px">testSend()</code> first to grant Gmail permission</li>
+        <li>GAS sends from whichever Gmail was logged in when you deployed</li>
         <li>Re-deploy after any code change to get a new URL</li>
-        <li>Keep emails personalized — avoid spammy subject lines</li>
+        <li>Resume is base64-encoded and sent as attachment — keep under 5MB</li>
       </ul>
     </div>
   </div>
 </div>
 
-<!-- NOTIF -->
-<div id="notif"><span id="notif-icon">✅</span> <span id="notif-msg"></span></div>
+</div><!-- /app -->
+<div id="notif"><span id="ni">✅</span> <span id="nm"></span></div>
 
-<!-- SCRIPTS -->
+<!-- ════════ FIREBASE MODULE ════════ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+         GoogleAuthProvider, signInWithPopup, onAuthStateChanged,
+         signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc,
+         doc, updateDoc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
-  authDomain: "cars-website-558c0.firebaseapp.com",
-  projectId: "cars-website-558c0",
-  storageBucket: "cars-website-558c0.firebasestorage.app",
-  messagingSenderId: "142475379783",
-  appId: "1:142475379783:web:2849d07fb6eb8da4715d62"
+const cfg = {
+  apiKey:"AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
+  authDomain:"cars-website-558c0.firebaseapp.com",
+  projectId:"cars-website-558c0",
+  storageBucket:"cars-website-558c0.firebasestorage.app",
+  messagingSenderId:"142475379783",
+  appId:"1:142475379783:web:2849d07fb6eb8da4715d62"
+};
+const fbApp = initializeApp(cfg);
+const auth  = getAuth(fbApp);
+const db    = getFirestore(fbApp);
+const gp    = new GoogleAuthProvider();
+
+// expose
+Object.assign(window, { _db:db, _auth:auth,
+  _addDoc:addDoc, _getDocs:getDocs, _deleteDoc:deleteDoc,
+  _doc:doc, _updateDoc:updateDoc, _setDoc:setDoc, _getDoc:getDoc,
+  _col:collection, _ts:serverTimestamp });
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    window._user = user;
+    document.getElementById('auth-wall').style.display = 'none';
+    document.getElementById('app').style.display       = 'block';
+    const name = user.displayName || user.email.split('@')[0];
+    document.getElementById('nav-av').textContent   = name[0].toUpperCase();
+    document.getElementById('nav-name').textContent = name;
+    window.initApp && window.initApp();
+  } else {
+    window._user = null;
+    document.getElementById('auth-wall').style.display = 'flex';
+    document.getElementById('app').style.display       = 'none';
+  }
+});
+
+window.doLogin = async () => {
+  const e=document.getElementById('li-email').value.trim(), p=document.getElementById('li-pass').value;
+  if(!e||!p){showAErr('Enter email and password');return;}
+  const btn=document.getElementById('btn-login');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Signing in...';
+  try { await signInWithEmailAndPassword(auth,e,p); }
+  catch(err){ showAErr(fErr(err.code)); btn.disabled=false; btn.textContent='Sign In'; }
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+window.doRegister = async () => {
+  const fn=document.getElementById('rg-fn').value.trim(), ln=document.getElementById('rg-ln').value.trim();
+  const e=document.getElementById('rg-email').value.trim(), p=document.getElementById('rg-pass').value;
+  if(!e||!p){showAErr('Enter email and password');return;}
+  const btn=document.getElementById('btn-reg');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Creating...';
+  try {
+    const c=await createUserWithEmailAndPassword(auth,e,p);
+    await updateProfile(c.user,{displayName:`${fn} ${ln}`.trim()||e.split('@')[0]});
+    await setDoc(doc(db,'users',c.user.uid,'profile','info'),{firstName:fn,lastName:ln,email:e,createdAt:serverTimestamp()});
+  } catch(err){ showAErr(fErr(err.code)); btn.disabled=false; btn.textContent='Create Account'; }
+};
 
-// ── EXPOSE GLOBALS ──
-window._db = db;
-window._col = collection;
-window._addDoc = addDoc;
-window._getDocs = getDocs;
-window._deleteDoc = deleteDoc;
-window._doc = doc;
-window._updateDoc = updateDoc;
-window._serverTimestamp = serverTimestamp;
-window._query = query;
-window._orderBy = orderBy;
+window.doGoogle = async () => {
+  try { await signInWithPopup(auth,gp); } catch(err){ showAErr(fErr(err.code)); }
+};
 
-// ── LOAD DATA ON START ──
-window.addEventListener('DOMContentLoaded', () => {
-  loadContacts();
-  loadLogs();
-  populateIndustries();
-  loadGasUrl();
-});
+window.doLogout = async () => {
+  if(confirm('Sign out?')) await signOut(auth);
+};
+
+function showAErr(m){const el=document.getElementById('auth-err');el.textContent=m;el.style.display='block';setTimeout(()=>el.style.display='none',5000);}
+function fErr(c){const m={'auth/invalid-credential':'Incorrect email or password.','auth/user-not-found':'No account with this email.','auth/wrong-password':'Incorrect password.','auth/email-already-in-use':'Email already registered.','auth/weak-password':'Password must be 6+ characters.','auth/invalid-email':'Invalid email.','auth/too-many-requests':'Too many attempts — wait a moment.','auth/popup-closed-by-user':'Google sign-in cancelled.'};return m[c]||'Error: '+c;}
+
+// ── DATA METHODS ──
+window.loadContacts = async () => {
+  if(!window._user) return;
+  try {
+    const snap=await getDocs(collection(db,'users',window._user.uid,'contacts'));
+    window._contacts=[];
+    snap.forEach(d=>window._contacts.push({id:d.id,...d.data()}));
+    document.getElementById('c-count').textContent=window._contacts.length;
+    document.getElementById('stat-contacts').textContent=window._contacts.length;
+    renderContacts(); updateSummary();
+  } catch(e){console.warn('contacts:',e);}
+};
+
+window.addContact = async () => {
+  const uid=window._user?.uid; if(!uid) return;
+  const name=document.getElementById('add-name').value.trim();
+  const email=document.getElementById('add-email').value.trim();
+  const company=document.getElementById('add-company').value.trim();
+  const sector=document.getElementById('add-sector').value.trim();
+  if(!email){showNotif('⚠️','Email required');return;}
+  if((window._contacts||[]).some(c=>c.email===email)){showNotif('⚠️','Already exists');return;}
+  try {
+    await addDoc(collection(db,'users',uid,'contacts'),{name,email,company,sector,status:'pending',addedAt:serverTimestamp()});
+    ['add-name','add-email','add-company','add-sector'].forEach(id=>document.getElementById(id).value='');
+    showNotif('✅','Contact added!'); window.loadContacts();
+  } catch(e){showNotif('❌','Firebase error: '+e.message);}
+};
+
+window.bulkImport = async () => {
+  const uid=window._user?.uid; if(!uid) return;
+  const raw=document.getElementById('bulk-txt').value.trim(); if(!raw) return;
+  let added=0,skipped=0;
+  for(const line of raw.split('\n').map(l=>l.trim()).filter(Boolean)){
+    const[email,name,company]=line.split(',').map(p=>p.trim());
+    if(!email||!email.includes('@')){skipped++;continue;}
+    if((window._contacts||[]).some(c=>c.email===email)){skipped++;continue;}
+    try{await addDoc(collection(db,'users',uid,'contacts'),{name:name||'',email,company:company||'',sector:'',status:'pending',addedAt:serverTimestamp()});added++;}
+    catch(e){skipped++;}
+  }
+  document.getElementById('bulk-txt').value='';
+  showNotif('✅',`Imported ${added} (${skipped} skipped)`); window.loadContacts();
+};
+
+window.deleteContact = async (id) => {
+  const uid=window._user?.uid; if(!uid) return;
+  try{await deleteDoc(doc(db,'users',uid,'contacts',id));showNotif('🗑️','Deleted');window.loadContacts();}
+  catch(e){showNotif('❌','Delete error');}
+};
+
+window.clearContacts = async () => {
+  if(!confirm('Delete ALL contacts?')) return;
+  const uid=window._user?.uid; if(!uid) return;
+  for(const c of(window._contacts||[])) try{await deleteDoc(doc(db,'users',uid,'contacts',c.id));}catch(e){}
+  showNotif('🗑️','All cleared'); window.loadContacts();
+};
+
+window.markSent = async (id) => {
+  const uid=window._user?.uid; if(!uid) return;
+  try{await updateDoc(doc(db,'users',uid,'contacts',id),{status:'sent'});}catch(e){}
+};
+
+window.logEmail = async (to,company,position,status,hasResume) => {
+  const uid=window._user?.uid; if(!uid) return;
+  try{await addDoc(collection(db,'users',uid,'email_logs'),{to,company,position,status,hasResume:!!hasResume,sentAt:serverTimestamp()});}catch(e){}
+};
+
+window.loadLogs = async () => {
+  const uid=window._user?.uid; if(!uid) return;
+  try {
+    const snap=await getDocs(collection(db,'users',uid,'email_logs'));
+    window._logs=[];
+    snap.forEach(d=>window._logs.push({id:d.id,...d.data()}));
+    window._logs.sort((a,b)=>(b.sentAt?.seconds||0)-(a.sentAt?.seconds||0));
+    document.getElementById('l-count').textContent=window._logs.length;
+    document.getElementById('stat-sent').textContent=(window._logs||[]).filter(l=>l.status==='sent').length;
+    renderLogs();
+  } catch(e){}
+};
+
+window.clearLogs = async () => {
+  if(!confirm('Clear all logs?')) return;
+  const uid=window._user?.uid; if(!uid) return;
+  for(const l of(window._logs||[])) try{await deleteDoc(doc(db,'users',uid,'email_logs',l.id));}catch(e){}
+  showNotif('🗑️','Logs cleared'); window.loadLogs();
+};
+
+window.loadProfile = async () => {
+  const uid=window._user?.uid; if(!uid) return;
+  try {
+    const snap=await getDoc(doc(db,'users',uid,'profile','settings'));
+    if(snap.exists()){
+      const d=snap.data();
+      if(d.gasUrl){ window._gasUrl=d.gasUrl; const i=document.getElementById('gas-url-inp'); if(i) i.value=d.gasUrl; const dsp=document.getElementById('gas-disp'); if(dsp) dsp.textContent='Active: '+d.gasUrl; }
+      if(d.resumeData){ window._resume=d.resumeData; showResPreview(d.resumeData); }
+    }
+  } catch(e){}
+};
+
+window.saveGas = async () => {
+  const val=document.getElementById('gas-url-inp').value.trim();
+  if(!val||!val.includes('script.google.com')){showNotif('⚠️','Enter a valid GAS URL');return;}
+  window._gasUrl=val;
+  const uid=window._user?.uid;
+  if(uid) try{await setDoc(doc(db,'users',uid,'profile','settings'),{gasUrl:val},{merge:true});}catch(e){}
+  document.getElementById('gas-disp').textContent='Active: '+val;
+  showNotif('✅','GAS URL saved!');
+};
+
+window.runTest = async () => {
+  const dest=document.getElementById('test-dest').value.trim();
+  if(!dest){showNotif('⚠️','Enter test email');return;}
+  const url=window._gasUrl; if(!url){showNotif('⚠️','Save GAS URL first');return;}
+  const el=document.getElementById('gas-status');
+  el.style.display='block'; el.style.background='#FEF3C7'; el.style.color='#92400E'; el.textContent='📤 Sending test...';
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:dest,subject:'CareerBlast — Test ✅',html:'<div style="font-family:Arial;padding:20px"><h2 style="color:#2563EB">CareerBlast Connected!</h2><p>Your Gmail is linked and ready.</p></div>',name:'CareerBlast'})});
+    el.style.background='#D1FAE5'; el.style.color='#065f46'; el.textContent='✅ Sent to '+dest+' — check inbox (1-2 min)';
+  } catch(e){ el.style.background='#FEE2E2'; el.style.color='#991b1b'; el.textContent='❌ '+e.message; }
+};
 </script>
 
+<!-- ════════ APP LOGIC ════════ -->
 <script>
-// ══════════════════════════
-//  INDUSTRY DATA
-// ══════════════════════════
-const INDUSTRY_DATA = {
-  "Technology": {
-    positions: ["Software Engineer","Senior Software Engineer","Full-Stack Developer","Frontend Developer","Backend Developer","DevOps Engineer","Data Scientist","Machine Learning Engineer","AI Engineer","Product Manager","Engineering Manager","CTO","Cloud Architect","Cybersecurity Analyst","QA Engineer","Mobile Developer","Data Engineer","Platform Engineer","Site Reliability Engineer","VP of Engineering"],
-    competences: {"Software Engineer":["Problem solving","Data structures","Clean code","Agile/Scrum","System design","Testing","Code review"],"Data Scientist":["Python/R","Machine learning","Statistical modeling","SQL","Data visualization","A/B testing","Feature engineering"],"AI Engineer":["LLMs","PyTorch/TensorFlow","Prompt engineering","RAG","MLOps","NLP","Fine-tuning"],"Product Manager":["Roadmaps","Stakeholder alignment","User research","OKRs","Agile","Data-driven decisions","Cross-functional leadership"],"DevOps Engineer":["CI/CD","Kubernetes","Docker","AWS/GCP/Azure","IaC","Monitoring","Security"],"default":["Technical proficiency","Problem solving","Collaboration","Agile","Communication","Continuous learning"]}
-  },
-  "Finance & Banking": {
-    positions: ["Financial Analyst","Investment Banker","Portfolio Manager","Risk Manager","Quantitative Analyst","CFO","Compliance Officer","Credit Analyst","Hedge Fund Manager","Private Equity Associate","Trader","Financial Controller","Audit Manager","Treasury Analyst","M&A Analyst","Asset Manager","Wealth Manager","Fintech Analyst","ESG Analyst","Chief Risk Officer"],
-    competences: {"Financial Analyst":["Financial modeling","Valuation","Excel/VBA","Bloomberg","Forecasting","DCF","Variance analysis"],"Investment Banker":["M&A execution","Pitchbooks","Valuation","Deal structuring","Client relations","Due diligence"],"Portfolio Manager":["Asset allocation","Risk-adjusted returns","Derivatives","Macroeconomic analysis","Performance attribution"],"Quantitative Analyst":["Python/C++","Stochastic calculus","Derivatives pricing","Backtesting","Risk models"],"default":["Financial acumen","Analytical rigor","Regulatory knowledge","Excel","Communication","Attention to detail"]}
-  },
-  "Healthcare & Medicine": {
-    positions: ["Physician","Surgeon","Nurse Practitioner","Healthcare Administrator","Medical Researcher","Pharmacist","Clinical Data Manager","Hospital Director","Public Health Analyst","Biomedical Engineer","Radiologist","Oncologist","Psychiatrist","Physical Therapist","Health IT Manager","Clinical Trial Manager","Medical Director","Epidemiologist"],
-    competences: {"Physician":["Clinical diagnosis","Patient care","Evidence-based medicine","EMR systems","Team leadership","Medical ethics"],"Healthcare Administrator":["Operations management","Budget control","Regulatory compliance","LEAN/Six Sigma","Staff management"],"Medical Researcher":["Clinical trials","Statistical analysis","Grant writing","Protocol design","Biostatistics"],"default":["Patient-centered care","Clinical excellence","Regulatory compliance","Teamwork","Communication"]}
-  },
-  "Marketing & Advertising": {
-    positions: ["Digital Marketing Manager","Brand Strategist","CMO","Content Marketing Lead","SEO Specialist","Growth Hacker","Social Media Manager","Performance Marketing Manager","Creative Director","CRM Manager","Marketing Analyst","Account Executive","PR Manager","Email Marketing Specialist","Head of Marketing","Media Buyer","Brand Manager","Marketing Director"],
-    competences: {"Digital Marketing Manager":["Google Ads","Meta Ads","SEO/SEM","Analytics","A/B testing","CRM","Campaign management"],"CMO":["Brand strategy","P&L ownership","Team leadership","Market positioning","Growth strategy"],"Growth Hacker":["Funnel optimization","User acquisition","Retention","Viral loops","SQL","A/B testing"],"SEO Specialist":["Keyword research","Technical SEO","Link building","Content strategy","SERP optimization"],"default":["Data-driven thinking","Creativity","Communication","Digital tools","ROI focus"]}
-  },
-  "Sales & Business Development": {
-    positions: ["Sales Executive","Business Development Manager","Account Manager","VP of Sales","Sales Director","Inside Sales Rep","Enterprise Sales Manager","Key Account Manager","Channel Sales Manager","Sales Operations Manager","Revenue Operations Manager","Partner Manager","Customer Success Manager","SDR","CRO","Regional Sales Director","Strategic Partnerships Manager","Head of Sales","National Sales Manager"],
-    competences: {"Sales Executive":["Prospecting","Negotiation","CRM","Pipeline management","Closing","Quota attainment"],"VP of Sales":["Sales strategy","Team building","Revenue forecasting","Executive selling","Market expansion"],"Business Development Manager":["Partnership development","Negotiation","Market analysis","Networking","Deal structuring"],"default":["Persuasion","Relationship building","CRM proficiency","Target attainment","Communication"]}
-  },
-  "Consulting": {
-    positions: ["Management Consultant","Strategy Consultant","IT Consultant","Financial Consultant","Operations Consultant","HR Consultant","Change Management Consultant","Engagement Manager","Principal","Associate Partner","Partner","Business Analyst","Digital Transformation Consultant","Supply Chain Consultant","Risk Consultant","Pricing Consultant"],
-    competences: {"Management Consultant":["Structured problem solving","Slide decks","Client management","Data analysis","Project management","Communication"],"Strategy Consultant":["Strategic frameworks","Competitive analysis","Financial modeling","C-suite presence","Workshop facilitation"],"default":["Analytical thinking","Communication","Project management","Client focus","Adaptability"]}
-  },
-  "Engineering & Manufacturing": {
-    positions: ["Mechanical Engineer","Civil Engineer","Electrical Engineer","Chemical Engineer","Manufacturing Engineer","Quality Engineer","Process Engineer","Project Engineer","Plant Manager","Operations Manager","Supply Chain Manager","Lean Six Sigma Engineer","R&D Engineer","Automation Engineer","Industrial Engineer","Structural Engineer","Environmental Engineer","HSE Manager"],
-    competences: {"Mechanical Engineer":["CAD/SolidWorks","FEA","GD&T","DFMEA","Manufacturing processes","Project management"],"Civil Engineer":["AutoCAD","Structural analysis","BIM","Project management","Geotechnical","Budgeting"],"default":["Technical expertise","Problem solving","Project management","Quality focus","Safety awareness"]}
-  },
-  "Law & Legal": {
-    positions: ["Corporate Lawyer","Litigation Associate","General Counsel","Patent Attorney","Compliance Officer","Legal Analyst","Contract Manager","M&A Lawyer","Employment Lawyer","IP Lawyer","Tax Lawyer","Real Estate Attorney","Partner","Associate","Legal Counsel","Privacy Lawyer","International Trade Lawyer"],
-    competences: {"Corporate Lawyer":["Contract drafting","M&A","Due diligence","Negotiation","Legal research","Risk assessment"],"Compliance Officer":["Regulatory frameworks","Risk management","AML/KYC","Policy development","Audit"],"default":["Legal research","Drafting","Negotiation","Analytical thinking","Attention to detail"]}
-  },
-  "Human Resources": {
-    positions: ["HR Manager","CHRO","Talent Acquisition Specialist","HR Business Partner","L&D Manager","Compensation & Benefits Manager","HR Generalist","People Operations Manager","Organizational Development Manager","Recruiter","Employee Relations Manager","HR Director","DEI Manager","HR Analyst","Payroll Manager","Culture Manager","Employer Branding Manager"],
-    competences: {"HR Manager":["Recruitment","Employee relations","Performance management","HRIS","Compliance","Onboarding"],"CHRO":["People strategy","Executive leadership","Workforce planning","Culture transformation","Total rewards"],"default":["People skills","HRIS","Communication","Conflict resolution","Employment law"]}
-  },
-  "Education & Academia": {
-    positions: ["University Professor","School Principal","Curriculum Designer","Academic Researcher","Education Consultant","Dean","Instructional Designer","ESL Teacher","EdTech Specialist","L&D Manager","Training Coordinator","Academic Director","Department Head","Postdoctoral Researcher","Chief Learning Officer"],
-    competences: {"University Professor":["Research","Publication","Grant writing","Teaching","Curriculum design","Mentorship"],"Curriculum Designer":["Learning objectives","Instructional design","LMS","Assessment design","Adult learning theory"],"default":["Communication","Curriculum design","Assessment","Mentorship","Subject expertise"]}
-  },
-  "Real Estate & Construction": {
-    positions: ["Real Estate Agent","Property Manager","Real Estate Analyst","Construction Project Manager","Site Manager","Quantity Surveyor","Real Estate Developer","Asset Manager","Facilities Manager","Land Acquisitions Manager","Commercial Real Estate Broker","Property Valuer","Urban Planner"],
-    competences: {"Real Estate Agent":["Negotiation","Market analysis","Property valuation","Networking","Client relations"],"Construction Project Manager":["Scheduling","Budget management","Contractor management","Safety compliance","BIM"],"default":["Negotiation","Market knowledge","Project management","Client focus","Financial analysis"]}
-  },
-  "Logistics & Supply Chain": {
-    positions: ["Supply Chain Manager","Logistics Coordinator","Procurement Manager","Warehouse Manager","Operations Director","Demand Planner","Inventory Manager","Transportation Manager","Chief Supply Chain Officer","Category Manager","Vendor Manager","3PL Manager","Sourcing Manager","Distribution Manager","ERP Analyst"],
-    competences: {"Supply Chain Manager":["S&OP","ERP systems","Supplier management","Lean","Cost reduction","Forecasting"],"Procurement Manager":["Strategic sourcing","Negotiation","Vendor management","Cost savings","Contract management"],"default":["Process optimization","ERP systems","Cost management","Analytical skills","Communication"]}
-  },
-  "Media & Entertainment": {
-    positions: ["Journalist","Film Director","Content Producer","Video Editor","Broadcast Manager","Creative Director","Screenwriter","Music Producer","Social Media Director","Podcast Producer","Sports Journalist","PR Specialist","Digital Content Strategist","Publishing Editor","Art Director","Media Planner"],
-    competences: {"Journalist":["Investigative reporting","Storytelling","Source management","Deadline management","Digital publishing","Fact-checking"],"Creative Director":["Creative vision","Brand identity","Team leadership","Art direction","Campaign development"],"default":["Creativity","Storytelling","Deadline management","Communication","Digital media"]}
-  },
-  "Non-Profit & NGO": {
-    positions: ["Program Director","Executive Director","Fundraising Manager","Grant Writer","Community Outreach Manager","Policy Advocate","Development Officer","Volunteer Coordinator","M&E Specialist","Partnerships Manager","Capacity Building Manager","Field Coordinator"],
-    competences: {"Executive Director":["Leadership","Fundraising","Board relations","Strategic planning","Financial oversight","Mission alignment"],"Grant Writer":["Proposal writing","Research","Budget development","Reporting","Impact measurement"],"default":["Mission-driven leadership","Stakeholder engagement","Communication","Project management","Impact measurement"]}
-  },
-  "Hospitality & Tourism": {
-    positions: ["Hotel General Manager","F&B Director","Revenue Manager","Event Planner","Travel Consultant","Tourism Director","Front Office Manager","Executive Chef","Guest Experience Manager","Catering Manager","Spa Director","Sales Manager","Resort Manager","Operations Director"],
-    competences: {"Hotel General Manager":["Operations management","Revenue optimization","Guest experience","Team leadership","P&L","Brand standards"],"Revenue Manager":["Yield management","OTA optimization","Forecasting","Pricing strategy","Channel management"],"default":["Guest service excellence","Operations","Team leadership","Problem solving","Revenue focus"]}
-  }
+const IND={
+  "Technology":{p:["Software Engineer","Senior Software Engineer","Full-Stack Developer","Frontend Developer","Backend Developer","DevOps Engineer","Data Scientist","Machine Learning Engineer","AI Engineer","Product Manager","Engineering Manager","CTO","Cloud Architect","Cybersecurity Analyst","QA Engineer","Mobile Developer","Data Engineer","Site Reliability Engineer","VP of Engineering"],c:{"Software Engineer":["Problem solving","Data structures","Clean code","Agile/Scrum","System design","Testing","Code review"],"Data Scientist":["Python/R","Machine learning","Statistical modeling","SQL","Data visualization","A/B testing"],"AI Engineer":["LLMs","PyTorch/TensorFlow","Prompt engineering","RAG","MLOps","NLP"],"Product Manager":["Roadmaps","Stakeholder alignment","User research","OKRs","Agile","Data-driven decisions"],"DevOps Engineer":["CI/CD","Kubernetes","Docker","AWS/GCP/Azure","Monitoring","Security"],"default":["Technical proficiency","Problem solving","Collaboration","Agile","Communication"]}},
+  "Finance & Banking":{p:["Financial Analyst","Investment Banker","Portfolio Manager","Risk Manager","Quantitative Analyst","CFO","Compliance Officer","Credit Analyst","Hedge Fund Manager","Private Equity Associate","Trader","Financial Controller","M&A Analyst","Asset Manager","Wealth Manager","ESG Analyst","Chief Risk Officer"],c:{"Financial Analyst":["Financial modeling","Valuation","Excel/VBA","Bloomberg","Forecasting","DCF"],"Investment Banker":["M&A execution","Pitchbooks","Valuation","Deal structuring","Due diligence"],"Portfolio Manager":["Asset allocation","Risk-adjusted returns","Derivatives","Macroeconomic analysis"],"Quantitative Analyst":["Python/C++","Stochastic calculus","Derivatives pricing","Backtesting","Risk models"],"default":["Financial acumen","Analytical rigor","Regulatory knowledge","Excel","Attention to detail"]}},
+  "Healthcare & Medicine":{p:["Physician","Surgeon","Nurse Practitioner","Healthcare Administrator","Medical Researcher","Pharmacist","Clinical Data Manager","Hospital Director","Biomedical Engineer","Clinical Trial Manager","Medical Director","Epidemiologist","Health IT Manager"],c:{"Physician":["Clinical diagnosis","Patient care","Evidence-based medicine","EMR systems","Team leadership"],"Healthcare Administrator":["Operations management","Budget control","Regulatory compliance","Staff management"],"default":["Patient-centered care","Clinical excellence","Regulatory compliance","Teamwork","Communication"]}},
+  "Marketing & Advertising":{p:["Digital Marketing Manager","Brand Strategist","CMO","Content Marketing Lead","SEO Specialist","Growth Hacker","Social Media Manager","Performance Marketing Manager","Creative Director","CRM Manager","Marketing Analyst","PR Manager","Email Marketing Specialist","Head of Marketing","Marketing Director"],c:{"Digital Marketing Manager":["Google Ads","Meta Ads","SEO/SEM","Analytics","A/B testing","CRM"],"CMO":["Brand strategy","P&L ownership","Team leadership","Market positioning","Growth strategy"],"Growth Hacker":["Funnel optimization","User acquisition","Retention","Viral loops","SQL"],"SEO Specialist":["Keyword research","Technical SEO","Link building","Content strategy"],"default":["Data-driven thinking","Creativity","Communication","Digital tools","ROI focus"]}},
+  "Sales & Business Development":{p:["Sales Executive","Business Development Manager","Account Manager","VP of Sales","Sales Director","Enterprise Sales Manager","Key Account Manager","Customer Success Manager","SDR","CRO","Regional Sales Director","Head of Sales","National Sales Manager"],c:{"Sales Executive":["Prospecting","Negotiation","CRM","Pipeline management","Closing","Quota attainment"],"VP of Sales":["Sales strategy","Team building","Revenue forecasting","Executive selling","Market expansion"],"default":["Persuasion","Relationship building","CRM","Target attainment","Communication"]}},
+  "Consulting":{p:["Management Consultant","Strategy Consultant","IT Consultant","Financial Consultant","Operations Consultant","Change Management Consultant","Engagement Manager","Principal","Partner","Business Analyst","Digital Transformation Consultant","Supply Chain Consultant","Risk Consultant"],c:{"Management Consultant":["Structured problem solving","Deck creation","Client management","Data analysis","Project management"],"Strategy Consultant":["Strategic frameworks","Competitive analysis","Financial modeling","C-suite presence"],"default":["Analytical thinking","Communication","Project management","Client focus"]}},
+  "Engineering & Manufacturing":{p:["Mechanical Engineer","Civil Engineer","Electrical Engineer","Chemical Engineer","Manufacturing Engineer","Quality Engineer","Process Engineer","Plant Manager","Operations Manager","Lean Six Sigma Engineer","R&D Engineer","Automation Engineer","Structural Engineer","HSE Manager"],c:{"Mechanical Engineer":["CAD/SolidWorks","FEA","GD&T","DFMEA","Manufacturing processes"],"Civil Engineer":["AutoCAD","Structural analysis","BIM","Project management","Geotechnical"],"default":["Technical expertise","Problem solving","Project management","Quality focus","Safety awareness"]}},
+  "Law & Legal":{p:["Corporate Lawyer","Litigation Associate","General Counsel","Patent Attorney","Compliance Officer","Legal Analyst","Contract Manager","M&A Lawyer","Employment Lawyer","IP Lawyer","Tax Lawyer","Partner","Associate","Privacy Lawyer","International Trade Lawyer"],c:{"Corporate Lawyer":["Contract drafting","M&A","Due diligence","Negotiation","Legal research"],"Compliance Officer":["Regulatory frameworks","Risk management","AML/KYC","Policy development","Audit"],"default":["Legal research","Drafting","Negotiation","Analytical thinking","Attention to detail"]}},
+  "Human Resources":{p:["HR Manager","CHRO","Talent Acquisition Specialist","HR Business Partner","L&D Manager","Compensation & Benefits Manager","HR Generalist","People Operations Manager","Recruiter","Employee Relations Manager","HR Director","DEI Manager","Employer Branding Manager"],c:{"HR Manager":["Recruitment","Employee relations","Performance management","HRIS","Compliance","Onboarding"],"CHRO":["People strategy","Executive leadership","Workforce planning","Culture transformation"],"default":["People skills","HRIS","Communication","Conflict resolution","Employment law"]}},
+  "Education & Academia":{p:["University Professor","School Principal","Curriculum Designer","Academic Researcher","Education Consultant","Dean","Instructional Designer","EdTech Specialist","L&D Manager","Training Coordinator","Academic Director","Chief Learning Officer"],c:{"University Professor":["Research","Publication","Grant writing","Teaching","Curriculum design"],"Curriculum Designer":["Learning objectives","Instructional design","LMS","Assessment design"],"default":["Communication","Curriculum design","Assessment","Mentorship","Subject expertise"]}},
+  "Real Estate & Construction":{p:["Real Estate Agent","Property Manager","Real Estate Analyst","Construction Project Manager","Site Manager","Quantity Surveyor","Real Estate Developer","Asset Manager","Facilities Manager","Commercial Real Estate Broker","Urban Planner"],c:{"Real Estate Agent":["Negotiation","Market analysis","Property valuation","Networking"],"Construction Project Manager":["Scheduling","Budget management","Contractor management","Safety compliance","BIM"],"default":["Negotiation","Market knowledge","Project management","Client focus"]}},
+  "Logistics & Supply Chain":{p:["Supply Chain Manager","Logistics Coordinator","Procurement Manager","Warehouse Manager","Operations Director","Demand Planner","Transportation Manager","Chief Supply Chain Officer","Category Manager","Vendor Manager","Sourcing Manager","ERP Analyst"],c:{"Supply Chain Manager":["S&OP","ERP systems","Supplier management","Lean","Cost reduction"],"Procurement Manager":["Strategic sourcing","Negotiation","Vendor management","Cost savings","Contract management"],"default":["Process optimization","ERP systems","Cost management","Analytical skills"]}},
+  "Media & Entertainment":{p:["Journalist","Film Director","Content Producer","Video Editor","Creative Director","Screenwriter","Music Producer","Social Media Director","Podcast Producer","PR Specialist","Digital Content Strategist","Publishing Editor","Art Director","Media Planner"],c:{"Journalist":["Investigative reporting","Storytelling","Source management","Deadline management"],"Creative Director":["Creative vision","Brand identity","Team leadership","Art direction"],"default":["Creativity","Storytelling","Deadline management","Communication"]}},
+  "Non-Profit & NGO":{p:["Program Director","Executive Director","Fundraising Manager","Grant Writer","Community Outreach Manager","Policy Advocate","Development Officer","M&E Specialist","Partnerships Manager","Field Coordinator"],c:{"Executive Director":["Leadership","Fundraising","Board relations","Strategic planning","Mission alignment"],"Grant Writer":["Proposal writing","Research","Budget development","Impact measurement"],"default":["Mission-driven leadership","Stakeholder engagement","Communication","Project management"]}},
+  "Hospitality & Tourism":{p:["Hotel General Manager","F&B Director","Revenue Manager","Event Planner","Travel Consultant","Front Office Manager","Executive Chef","Guest Experience Manager","Catering Manager","Spa Director","Resort Manager"],c:{"Hotel General Manager":["Operations management","Revenue optimization","Guest experience","Team leadership","P&L"],"Revenue Manager":["Yield management","OTA optimization","Forecasting","Pricing strategy"],"default":["Guest service excellence","Operations","Team leadership","Problem solving"]}}
 };
 
-// ══════════════════════════
-//  STATE
-// ══════════════════════════
-let contacts = [];
-let emailLogs = [];
-let currentTone = 'professional';
-let generatedEmailBody = '';
-let generatedSubject = '';
-let gasUrl = localStorage.getItem('careerblast_gas_url') || '';
+window._contacts=[]; window._logs=[]; window._gasUrl=''; window._resume=null;
+let tone='professional', gSubj='', gBody='';
 
-// ══════════════════════════
-//  NAVIGATION
-// ══════════════════════════
-function showPage(p) {
-  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-  document.getElementById('page-' + p).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  const nb = document.getElementById('nb-' + p);
-  if (nb) nb.classList.add('active');
-  if (p === 'contacts') renderContactsTable();
-  if (p === 'logs') renderLogsTable();
-  if (p === 'compose') updateContactsSummary();
+window.initApp = function(){
+  popIndustries();
+  window.loadProfile && window.loadProfile();
+  window.loadContacts && window.loadContacts();
+  window.loadLogs && window.loadLogs();
+};
+
+/* NAV */
+function showPage(p){
+  document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const nb=document.getElementById('nb-'+p); if(nb) nb.classList.add('active');
+  if(p==='contacts') renderContacts();
+  if(p==='logs')     renderLogs();
+  if(p==='compose')  updateSummary();
 }
-window.showPage = showPage;
+window.showPage=showPage;
 
-// ══════════════════════════
-//  INDUSTRIES
-// ══════════════════════════
-function populateIndustries() {
-  const sel = document.getElementById('c-industry');
-  if (!sel) return;
-  Object.keys(INDUSTRY_DATA).forEach(ind => {
-    const opt = document.createElement('option');
-    opt.value = ind; opt.textContent = ind;
-    sel.appendChild(opt);
-  });
+/* AUTH TAB */
+function switchTab(t){
+  document.querySelectorAll('.auth-tab').forEach((el,i)=>el.classList.toggle('active',i===(t==='login'?0:1)));
+  document.getElementById('form-login').classList.toggle('active',t==='login');
+  document.getElementById('form-register').classList.toggle('active',t==='register');
+  document.getElementById('auth-err').style.display='none';
 }
-window.populateIndustries = populateIndustries;
+window.switchTab=switchTab;
 
-function populatePositions() {
-  const ind = document.getElementById('c-industry').value;
-  const sel = document.getElementById('c-position');
-  sel.innerHTML = '<option value="">— Select position —</option>';
-  document.getElementById('comp-area').style.display = 'none';
-  if (!ind) return;
-  INDUSTRY_DATA[ind].positions.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p; opt.textContent = p;
-    sel.appendChild(opt);
-  });
+/* INDUSTRY */
+function popIndustries(){
+  const s=document.getElementById('c-ind'); if(!s||s.options.length>1) return;
+  Object.keys(IND).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;s.appendChild(o);});
 }
-window.populatePositions = populatePositions;
-
-function showCompetences() {
-  const ind = document.getElementById('c-industry').value;
-  const pos = document.getElementById('c-position').value;
-  const area = document.getElementById('comp-area');
-  const tags = document.getElementById('comp-tags');
-  if (!ind || !pos) { area.style.display = 'none'; return; }
-  const comps = INDUSTRY_DATA[ind].competences[pos] || INDUSTRY_DATA[ind].competences['default'] || [];
-  tags.innerHTML = comps.map(c => `<span class="comp-tag">${c}</span>`).join('');
-  area.style.display = 'block';
+function popPos(){
+  const ind=document.getElementById('c-ind').value, s=document.getElementById('c-pos');
+  s.innerHTML='<option value="">— Select position —</option>';
+  document.getElementById('comp-area').style.display='none';
+  if(!ind) return;
+  IND[ind].p.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;s.appendChild(o);});
 }
-window.showCompetences = showCompetences;
-
-function setTone(t, el) {
-  currentTone = t;
-  document.querySelectorAll('.tone-pill').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
+function showComps(){
+  const ind=document.getElementById('c-ind').value, pos=document.getElementById('c-pos').value;
+  const area=document.getElementById('comp-area');
+  if(!ind||!pos){area.style.display='none';return;}
+  const comps=IND[ind].c[pos]||IND[ind].c['default']||[];
+  document.getElementById('ctags').innerHTML=comps.map(c=>`<span class="ctag">${c}</span>`).join('');
+  area.style.display='block';
 }
-window.setTone = setTone;
+function setTone(t,el){tone=t; document.querySelectorAll('.tp').forEach(b=>b.classList.remove('active')); el.classList.add('active');}
+window.popPos=popPos; window.showComps=showComps; window.setTone=setTone;
 
-// ══════════════════════════
-//  GENERATE EMAIL (AI)
-// ══════════════════════════
-async function generateEmail() {
-  const name     = document.getElementById('c-name').value.trim();
-  const email    = document.getElementById('c-email').value.trim();
-  const years    = document.getElementById('c-years').value.trim();
-  const location = document.getElementById('c-location').value.trim();
-  const skills   = document.getElementById('c-skills').value.trim();
-  const industry = document.getElementById('c-industry').value;
-  const position = document.getElementById('c-position').value;
-  const notes    = document.getElementById('c-notes').value.trim();
+/* RESUME */
+function handleResume(input){
+  const file=input.files[0]; if(!file) return;
+  if(file.size>6*1024*1024){showNotif('⚠️','Max 5MB');return;}
+  const prog=document.getElementById('r-prog'), fill=document.getElementById('r-prog-fill');
+  prog.style.display='block'; fill.style.width='0%';
+  let fp=0; const iv=setInterval(()=>{fp=Math.min(fp+20,85);fill.style.width=fp+'%';},60);
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    clearInterval(iv); fill.style.width='100%';
+    const b64=e.target.result.split(',')[1];
+    window._resume={filename:file.name, mimeType:file.type||'application/pdf', base64:b64, size:file.size};
+    const uid=window._user?.uid;
+    if(uid&&window._setDoc&&window._doc)
+      try{await window._setDoc(window._doc(window._db,'users',uid,'profile','settings'),{resumeData:window._resume},{merge:true});}catch(e){console.warn(e);}
+    setTimeout(()=>prog.style.display='none',400);
+    showResPreview(window._resume); showNotif('📎','Resume saved!');
+  };
+  reader.readAsDataURL(file);
+}
+function showResPreview(d){
+  if(!d) return;
+  document.getElementById('rzone').classList.add('has-file');
+  const kb=(d.size/1024).toFixed(0);
+  const prev=document.getElementById('r-preview');
+  prev.style.display='block';
+  prev.innerHTML=`<div class="rattached"><div style="font-size:20px">📄</div><div class="rattached-info"><strong>${d.filename}</strong><span>${kb} KB · Attached to all emails</span></div><button class="rremove" onclick="removeResume()">✕</button></div>`;
+  const note=document.getElementById('r-send-note'); if(note) note.style.display='block';
+}
+function removeResume(){
+  window._resume=null;
+  document.getElementById('rzone').classList.remove('has-file');
+  document.getElementById('r-file').value='';
+  document.getElementById('r-preview').innerHTML='';
+  document.getElementById('r-preview').style.display='none';
+  const n=document.getElementById('r-send-note'); if(n) n.style.display='none';
+  showNotif('🗑️','Resume removed');
+}
+window.handleResume=handleResume; window.removeResume=removeResume; window.showResPreview=showResPreview;
 
-  if (!name || !industry || !position) {
-    showNotif('⚠️', 'Please fill in your name, industry and position');
-    return;
-  }
-
-  const btn = document.getElementById('gen-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Generating...';
-
-  const comps = (INDUSTRY_DATA[industry].competences[position] || INDUSTRY_DATA[industry].competences['default'] || []).join(', ');
-  const toneDesc = {
-    professional: 'professional and polished',
-    confident: 'confident and assertive',
-    concise: 'concise and punchy (under 130 words total)',
-    enthusiastic: 'enthusiastic and energetic',
-    executive: 'executive-level, authoritative and strategic'
-  }[currentTone];
-
-  const prompt = `You are an elite career coach and cold email specialist. Write a compelling job application cold email.
-
+/* GENERATE */
+async function genEmail(){
+  const name=document.getElementById('c-name').value.trim();
+  const email=document.getElementById('c-email').value.trim();
+  const years=document.getElementById('c-years').value.trim();
+  const location=document.getElementById('c-location').value.trim();
+  const skills=document.getElementById('c-skills').value.trim();
+  const ind=document.getElementById('c-ind').value;
+  const pos=document.getElementById('c-pos').value;
+  const notes=document.getElementById('c-notes').value.trim();
+  if(!name||!ind||!pos){showNotif('⚠️','Fill name, industry, position');return;}
+  const btn=document.getElementById('gen-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Generating...';
+  const comps=(IND[ind].c[pos]||IND[ind].c['default']||[]).join(', ');
+  const td={professional:'professional and polished',confident:'confident and assertive',concise:'concise and punchy (under 130 words)',enthusiastic:'enthusiastic and energetic',executive:'executive-level, authoritative and strategic'}[tone];
+  const prompt=`You are an elite career coach. Write a compelling job application cold email.
 Applicant: ${name}
-Experience: ${years || 'experienced professional'}
-Location: ${location || 'International'}
-Skills: ${skills || 'strong professional background'}
-Target Position: ${position}
-Industry: ${industry}
-Key Competences to highlight naturally: ${comps}
-Tone: ${toneDesc}
-${notes ? 'Additional instructions: ' + notes : ''}
-
-Rules:
-- Do NOT start with "I am writing to..." — use a strong hook instead
-- Naturally weave in 3-4 key competences
-- Show clear value proposition  
-- End with a specific call to action
-- Sign off with: ${name}
-${email ? '- PS: Mention they can reach you at ' + email : ''}
-
-Format your response EXACTLY like this:
-SUBJECT: [your subject line here]
+Experience: ${years||'experienced professional'}
+Location: ${location||'International'}
+Skills: ${skills||'strong professional background'}
+Target Position: ${pos}
+Industry: ${ind}
+Key Competences: ${comps}
+Tone: ${td}
+${notes?'Extra: '+notes:''}
+${window._resume?'A resume PDF will be attached — briefly mention "please find my resume attached"':''}
+Rules: Strong hook (no "I am writing to..."), weave 3-4 competences, clear value proposition, call to action, sign: ${name}${email?'\n'+email:''}
+Respond EXACTLY:
+SUBJECT: [subject line]
 BODY:
-[email body here]`;
+[email body]`;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();
+    const text=d.content.map(b=>b.text||'').join('');
+    const sm=text.match(/SUBJECT:\s*(.+)/i), bm=text.match(/BODY:\s*([\s\S]+)/i);
+    gSubj=sm?sm[1].trim():`Application for ${pos} — ${name}`;
+    gBody=bm?bm[1].trim():text.replace(/SUBJECT:.+\n?/i,'').replace(/BODY:\s*/i,'').trim();
+    document.getElementById('prev-subj').textContent='Subject: '+gSubj;
+    document.getElementById('prev-body').textContent=gBody;
+    document.getElementById('prev-chars').textContent=`${gBody.length} chars · ~${Math.ceil(gBody.length/5)} words`;
+    document.getElementById('preview-section').style.display='block';
+    document.getElementById('preview-section').scrollIntoView({behavior:'smooth',block:'start'});
+    updateSummary(); showNotif('✨','Email generated!');
+  }catch(e){showNotif('❌','Generation error');console.error(e);}
+  btn.disabled=false; btn.innerHTML='✨ Generate AI Email';
+}
+window.genEmail=genEmail;
 
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    const data = await response.json();
-    const text = data.content.map(b => b.text || '').join('');
-
-    const subMatch = text.match(/SUBJECT:\s*(.+)/i);
-    const bodyMatch = text.match(/BODY:\s*([\s\S]+)/i);
-
-    generatedSubject = subMatch ? subMatch[1].trim() : `Application for ${position} — ${name}`;
-    generatedEmailBody = bodyMatch ? bodyMatch[1].trim() : text.replace(/SUBJECT:.+\n?/i,'').replace(/BODY:\s*/i,'').trim();
-
-    document.getElementById('preview-subject').textContent = 'Subject: ' + generatedSubject;
-    document.getElementById('preview-body').textContent = generatedEmailBody;
-    document.getElementById('preview-chars').textContent = `${generatedEmailBody.length} chars · ~${Math.ceil(generatedEmailBody.length/5)} words`;
-    document.getElementById('email-preview-section').style.display = 'block';
-    document.getElementById('email-preview-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    updateContactsSummary();
-    showNotif('✨', 'Email generated successfully!');
-
-  } catch(e) {
-    showNotif('❌', 'Error generating email. Check console.');
-    console.error(e);
+/* SEND ALL */
+async function sendAll(){
+  const gasUrl=window._gasUrl;
+  if(!gasUrl){showNotif('⚠️','Set GAS URL in Setup first!');showPage('setup');return;}
+  const body=document.getElementById('prev-body').textContent||gBody;
+  if(!body){showNotif('⚠️','Generate email first!');return;}
+  if(!window._contacts?.length){showNotif('⚠️','No contacts!');showPage('contacts');return;}
+  const pos=document.getElementById('c-pos').value||'Position';
+  const sname=document.getElementById('c-name').value.trim()||'Applicant';
+  const subj=document.getElementById('prev-subj').textContent.replace('Subject: ','').trim()||gSubj;
+  const btn=document.getElementById('send-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Sending...';
+  const prog=document.getElementById('send-prog'), lbl=document.getElementById('send-prog-lbl'), fill=document.getElementById('send-prog-fill');
+  prog.style.display='block';
+  let sent=0,errors=0; const total=window._contacts.length;
+  for(let i=0;i<window._contacts.length;i++){
+    const c=window._contacts[i];
+    lbl.textContent=`Sending ${i+1}/${total} → ${c.email}`;
+    fill.style.width=((i/total)*100)+'%';
+    let eb=body;
+    if(c.name) eb=eb.replace(/Dear Hiring (Manager|Team)/gi,`Dear ${c.name}`);
+    const ps=c.company?subj.replace('[Company]',c.company):subj;
+    const html=`<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.8;color:#1E293B;max-width:600px;margin:0 auto">${eb.replace(/\n/g,'<br>')}</div>`;
+    const payload={to:c.email,subject:ps,html,name:sname};
+    if(window._resume) payload.attachment={data:window._resume.base64,mimeType:window._resume.mimeType,filename:window._resume.filename};
+    try{
+      await fetch(gasUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      sent++; await window.logEmail(c.email,c.company||'',pos,'sent',!!window._resume);
+      await window.markSent(c.id);
+    }catch(e){errors++;await window.logEmail(c.email,c.company||'',pos,'error',false);}
+    await new Promise(r=>setTimeout(r,900));
   }
-
-  btn.disabled = false;
-  btn.innerHTML = '✨ Generate AI Email';
+  fill.style.width='100%'; lbl.textContent=`✅ Done — Sent: ${sent} | Errors: ${errors}`;
+  showNotif(errors===0?'✅':'⚠️',`Sent ${sent}/${total}`);
+  btn.disabled=false; btn.innerHTML='📨 Send to All Contacts';
+  window.loadContacts(); window.loadLogs();
 }
-window.generateEmail = generateEmail;
+window.sendAll=sendAll;
 
-// ══════════════════════════
-//  SEND TO ALL
-// ══════════════════════════
-async function sendToAll() {
-  if (!gasUrl) {
-    showNotif('⚠️', 'Please set your GAS URL in Setup first!');
-    showPage('setup');
-    return;
-  }
-  if (!generatedEmailBody) {
-    showNotif('⚠️', 'Generate an email first!');
-    return;
-  }
-  if (contacts.length === 0) {
-    showNotif('⚠️', 'No contacts! Add some in the Contacts page.');
-    return;
-  }
-
-  const position = document.getElementById('c-position').value || 'Position';
-  const senderName = document.getElementById('c-name').value.trim() || 'Applicant';
-  const btn = document.getElementById('send-all-btn');
-  btn.disabled = true;
-
-  const prog = document.getElementById('send-progress');
-  const progLabel = document.getElementById('send-progress-label');
-  const progFill = document.getElementById('send-progress-fill');
-  prog.style.display = 'block';
-
-  let sent = 0, errors = 0;
-  const total = contacts.length;
-
-  for (let i = 0; i < contacts.length; i++) {
-    const contact = contacts[i];
-    progLabel.textContent = `Sending ${i+1}/${total} → ${contact.email}`;
-    progFill.style.width = ((i / total) * 100) + '%';
-
-    // Personalize subject
-    const subject = contact.company
-      ? generatedSubject.replace('[Company]', contact.company)
-      : generatedSubject;
-
-    // Personalize body
-    let body = generatedEmailBody;
-    if (contact.name) body = body.replace(/Dear Hiring Manager/gi, `Dear ${contact.name}`);
-
-    const htmlBody = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.8;color:#1E293B;max-width:600px;margin:0 auto">${body.replace(/\n/g,'<br>')}</div>`;
-
-    try {
-      await fetch(gasUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: contact.email, subject, html: htmlBody, name: senderName })
-      });
-      sent++;
-      // Log to Firebase
-      await logEmail(contact.email, contact.company || '', position, 'sent');
-      // Update contact status
-      await markContactSent(contact.id);
-    } catch(e) {
-      errors++;
-      await logEmail(contact.email, contact.company || '', position, 'error');
-    }
-
-    await sleep(800); // rate limiting
-  }
-
-  progFill.style.width = '100%';
-  progLabel.textContent = `Done! Sent: ${sent} | Errors: ${errors}`;
-
-  showNotif(errors === 0 ? '✅' : '⚠️', `Sent ${sent}/${total} emails${errors ? ` (${errors} errors)` : ''}`);
-  btn.disabled = false;
-  loadContacts();
-  loadLogs();
+/* RENDER TABLES */
+function renderContacts(){
+  const tbody=document.getElementById('c-tbody'); if(!tbody) return;
+  if(!(window._contacts||[]).length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No contacts yet</td></tr>';return;}
+  tbody.innerHTML=(window._contacts||[]).map(c=>`<tr>
+    <td>${c.name||'—'}</td>
+    <td style="font-family:monospace;font-size:11px">${c.email}</td>
+    <td>${c.company||'—'}</td>
+    <td>${c.sector||'—'}</td>
+    <td><span class="badge ${c.status==='sent'?'b-sent':'b-pend'}">${c.status||'pending'}</span></td>
+    <td><button class="bsm bsm-r" onclick="window.deleteContact('${c.id}')">✕</button></td>
+  </tr>`).join('');
 }
-window.sendToAll = sendToAll;
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// ══════════════════════════
-//  FIREBASE — CONTACTS
-// ══════════════════════════
-async function loadContacts() {
-  if (!window._db) return;
-  try {
-    const snap = await window._getDocs(window._col(window._db, 'job_contacts'));
-    contacts = [];
-    snap.forEach(d => contacts.push({ id: d.id, ...d.data() }));
-    document.getElementById('contacts-count').textContent = contacts.length;
-    document.getElementById('stat-contacts').textContent = contacts.length;
-    updateContactsSummary();
-    renderContactsTable();
-  } catch(e) { console.warn('Contacts load:', e); }
-}
-
-async function addContact() {
-  const name    = document.getElementById('add-name').value.trim();
-  const email   = document.getElementById('add-email').value.trim();
-  const company = document.getElementById('add-company').value.trim();
-  const sector  = document.getElementById('add-sector').value.trim();
-
-  if (!email) { showNotif('⚠️', 'Email is required'); return; }
-  if (contacts.some(c => c.email === email)) { showNotif('⚠️', 'Contact already exists'); return; }
-
-  try {
-    await window._addDoc(window._col(window._db, 'job_contacts'), {
-      name, email, company, sector, status: 'pending', addedAt: window._serverTimestamp()
-    });
-    document.getElementById('add-name').value = '';
-    document.getElementById('add-email').value = '';
-    document.getElementById('add-company').value = '';
-    document.getElementById('add-sector').value = '';
-    showNotif('✅', 'Contact added!');
-    loadContacts();
-  } catch(e) { showNotif('❌', 'Firebase error: ' + e.message); }
-}
-window.addContact = addContact;
-
-async function bulkImport() {
-  const raw = document.getElementById('bulk-emails').value.trim();
-  if (!raw) return;
-  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-  let added = 0, skipped = 0;
-
-  for (const line of lines) {
-    const parts = line.split(',').map(p => p.trim());
-    const email = parts[0];
-    const name  = parts[1] || '';
-    const company = parts[2] || '';
-    if (!email || !email.includes('@')) { skipped++; continue; }
-    if (contacts.some(c => c.email === email)) { skipped++; continue; }
-
-    try {
-      await window._addDoc(window._col(window._db, 'job_contacts'), {
-        name, email, company, sector: '', status: 'pending', addedAt: window._serverTimestamp()
-      });
-      added++;
-    } catch(e) { skipped++; }
-  }
-
-  document.getElementById('bulk-emails').value = '';
-  showNotif('✅', `Imported ${added} contacts (${skipped} skipped)`);
-  loadContacts();
-}
-window.bulkImport = bulkImport;
-
-async function deleteContact(id) {
-  try {
-    await window._deleteDoc(window._doc(window._db, 'job_contacts', id));
-    showNotif('🗑️', 'Contact deleted');
-    loadContacts();
-  } catch(e) { showNotif('❌', 'Delete error'); }
-}
-window.deleteContact = deleteContact;
-
-async function markContactSent(id) {
-  try {
-    await window._updateDoc(window._doc(window._db, 'job_contacts', id), { status: 'sent' });
-  } catch(e) {}
-}
-
-async function clearAllContacts() {
-  if (!confirm('Delete ALL contacts? This cannot be undone.')) return;
-  for (const c of contacts) {
-    try { await window._deleteDoc(window._doc(window._db, 'job_contacts', c.id)); } catch(e) {}
-  }
-  showNotif('🗑️', 'All contacts cleared');
-  loadContacts();
-}
-window.clearAllContacts = clearAllContacts;
-
-function renderContactsTable() {
-  const tbody = document.getElementById('contacts-tbody');
-  if (!tbody) return;
-  if (contacts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">No contacts yet — add some above</td></tr>';
-    return;
-  }
-  tbody.innerHTML = contacts.map(c => `
-    <tr>
-      <td><input type="checkbox" class="contact-check" data-id="${c.id}"></td>
-      <td>${c.name || '—'}</td>
-      <td style="font-family:monospace;font-size:12px">${c.email}</td>
-      <td>${c.company || '—'}</td>
-      <td>${c.sector || '—'}</td>
-      <td><span class="badge ${c.status === 'sent' ? 'badge-sent' : 'badge-pending'}">${c.status || 'pending'}</span></td>
-      <td><button class="btn-sm btn-sm-red" onclick="deleteContact('${c.id}')">Delete</button></td>
-    </tr>
-  `).join('');
-}
-
-function selectAllContacts(checked) {
-  document.querySelectorAll('.contact-check').forEach(cb => cb.checked = checked);
-}
-window.selectAllContacts = selectAllContacts;
-
-function updateContactsSummary() {
-  const el = document.getElementById('contacts-summary');
-  if (!el) return;
-  el.innerHTML = contacts.length > 0
-    ? `<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;font-size:13px;color:#1e40af"><strong>${contacts.length}</strong> contacts ready to receive this email</div>`
-    : `<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400E">No contacts yet — <a onclick="showPage('contacts')" style="cursor:pointer;text-decoration:underline">add contacts first</a></div>`;
-}
-
-// ══════════════════════════
-//  FIREBASE — LOGS
-// ══════════════════════════
-async function logEmail(to, company, position, status) {
-  try {
-    await window._addDoc(window._col(window._db, 'email_logs'), {
-      to, company, position, status, sentAt: window._serverTimestamp()
-    });
-  } catch(e) {}
-}
-
-async function loadLogs() {
-  if (!window._db) return;
-  try {
-    const snap = await window._getDocs(window._col(window._db, 'email_logs'));
-    emailLogs = [];
-    snap.forEach(d => emailLogs.push({ id: d.id, ...d.data() }));
-    emailLogs.sort((a, b) => (b.sentAt?.seconds || 0) - (a.sentAt?.seconds || 0));
-    document.getElementById('logs-count').textContent = emailLogs.length;
-    document.getElementById('stat-sent').textContent = emailLogs.filter(l => l.status === 'sent').length;
-    renderLogsTable();
-  } catch(e) { console.warn('Logs:', e); }
-}
-
-async function clearLogs() {
-  if (!confirm('Clear all email logs?')) return;
-  for (const l of emailLogs) {
-    try { await window._deleteDoc(window._doc(window._db, 'email_logs', l.id)); } catch(e) {}
-  }
-  showNotif('🗑️', 'Logs cleared');
-  loadLogs();
-}
-window.clearLogs = clearLogs;
-
-function renderLogsTable() {
-  const tbody = document.getElementById('logs-tbody');
-  if (!tbody) return;
-  if (emailLogs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px">No emails logged yet</td></tr>';
-    return;
-  }
-  tbody.innerHTML = emailLogs.map(l => {
-    const date = l.sentAt ? new Date(l.sentAt.seconds * 1000).toLocaleString() : '—';
-    return `<tr>
-      <td style="font-size:12px;color:var(--muted)">${date}</td>
-      <td style="font-family:monospace;font-size:12px">${l.to}</td>
-      <td>${l.company || '—'}</td>
-      <td>${l.position || '—'}</td>
-      <td><span class="badge ${l.status === 'sent' ? 'badge-sent' : 'badge-error'}">${l.status}</span></td>
+function renderLogs(){
+  const tbody=document.getElementById('l-tbody'); if(!tbody) return;
+  if(!(window._logs||[]).length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No emails yet</td></tr>';return;}
+  tbody.innerHTML=(window._logs||[]).map(l=>{
+    const dt=l.sentAt?new Date(l.sentAt.seconds*1000).toLocaleString():'—';
+    return`<tr>
+      <td style="font-size:10px;color:var(--muted)">${dt}</td>
+      <td style="font-family:monospace;font-size:10px">${l.to}</td>
+      <td>${l.company||'—'}</td>
+      <td>${l.position||'—'}</td>
+      <td>${l.hasResume?'<span class="badge b-sent">📎</span>':'—'}</td>
+      <td><span class="badge ${l.status==='sent'?'b-sent':'b-err'}">${l.status}</span></td>
     </tr>`;
   }).join('');
 }
-
-// ══════════════════════════
-//  GAS URL
-// ══════════════════════════
-function loadGasUrl() {
-  const stored = localStorage.getItem('careerblast_gas_url') || '';
-  gasUrl = stored;
-  const display = document.getElementById('gas-url-display');
-  const input   = document.getElementById('gas-url-input');
-  if (display) display.textContent = stored ? 'Active URL: ' + stored : 'No URL saved yet';
-  if (input && stored) input.value = stored;
+function updateSummary(){
+  const el=document.getElementById('contacts-summary'); if(!el) return;
+  const n=(window._contacts||[]).length;
+  el.innerHTML=n>0
+    ?`<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:7px;padding:8px 12px;font-size:12px;color:#1e40af"><strong>${n}</strong> contacts ready · ${window._resume?'📎 Resume attached':'No resume (optional)'}</div>`
+    :`<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:7px;padding:8px 12px;font-size:12px;color:#92400E">No contacts — <span style="cursor:pointer;text-decoration:underline" onclick="showPage('contacts')">add some first</span></div>`;
 }
 
-function saveGasUrl() {
-  const val = document.getElementById('gas-url-input').value.trim();
-  if (!val || !val.includes('script.google.com')) {
-    showNotif('⚠️', 'Please enter a valid GAS URL');
-    return;
-  }
-  gasUrl = val;
-  localStorage.setItem('careerblast_gas_url', val);
-  document.getElementById('gas-url-display').textContent = 'Active URL: ' + val;
-  showNotif('✅', 'GAS URL saved!');
+/* UTILS */
+function showNotif(icon,msg){
+  document.getElementById('ni').textContent=icon;
+  document.getElementById('nm').textContent=msg;
+  const n=document.getElementById('notif'); n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'),4500);
 }
-window.saveGasUrl = saveGasUrl;
+window.showNotif=showNotif;
 
-function testGasConnection() {
-  document.getElementById('gas-test-email-row').style.display = 'block';
+function copyEl(id,msg){
+  const t=document.getElementById(id).innerText||'';
+  navigator.clipboard.writeText(t).then(()=>showNotif('📋',msg||'Copied!')).catch(()=>{});
 }
-window.testGasConnection = testGasConnection;
-
-async function runGasTest() {
-  const dest = document.getElementById('gas-test-dest').value.trim();
-  if (!dest) { showNotif('⚠️', 'Enter a test email address'); return; }
-  if (!gasUrl) { showNotif('⚠️', 'Save your GAS URL first'); return; }
-
-  const statusEl = document.getElementById('gas-status');
-  statusEl.style.display = 'block';
-  statusEl.style.background = '#FEF3C7'; statusEl.style.color = '#92400E';
-  statusEl.textContent = '📤 Sending test email...';
-
-  try {
-    await fetch(gasUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: dest,
-        subject: 'CareerBlast — Connection Test ✅',
-        html: '<div style="font-family:Arial,sans-serif;padding:20px"><h2 style="color:#2563EB">CareerBlast is Connected!</h2><p>Your Gmail is linked and ready to send job application emails automatically.</p><p style="color:#64748B;font-size:13px">CareerBlast Job Email Sender</p></div>',
-        name: 'CareerBlast'
-      })
-    });
-    statusEl.style.background = '#D1FAE5'; statusEl.style.color = '#065f46';
-    statusEl.textContent = '✅ Test sent! Check ' + dest + ' (may take 1-2 min). Since we use no-cors, no error = success.';
-  } catch(e) {
-    statusEl.style.background = '#FEE2E2'; statusEl.style.color = '#991b1b';
-    statusEl.textContent = '❌ Error: ' + e.message;
-  }
-}
-window.runGasTest = runGasTest;
-
-// ══════════════════════════
-//  UTILS
-// ══════════════════════════
-function showNotif(icon, msg) {
-  document.getElementById('notif-icon').textContent = icon;
-  document.getElementById('notif-msg').textContent = msg;
-  const n = document.getElementById('notif');
-  n.classList.add('show');
-  setTimeout(() => n.classList.remove('show'), 4500);
-}
-window.showNotif = showNotif;
-
-function copyGasCode() {
-  const code = document.getElementById('gas-code-block').innerText;
-  navigator.clipboard.writeText(code).then(() => showNotif('📋', 'Code copied!')).catch(() => showNotif('⚠️', 'Copy manually'));
-}
-window.copyGasCode = copyGasCode;
-
-// Load on start
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    populateIndustries();
-    loadGasUrl();
-    if (window._db) { loadContacts(); loadLogs(); }
-    else {
-      // Retry if Firebase hasn't loaded yet
-      setTimeout(() => { if (window._db) { loadContacts(); loadLogs(); } }, 1500);
-    }
-  }, 300);
-});
+window.copyEl=copyEl;
 </script>
-
 </body>
 </html>
