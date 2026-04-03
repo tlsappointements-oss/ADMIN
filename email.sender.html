@@ -432,21 +432,18 @@ service cloud.firestore {
     </div>
 
     <!-- ANTHROPIC API KEY -->
-    <div class="card" style="margin-bottom:16px;border:2px solid #BFDBFE">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-        <span style="font-size:18px">🤖</span>
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">Anthropic API Key — Required for AI Email Generation</div>
-      </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:11px;line-height:1.7">Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent);font-weight:500">console.anthropic.com → API Keys</a>. It is stored only in your browser and never sent anywhere except Anthropic's servers.</div>
+    <div class="card" style="margin-bottom:16px;border:2px solid #BFDBFE;">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px">🤖 Step 1 — Anthropic API Key (required for AI generation)</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com → API Keys</a>. Stored only in your browser.</div>
       <div class="fg" style="margin-bottom:9px">
         <label>API Key</label>
-        <input type="password" id="anthropic-key-inp" placeholder="sk-ant-api03-..." style="font-size:12px;font-family:monospace">
+        <input type="password" id="ak-inp" placeholder="sk-ant-api03-..." style="font-family:monospace;font-size:12px">
       </div>
-      <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
-        <button class="btn-p" style="font-size:13px;padding:9px 18px" onclick="saveAnthropicKey()">Save Key</button>
-        <button class="bsm bsm-b" style="padding:8px 13px;font-size:12px" onclick="toggleKeyVisibility()">👁 Show/Hide</button>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+        <button class="btn-p" style="font-size:13px;padding:8px 16px" onclick="saveAK()">Save Key</button>
+        <button class="bsm bsm-b" style="padding:7px 12px" onclick="document.getElementById('ak-inp').type=document.getElementById('ak-inp').type==='password'?'text':'password'">👁 Show/Hide</button>
       </div>
-      <div id="ak-status" style="display:none;margin-top:9px;padding:8px 12px;border-radius:7px;font-size:12px"></div>
+      <div id="ak-msg" style="display:none;margin-top:8px;padding:7px 11px;border-radius:6px;font-size:12px"></div>
     </div>
 
     <!-- GAS -->
@@ -487,7 +484,7 @@ service cloud.firestore {
 <span class="gcm">// Run this ONCE first to grant Gmail permission</span>
 <span class="gkw">function</span> <span class="gst">testSend</span>() {
   GmailApp.sendEmail(
-    <span class="gst">'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2c5543595e0149414d45406c4b414d4540024f4341">[email&#160;protected]</a>'</span>,   <span class="gcm">// ← change this to your email</span>
+    <span class="gst">'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0d7462787f2068606c64614d6a606c6461236e6260">[email&#160;protected]</a>'</span>,   <span class="gcm">// ← change this to your email</span>
     <span class="gst">'CareerBlast Connected ✅'</span>,
     <span class="gst">''</span>,
     { htmlBody: <span class="gst">'&lt;p&gt;Your CareerBlast is linked!&lt;/p&gt;'</span>, name: <span class="gst">'CareerBlast'</span> }
@@ -620,7 +617,7 @@ window.loadContacts = async () => {
     snap.forEach(d=>window._contacts.push({id:d.id,...d.data()}));
     document.getElementById('c-count').textContent=window._contacts.length;
     document.getElementById('stat-contacts').textContent=window._contacts.length;
-    renderContacts(); updateSummary();
+    window.renderContacts(); window.updateSummary();
   } catch(e){console.warn('contacts:',e);}
 };
 
@@ -630,13 +627,13 @@ window.addContact = async () => {
   const email=document.getElementById('add-email').value.trim();
   const company=document.getElementById('add-company').value.trim();
   const sector=document.getElementById('add-sector').value.trim();
-  if(!email){showNotif('⚠️','Email required');return;}
-  if((window._contacts||[]).some(c=>c.email===email)){showNotif('⚠️','Already exists');return;}
+  if(!email){window.showNotif('⚠️','Email required');return;}
+  if((window._contacts||[]).some(c=>c.email===email)){window.showNotif('⚠️','Already exists');return;}
   try {
     await addDoc(collection(db,'users',uid,'contacts'),{name,email,company,sector,status:'pending',addedAt:serverTimestamp()});
     ['add-name','add-email','add-company','add-sector'].forEach(id=>document.getElementById(id).value='');
-    showNotif('✅','Contact added!'); window.loadContacts();
-  } catch(e){showNotif('❌','Firebase error: '+e.message);}
+    window.showNotif('✅','Contact added!'); window.loadContacts();
+  } catch(e){window.showNotif('❌','Firebase error: '+e.message);}
 };
 
 window.bulkImport = async () => {
@@ -651,20 +648,20 @@ window.bulkImport = async () => {
     catch(e){skipped++;}
   }
   document.getElementById('bulk-txt').value='';
-  showNotif('✅',`Imported ${added} (${skipped} skipped)`); window.loadContacts();
+  window.showNotif('✅',`Imported ${added} (${skipped} skipped)`); window.loadContacts();
 };
 
 window.deleteContact = async (id) => {
   const uid=window._user?.uid; if(!uid) return;
-  try{await deleteDoc(doc(db,'users',uid,'contacts',id));showNotif('🗑️','Deleted');window.loadContacts();}
-  catch(e){showNotif('❌','Delete error');}
+  try{await deleteDoc(doc(db,'users',uid,'contacts',id));window.showNotif('🗑️','Deleted');window.loadContacts();}
+  catch(e){window.showNotif('❌','Delete error');}
 };
 
 window.clearContacts = async () => {
   if(!confirm('Delete ALL contacts?')) return;
   const uid=window._user?.uid; if(!uid) return;
   for(const c of(window._contacts||[])) try{await deleteDoc(doc(db,'users',uid,'contacts',c.id));}catch(e){}
-  showNotif('🗑️','All cleared'); window.loadContacts();
+  window.showNotif('🗑️','All cleared'); window.loadContacts();
 };
 
 window.markSent = async (id) => {
@@ -686,7 +683,7 @@ window.loadLogs = async () => {
     window._logs.sort((a,b)=>(b.sentAt?.seconds||0)-(a.sentAt?.seconds||0));
     document.getElementById('l-count').textContent=window._logs.length;
     document.getElementById('stat-sent').textContent=(window._logs||[]).filter(l=>l.status==='sent').length;
-    renderLogs();
+    window.renderLogs();
   } catch(e){}
 };
 
@@ -694,7 +691,7 @@ window.clearLogs = async () => {
   if(!confirm('Clear all logs?')) return;
   const uid=window._user?.uid; if(!uid) return;
   for(const l of(window._logs||[])) try{await deleteDoc(doc(db,'users',uid,'email_logs',l.id));}catch(e){}
-  showNotif('🗑️','Logs cleared'); window.loadLogs();
+  window.showNotif('🗑️','Logs cleared'); window.loadLogs();
 };
 
 window.loadProfile = async () => {
@@ -704,25 +701,25 @@ window.loadProfile = async () => {
     if(snap.exists()){
       const d=snap.data();
       if(d.gasUrl){ window._gasUrl=d.gasUrl; const i=document.getElementById('gas-url-inp'); if(i) i.value=d.gasUrl; const dsp=document.getElementById('gas-disp'); if(dsp) dsp.textContent='Active: '+d.gasUrl; }
-      if(d.resumeData){ window._resume=d.resumeData; showResPreview(d.resumeData); }
+      if(d.resumeData){ window._resume=d.resumeData; window.showResPreview(d.resumeData); }
     }
   } catch(e){}
 };
 
 window.saveGas = async () => {
   const val=document.getElementById('gas-url-inp').value.trim();
-  if(!val||!val.includes('script.google.com')){showNotif('⚠️','Enter a valid GAS URL');return;}
+  if(!val||!val.includes('script.google.com')){window.showNotif('⚠️','Enter a valid GAS URL');return;}
   window._gasUrl=val;
   const uid=window._user?.uid;
   if(uid) try{await setDoc(doc(db,'users',uid,'profile','settings'),{gasUrl:val},{merge:true});}catch(e){}
   document.getElementById('gas-disp').textContent='Active: '+val;
-  showNotif('✅','GAS URL saved!');
+  window.showNotif('✅','GAS URL saved!');
 };
 
 window.runTest = async () => {
   const dest=document.getElementById('test-dest').value.trim();
-  if(!dest){showNotif('⚠️','Enter test email');return;}
-  const url=window._gasUrl; if(!url){showNotif('⚠️','Save GAS URL first');return;}
+  if(!dest){window.showNotif('⚠️','Enter test email');return;}
+  const url=window._gasUrl; if(!url){window.showNotif('⚠️','Save GAS URL first');return;}
   const el=document.getElementById('gas-status');
   el.style.display='block'; el.style.background='#FEF3C7'; el.style.color='#92400E'; el.textContent='📤 Sending test...';
   try{
@@ -758,7 +755,7 @@ let tone='professional', gSubj='', gBody='';
 
 window.initApp = function(){
   popIndustries();
-  loadAnthropicKey();
+  loadAK();
   window.loadProfile && window.loadProfile();
   window.loadContacts && window.loadContacts();
   window.loadLogs && window.loadLogs();
@@ -771,7 +768,7 @@ function showPage(p){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const nb=document.getElementById('nb-'+p); if(nb) nb.classList.add('active');
   if(p==='contacts') renderContacts();
-  if(p==='logs')     renderLogs();
+  if(p==='logs')     window.renderLogs();
   if(p==='compose')  updateSummary();
 }
 window.showPage=showPage;
@@ -844,7 +841,7 @@ function removeResume(){
   document.getElementById('r-preview').innerHTML='';
   document.getElementById('r-preview').style.display='none';
   const n=document.getElementById('r-send-note'); if(n) n.style.display='none';
-  showNotif('🗑️','Resume removed');
+  window.showNotif('🗑️','Resume removed');
 }
 window.handleResume=handleResume; window.removeResume=removeResume; window.showResPreview=showResPreview;
 
@@ -879,12 +876,11 @@ Respond EXACTLY:
 SUBJECT: [subject line]
 BODY:
 [email body]`;
-  const apiKey=(window._anthropicKey||'').trim();
-  if(!apiKey){btn.disabled=false;btn.innerHTML='✨ Generate AI Email';showNotif('⚠️','Add Anthropic API key in ⚙️ Setup first!');showPage('setup');return;}
+  const _ak=(window._anthropicKey||localStorage.getItem('cb_ak')||'').trim();
+  if(!_ak){showNotif('⚠️','Add Anthropic API key in ⚙️ Setup!');btn.disabled=false;btn.innerHTML='✨ Generate AI Email';showPage('setup');return;}
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':(window._anthropicKey||localStorage.getItem('cb_ak')||''),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const d=await r.json();
-    if(d.error){throw new Error(d.error.message||'API error');}
     const text=d.content.map(b=>b.text||'').join('');
     const sm=text.match(/SUBJECT:\s*(.+)/i), bm=text.match(/BODY:\s*([\s\S]+)/i);
     gSubj=sm?sm[1].trim():`Application for ${pos} — ${name}`;
@@ -895,7 +891,7 @@ BODY:
     document.getElementById('preview-section').style.display='block';
     document.getElementById('preview-section').scrollIntoView({behavior:'smooth',block:'start'});
     updateSummary(); showNotif('✨','Email generated!');
-  }catch(e){showNotif('❌','Generation error: '+(e.message||'Check API key'));console.error(e);}
+  }catch(e){showNotif('❌','Error: '+(e.message||'Check API key in Setup'));console.error(e);}
   btn.disabled=false; btn.innerHTML='✨ Generate AI Email';
 }
 window.genEmail=genEmail;
@@ -933,7 +929,7 @@ async function sendAll(){
     await new Promise(r=>setTimeout(r,900));
   }
   fill.style.width='100%'; lbl.textContent=`✅ Done — Sent: ${sent} | Errors: ${errors}`;
-  showNotif(errors===0?'✅':'⚠️',`Sent ${sent}/${total}`);
+  window.showNotif(errors===0?'✅':'⚠️',`Sent ${sent}/${total}`);
   btn.disabled=false; btn.innerHTML='📨 Send to All Contacts';
   window.loadContacts(); window.loadLogs();
 }
@@ -975,24 +971,21 @@ function updateSummary(){
     :`<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:7px;padding:8px 12px;font-size:12px;color:#92400E">No contacts — <span style="cursor:pointer;text-decoration:underline" onclick="showPage('contacts')">add some first</span></div>`;
 }
 
+
 /* ANTHROPIC KEY */
-function saveAnthropicKey(){
-  const val=document.getElementById('anthropic-key-inp').value.trim();
-  if(!val.startsWith('sk-ant-')){const s=document.getElementById('ak-status');s.style.display='block';s.style.background='#FEE2E2';s.style.color='#991b1b';s.textContent='❌ Key should start with sk-ant-...';return;}
-  window._anthropicKey=val;
-  localStorage.setItem('cb_anthropic_key',val);
-  const s=document.getElementById('ak-status');s.style.display='block';s.style.background='#D1FAE5';s.style.color='#065f46';s.textContent='✅ Key saved! You can now generate emails.';
+function saveAK(){
+  const v=document.getElementById('ak-inp').value.trim();
+  const msg=document.getElementById('ak-msg');
+  if(!v.startsWith('sk-ant-')){msg.style.display='block';msg.style.background='#FEE2E2';msg.style.color='#991b1b';msg.textContent='❌ Key must start with sk-ant-...';return;}
+  window._anthropicKey=v; localStorage.setItem('cb_ak',v);
+  msg.style.display='block';msg.style.background='#D1FAE5';msg.style.color='#065f46';msg.textContent='✅ Key saved! AI generation is ready.';
   showNotif('✅','API key saved!');
 }
-function toggleKeyVisibility(){
-  const inp=document.getElementById('anthropic-key-inp');
-  inp.type=inp.type==='password'?'text':'password';
+function loadAK(){
+  const v=localStorage.getItem('cb_ak');
+  if(v){window._anthropicKey=v;const i=document.getElementById('ak-inp');if(i)i.value=v;const m=document.getElementById('ak-msg');if(m){m.style.display='block';m.style.background='#D1FAE5';m.style.color='#065f46';m.textContent='✅ API key loaded.';}}
 }
-function loadAnthropicKey(){
-  const saved=localStorage.getItem('cb_anthropic_key');
-  if(saved){window._anthropicKey=saved;const i=document.getElementById('anthropic-key-inp');if(i)i.value=saved;const s=document.getElementById('ak-status');if(s){s.style.display='block';s.style.background='#D1FAE5';s.style.color='#065f46';s.textContent='✅ API key loaded.';}}
-}
-window.saveAnthropicKey=saveAnthropicKey;window.toggleKeyVisibility=toggleKeyVisibility;
+window.saveAK=saveAK;
 
 /* UTILS */
 function showNotif(icon,msg){
@@ -1001,4 +994,14 @@ function showNotif(icon,msg){
   const n=document.getElementById('notif'); n.classList.add('show');
   setTimeout(()=>n.classList.remove('show'),4500);
 }
-window.showNotif=sh
+window.showNotif=showNotif;
+
+function copyEl(id,msg){
+  const el=document.getElementById(id);
+  const text=el.innerText||el.textContent;
+  navigator.clipboard.writeText(text).then(()=>showNotif("📋",msg||"Copied!")).catch(()=>{const t=document.createElement("textarea");t.value=text;document.body.appendChild(t);t.select();document.execCommand("copy");document.body.removeChild(t);showNotif("📋",msg||"Copied!");});
+}
+window.copyEl=copyEl;
+</script>
+</body>
+</html>
