@@ -311,7 +311,20 @@ tr:hover td{background:#F1F5FB}
         </div>
 
         <hr class="divider">
-        <button class="btn-p" style="width:100%;padding:12px;font-size:14px" onclick="genEmail()" id="gen-btn">✨ Generate AI Email</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-p" style="flex:1;padding:12px;font-size:14px" onclick="genEmail()" id="gen-btn">✨ Generate AI Email</button>
+          <button class="btn-o" style="flex:1;padding:12px;font-size:14px;background:#1a73e8;border-color:#1a73e8;color:#fff" onclick="openGeminiWeb()" id="gemini-web-btn">🌐 Use Gemini Website</button>
+        </div>
+
+        <div id="gemini-paste-area" style="display:none;margin-top:14px;background:#EFF6FF;border:2px dashed #93C5FD;border-radius:10px;padding:16px">
+          <div style="font-size:13px;font-weight:600;color:#1e40af;margin-bottom:6px">📋 Step 2 — Paste Gemini's response here</div>
+          <div style="font-size:11px;color:#3b82f6;margin-bottom:10px">The prompt was copied & Gemini opened in a new tab. Come back here after copying Gemini's reply.</div>
+          <textarea id="gemini-paste-input" style="width:100%;min-height:140px;border:1.5px solid #BFDBFE;border-radius:7px;padding:10px;font-family:inherit;font-size:13px;resize:vertical;outline:none" placeholder="Paste Gemini's full response here..."></textarea>
+          <div style="display:flex;gap:8px;margin-top:9px">
+            <button class="btn-p" style="font-size:13px;padding:9px 18px" onclick="parseGeminiPaste()">✅ Use This Email</button>
+            <button class="bsm bsm-r" style="padding:9px 13px" onclick="document.getElementById('gemini-paste-area').style.display='none'">✕ Cancel</button>
+          </div>
+        </div>
 
         <div id="preview-section" style="display:none;margin-top:18px">
           <hr class="divider">
@@ -459,16 +472,16 @@ service cloud.firestore {
       </div>
 
       <div id="prov-gemini-section" style="display:none">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.6">
-          Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com → Get API Key</a>
-        </div>
-        <div class="fg" style="margin-bottom:9px">
-          <label>Gemini API Key</label>
-          <input type="password" id="gk-inp" placeholder="AIzaSy..." style="font-family:monospace;font-size:12px">
+        <div style="background:#F0FDF4;border:1px solid #A7F3D0;border-radius:8px;padding:12px 14px;font-size:12px;color:#065f46;line-height:1.8">
+          <strong>✅ No API key needed!</strong><br>
+          1. Click <strong>✨ Generate AI Email</strong> in Compose<br>
+          2. The prompt is copied — Gemini opens automatically<br>
+          3. Paste it in Gemini (Ctrl+V / Cmd+V), copy its reply<br>
+          4. Come back here and click <strong>📋 Paste Gemini Reply</strong>
         </div>
       </div>
 
-      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center" id="prov-save-btn">
         <button class="btn-p" style="font-size:13px;padding:8px 16px" onclick="saveAK()">Save Key</button>
         <button class="bsm bsm-b" style="padding:7px 12px" onclick="toggleKeyVis()">👁 Show/Hide</button>
       </div>
@@ -906,17 +919,25 @@ SUBJECT: [subject line]
 BODY:
 [email body]`;
   const _provider=window._aiProvider||localStorage.getItem('cb_provider')||'anthropic';
-  const _ak=(_provider==='gemini'?(window._geminiKey||localStorage.getItem('cb_gk')):(window._anthropicKey||localStorage.getItem('cb_ak'))||'').trim();
-  if(!_ak){showNotif('⚠️','Add API key in ⚙️ Setup!');btn.disabled=false;btn.innerHTML='✨ Generate AI Email';showPage('setup');return;}
+
+  // GEMINI WEBSITE FLOW — copy prompt, open tab, wait for user to paste reply
+  if(_provider==='gemini'){
+    window._pendingPrompt=prompt;
+    window._pendingPos=pos; window._pendingName=name;
+    navigator.clipboard.writeText(prompt).catch(()=>{});
+    window.open('https://gemini.google.com','_blank');
+    document.getElementById('gemini-paste-zone').style.display='block';
+    document.getElementById('gemini-paste-zone').scrollIntoView({behavior:'smooth',block:'start'});
+    btn.disabled=false; btn.innerHTML='✨ Generate AI Email';
+    showNotif('🔵','Prompt copied! Paste it in Gemini →');
+    return;
+  }
+
+  const _ak=(window._anthropicKey||localStorage.getItem('cb_ak')||'').trim();
+  if(!_ak){showNotif('⚠️','Add Anthropic API key in ⚙️ Setup!');btn.disabled=false;btn.innerHTML='✨ Generate AI Email';showPage('setup');return;}
   let text='';
   try{
-    if(_provider==='gemini'){
-      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+_ak,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1000}})});
-      const d=await r.json();
-      if(!r.ok||d.error){throw new Error(d.error?.message||'Gemini API error (status '+r.status+')');}
-      text=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
-      if(!text) throw new Error('Gemini returned empty response');
-    } else {
+    {
       const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_ak,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
       const d=await r.json();
       if(!r.ok||d.error||!d.content){throw new Error(d.error?.message||'API error (status '+r.status+') — check your API key in ⚙️ Setup');}
@@ -1012,6 +1033,97 @@ function updateSummary(){
 }
 
 
+
+/* GEMINI WEB BRIDGE */
+function openGeminiWeb(){
+  const name=document.getElementById('c-name').value.trim();
+  const email=document.getElementById('c-email').value.trim();
+  const years=document.getElementById('c-years').value.trim();
+  const location=document.getElementById('c-location').value.trim();
+  const skills=document.getElementById('c-skills').value.trim();
+  const ind=document.getElementById('c-ind').value;
+  const pos=document.getElementById('c-pos').value;
+  const notes=document.getElementById('c-notes').value.trim();
+  if(!name||!ind||!pos){showNotif('⚠️','Fill name, industry and position first');return;}
+  const comps=(IND[ind].c[pos]||IND[ind].c['default']||[]).join(', ');
+  const td={professional:'professional and polished',confident:'confident and assertive',concise:'concise and punchy (under 130 words)',enthusiastic:'enthusiastic and energetic',executive:'executive-level, authoritative and strategic'}[tone];
+  const prompt=`You are an elite career coach. Write a compelling job application cold email.
+Applicant: ${name}
+Experience: ${years||'experienced professional'}
+Location: ${location||'International'}
+Skills: ${skills||'strong professional background'}
+Target Position: ${pos}
+Industry: ${ind}
+Key Competences: ${comps}
+Tone: ${td}
+${notes?'Extra: '+notes:''}
+Rules: Strong hook (no "I am writing to..."), weave 3-4 competences, clear value proposition, call to action, sign: ${name}${email?'\n'+email:''}
+Respond EXACTLY in this format:
+SUBJECT: [subject line]
+BODY:
+[email body]`;
+
+  navigator.clipboard.writeText(prompt).then(()=>{
+    showNotif('📋','Prompt copied! Paste it in Gemini.');
+  }).catch(()=>{
+    // fallback: show prompt in a modal so user can copy manually
+    const ta=document.createElement('textarea');
+    ta.value=prompt; ta.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:80vw;height:60vh;z-index:99999;padding:12px;font-size:12px;border-radius:8px;border:2px solid #2563EB';
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99998';
+    const closeBtn=document.createElement('button');
+    closeBtn.textContent='✕ Close & Open Gemini';
+    closeBtn.style.cssText='position:fixed;top:calc(50% - 31vh);left:50%;transform:translateX(-50%);z-index:99999;padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px';
+    closeBtn.onclick=()=>{document.body.removeChild(ta);document.body.removeChild(overlay);document.body.removeChild(closeBtn);window.open('https://gemini.google.com','_blank');document.getElementById('gemini-paste-area').style.display='block';document.getElementById('gemini-paste-input').focus();};
+    document.body.appendChild(overlay); document.body.appendChild(ta); document.body.appendChild(closeBtn);
+    ta.select(); return;
+  });
+  window.open('https://gemini.google.com','_blank');
+  document.getElementById('gemini-paste-area').style.display='block';
+  document.getElementById('gemini-paste-input').value='';
+  document.getElementById('gemini-paste-input').focus();
+  setTimeout(()=>document.getElementById('gemini-paste-input').scrollIntoView({behavior:'smooth',block:'center'}),300);
+}
+
+function parseGeminiPaste(){
+  const raw=document.getElementById('gemini-paste-input').value.trim();
+  if(!raw){showNotif('⚠️','Paste Gemini's response first');return;}
+  const name=document.getElementById('c-name').value.trim()||'Applicant';
+  const pos=document.getElementById('c-pos').value||'Position';
+  const sm=raw.match(/SUBJECT:\s*(.+)/i), bm=raw.match(/BODY:\s*([\s\S]+)/i);
+  gSubj=sm?sm[1].trim():`Application for ${pos} — ${name}`;
+  gBody=bm?bm[1].trim():raw.replace(/SUBJECT:.+\n?/i,'').replace(/BODY:\s*/i,'').trim();
+  document.getElementById('prev-subj').textContent='Subject: '+gSubj;
+  document.getElementById('prev-body').textContent=gBody;
+  document.getElementById('prev-chars').textContent=`${gBody.length} chars · ~${Math.ceil(gBody.length/5)} words`;
+  document.getElementById('preview-section').style.display='block';
+  document.getElementById('gemini-paste-area').style.display='none';
+  document.getElementById('gemini-paste-input').value='';
+  document.getElementById('preview-section').scrollIntoView({behavior:'smooth',block:'start'});
+  updateSummary(); showNotif('✨','Email ready!');
+}
+window.openGeminiWeb=openGeminiWeb; window.parseGeminiPaste=parseGeminiPaste;
+
+/* GEMINI PASTE REPLY */
+function useGeminiReply(){
+  const raw=document.getElementById('gemini-paste-input').value.trim();
+  if(!raw){showNotif('⚠️','Paste Gemini's reply first');return;}
+  const pos=window._pendingPos||document.getElementById('c-pos').value||'Position';
+  const name=window._pendingName||document.getElementById('c-name').value.trim()||'Applicant';
+  const sm=raw.match(/SUBJECT:\s*(.+)/i), bm=raw.match(/BODY:\s*([\s\S]+)/i);
+  gSubj=sm?sm[1].trim():`Application for ${pos} — ${name}`;
+  gBody=bm?bm[1].trim():raw.replace(/SUBJECT:.+\n?/i,'').replace(/BODY:\s*/i,'').trim();
+  document.getElementById('prev-subj').textContent='Subject: '+gSubj;
+  document.getElementById('prev-body').textContent=gBody;
+  document.getElementById('prev-chars').textContent=`${gBody.length} chars · ~${Math.ceil(gBody.length/5)} words`;
+  document.getElementById('gemini-paste-zone').style.display='none';
+  document.getElementById('gemini-paste-input').value='';
+  document.getElementById('preview-section').style.display='block';
+  document.getElementById('preview-section').scrollIntoView({behavior:'smooth',block:'start'});
+  updateSummary(); showNotif('✨','Email ready!');
+}
+window.useGeminiReply=useGeminiReply;
+
 /* ANTHROPIC KEY */
 function setProvider(p){
   window._aiProvider=p; localStorage.setItem('cb_provider',p);
@@ -1019,6 +1131,7 @@ function setProvider(p){
   document.getElementById('prov-gemini-section').style.display=p==='gemini'?'block':'none';
   document.getElementById('prov-anthropic').classList.toggle('prov-active',p==='anthropic');
   document.getElementById('prov-gemini').classList.toggle('prov-active',p==='gemini');
+  const sb=document.getElementById('prov-save-btn');if(sb)sb.style.display=p==='gemini'?'none':'flex';
   const msg=document.getElementById('ak-msg'); if(msg) msg.style.display='none';
 }
 function toggleKeyVis(){
@@ -1048,6 +1161,7 @@ function loadAK(){
   window._aiProvider=p; setProvider(p);
   const ak=localStorage.getItem('cb_ak'); if(ak){window._anthropicKey=ak;const i=document.getElementById('ak-inp');if(i)i.value=ak;}
   const gk=localStorage.getItem('cb_gk'); if(gk){window._geminiKey=gk;const i=document.getElementById('gk-inp');if(i)i.value=gk;}
+  const gm=localStorage.getItem('cb_gmodel'); if(gm){window._geminiModel=gm;const s=document.getElementById('gk-model');if(s)s.value=gm;}
   const msg=document.getElementById('ak-msg');
   if((p==='gemini'&&gk)||(p==='anthropic'&&ak)){if(msg){msg.style.display='block';msg.style.background='#D1FAE5';msg.style.color='#065f46';msg.textContent='✅ API key loaded.';}}
 }
