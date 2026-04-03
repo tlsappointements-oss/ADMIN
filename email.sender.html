@@ -149,6 +149,7 @@ tr:hover td{background:#F1F5FB}
 .step-item h4{font-size:13px;font-weight:600;margin-bottom:4px}
 .step-item p{font-size:11px;color:var(--muted);line-height:1.6}
 /* SPINNER */
+.prov-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:2px solid var(--border);background:#fff;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:.15s;color:var(--text)}.prov-btn:hover{border-color:var(--accent)}.prov-active{border-color:var(--accent);background:#EFF6FF;color:var(--accent)}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:5px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media(max-width:640px){.frow{grid-template-columns:1fr}.section{padding:32px 1rem}.nav-links .nav-btn:not(.always){display:none}}
@@ -431,17 +432,45 @@ service cloud.firestore {
       </ol>
     </div>
 
-    <!-- ANTHROPIC API KEY -->
+    <!-- AI PROVIDER CARD -->
     <div class="card" style="margin-bottom:16px;border:2px solid #BFDBFE;">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px">🤖 Step 1 — Anthropic API Key (required for AI generation)</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com → API Keys</a>. Stored only in your browser.</div>
-      <div class="fg" style="margin-bottom:9px">
-        <label>API Key</label>
-        <input type="password" id="ak-inp" placeholder="sk-ant-api03-..." style="font-family:monospace;font-size:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px">🤖 Step 1 — AI Provider &amp; API Key</div>
+
+      <div class="fg" style="margin-bottom:11px">
+        <label>Choose AI Provider</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button id="prov-anthropic" class="prov-btn prov-active" onclick="setProvider('anthropic')">
+            <span style="font-size:16px">🟣</span> Claude (Anthropic)
+          </button>
+          <button id="prov-gemini" class="prov-btn" onclick="setProvider('gemini')">
+            <span style="font-size:16px">🔵</span> Gemini (Google)
+          </button>
+        </div>
       </div>
+
+      <div id="prov-anthropic-section">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.6">
+          Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com → API Keys</a>
+        </div>
+        <div class="fg" style="margin-bottom:9px">
+          <label>Anthropic API Key</label>
+          <input type="password" id="ak-inp" placeholder="sk-ant-api03-..." style="font-family:monospace;font-size:12px">
+        </div>
+      </div>
+
+      <div id="prov-gemini-section" style="display:none">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.6">
+          Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com → Get API Key</a>
+        </div>
+        <div class="fg" style="margin-bottom:9px">
+          <label>Gemini API Key</label>
+          <input type="password" id="gk-inp" placeholder="AIzaSy..." style="font-family:monospace;font-size:12px">
+        </div>
+      </div>
+
       <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
         <button class="btn-p" style="font-size:13px;padding:8px 16px" onclick="saveAK()">Save Key</button>
-        <button class="bsm bsm-b" style="padding:7px 12px" onclick="document.getElementById('ak-inp').type=document.getElementById('ak-inp').type==='password'?'text':'password'">👁 Show/Hide</button>
+        <button class="bsm bsm-b" style="padding:7px 12px" onclick="toggleKeyVis()">👁 Show/Hide</button>
       </div>
       <div id="ak-msg" style="display:none;margin-top:8px;padding:7px 11px;border-radius:6px;font-size:12px"></div>
     </div>
@@ -876,13 +905,23 @@ Respond EXACTLY:
 SUBJECT: [subject line]
 BODY:
 [email body]`;
-  const _ak=(window._anthropicKey||localStorage.getItem('cb_ak')||'').trim();
-  if(!_ak){showNotif('⚠️','Add Anthropic API key in ⚙️ Setup!');btn.disabled=false;btn.innerHTML='✨ Generate AI Email';showPage('setup');return;}
+  const _provider=window._aiProvider||localStorage.getItem('cb_provider')||'anthropic';
+  const _ak=(_provider==='gemini'?(window._geminiKey||localStorage.getItem('cb_gk')):(window._anthropicKey||localStorage.getItem('cb_ak'))||'').trim();
+  if(!_ak){showNotif('⚠️','Add API key in ⚙️ Setup!');btn.disabled=false;btn.innerHTML='✨ Generate AI Email';showPage('setup');return;}
+  let text='';
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':(window._anthropicKey||localStorage.getItem('cb_ak')||''),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const d=await r.json();
-    if(!r.ok||d.error||!d.content){throw new Error(d.error?.message||'API error (status '+r.status+') — check your API key in ⚙️ Setup');}
-    const text=d.content.map(b=>b.text||'').join('');
+    if(_provider==='gemini'){
+      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+_ak,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1000}})});
+      const d=await r.json();
+      if(!r.ok||d.error){throw new Error(d.error?.message||'Gemini API error (status '+r.status+')');}
+      text=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
+      if(!text) throw new Error('Gemini returned empty response');
+    } else {
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_ak,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+      const d=await r.json();
+      if(!r.ok||d.error||!d.content){throw new Error(d.error?.message||'API error (status '+r.status+') — check your API key in ⚙️ Setup');}
+      text=d.content.map(b=>b.text||'').join('');
+    }
     const sm=text.match(/SUBJECT:\s*(.+)/i), bm=text.match(/BODY:\s*([\s\S]+)/i);
     gSubj=sm?sm[1].trim():`Application for ${pos} — ${name}`;
     gBody=bm?bm[1].trim():text.replace(/SUBJECT:.+\n?/i,'').replace(/BODY:\s*/i,'').trim();
@@ -974,19 +1013,45 @@ function updateSummary(){
 
 
 /* ANTHROPIC KEY */
+function setProvider(p){
+  window._aiProvider=p; localStorage.setItem('cb_provider',p);
+  document.getElementById('prov-anthropic-section').style.display=p==='anthropic'?'block':'none';
+  document.getElementById('prov-gemini-section').style.display=p==='gemini'?'block':'none';
+  document.getElementById('prov-anthropic').classList.toggle('prov-active',p==='anthropic');
+  document.getElementById('prov-gemini').classList.toggle('prov-active',p==='gemini');
+  const msg=document.getElementById('ak-msg'); if(msg) msg.style.display='none';
+}
+function toggleKeyVis(){
+  const p=window._aiProvider||'anthropic';
+  const id=p==='gemini'?'gk-inp':'ak-inp';
+  const el=document.getElementById(id); if(el) el.type=el.type==='password'?'text':'password';
+}
 function saveAK(){
-  const v=document.getElementById('ak-inp').value.trim();
+  const p=window._aiProvider||localStorage.getItem('cb_provider')||'anthropic';
   const msg=document.getElementById('ak-msg');
-  if(!v.startsWith('sk-ant-')){msg.style.display='block';msg.style.background='#FEE2E2';msg.style.color='#991b1b';msg.textContent='❌ Key must start with sk-ant-...';return;}
-  window._anthropicKey=v; localStorage.setItem('cb_ak',v);
-  msg.style.display='block';msg.style.background='#D1FAE5';msg.style.color='#065f46';msg.textContent='✅ Key saved! AI generation is ready.';
-  showNotif('✅','API key saved!');
+  if(p==='gemini'){
+    const v=document.getElementById('gk-inp').value.trim();
+    if(!v.startsWith('AIza')){msg.style.display='block';msg.style.background='#FEE2E2';msg.style.color='#991b1b';msg.textContent='❌ Gemini key should start with AIza...';return;}
+    window._geminiKey=v; localStorage.setItem('cb_gk',v);
+    msg.style.display='block';msg.style.background='#D1FAE5';msg.style.color='#065f46';msg.textContent='✅ Gemini key saved!';
+    showNotif('✅','Gemini API key saved!');
+  } else {
+    const v=document.getElementById('ak-inp').value.trim();
+    if(!v.startsWith('sk-ant-')){msg.style.display='block';msg.style.background='#FEE2E2';msg.style.color='#991b1b';msg.textContent='❌ Key must start with sk-ant-...';return;}
+    window._anthropicKey=v; localStorage.setItem('cb_ak',v);
+    msg.style.display='block';msg.style.background='#D1FAE5';msg.style.color='#065f46';msg.textContent='✅ Claude key saved!';
+    showNotif('✅','API key saved!');
+  }
 }
 function loadAK(){
-  const v=localStorage.getItem('cb_ak');
-  if(v){window._anthropicKey=v;const i=document.getElementById('ak-inp');if(i)i.value=v;const m=document.getElementById('ak-msg');if(m){m.style.display='block';m.style.background='#D1FAE5';m.style.color='#065f46';m.textContent='✅ API key loaded.';}}
+  const p=localStorage.getItem('cb_provider')||'anthropic';
+  window._aiProvider=p; setProvider(p);
+  const ak=localStorage.getItem('cb_ak'); if(ak){window._anthropicKey=ak;const i=document.getElementById('ak-inp');if(i)i.value=ak;}
+  const gk=localStorage.getItem('cb_gk'); if(gk){window._geminiKey=gk;const i=document.getElementById('gk-inp');if(i)i.value=gk;}
+  const msg=document.getElementById('ak-msg');
+  if((p==='gemini'&&gk)||(p==='anthropic'&&ak)){if(msg){msg.style.display='block';msg.style.background='#D1FAE5';msg.style.color='#065f46';msg.textContent='✅ API key loaded.';}}
 }
-window.saveAK=saveAK;
+window.saveAK=saveAK; window.setProvider=setProvider; window.toggleKeyVis=toggleKeyVis;
 
 /* UTILS */
 function showNotif(icon,msg){
