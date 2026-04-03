@@ -881,6 +881,7 @@ BODY:
   try{
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':(window._anthropicKey||localStorage.getItem('cb_ak')||''),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const d=await r.json();
+    if(!r.ok||d.error||!d.content){throw new Error(d.error?.message||'API error (status '+r.status+') — check your API key in ⚙️ Setup');}
     const text=d.content.map(b=>b.text||'').join('');
     const sm=text.match(/SUBJECT:\s*(.+)/i), bm=text.match(/BODY:\s*([\s\S]+)/i);
     gSubj=sm?sm[1].trim():`Application for ${pos} — ${name}`;
