@@ -157,29 +157,10 @@ window.logEmailSentToFirestore = async function(supplier) {
   }
 };
 
-// Load all perimeters (for admin / cross-filter)
-window.loadAllPerimeters = async function() {
-  try {
-    const usersSnap = await getDocs(collection(db, 'users'));
-    const perimeters = [];
-    usersSnap.forEach(d => {
-      const data = d.data();
-      if (data.perimeter) perimeters.push({ uid: d.id, ...data });
-    });
-    window.allUsersPerimeters = perimeters;
-    populatePerimeterFilter();
-  } catch(e) {
-    console.warn('Could not load all perimeters:', e);
-  }
-};
-
 window.doSignOut = async function() {
   await signOut(auth);
   window.location.href = 'login.html';
 };
-
-// Load all perimeters on init
-setTimeout(() => window.loadAllPerimeters(), 1500);
 </script>
 <style>
 :root {
@@ -492,11 +473,10 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
   <!-- PERIMETER FILTER BAR -->
   <div class="perimeter-bar" id="perimeterBar">
     <label>Filter by Perimeter:</label>
-    <button class="perimeter-pill-btn my-perimeter active" id="myPerimeterBtn" onclick="filterByPerimeter('me')">
-      👤 Mine (<span id="perimeterFilterLabel">—</span>)
-    </button>
-    <button class="perimeter-pill-btn" onclick="filterByPerimeter('all')">🌐 All Perimeters</button>
-    <div id="otherPerimeterBtns" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <button class="perimeter-pill-btn active" id="allPerimeterBtn" onclick="filterByPerimeter('all')">🌐 All</button>
+    <div id="otherPerimeterBtns" style="display:flex;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;color:#9CA3AF;padding:5px 0">Upload an Excel file to see perimeters</span>
+    </div>
     <div style="margin-left:auto;display:flex;gap:8px">
       <button class="btn-excel-synthesis" onclick="openSynthesisModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -640,9 +620,9 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('emailModal')">Cancel</button>
-      <button onclick="openOutlookDesktop()" style="background:var(--navy);color:white;border:none;padding:10px 20px;border-radius:6px;font-family:'Lexend',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:7px" id="btnOpenOutlook">
+      <button onclick="openOutlookDesktop()" title="Downloads a .eml file — double-click it to open in Outlook with full body &amp; attachments" style="background:var(--navy);color:white;border:none;padding:10px 20px;border-radius:6px;font-family:'Lexend',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:7px" id="btnOpenOutlook">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        Open in Outlook App
+        📥 Generate .eml for Outlook
       </button>
       <button class="btn-primary" onclick="sendCurrentEmail()" id="btnSendEmail">Send via Graph API</button>
     </div>
@@ -802,28 +782,35 @@ async function getAccessToken() {
 // ══════════════════════════════════════════════════════════════
 function populatePerimeterFilter() {
   const container = document.getElementById('otherPerimeterBtns');
-  if (!container || !window.allUsersPerimeters) return;
-  const myPerimeter = window.userProfile?.perimeter;
+  if (!container) return;
+  // Gather unique perimeter values directly from Excel "Plants perimeter" column
+  const allPerimeters = new Set();
+  (supplierData || []).forEach(s => {
+    const pp = (s.plantsPerimeter || '').trim();
+    if (pp) {
+      // Handle values like "PARIS / LYON" or "P1, P2"
+      pp.split(/[,\/;|]+/).forEach(p => {
+        const clean = p.trim();
+        if (clean) allPerimeters.add(clean);
+      });
+    }
+  });
   container.innerHTML = '';
-  window.allUsersPerimeters.forEach(u => {
-    if (u.perimeter === myPerimeter) return; // already shown
+  [...allPerimeters].sort().forEach(p => {
     const btn = document.createElement('button');
     btn.className = 'perimeter-pill-btn';
-    btn.dataset.perimeter = u.perimeter;
-    btn.textContent = `${u.perimeter} (${u.displayName || u.email})`;
-    btn.onclick = () => filterByPerimeter(u.perimeter);
+    btn.dataset.perimeter = p;
+    btn.textContent = p;
+    btn.onclick = () => filterByPerimeter(p);
     container.appendChild(btn);
   });
 }
 
 function filterByPerimeter(perimeterKey) {
   activePerimeterFilter = perimeterKey;
-  // Update button states
   document.querySelectorAll('.perimeter-pill-btn').forEach(b => b.classList.remove('active'));
-  if (perimeterKey === 'me') {
-    document.getElementById('myPerimeterBtn').classList.add('active');
-  } else if (perimeterKey === 'all') {
-    document.querySelectorAll('.perimeter-pill-btn')[1].classList.add('active');
+  if (perimeterKey === 'all') {
+    document.getElementById('allPerimeterBtn').classList.add('active');
   } else {
     document.querySelectorAll(`[data-perimeter="${perimeterKey}"]`).forEach(b => b.classList.add('active'));
   }
@@ -914,6 +901,8 @@ function parseWorkingFile(data, filename) {
 
   window.supplierData = supplierData;
   filteredData = [...supplierData];
+  // Build perimeter filter buttons from Excel data
+  populatePerimeterFilter();
   renderStats();
   renderTable();
   document.getElementById('statsBar').style.display = 'grid';
@@ -979,15 +968,13 @@ function applyFilters() {
   filteredData = supplierData.filter(s => {
     const matchQ = !q || s.name.toLowerCase().includes(q) || s.sectorCode.toLowerCase().includes(q);
     const matchS = sf === 'all' || s.status === sf;
-    // Perimeter filter
+    // Perimeter filter — match against Plants perimeter column from Excel
     let matchP = true;
-    if (activePerimeterFilter === 'me' && myPerimeter) {
-      // filter by plantsPerimeter field containing myPerimeter
-      const pp = (s.plantsPerimeter || '').toUpperCase();
-      matchP = pp.includes(myPerimeter) || pp === '' || !myPerimeter;
-    } else if (activePerimeterFilter !== 'all' && activePerimeterFilter !== 'me') {
-      const pp = (s.plantsPerimeter || '').toUpperCase();
-      matchP = pp.includes(activePerimeterFilter.toUpperCase());
+    if (activePerimeterFilter !== 'all') {
+      const pp = (s.plantsPerimeter || '');
+      // Split multi-value cells and check if any part matches
+      const parts = pp.split(/[,\/;|]+/).map(p => p.trim().toUpperCase());
+      matchP = parts.some(p => p === activePerimeterFilter.toUpperCase());
     }
     return matchQ && matchS && matchP;
   });
@@ -1106,19 +1093,110 @@ function handleRowClick(e, sc) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// OPEN IN DESKTOP OUTLOOK (mailto fallback)
+// OPEN IN DESKTOP OUTLOOK — generates a real .eml file
+// Outlook opens .eml files natively with full body + attachments
 // ══════════════════════════════════════════════════════════════
 function openOutlookDesktop() {
   if (!currentModalSupplier) return;
   const to = document.getElementById('emailTo').value.trim();
   const cc = document.getElementById('emailCc').value.trim();
-  const subject = `Stellantis suppliers' COFORIZATION - Request for Confirmation of COFOR Codes - ${currentModalSupplier.name} - ${currentModalSupplier.sectorCode}`;
-  const body = `Dear Supplier,\r\nPlease confirm the COFOR codes for ${currentModalSupplier.name} (${currentModalSupplier.sectorCode}).\r\n\r\nBest regards,\r\nSupplier OnBoarding team`;
-  let mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  if (cc) mailto += `&cc=${encodeURIComponent(cc)}`;
-  // This triggers the desktop mail client (Outlook, Thunderbird, etc.)
-  window.location.href = mailto;
-  showToast('Opening your default mail app (Outlook)...', 'info');
+  if (!to) { showToast('Please enter at least one recipient email', 'error'); return; }
+
+  const supplier = currentModalSupplier;
+  const filename = `${supplier.sectorCode} ${supplier.name.replace(/[^a-zA-Z0-9 ]/g,'').trim()} CONFIRMATION.xlsx`;
+  const subject = `Stellantis suppliers' COFORIZATION - Request for Confirmation of COFOR Codes - ${supplier.name} - ${supplier.sectorCode}`;
+  const htmlBody = generateEmailBody(supplier);
+  const confirmB64 = generateConfirmationXlsx(supplier);
+
+  // Build a RFC 2822 MIME multipart .eml file
+  const boundary = '----=_Part_' + Math.random().toString(36).substr(2, 12);
+  const boundary2 = '----=_Part_' + Math.random().toString(36).substr(2, 12);
+
+  let eml = '';
+  eml += `To: ${to}
+`;
+  if (cc) eml += `Cc: ${cc}
+`;
+  eml += `Subject: ${subject}
+`;
+  eml += `MIME-Version: 1.0
+`;
+  eml += `Content-Type: multipart/mixed; boundary="${boundary}"
+`;
+  eml += `X-Unsent: 1
+`;  // tells Outlook to open as unsent draft
+  eml += `
+`;
+
+  // Part 1: HTML body
+  eml += `--${boundary}
+`;
+  eml += `Content-Type: multipart/alternative; boundary="${boundary2}"
+`;
+  eml += `
+`;
+  eml += `--${boundary2}
+`;
+  eml += `Content-Type: text/html; charset="utf-8"
+`;
+  eml += `Content-Transfer-Encoding: base64
+`;
+  eml += `
+`;
+  // Base64 encode the HTML body in 76-char lines (RFC 2045)
+  const htmlB64 = btoa(unescape(encodeURIComponent(htmlBody)));
+  eml += htmlB64.match(/.{1,76}/g).join('
+');
+  eml += `
+`;
+  eml += `--${boundary2}--
+`;
+
+  // Part 2: CONFIRMATION xlsx attachment
+  eml += `--${boundary}
+`;
+  eml += `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; name="${filename}"
+`;
+  eml += `Content-Transfer-Encoding: base64
+`;
+  eml += `Content-Disposition: attachment; filename="${filename}"
+`;
+  eml += `
+`;
+  eml += confirmB64.match(/.{1,76}/g).join('
+');
+  eml += `
+`;
+
+  // Part 3: COFOR template attachment
+  eml += `--${boundary}
+`;
+  eml += `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; name="COFOR_Creation_request_template.xlsx"
+`;
+  eml += `Content-Transfer-Encoding: base64
+`;
+  eml += `Content-Disposition: attachment; filename="COFOR_Creation_request_template.xlsx"
+`;
+  eml += `
+`;
+  eml += COFOR_TEMPLATE_B64.match(/.{1,76}/g).join('
+');
+  eml += `
+`;
+
+  eml += `--${boundary}--
+`;
+
+  // Trigger download of the .eml file — double-click opens in Outlook
+  const blob = new Blob([eml], { type: 'message/rfc822' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${supplier.sectorCode}_${supplier.name.replace(/[^a-zA-Z0-9]/g,'_').trim()}.eml`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  showToast('📧 .eml file downloaded — double-click it to open in Outlook with full body & attachments!', 'success');
 }
 
 // ══════════════════════════════════════════════════════════════
