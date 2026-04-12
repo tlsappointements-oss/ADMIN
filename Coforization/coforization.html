@@ -11,7 +11,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
@@ -19,147 +19,110 @@ const firebaseConfig = {
   projectId: "cars-website-558c0",
   storageBucket: "cars-website-558c0.firebasestorage.app",
   messagingSenderId: "142475379783",
-  appId: "1:142475379783:web:2849d07fb6eb8da4715d62",
-  measurementId: "G-53ZQY6XJJR"
+  appId: "1:142475379783:web:2849d07fb6eb8da4715d62"
 };
 
-const fbApp = initializeApp(firebaseConfig);
-const auth = getAuth(fbApp);
-const db = getFirestore(fbApp);
+// ── Always show the app immediately — never block on auth ──
+document.getElementById('authLoadingScreen').style.display = 'none';
+document.getElementById('appContent').style.display = 'block';
 
-// Auth guard
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = 'login.html';
-    return;
-  }
-  // Store globally
-  window.currentFirebaseUser = user;
-
-  // Load user profile to get perimeter
-  const profileRef = doc(db, 'users', user.uid);
-  const profileSnap = await getDoc(profileRef);
-  if (profileSnap.exists()) {
-    window.userProfile = profileSnap.data();
-  } else {
-    // Create default profile from email
-    const defaultProfile = {
-      email: user.email,
-      displayName: user.displayName || user.email.split('@')[0],
-      perimeter: extractPerimeterFromEmail(user.email),
-      createdAt: new Date().toISOString()
-    };
-    await setDoc(profileRef, defaultProfile);
-    window.userProfile = defaultProfile;
-  }
-
-  updateHeaderUser(user, window.userProfile);
-  document.getElementById('authLoadingScreen').style.display = 'none';
-  document.getElementById('appContent').style.display = 'block';
-
-  // Load saved supplier data from Firestore for this user's perimeter
-  await loadFirestoreData();
-});
-
-function extractPerimeterFromEmail(email) {
-  // e.g. kaoutar.benkaddour@external.stellantis.com -> kaoutar
-  const local = email.split('@')[0];
-  return local.split('.')[0].toUpperCase();
+let fbApp, auth, db;
+try {
+  fbApp = initializeApp(firebaseConfig);
+  auth   = getAuth(fbApp);
+  db     = getFirestore(fbApp);
+} catch(e) {
+  console.warn('Firebase init failed (offline or blocked):', e);
 }
 
-function updateHeaderUser(user, profile) {
-  const name = profile?.displayName || user.email;
-  const perimeter = profile?.perimeter || '—';
-  document.getElementById('headerUserName').textContent = name;
-  document.getElementById('headerPerimeter').textContent = `Perimeter: ${perimeter}`;
-  document.getElementById('perimeterFilterLabel').textContent = perimeter;
-  // Populate perimeter filter options
-  populatePerimeterFilter();
-}
-
-// Load data from Firestore
-window.loadFirestoreData = async function() {
-  try {
-    const user = window.currentFirebaseUser;
-    if (!user) return;
-    // Load suppliers managed by this user
-    const suppRef = collection(db, 'users', user.uid, 'suppliers');
-    const snap = await getDocs(suppRef);
-    const firestoreSuppliers = {};
-    snap.forEach(d => {
-      firestoreSuppliers[d.id] = d.data();
-    });
-    window.firestoreSupplierData = firestoreSuppliers;
-    // Merge with any loaded Excel data
-    if (window.supplierData && window.supplierData.length > 0) {
-      mergeFirestoreIntoSuppliers();
+// ── Auth state: update header if logged in, but NEVER redirect or block ──
+if (auth) {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      // Not logged in — app still fully usable, just no Firestore sync
+      document.getElementById('headerUserName').textContent = 'Guest';
+      document.getElementById('headerPerimeter').textContent = 'No Firebase session';
+      return;
     }
-  } catch(e) {
-    console.warn('Firestore load error:', e);
-  }
+
+    window.currentFirebaseUser = user;
+
+    // Load or create user profile
+    try {
+      const profileRef = doc(db, 'users', user.uid);
+      const profileSnap = await getDoc(profileRef);
+      if (profileSnap.exists()) {
+        window.userProfile = profileSnap.data();
+      } else {
+        const local = user.email.split('@')[0];
+        const defaultProfile = {
+          email: user.email,
+          displayName: user.displayName || local,
+          createdAt: new Date().toISOString()
+        };
+        await setDoc(profileRef, defaultProfile);
+        window.userProfile = defaultProfile;
+      }
+    } catch(e) { console.warn('Profile load error:', e); }
+
+    const name = window.userProfile?.displayName || user.email;
+    document.getElementById('headerUserName').textContent = name;
+    document.getElementById('headerPerimeter').textContent = user.email;
+
+    // Silently load Firestore data if Excel already loaded
+    if (window.loadFirestoreData) await window.loadFirestoreData();
+  });
+}
+
+// ── Firestore helpers — all silent, never block the UI ──
+window.loadFirestoreData = async function() {
+  if (!db || !window.currentFirebaseUser) return;
+  try {
+    const suppRef = collection(db, 'users', window.currentFirebaseUser.uid, 'suppliers');
+    const snap = await getDocs(suppRef);
+    window.firestoreSupplierData = {};
+    snap.forEach(d => { window.firestoreSupplierData[d.id] = d.data(); });
+    if (window.supplierData && window.supplierData.length > 0) {
+      if (typeof mergeFirestoreIntoSuppliers === 'function') mergeFirestoreIntoSuppliers();
+    }
+  } catch(e) { console.warn('Firestore load error:', e); }
 };
 
-// Save a supplier change to Firestore
 window.saveSupplierToFirestore = async function(supplier) {
+  if (!db || !window.currentFirebaseUser) return;
   try {
-    const user = window.currentFirebaseUser;
-    if (!user) return;
-    const suppRef = doc(db, 'users', user.uid, 'suppliers', supplier.sectorCode);
-    const data = {
-      sectorCode: supplier.sectorCode,
-      name: supplier.name,
-      status: supplier.status,
-      contacted: supplier.contacted || null,
-      infoCompleted: supplier.infoCompleted || null,
-      note: supplier.note || null,
-      toEmails: supplier.toEmails || null,
-      missing: supplier.missing || [],
-      lastUpdated: new Date().toISOString(),
-      updatedBy: user.email,
-      perimeter: window.userProfile?.perimeter || 'UNKNOWN'
-    };
-    await setDoc(suppRef, data, { merge: true });
-    // Log change event
-    await addDoc(collection(db, 'users', user.uid, 'changelog'), {
-      sectorCode: supplier.sectorCode,
-      supplierName: supplier.name,
-      newStatus: supplier.status,
-      timestamp: serverTimestamp(),
-      action: 'status_update',
-      by: user.email
-    });
-  } catch(e) {
-    console.warn('Firestore save error:', e);
-  }
+    const ref = doc(db, 'users', window.currentFirebaseUser.uid, 'suppliers', supplier.sectorCode);
+    await setDoc(ref, {
+      sectorCode: supplier.sectorCode, name: supplier.name, status: supplier.status,
+      contacted: supplier.contacted || null, note: supplier.note || null,
+      toEmails: supplier.toEmails || null, missing: supplier.missing || [],
+      lastUpdated: new Date().toISOString(), updatedBy: window.currentFirebaseUser.email
+    }, { merge: true });
+  } catch(e) { console.warn('Firestore save error:', e); }
 };
 
-// Log email sent to Firestore
 window.logEmailSentToFirestore = async function(supplier) {
+  if (!db || !window.currentFirebaseUser) return;
   try {
-    const user = window.currentFirebaseUser;
-    if (!user) return;
-    const suppRef = doc(db, 'users', user.uid, 'suppliers', supplier.sectorCode);
-    await setDoc(suppRef, {
-      contacted: 'Yes',
-      lastContactedAt: new Date().toISOString(),
-      lastEmailSentBy: user.email,
-      status: supplier.status
+    const ref = doc(db, 'users', window.currentFirebaseUser.uid, 'suppliers', supplier.sectorCode);
+    await setDoc(ref, {
+      contacted: 'Yes', lastContactedAt: new Date().toISOString(),
+      lastEmailSentBy: window.currentFirebaseUser.email, status: supplier.status
     }, { merge: true });
-    await addDoc(collection(db, 'users', user.uid, 'changelog'), {
-      sectorCode: supplier.sectorCode,
-      supplierName: supplier.name,
-      action: 'email_sent',
-      timestamp: serverTimestamp(),
-      by: user.email
+    await addDoc(collection(db, 'users', window.currentFirebaseUser.uid, 'changelog'), {
+      sectorCode: supplier.sectorCode, supplierName: supplier.name,
+      action: 'email_sent', timestamp: serverTimestamp(), by: window.currentFirebaseUser.email
     });
-  } catch(e) {
-    console.warn('Firestore log error:', e);
-  }
+  } catch(e) { console.warn('Firestore log error:', e); }
 };
 
 window.doSignOut = async function() {
-  await signOut(auth);
-  window.location.href = 'login.html';
+  if (auth && window.currentFirebaseUser) {
+    await signOut(auth);
+    window.currentFirebaseUser = null;
+    document.getElementById('headerUserName').textContent = 'Guest';
+    document.getElementById('headerPerimeter').textContent = 'Signed out';
+  }
 };
 </script>
 <style>
