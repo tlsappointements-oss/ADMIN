@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COFORIZATION · Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0E2140;
+  --blue: #1A4E78;
+  --blue-mid: #2B6DA8;
+  --blue-light: #EBF2FA;
+  --orange: #E8520A;
+  --green: #137a44;
+  --red: #C0392B;
+  --gray-900: #111827;
+  --gray-700: #374151;
+  --gray-500: #6B7280;
+  --gray-300: #D1D5DB;
+  --gray-100: #F3F4F6;
+  --white: #FFFFFF;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Lexend', sans-serif;
+  background: linear-gradient(135deg, #0E2140 0%, #1A4E78 50%, #0E2140 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 20% 50%, rgba(43,109,168,0.3) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(232,82,10,0.15) 0%, transparent 40%),
+              radial-gradient(circle at 60% 80%, rgba(26,78,120,0.2) 0%, transparent 50%);
+  pointer-events: none;
+}
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+.login-card {
+  background: rgba(255,255,255,0.97);
+  border-radius: 16px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1);
+  width: 100%;
+  max-width: 420px;
+  padding: 48px 40px;
+  position: relative;
+  z-index: 10;
+  animation: cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(32px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.logo-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--navy);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.login-brand {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.5px;
+}
+.login-brand span {
+  color: var(--orange);
+}
+.login-tagline {
+  font-size: 11px;
+  color: var(--gray-500);
+  font-weight: 400;
+  font-family: 'DM Mono', monospace;
+}
+.login-heading {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 6px;
+}
+.login-sub {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+.form-group {
+  margin-bottom: 18px;
+}
+.form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+}
+.form-group input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 8px;
+  font-family: 'Lexend', sans-serif;
+  font-size: 14px;
+  color: var(--gray-900);
+  outline: none;
+  transition: all 0.15s;
+  background: var(--white);
+}
+.form-group input:focus {
+  border-color: var(--blue-mid);
+  box-shadow: 0 0 0 3px rgba(43,109,168,0.12);
+}
+.form-group input::placeholder {
+  color: var(--gray-300);
+  font-weight: 300;
+}
+.btn-login {
+  width: 100%;
+  padding: 13px;
+  background: var(--navy);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Lexend', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-login:hover { background: var(--blue); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(14,33,64,0.3); }
+.btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+.error-msg {
+  background: #FDEDEC;
+  border: 1px solid #F1948A;
+  color: var(--red);
+  font-size: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-top: 14px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+.error-msg.show { display: flex; }
+.divider {
+  text-align: center;
+  font-size: 11px;
+  color: var(--gray-300);
+  margin: 28px 0 0;
+  position: relative;
+}
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--gray-100);
+}
+.divider span { background: white; padding: 0 10px; position: relative; }
+.powered-by {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--gray-500);
+}
+.powered-by a { color: var(--blue-mid); text-decoration: none; }
+.spinner-sm {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.perimeter-pill {
+  display: inline-block;
+  background: var(--blue-light);
+  color: var(--blue);
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<div class="login-card">
+  <div class="login-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 44 44" width="28" height="28" fill="none">
+        <path d="M8 12h28M8 22h20M8 32h28" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="32" cy="32" r="5" fill="#E8520A"/>
+      </svg>
+    </div>
+    <div>
+      <div class="login-brand">COFOR<span>IZATION</span></div>
+      <div class="login-tagline">Stellantis · Supplier OnBoarding</div>
+    </div>
+  </div>
+
+  <div class="login-heading">Welcome back</div>
+  <div class="login-sub">Sign in with your Stellantis account to access your supplier perimeter.</div>
+
+  <div class="form-group">
+    <label>Email address</label>
+    <input type="email" id="loginEmail" placeholder="your.name@stellantis.com" autocomplete="email">
+  </div>
+  <div class="form-group">
+    <label>Password</label>
+    <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+  </div>
+
+  <button class="btn-login" id="loginBtn" onclick="doLogin()">
+    <span id="loginBtnText">Sign In</span>
+    <div class="spinner-sm" id="loginSpinner"></div>
+  </button>
+
+  <div class="error-msg" id="errorMsg">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span id="errorText">Invalid credentials</span>
+  </div>
+
+  <div class="divider"><span>secured by Firebase Auth</span></div>
+  <div class="powered-by">By signing in you accept Stellantis internal data policies.</div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
+  authDomain: "cars-website-558c0.firebaseapp.com",
+  projectId: "cars-website-558c0",
+  storageBucket: "cars-website-558c0.firebasestorage.app",
+  messagingSenderId: "142475379783",
+  appId: "1:142475379783:web:2849d07fb6eb8da4715d62",
+  measurementId: "G-53ZQY6XJJR"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// If already logged in, redirect immediately
+onAuthStateChanged(auth, user => {
+  if (user) {
+    window.location.href = 'coforization.html';
+  }
+});
+
+window.doLogin = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const spinner = document.getElementById('loginSpinner');
+  const btnText = document.getElementById('loginBtnText');
+  const errorMsg = document.getElementById('errorMsg');
+  const errorText = document.getElementById('errorText');
+
+  if (!email || !password) {
+    errorText.textContent = 'Please enter your email and password.';
+    errorMsg.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btnText.textContent = 'Signing in...';
+  spinner.style.display = 'block';
+  errorMsg.classList.remove('show');
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    window.location.href = 'coforization.html';
+  } catch(e) {
+    let msg = 'Sign in failed. Please check your credentials.';
+    if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+      msg = 'Invalid email or password.';
+    } else if (e.code === 'auth/too-many-requests') {
+      msg = 'Too many attempts. Please try again later.';
+    } else if (e.code === 'auth/network-request-failed') {
+      msg = 'Network error. Check your connection.';
+    }
+    errorText.textContent = msg;
+    errorMsg.classList.add('show');
+    btn.disabled = false;
+    btnText.textContent = 'Sign In';
+    spinner.style.display = 'none';
+  }
+};
+</script>
+</body>
+</html>

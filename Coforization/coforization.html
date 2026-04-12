@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COFORIZATION · Email Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
+  authDomain: "cars-website-558c0.firebaseapp.com",
+  projectId: "cars-website-558c0",
+  storageBucket: "cars-website-558c0.firebasestorage.app",
+  messagingSenderId: "142475379783",
+  appId: "1:142475379783:web:2849d07fb6eb8da4715d62",
+  measurementId: "G-53ZQY6XJJR"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+// Auth guard
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+  // Store globally
+  window.currentFirebaseUser = user;
+
+  // Load user profile to get perimeter
+  const profileRef = doc(db, 'users', user.uid);
+  const profileSnap = await getDoc(profileRef);
+  if (profileSnap.exists()) {
+    window.userProfile = profileSnap.data();
+  } else {
+    // Create default profile from email
+    const defaultProfile = {
+      email: user.email,
+      displayName: user.displayName || user.email.split('@')[0],
+      perimeter: extractPerimeterFromEmail(user.email),
+      createdAt: new Date().toISOString()
+    };
+    await setDoc(profileRef, defaultProfile);
+    window.userProfile = defaultProfile;
+  }
+
+  updateHeaderUser(user, window.userProfile);
+  document.getElementById('authLoadingScreen').style.display = 'none';
+  document.getElementById('appContent').style.display = 'block';
+
+  // Load saved supplier data from Firestore for this user's perimeter
+  await loadFirestoreData();
+});
+
+function extractPerimeterFromEmail(email) {
+  // e.g. kaoutar.benkaddour@external.stellantis.com -> kaoutar
+  const local = email.split('@')[0];
+  return local.split('.')[0].toUpperCase();
+}
+
+function updateHeaderUser(user, profile) {
+  const name = profile?.displayName || user.email;
+  const perimeter = profile?.perimeter || '—';
+  document.getElementById('headerUserName').textContent = name;
+  document.getElementById('headerPerimeter').textContent = `Perimeter: ${perimeter}`;
+  document.getElementById('perimeterFilterLabel').textContent = perimeter;
+  // Populate perimeter filter options
+  populatePerimeterFilter();
+}
+
+// Load data from Firestore
+window.loadFirestoreData = async function() {
+  try {
+    const user = window.currentFirebaseUser;
+    if (!user) return;
+    // Load suppliers managed by this user
+    const suppRef = collection(db, 'users', user.uid, 'suppliers');
+    const snap = await getDocs(suppRef);
+    const firestoreSuppliers = {};
+    snap.forEach(d => {
+      firestoreSuppliers[d.id] = d.data();
+    });
+    window.firestoreSupplierData = firestoreSuppliers;
+    // Merge with any loaded Excel data
+    if (window.supplierData && window.supplierData.length > 0) {
+      mergeFirestoreIntoSuppliers();
+    }
+  } catch(e) {
+    console.warn('Firestore load error:', e);
+  }
+};
+
+// Save a supplier change to Firestore
+window.saveSupplierToFirestore = async function(supplier) {
+  try {
+    const user = window.currentFirebaseUser;
+    if (!user) return;
+    const suppRef = doc(db, 'users', user.uid, 'suppliers', supplier.sectorCode);
+    const data = {
+      sectorCode: supplier.sectorCode,
+      name: supplier.name,
+      status: supplier.status,
+      contacted: supplier.contacted || null,
+      infoCompleted: supplier.infoCompleted || null,
+      note: supplier.note || null,
+      toEmails: supplier.toEmails || null,
+      missing: supplier.missing || [],
+      lastUpdated: new Date().toISOString(),
+      updatedBy: user.email,
+      perimeter: window.userProfile?.perimeter || 'UNKNOWN'
+    };
+    await setDoc(suppRef, data, { merge: true });
+    // Log change event
+    await addDoc(collection(db, 'users', user.uid, 'changelog'), {
+      sectorCode: supplier.sectorCode,
+      supplierName: supplier.name,
+      newStatus: supplier.status,
+      timestamp: serverTimestamp(),
+      action: 'status_update',
+      by: user.email
+    });
+  } catch(e) {
+    console.warn('Firestore save error:', e);
+  }
+};
+
+// Log email sent to Firestore
+window.logEmailSentToFirestore = async function(supplier) {
+  try {
+    const user = window.currentFirebaseUser;
+    if (!user) return;
+    const suppRef = doc(db, 'users', user.uid, 'suppliers', supplier.sectorCode);
+    await setDoc(suppRef, {
+      contacted: 'Yes',
+      lastContactedAt: new Date().toISOString(),
+      lastEmailSentBy: user.email,
+      status: supplier.status
+    }, { merge: true });
+    await addDoc(collection(db, 'users', user.uid, 'changelog'), {
+      sectorCode: supplier.sectorCode,
+      supplierName: supplier.name,
+      action: 'email_sent',
+      timestamp: serverTimestamp(),
+      by: user.email
+    });
+  } catch(e) {
+    console.warn('Firestore log error:', e);
+  }
+};
+
+// Load all perimeters (for admin / cross-filter)
+window.loadAllPerimeters = async function() {
+  try {
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const perimeters = [];
+    usersSnap.forEach(d => {
+      const data = d.data();
+      if (data.perimeter) perimeters.push({ uid: d.id, ...data });
+    });
+    window.allUsersPerimeters = perimeters;
+    populatePerimeterFilter();
+  } catch(e) {
+    console.warn('Could not load all perimeters:', e);
+  }
+};
+
+window.doSignOut = async function() {
+  await signOut(auth);
+  window.location.href = 'login.html';
+};
+
+// Load all perimeters on init
+setTimeout(() => window.loadAllPerimeters(), 1500);
+</script>
+<style>
+:root {
+  --navy: #0E2140;
+  --blue: #1A4E78;
+  --blue-mid: #2B6DA8;
+  --blue-light: #EBF2FA;
+  --orange: #E8520A;
+  --orange-light: #FEF0E8;
+  --green: #137a44;
+  --green-light: #E6F6EE;
+  --yellow: #B75E00;
+  --yellow-light: #FFF4E5;
+  --red: #C0392B;
+  --red-light: #FDEDEC;
+  --gray-900: #111827;
+  --gray-700: #374151;
+  --gray-500: #6B7280;
+  --gray-300: #D1D5DB;
+  --gray-100: #F3F4F6;
+  --white: #FFFFFF;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Lexend', sans-serif; background: #F0F4F8; color: var(--gray-900); min-height: 100vh; }
+code, .mono { font-family: 'DM Mono', monospace; }
+
+/* ── AUTH LOADING SCREEN ── */
+#authLoadingScreen {
+  position: fixed; inset: 0; background: var(--navy); display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 20px; z-index: 500; color: white;
+}
+.auth-spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #E8520A; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── HEADER ── */
+.header { background: var(--navy); color: white; padding: 0 32px; display: flex; align-items: center; gap: 20px; height: 64px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.header-logo { display: flex; align-items: center; gap: 10px; }
+.header-logo svg { width: 36px; height: 36px; }
+.header-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+.header-auth { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+.header-user { display: flex; flex-direction: column; align-items: flex-end; }
+.header-user-name { font-size: 13px; font-weight: 500; color: white; }
+.header-user-perimeter { font-size: 11px; color: rgba(255,255,255,0.55); font-family: 'DM Mono', monospace; }
+.btn-auth { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 7px 16px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+.btn-auth:hover { background: rgba(255,255,255,0.2); }
+.btn-auth.signed-in { background: rgba(19, 122, 68, 0.3); border-color: rgba(19,122,68,0.5); }
+.btn-signout { background: rgba(192,57,43,0.25); border: 1px solid rgba(192,57,43,0.4); color: white; padding: 7px 14px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+.btn-signout:hover { background: rgba(192,57,43,0.45); }
+.auth-dot { width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; display: inline-block; }
+
+/* ── LAYOUT ── */
+.container { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+
+/* ── CARDS ── */
+.card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid #E5E9EF; }
+.card-header { padding: 18px 24px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; gap: 10px; }
+.card-header h2 { font-size: 14px; font-weight: 600; color: var(--gray-900); }
+.card-body { padding: 20px 24px; }
+
+/* ── SETUP PANEL ── */
+.setup-panel { background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%); border-radius: var(--radius); padding: 28px 32px; color: white; margin-bottom: 24px; }
+.setup-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.setup-sub { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 24px; line-height: 1.6; }
+.setup-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+.form-field label { display: block; font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.7); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-field input { width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 9px 13px; border-radius: 6px; font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.15s; }
+.form-field input::placeholder { color: rgba(255,255,255,0.35); }
+.form-field input:focus { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); }
+.btn-primary { background: var(--orange); color: white; border: none; padding: 10px 22px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.btn-primary:hover { background: #c9440a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,82,10,0.35); }
+.btn-primary:disabled { background: rgba(255,255,255,0.2); cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-secondary { background: transparent; color: var(--blue-mid); border: 1px solid var(--blue-mid); padding: 8px 18px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.btn-secondary:hover { background: var(--blue-light); }
+.setup-hint { margin-top: 18px; font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.6; }
+.setup-hint a { color: rgba(255,255,255,0.8); }
+
+/* ── PERIMETER FILTER BAR ── */
+.perimeter-bar {
+  background: var(--white); border-radius: var(--radius); padding: 14px 20px;
+  border: 1px solid #E5E9EF; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  box-shadow: var(--shadow);
+}
+.perimeter-bar label { font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+.perimeter-pill-btn {
+  padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  border: 1.5px solid var(--gray-300); background: white; cursor: pointer;
+  font-family: 'Lexend', sans-serif; transition: all 0.15s; color: var(--gray-700);
+}
+.perimeter-pill-btn:hover { border-color: var(--blue-mid); color: var(--blue-mid); background: var(--blue-light); }
+.perimeter-pill-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+.perimeter-pill-btn.my-perimeter { border-color: var(--orange); }
+.perimeter-pill-btn.my-perimeter.active { background: var(--orange); border-color: var(--orange); }
+
+/* ── UPLOAD ZONE ── */
+.upload-zone { border: 2px dashed var(--gray-300); border-radius: var(--radius); padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--gray-100); }
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--blue-mid); background: var(--blue-light); }
+.upload-zone svg { color: var(--gray-500); margin-bottom: 12px; }
+.upload-zone-title { font-size: 14px; font-weight: 500; color: var(--gray-700); margin-bottom: 4px; }
+.upload-zone-sub { font-size: 12px; color: var(--gray-500); }
+.upload-zone.has-file { border-color: var(--green); background: var(--green-light); }
+.upload-zone.has-file svg { color: var(--green); }
+
+/* ── STATS BAR ── */
+.stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: var(--white); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); border: 1px solid #E5E9EF; }
+.stat-label { font-size: 11px; font-weight: 500; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.stat-value { font-size: 28px; font-weight: 700; color: var(--gray-900); }
+.stat-value.orange { color: var(--orange); }
+.stat-value.green { color: var(--green); }
+.stat-value.yellow { color: var(--yellow); }
+.stat-sub { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+
+/* ── TOOLBAR ── */
+.toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.toolbar-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+.search-box { position: relative; flex: 1; max-width: 320px; }
+.search-box input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--gray-300); border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s; }
+.search-box input:focus { border-color: var(--blue-mid); }
+.search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--gray-500); pointer-events: none; }
+.filter-select { padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; outline: none; background: white; color: var(--gray-700); }
+.btn-send-all { background: var(--blue); color: white; border: none; padding: 8px 18px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.15s; }
+.btn-send-all:hover { background: var(--navy); }
+.btn-send-all:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-excel-synthesis { background: var(--green); color: white; border: none; padding: 8px 18px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.15s; }
+.btn-excel-synthesis:hover { background: #0e6035; }
+.selection-info { font-size: 13px; color: var(--gray-500); padding: 6px 12px; background: var(--blue-light); border-radius: 6px; }
+
+/* ── TABLE ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th { background: var(--navy); color: white; padding: 11px 14px; font-size: 11px; font-weight: 600; text-align: left; letter-spacing: 0.5px; text-transform: uppercase; position: sticky; top: 64px; }
+thead th:first-child { border-radius: 6px 0 0 0; }
+thead th:last-child { border-radius: 0 6px 0 0; }
+tbody tr { border-bottom: 1px solid var(--gray-100); transition: background 0.1s; cursor: pointer; }
+tbody tr:hover { background: var(--blue-light); }
+tbody tr.selected { background: #EBF2FA; }
+tbody td { padding: 11px 14px; font-size: 13px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.badge-orange { background: var(--orange-light); color: var(--orange); }
+.badge-green { background: var(--green-light); color: var(--green); }
+.badge-yellow { background: var(--yellow-light); color: var(--yellow); }
+.badge-blue { background: var(--blue-light); color: var(--blue); }
+.badge-red { background: var(--red-light); color: var(--red); }
+.missing-fields { display: flex; flex-wrap: wrap; gap: 4px; }
+.missing-tag { padding: 2px 7px; background: var(--orange-light); color: var(--orange); font-size: 10px; border-radius: 4px; font-family: 'DM Mono', monospace; font-weight: 400; }
+.present-tag { padding: 2px 7px; background: var(--green-light); color: var(--green); font-size: 10px; border-radius: 4px; font-family: 'DM Mono', monospace; font-weight: 400; }
+.check-col { width: 40px; padding-left: 16px; }
+input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--blue-mid); }
+.btn-row { background: var(--blue); color: white; border: none; padding: 5px 12px; border-radius: 5px; font-family: 'Lexend', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+.btn-row:hover { background: var(--navy); }
+.btn-row.outline { background: transparent; color: var(--blue-mid); border: 1px solid var(--blue-mid); }
+.btn-row.outline:hover { background: var(--blue-light); }
+.late-badge { padding: 2px 7px; background: #FDEDEC; color: #C0392B; font-size: 10px; border-radius: 4px; font-weight: 600; }
+
+/* ── PAGINATION ── */
+.pagination { display: flex; align-items: center; justify-content: between; gap: 8px; padding: 14px 0; font-size: 13px; color: var(--gray-500); }
+.pagination-left { flex: 1; }
+.pagination-btns { display: flex; align-items: center; gap: 4px; }
+.page-btn { padding: 5px 10px; border: 1px solid var(--gray-300); border-radius: 5px; background: white; cursor: pointer; font-family: 'Lexend', sans-serif; font-size: 12px; transition: all 0.1s; }
+.page-btn:hover { background: var(--blue-light); border-color: var(--blue-mid); }
+.page-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── MODAL ── */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.modal-backdrop.open { opacity: 1; pointer-events: all; }
+.modal { background: white; border-radius: 12px; box-shadow: var(--shadow-lg); width: 100%; max-width: 840px; max-height: 90vh; display: flex; flex-direction: column; transform: translateY(20px); transition: transform 0.2s; }
+.modal-backdrop.open .modal { transform: translateY(0); }
+.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 15px; font-weight: 600; }
+.modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray-500); padding: 4px 8px; border-radius: 4px; line-height: 1; }
+.modal-close:hover { background: var(--gray-100); }
+.modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; gap: 10px; }
+
+/* ── EMAIL PREVIEW ── */
+.email-preview { border: 1px solid var(--gray-300); border-radius: 8px; overflow: hidden; }
+.email-meta { background: var(--gray-100); padding: 14px 18px; font-size: 12px; line-height: 1.8; color: var(--gray-700); }
+.email-meta strong { color: var(--gray-900); display: inline-block; width: 45px; }
+.email-body-preview { padding: 18px; font-size: 13px; line-height: 1.7; color: var(--gray-700); max-height: 420px; overflow-y: auto; }
+.email-body-preview table { border-collapse: collapse; width: 100%; margin: 14px 0; }
+.email-body-preview th { background: #1A4E78; color: white; padding: 8px 12px; font-size: 12px; text-align: center; font-weight: 600; }
+.email-body-preview td.etd { padding: 7px 12px; border: 1px solid #ddd; font-size: 12px; text-align: center; background: white; }
+.email-body-preview tr:nth-child(even) td.etd { background: #f9f9f9; }
+.attachments-bar { padding: 12px 18px; background: var(--blue-light); border-top: 1px solid var(--gray-200); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.attach-badge { display: flex; align-items: center; gap: 6px; padding: 5px 12px; background: white; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 12px; color: var(--gray-700); }
+.attach-badge svg { color: var(--green); }
+
+/* ── CONTACT FIELDS ── */
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.contact-field label { display: block; font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.contact-field input { width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; outline: none; }
+.contact-field input:focus { border-color: var(--blue-mid); }
+.contact-field textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 12px; outline: none; resize: vertical; min-height: 60px; }
+
+/* ── TOAST ── */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg); animation: slideIn 0.3s ease; min-width: 280px; max-width: 400px; }
+.toast.success { background: var(--green); color: white; }
+.toast.error { background: var(--red); color: white; }
+.toast.info { background: var(--blue); color: white; }
+@keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--gray-500); }
+.empty-state svg { margin: 0 auto 16px; display: block; }
+.empty-state p { font-size: 14px; }
+
+/* ── PROGRESS ── */
+.progress-bar { height: 4px; background: var(--gray-100); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+.progress-fill { height: 100%; border-radius: 2px; background: var(--blue-mid); transition: width 0.3s; }
+
+/* ── SECTION DIVIDER ── */
+.section { margin-bottom: 24px; }
+.section-title { font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+
+/* ── LOADING ── */
+.loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 250; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--gray-200); border-top-color: var(--blue-mid); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.loading-text { font-size: 14px; color: var(--gray-500); }
+
+/* ── SYNTHESIS MODAL ── */
+.synthesis-section { margin-bottom: 20px; }
+.synthesis-kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+.synthesis-kpi { background: var(--gray-100); border-radius: 8px; padding: 14px; text-align: center; }
+.synthesis-kpi .val { font-size: 24px; font-weight: 700; }
+.synthesis-kpi .lbl { font-size: 11px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px; }
+.late-row { background: #FFF4E5 !important; }
+.late-row:hover { background: #FFE8CC !important; }
+</style>
+</head>
+<body>
+
+<!-- AUTH LOADING SCREEN -->
+<div id="authLoadingScreen">
+  <div class="auth-spinner"></div>
+  <div style="font-size:14px;color:rgba(255,255,255,0.7)">Verifying your session...</div>
+</div>
+
+<!-- APP CONTENT (hidden until auth verified) -->
+<div id="appContent" style="display:none">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">
+    <svg viewBox="0 0 36 36" fill="none">
+      <rect width="36" height="36" rx="6" fill="rgba(255,255,255,0.12)"/>
+      <path d="M8 10h20M8 18h14M8 26h20" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="26" cy="26" r="4" fill="#E8520A"/>
+    </svg>
+    <span class="header-title">COFORIZATION · Email Tool</span>
+  </div>
+  <div class="header-auth">
+    <span class="auth-dot" id="authDot"></span>
+    <span id="authStatus" style="font-size:12px;color:rgba(255,255,255,0.7)">Not connected</span>
+    <button class="btn-auth" id="authBtn" onclick="toggleAuth()">Connect Outlook</button>
+    <div style="width:1px;height:28px;background:rgba(255,255,255,0.15);margin:0 4px"></div>
+    <div class="header-user">
+      <span class="header-user-name" id="headerUserName">Loading...</span>
+      <span class="header-user-perimeter" id="headerPerimeter">Perimeter: —</span>
+    </div>
+    <button class="btn-signout" onclick="doSignOut()">Sign Out</button>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay" style="display:none">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Processing...</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- MAIN -->
+<div class="container">
+
+  <!-- SETUP PANEL (Outlook/MSAL) -->
+  <div class="setup-panel" id="setupPanel">
+    <div class="setup-title">⚙️ Azure AD Configuration</div>
+    <div class="setup-sub">To send emails through your Outlook account, enter your Azure Active Directory app credentials below. <strong style="color:white">These are saved in your browser only.</strong></div>
+    <div class="setup-grid">
+      <div class="form-field">
+        <label>Client ID (Application ID)</label>
+        <input type="text" id="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+      </div>
+      <div class="form-field">
+        <label>Tenant ID (Directory ID)</label>
+        <input type="text" id="tenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+      </div>
+      <div>
+        <button class="btn-primary" onclick="saveConfig()">Save & Connect</button>
+      </div>
+    </div>
+    <div class="setup-hint">
+      💡 <strong>Setup steps:</strong>
+      1. Go to <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps" target="_blank">Azure Portal → App registrations</a> → New registration<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;2. Name it "COFORIZATION Tool", select "Accounts in this org directory"<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;3. Under Redirect URIs add: <code style="background:rgba(255,255,255,0.15);padding:1px 5px;border-radius:3px">http://localhost</code> (or your website URL)<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;4. Under API permissions, add <strong>Microsoft Graph → Mail.Send</strong> (delegated)<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;5. Copy the Application (client) ID and Directory (tenant) ID here.
+    </div>
+  </div>
+
+  <!-- PERIMETER FILTER BAR -->
+  <div class="perimeter-bar" id="perimeterBar">
+    <label>Filter by Perimeter:</label>
+    <button class="perimeter-pill-btn my-perimeter active" id="myPerimeterBtn" onclick="filterByPerimeter('me')">
+      👤 Mine (<span id="perimeterFilterLabel">—</span>)
+    </button>
+    <button class="perimeter-pill-btn" onclick="filterByPerimeter('all')">🌐 All Perimeters</button>
+    <div id="otherPerimeterBtns" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn-excel-synthesis" onclick="openSynthesisModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Generate Synthesis Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- FILE UPLOAD -->
+  <div class="section">
+    <div class="section-title">Working File</div>
+    <div class="card">
+      <div class="card-body">
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+          <div class="upload-zone-title" id="uploadTitle">Drop your Working File Excel here</div>
+          <div class="upload-zone-sub" id="uploadSub">or click to browse · Accepts .xlsx files</div>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx" style="display:none" onchange="handleFileSelect(event)">
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar" id="statsBar" style="display:none">
+    <div class="stat-card">
+      <div class="stat-label">Total Suppliers</div>
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-sub">unique sector codes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">To Contact</div>
+      <div class="stat-value orange" id="statToContact">0</div>
+      <div class="stat-sub">missing info, not contacted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Awaiting Reply</div>
+      <div class="stat-value yellow" id="statWaiting">0</div>
+      <div class="stat-sub">contacted, not complete</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Complete</div>
+      <div class="stat-value green" id="statComplete">0</div>
+      <div class="stat-sub">all fields filled</div>
+    </div>
+  </div>
+
+  <!-- SUPPLIER TABLE -->
+  <div class="section" id="tableSection" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A4E78" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+        <h2>Supplier Analysis</h2>
+        <span id="tableCount" style="font-size:12px;color:#6B7280;font-weight:400;margin-left:auto"></span>
+      </div>
+      <div class="card-body" style="padding-top:16px">
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" placeholder="Search supplier name or code..." id="searchInput" oninput="applyFilters()">
+            </div>
+            <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+              <option value="all">All statuses</option>
+              <option value="to_contact">To Contact</option>
+              <option value="waiting">Awaiting Reply</option>
+              <option value="complete">Complete</option>
+            </select>
+          </div>
+          <span id="selectionInfo" class="selection-info" style="display:none">0 selected</span>
+          <button class="btn-send-all" id="btnSendSelected" onclick="openBatchSend()" style="display:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+            Send to Selected
+          </button>
+          <button class="btn-send-all" onclick="selectAllVisible()" style="background:var(--gray-700)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg>
+            Select All Visible
+          </button>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="check-col"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this)"></th>
+                <th>Supplier Name</th>
+                <th>Sector Code</th>
+                <th>Parts #</th>
+                <th>Status</th>
+                <th>Days Since Contact</th>
+                <th>Missing Fields</th>
+                <th>Contact</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="supplierTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="paginationBar">
+          <div class="pagination-left" id="paginationInfo"></div>
+          <div class="pagination-btns" id="paginationBtns"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- end .container -->
+
+<!-- EMAIL PREVIEW MODAL -->
+<div class="modal-backdrop" id="emailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📧 Email Preview &amp; Send</h3>
+      <button class="modal-close" onclick="closeModal('emailModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="section">
+        <div class="section-title">Recipients</div>
+        <div class="contact-grid">
+          <div class="contact-field">
+            <label>To (comma-separated)</label>
+            <input type="text" id="emailTo" placeholder="supplier@example.com">
+          </div>
+          <div class="contact-field">
+            <label>CC (optional)</label>
+            <input type="text" id="emailCc" placeholder="cc@stellantis.com">
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Email Preview</div>
+        <div class="email-preview">
+          <div class="email-meta" id="emailMeta"></div>
+          <div class="email-body-preview" id="emailBodyPreview"></div>
+          <div class="attachments-bar" id="attachmentsBar"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('emailModal')">Cancel</button>
+      <button onclick="openOutlookDesktop()" style="background:var(--navy);color:white;border:none;padding:10px 20px;border-radius:6px;font-family:'Lexend',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:7px" id="btnOpenOutlook">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        Open in Outlook App
+      </button>
+      <button class="btn-primary" onclick="sendCurrentEmail()" id="btnSendEmail">Send via Graph API</button>
+    </div>
+  </div>
+</div>
+
+<!-- BATCH SEND MODAL -->
+<div class="modal-backdrop" id="batchModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h3>📤 Batch Send</h3>
+      <button class="modal-close" onclick="closeModal('batchModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#6B7280;margin-bottom:16px">
+        You are about to send emails to <strong id="batchCount">0</strong> suppliers.
+        Each email will be sent individually with the correct CONFIRMATION.xlsx and COFOR template attached.
+      </p>
+      <div class="contact-field" style="margin-bottom:16px">
+        <label>CC for all emails (optional)</label>
+        <input type="text" id="batchCc" placeholder="e.g. kaoutar.benkaddour@external.stellantis.com">
+      </div>
+      <div id="batchList" style="max-height:260px;overflow-y:auto;border:1px solid #E5E9EF;border-radius:6px;padding:10px 14px;font-size:12px;color:#374151;line-height:2"></div>
+      <div class="progress-bar" id="batchProgress" style="display:none;margin-top:16px">
+        <div class="progress-fill" id="batchProgressFill" style="width:0%"></div>
+      </div>
+      <div id="batchProgressText" style="font-size:12px;color:#6B7280;margin-top:8px;text-align:center"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('batchModal')">Cancel</button>
+      <button class="btn-primary" onclick="runBatchSend()" id="btnBatchSend">Send All Emails</button>
+    </div>
+  </div>
+</div>
+
+<!-- SYNTHESIS MODAL -->
+<div class="modal-backdrop" id="synthesisModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <h3>📊 Synthesis Report — My Perimeter</h3>
+      <button class="modal-close" onclick="closeModal('synthesisModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="synthesisContent"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('synthesisModal')">Close</button>
+      <button class="btn-excel-synthesis" onclick="downloadSynthesisExcel()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Excel
+      </button>
+    </div>
+  </div>
+</div>
+
+</div><!-- end #appContent -->
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// CONSTANTS & CONFIG
+// ══════════════════════════════════════════════════════════════
+const ORANGE_COLS = ['Seller COFOR2','Manufacturer COFOR','Manufacturer address','Shipper COFOR2','Shipper address','Location ID2','Location ID address2','Quality contact','Logistic contact'];
+const STATIC_COLS = ['Part Number','Seller Supplier Name','Seller Sector Code','Plant','Plants perimeter','Incoterm'];
+const ALL_TRACK = [...ORANGE_COLS,'Contacted','Info completed','NOTE'];
+const COFOR_TEMPLATE_B64 = "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";
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let msalInstance = null;
+let currentAccount = null;
+let supplierData = [];
+let filteredData = [];
+let selectedSuppliers = new Set();
+let currentModalSupplier = null;
+let rawHeaders = [];
+let currentPage = 1;
+const PAGE_SIZE = 50;
+let activePerimeterFilter = 'me';
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+window.onload = () => {
+  const cid = localStorage.getItem('cofor_clientId') || '';
+  const tid = localStorage.getItem('cofor_tenantId') || '';
+  if (cid) document.getElementById('clientId').value = cid;
+  if (tid) document.getElementById('tenantId').value = tid;
+  if (cid && tid) initMsal(cid, tid);
+};
+
+function initMsal(clientId, tenantId) {
+  try {
+    msalInstance = new msal.PublicClientApplication({
+      auth: { clientId, authority: `https://login.microsoftonline.com/${tenantId}`, redirectUri: window.location.href.split('?')[0].split('#')[0] },
+      cache: { cacheLocation: 'localStorage' }
+    });
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      currentAccount = accounts[0];
+      updateAuthUI(true);
+    }
+  } catch(e) { console.warn('MSAL init error:', e); }
+}
+
+function saveConfig() {
+  const cid = document.getElementById('clientId').value.trim();
+  const tid = document.getElementById('tenantId').value.trim();
+  if (!cid || !tid) { showToast('Please enter both Client ID and Tenant ID', 'error'); return; }
+  localStorage.setItem('cofor_clientId', cid);
+  localStorage.setItem('cofor_tenantId', tid);
+  initMsal(cid, tid);
+  showToast('Configuration saved! Click "Connect Outlook" to sign in.', 'success');
+}
+
+async function toggleAuth() {
+  if (!msalInstance) { showToast('Save configuration first', 'error'); return; }
+  if (currentAccount) {
+    await msalInstance.logoutPopup({ account: currentAccount });
+    currentAccount = null;
+    updateAuthUI(false);
+    return;
+  }
+  try {
+    const result = await msalInstance.loginPopup({ scopes: ['Mail.Send', 'User.Read'] });
+    currentAccount = result.account;
+    updateAuthUI(true);
+    showToast(`Connected as ${currentAccount.username}`, 'success');
+  } catch(e) {
+    if (e.errorCode !== 'user_cancelled') showToast('Authentication failed: ' + e.message, 'error');
+  }
+}
+
+function updateAuthUI(isAuth) {
+  const dot = document.getElementById('authDot');
+  const status = document.getElementById('authStatus');
+  const btn = document.getElementById('authBtn');
+  dot.className = 'auth-dot' + (isAuth ? ' active' : '');
+  status.textContent = isAuth ? currentAccount.username : 'Not connected';
+  btn.textContent = isAuth ? 'Disconnect' : 'Connect Outlook';
+  btn.className = 'btn-auth' + (isAuth ? ' signed-in' : '');
+}
+
+async function getAccessToken() {
+  if (!msalInstance || !currentAccount) throw new Error('Not authenticated. Please connect Outlook first.');
+  try {
+    const result = await msalInstance.acquireTokenSilent({ scopes: ['Mail.Send'], account: currentAccount });
+    return result.accessToken;
+  } catch {
+    const result = await msalInstance.acquireTokenPopup({ scopes: ['Mail.Send'], account: currentAccount });
+    return result.accessToken;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// PERIMETER FILTER
+// ══════════════════════════════════════════════════════════════
+function populatePerimeterFilter() {
+  const container = document.getElementById('otherPerimeterBtns');
+  if (!container || !window.allUsersPerimeters) return;
+  const myPerimeter = window.userProfile?.perimeter;
+  container.innerHTML = '';
+  window.allUsersPerimeters.forEach(u => {
+    if (u.perimeter === myPerimeter) return; // already shown
+    const btn = document.createElement('button');
+    btn.className = 'perimeter-pill-btn';
+    btn.dataset.perimeter = u.perimeter;
+    btn.textContent = `${u.perimeter} (${u.displayName || u.email})`;
+    btn.onclick = () => filterByPerimeter(u.perimeter);
+    container.appendChild(btn);
+  });
+}
+
+function filterByPerimeter(perimeterKey) {
+  activePerimeterFilter = perimeterKey;
+  // Update button states
+  document.querySelectorAll('.perimeter-pill-btn').forEach(b => b.classList.remove('active'));
+  if (perimeterKey === 'me') {
+    document.getElementById('myPerimeterBtn').classList.add('active');
+  } else if (perimeterKey === 'all') {
+    document.querySelectorAll('.perimeter-pill-btn')[1].classList.add('active');
+  } else {
+    document.querySelectorAll(`[data-perimeter="${perimeterKey}"]`).forEach(b => b.classList.add('active'));
+  }
+  applyFilters();
+}
+
+// ══════════════════════════════════════════════════════════════
+// FILE HANDLING
+// ══════════════════════════════════════════════════════════════
+function handleDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag-over'); }
+function handleDragLeave() { document.getElementById('uploadZone').classList.remove('drag-over'); }
+function handleDrop(e) { e.preventDefault(); handleDragLeave(); const f = e.dataTransfer.files[0]; if (f) processFile(f); }
+function handleFileSelect(e) { const f = e.target.files[0]; if (f) processFile(f); }
+
+function processFile(file) {
+  if (!file.name.endsWith('.xlsx')) { showToast('Please upload a .xlsx file', 'error'); return; }
+  showLoading('Parsing Excel file...');
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+      parseWorkingFile(data, file.name);
+      const zone = document.getElementById('uploadZone');
+      zone.classList.add('has-file');
+      zone.classList.remove('drag-over');
+      document.getElementById('uploadTitle').textContent = `✓ ${file.name}`;
+      document.getElementById('uploadSub').textContent = `${supplierData.length} unique suppliers loaded`;
+    } catch(err) {
+      showToast('Error reading file: ' + err.message, 'error');
+    }
+    hideLoading();
+  };
+  reader.readAsBinaryString(file);
+}
+
+function parseWorkingFile(data, filename) {
+  if (!data.length) return;
+  rawHeaders = data[0];
+  const hi = {};
+  rawHeaders.forEach((h, i) => { if (h) hi[h] = i; });
+  
+  const bySupplier = {};
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    if (!row || !row.some(v => v !== null)) continue;
+    const sc = row[hi['Seller Sector Code']];
+    if (!sc) continue;
+    if (!bySupplier[sc]) {
+      bySupplier[sc] = {
+        sectorCode: String(sc),
+        name: row[hi['Seller Supplier Name']] || '',
+        rows: [],
+        contacted: row[hi['Contacted']] || null,
+        infoCompleted: null,
+        note: row[hi['NOTE']] || null,
+        plantsPerimeter: row[hi['Plants perimeter']] || null,
+        firstContactedDate: null,
+        lastEmailDate: null
+      };
+    }
+    bySupplier[sc].rows.push(row);
+    if (!bySupplier[sc].contacted && row[hi['Contacted']]) bySupplier[sc].contacted = row[hi['Contacted']];
+    if (!bySupplier[sc].infoCompleted && row[hi['Info completed']] === 'Complete') bySupplier[sc].infoCompleted = 'Complete';
+  }
+
+  supplierData = Object.values(bySupplier).map(s => {
+    const firstRow = s.rows[0];
+    const filled = {}, missing = [];
+    ORANGE_COLS.forEach(col => {
+      const v = firstRow[hi[col]];
+      if (v !== null && v !== undefined && v !== '' && String(v).trim() !== '') filled[col] = String(v).trim();
+      else missing.push(col);
+    });
+    const qualContact = filled['Quality contact'] || null;
+    const logContact = filled['Logistic contact'] || null;
+    const toEmails = [qualContact, logContact].filter(Boolean).join(', ');
+    let status;
+    if (s.infoCompleted === 'Complete') status = 'complete';
+    else if (s.contacted && String(s.contacted).toLowerCase() === 'yes') status = 'waiting';
+    else status = 'to_contact';
+    return { ...s, filled, missing, toEmails, status, headerIndex: hi };
+  });
+
+  // Merge Firestore data if available
+  if (window.firestoreSupplierData) mergeFirestoreIntoSuppliers();
+
+  window.supplierData = supplierData;
+  filteredData = [...supplierData];
+  renderStats();
+  renderTable();
+  document.getElementById('statsBar').style.display = 'grid';
+  document.getElementById('tableSection').style.display = 'block';
+}
+
+function mergeFirestoreIntoSuppliers() {
+  if (!window.firestoreSupplierData || !supplierData.length) return;
+  supplierData.forEach(s => {
+    const fs = window.firestoreSupplierData[s.sectorCode];
+    if (fs) {
+      if (fs.status) s.status = fs.status;
+      if (fs.contacted) s.contacted = fs.contacted;
+      if (fs.lastContactedAt) s.lastEmailDate = fs.lastContactedAt;
+      if (fs.note) s.note = fs.note;
+    }
+  });
+  renderTable();
+  renderStats();
+}
+
+// ══════════════════════════════════════════════════════════════
+// DAYS SINCE CONTACT
+// ══════════════════════════════════════════════════════════════
+function daysSince(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getDaysSinceContactDisplay(s) {
+  if (s.status === 'complete') return '';
+  const days = daysSince(s.lastEmailDate);
+  if (days === null) {
+    if (s.contacted === 'Yes') return '<span class="late-badge">📧 No date</span>';
+    return '<span style="font-size:11px;color:#9CA3AF">—</span>';
+  }
+  if (days > 7) return `<span class="late-badge">🔴 ${days}d late</span>`;
+  if (days > 3) return `<span style="background:#FFF4E5;color:#B75E00;padding:2px 7px;font-size:10px;border-radius:4px;font-weight:600">🟡 ${days}d</span>`;
+  return `<span style="background:#E6F6EE;color:#137a44;padding:2px 7px;font-size:10px;border-radius:4px;font-weight:600">🟢 ${days}d</span>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// STATS
+// ══════════════════════════════════════════════════════════════
+function renderStats() {
+  const data = filteredData.length > 0 ? filteredData : supplierData;
+  document.getElementById('statTotal').textContent = data.length;
+  document.getElementById('statToContact').textContent = data.filter(s => s.status === 'to_contact').length;
+  document.getElementById('statWaiting').textContent = data.filter(s => s.status === 'waiting').length;
+  document.getElementById('statComplete').textContent = data.filter(s => s.status === 'complete').length;
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLE RENDERING
+// ══════════════════════════════════════════════════════════════
+function applyFilters() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const sf = document.getElementById('statusFilter').value;
+  const myPerimeter = window.userProfile?.perimeter;
+
+  filteredData = supplierData.filter(s => {
+    const matchQ = !q || s.name.toLowerCase().includes(q) || s.sectorCode.toLowerCase().includes(q);
+    const matchS = sf === 'all' || s.status === sf;
+    // Perimeter filter
+    let matchP = true;
+    if (activePerimeterFilter === 'me' && myPerimeter) {
+      // filter by plantsPerimeter field containing myPerimeter
+      const pp = (s.plantsPerimeter || '').toUpperCase();
+      matchP = pp.includes(myPerimeter) || pp === '' || !myPerimeter;
+    } else if (activePerimeterFilter !== 'all' && activePerimeterFilter !== 'me') {
+      const pp = (s.plantsPerimeter || '').toUpperCase();
+      matchP = pp.includes(activePerimeterFilter.toUpperCase());
+    }
+    return matchQ && matchS && matchP;
+  });
+  currentPage = 1;
+  renderStats();
+  renderTable();
+}
+
+function renderTable() {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const pageData = filteredData.slice(start, end);
+  const tbody = document.getElementById('supplierTableBody');
+  tbody.innerHTML = pageData.map((s, i) => {
+    const absIdx = start + i;
+    const statusBadge = s.status === 'complete'
+      ? `<span class="badge badge-green">✓ Complete</span>`
+      : s.status === 'waiting'
+      ? `<span class="badge badge-yellow">⏳ Waiting</span>`
+      : `<span class="badge badge-orange">⚠ To Contact</span>`;
+    const missingHtml = s.missing.length
+      ? s.missing.map(f => `<span class="missing-tag">${shortName(f)}</span>`).join('')
+      : `<span class="badge badge-green" style="font-size:10px">All filled</span>`;
+    const contact = s.toEmails ? `<span style="font-size:11px;color:#6B7280;font-family:'DM Mono',monospace">${s.toEmails.split(',')[0].trim()}</span>` : `<span style="font-size:11px;color:#E8520A">Missing</span>`;
+    const isChecked = selectedSuppliers.has(s.sectorCode);
+    const canSend = s.status !== 'complete';
+    const days = getDaysSinceContactDisplay(s);
+    const isLate = s.status === 'waiting' && daysSince(s.lastEmailDate) > 7;
+    return `<tr class="${isChecked ? 'selected' : ''} ${isLate ? 'late-row' : ''}" onclick="handleRowClick(event, '${esc(s.sectorCode)}')">
+      <td class="check-col" onclick="event.stopPropagation()"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCheck('${esc(s.sectorCode)}', this.checked)"></td>
+      <td style="font-weight:500">${esc(s.name)}</td>
+      <td><code style="font-size:11px;background:#F3F4F6;padding:2px 6px;border-radius:3px">${esc(s.sectorCode)}</code></td>
+      <td style="color:#6B7280">${s.rows.length}</td>
+      <td>${statusBadge}</td>
+      <td>${days}</td>
+      <td><div class="missing-fields">${missingHtml}</div></td>
+      <td>${contact}</td>
+      <td onclick="event.stopPropagation()" style="display:flex;gap:6px;align-items:center">
+        <button class="btn-row" onclick="openEmailPreview('${esc(s.sectorCode)}')">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          Email
+        </button>
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="9"><div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/></svg><p>No suppliers match the current filters.</p></div></td></tr>`;
+  
+  const total = filteredData.length;
+  document.getElementById('tableCount').textContent = `${total} supplier${total !== 1 ? 's' : ''}`;
+  renderPagination(total);
+}
+
+function renderPagination(total) {
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  document.getElementById('paginationInfo').textContent = `Showing ${Math.min((currentPage-1)*PAGE_SIZE+1, total)}-${Math.min(currentPage*PAGE_SIZE, total)} of ${total}`;
+  const btns = document.getElementById('paginationBtns');
+  let html = `<button class="page-btn" onclick="gotoPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  for (let p = Math.max(1, currentPage-2); p <= Math.min(totalPages, currentPage+2); p++) {
+    html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="gotoPage(${p})">${p}</button>`;
+  }
+  html += `<button class="page-btn" onclick="gotoPage(${currentPage+1})" ${currentPage===totalPages||totalPages===0?'disabled':''}>›</button>`;
+  btns.innerHTML = html;
+}
+
+function gotoPage(p) {
+  const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  renderTable();
+}
+
+function shortName(col) {
+  const map = {
+    'Seller COFOR2': 'Seller COFOR', 'Manufacturer COFOR': 'Mfr COFOR', 'Manufacturer address': 'Mfr Addr',
+    'Shipper COFOR2': 'Shipper COFOR', 'Shipper address': 'Shipper Addr', 'Location ID2': 'Loc ID',
+    'Location ID address2': 'Loc Addr', 'Quality contact': 'Quality', 'Logistic contact': 'Logistic'
+  };
+  return map[col] || col;
+}
+
+function esc(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toggleCheck(sc, checked) {
+  if (checked) selectedSuppliers.add(sc);
+  else selectedSuppliers.delete(sc);
+  updateSelectionUI();
+  renderTable();
+}
+function toggleCheckAll(cb) {
+  const visible = filteredData.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+  visible.forEach(s => { if (cb.checked) selectedSuppliers.add(s.sectorCode); else selectedSuppliers.delete(s.sectorCode); });
+  updateSelectionUI();
+  renderTable();
+}
+function selectAllVisible() {
+  filteredData.forEach(s => selectedSuppliers.add(s.sectorCode));
+  updateSelectionUI();
+  renderTable();
+}
+function updateSelectionUI() {
+  const n = selectedSuppliers.size;
+  const info = document.getElementById('selectionInfo');
+  const btn = document.getElementById('btnSendSelected');
+  if (n > 0) {
+    info.style.display = 'inline-block';
+    info.textContent = `${n} supplier${n>1?'s':''} selected`;
+    btn.style.display = 'flex';
+    btn.textContent = `Send to ${n} Selected`;
+  } else {
+    info.style.display = 'none';
+    btn.style.display = 'none';
+  }
+}
+function handleRowClick(e, sc) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+  openEmailPreview(sc);
+}
+
+// ══════════════════════════════════════════════════════════════
+// OPEN IN DESKTOP OUTLOOK (mailto fallback)
+// ══════════════════════════════════════════════════════════════
+function openOutlookDesktop() {
+  if (!currentModalSupplier) return;
+  const to = document.getElementById('emailTo').value.trim();
+  const cc = document.getElementById('emailCc').value.trim();
+  const subject = `Stellantis suppliers' COFORIZATION - Request for Confirmation of COFOR Codes - ${currentModalSupplier.name} - ${currentModalSupplier.sectorCode}`;
+  const body = `Dear Supplier,\r\nPlease confirm the COFOR codes for ${currentModalSupplier.name} (${currentModalSupplier.sectorCode}).\r\n\r\nBest regards,\r\nSupplier OnBoarding team`;
+  let mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  if (cc) mailto += `&cc=${encodeURIComponent(cc)}`;
+  // This triggers the desktop mail client (Outlook, Thunderbird, etc.)
+  window.location.href = mailto;
+  showToast('Opening your default mail app (Outlook)...', 'info');
+}
+
+// ══════════════════════════════════════════════════════════════
+// EMAIL GENERATION
+// ══════════════════════════════════════════════════════════════
+function generateEmailBody(supplier) {
+  const filename = `${supplier.sectorCode} ${supplier.name.replace(/[^a-zA-Z0-9 ]/g,'').trim()} CONFIRMATION.xlsx`;
+  const tableRows = supplier.rows.map(row => {
+    const hi = supplier.headerIndex;
+    const pn = row[hi['Part Number']] || '';
+    const sn = row[hi['Seller Supplier Name']] || '';
+    const sc = row[hi['Seller Sector Code']] || '';
+    const pl = row[hi['Plant']] || '';
+    const pp = row[hi['Plants perimeter']] || '';
+    const ic = row[hi['Incoterm']] || '';
+    return `<tr>
+      <td class="etd">${esc(pn)}</td>
+      <td class="etd">${esc(sn)}</td>
+      <td class="etd">${esc(sc)}</td>
+      <td class="etd">${esc(pl)}</td>
+      <td class="etd">${esc(pp)}</td>
+      <td class="etd">${esc(ic)}</td>
+    </tr>`;
+  }).join('');
+  
+  return `<div style="font-family:Calibri,Helvetica,sans-serif;font-size:12pt;color:black;line-height:1.6">
+<p>Dear Supplier,</p>
+<p>With the target of converging towards common processes, increasing overall efficiency, and expanding collaboration opportunities, Stellantis is proceeding with the harmonized codification of all suppliers according to the COFOR logic.</p>
+<p>As a reminder, this codification requires three distinct codes:</p>
+<ul>
+<li><b>Seller&nbsp;COFOR</b>&nbsp;– identifying the supplier's legal entity</li>
+<li><b>Manufacturer COFOR</b>&nbsp;– identifying the production site</li>
+<li><b>Shipper COFOR</b>&nbsp;– identifying the shipping location</li>
+</ul>
+<p>Some checks, updates, and applications of this logic have already been performed in the past for certain suppliers as part of previous projects. Other suppliers, however, are being contacted for the first time.</p>
+<ol>
+<li>
+<p>We kindly ask you to <b>review and confirm the COFOR codes listed below and in the attached file <i>${esc(filename)}</i></b>. Please, also indicate and confirm the following information:</p>
+</li>
+</ol>
+<table style="width:540pt;border-collapse:collapse;border-spacing:0" border="0" cellpadding="0" cellspacing="0">
+<tbody><tr>
+<td style="width:70pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Part Number</span></td>
+<td style="width:130pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Seller Supplier Name</span></td>
+<td style="width:90pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Seller Sector Code</span></td>
+<td style="width:60pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Plant</span></td>
+<td style="width:100pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Plants perimeter</span></td>
+<td style="width:90pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Incoterm</span></td>
+</tr>
+${tableRows}
+</tbody></table>
+<ul>
+<li>Location ID (xFCA shipping location code)</li>
+<li>Logistic and Quality contacts (email address)</li>
+</ul>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;If your codes are missing, please indicate the correct ones.</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;2- If you do not have this information, please complete the attached form <b>"COFOR Creation request Template"</b> with the required details so that a new COFOR code can be created.</p>
+<p>We kindly request that the required data be shared <b>within 5 days</b> from receipt of this email.</p>
+<p>Should you need any additional information or assistance, please do not hesitate to contact us. We remain at your disposal.</p>
+<p>Best regards,<br>Thank you<br><b>Supplier OnBoarding team</b></p>
+</div>`;
+}
+
+
+function generateConfirmationXlsx(supplier) {
+  const wb = XLSX.utils.book_new();
+  const hi = supplier.headerIndex;
+  const headers = ['Part Number','Seller Supplier Name','Seller Sector Code','Plant','Plants perimeter','Incoterm',
+    'Seller COFOR2','Manufacturer COFOR','Manufacturer address','Shipper COFOR2','Shipper address',
+    'Location ID2','Location ID address2','Quality contact','Logistic contact'];
+  const rows = [headers];
+  supplier.rows.forEach(row => {
+    rows.push(headers.map(h => {
+      const v = row[hi[h]];
+      if (v === null || v === undefined || String(v).trim() === '') return null;
+      // Don't include formula strings
+      if (typeof v === 'string' && v.startsWith('=')) return null;
+      return v;
+    }));
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  // Style header row
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const cell = ws[XLSX.utils.encode_cell({r:0, c})];
+    if (cell) {
+      cell.s = { font: { bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '1A4E78' } }, alignment: { horizontal: 'center' } };
+    }
+  }
+  ws['!cols'] = headers.map(() => ({ wch: 22 }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Feuil3');
+  return XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+}
+
+// ══════════════════════════════════════════════════════════════
+// EMAIL MODAL
+// ══════════════════════════════════════════════════════════════
+function openEmailPreview(sc) {
+  const supplier = supplierData.find(s => s.sectorCode === sc);
+  if (!supplier) return;
+  currentModalSupplier = supplier;
+  const filename = `${supplier.sectorCode} ${supplier.name.replace(/[^a-zA-Z0-9 ]/g,'').trim()} CONFIRMATION.xlsx`;
+  const subject = `Stellantis suppliers' COFORIZATION - Request for Confirmation of COFOR Codes - ${supplier.name} - ${supplier.sectorCode}`;
+  document.getElementById('emailTo').value = supplier.toEmails || '';
+  document.getElementById('emailCc').value = localStorage.getItem('cofor_defaultCc') || '';
+  document.getElementById('emailMeta').innerHTML = `
+    <strong>From:</strong> Supplier OnBoarding (your Outlook)<br>
+    <strong>To:</strong> ${esc(supplier.toEmails || '⚠ Please fill in recipient emails')}<br>
+    <strong>Subj:</strong> ${esc(subject)}`;
+  document.getElementById('emailBodyPreview').innerHTML = generateEmailBody(supplier);
+  document.getElementById('attachmentsBar').innerHTML = `
+    <span style="font-size:11px;color:#6B7280;font-weight:500">📎 Attachments:</span>
+    <span class="attach-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> ${esc(filename)}</span>
+    <span class="attach-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> COFOR_Creation_request_template.xlsx</span>`;
+  openModal('emailModal');
+}
+
+async function sendCurrentEmail() {
+  if (!currentModalSupplier) return;
+  const to = document.getElementById('emailTo').value.trim();
+  const cc = document.getElementById('emailCc').value.trim();
+  if (!to) { showToast('Please enter at least one recipient email', 'error'); return; }
+  const btn = document.getElementById('btnSendEmail');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  try {
+    await sendEmail(currentModalSupplier, to, cc);
+    closeModal('emailModal');
+    currentModalSupplier.contacted = 'Yes';
+    currentModalSupplier.lastEmailDate = new Date().toISOString();
+    if (currentModalSupplier.status === 'to_contact') currentModalSupplier.status = 'waiting';
+    // Save to Firestore
+    if (window.logEmailSentToFirestore) await window.logEmailSentToFirestore(currentModalSupplier);
+    if (window.saveSupplierToFirestore) await window.saveSupplierToFirestore(currentModalSupplier);
+    renderTable();
+    renderStats();
+    showToast(`Email sent to ${to.split(',')[0]}!`, 'success');
+    if (cc) localStorage.setItem('cofor_defaultCc', cc);
+  } catch(e) {
+    showToast('Send failed: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = 'Send via Graph API';
+}
+
+async function sendEmail(supplier, toStr, ccStr) {
+  const token = await getAccessToken();
+  const filename = `${supplier.sectorCode} ${supplier.name.replace(/[^a-zA-Z0-9 ]/g,'').trim()} CONFIRMATION.xlsx`;
+  const subject = `Stellantis suppliers' COFORIZATION - Request for Confirmation of COFOR Codes - ${supplier.name} - ${supplier.sectorCode}`;
+  const htmlBody = generateEmailBody(supplier);
+  const confirmB64 = generateConfirmationXlsx(supplier);
+  const toList = toStr.split(',').map(e => ({ emailAddress: { address: e.trim() } })).filter(e => e.emailAddress.address);
+  const ccList = ccStr ? ccStr.split(',').map(e => ({ emailAddress: { address: e.trim() } })).filter(e => e.emailAddress.address) : [];
+  const body = {
+    message: {
+      subject,
+      body: { contentType: 'HTML', content: htmlBody },
+      toRecipients: toList,
+      ccRecipients: ccList,
+      attachments: [
+        { '@odata.type': '#microsoft.graph.fileAttachment', name: filename, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', contentBytes: confirmB64 },
+        { '@odata.type': '#microsoft.graph.fileAttachment', name: 'COFOR_Creation_request_template.xlsx', contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', contentBytes: COFOR_TEMPLATE_B64 }
+      ]
+    },
+    saveToSentItems: 'true'
+  };
+  const res = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: { message: 'Unknown error' } }));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// BATCH SEND
+// ══════════════════════════════════════════════════════════════
+function openBatchSend() {
+  const selected = supplierData.filter(s => selectedSuppliers.has(s.sectorCode));
+  document.getElementById('batchCount').textContent = selected.length;
+  document.getElementById('batchList').innerHTML = selected.map(s => {
+    const to = s.toEmails || '<span style="color:#E8520A">⚠ No contacts</span>';
+    return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f3f4f6">
+      <span><b>${esc(s.name)}</b> <code style="font-size:10px;color:#9CA3AF">${esc(s.sectorCode)}</code></span>
+      <span style="font-size:11px;color:#6B7280">${to}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('batchProgress').style.display = 'none';
+  document.getElementById('batchProgressText').textContent = '';
+  document.getElementById('btnBatchSend').disabled = false;
+  document.getElementById('btnBatchSend').textContent = 'Send All Emails';
+  openModal('batchModal');
+}
+
+async function runBatchSend() {
+  const selected = supplierData.filter(s => selectedSuppliers.has(s.sectorCode));
+  const cc = document.getElementById('batchCc').value.trim();
+  if (!selected.length) return;
+  const missingContacts = selected.filter(s => !s.toEmails);
+  if (missingContacts.length > 0 && !confirm(`${missingContacts.length} supplier(s) have no contact emails and will be skipped. Continue?`)) return;
+  const sendable = selected.filter(s => s.toEmails);
+  if (!sendable.length) { showToast('No suppliers with contact emails', 'error'); return; }
+  const btn = document.getElementById('btnBatchSend');
+  btn.disabled = true;
+  document.getElementById('batchProgress').style.display = 'block';
+  let sent = 0, failed = 0;
+  for (const supplier of sendable) {
+    document.getElementById('batchProgressText').textContent = `Sending ${sent+1}/${sendable.length}: ${supplier.name}...`;
+    document.getElementById('batchProgressFill').style.width = `${(sent/sendable.length)*100}%`;
+    try {
+      await sendEmail(supplier, supplier.toEmails, cc);
+      supplier.contacted = 'Yes';
+      supplier.lastEmailDate = new Date().toISOString();
+      if (supplier.status === 'to_contact') supplier.status = 'waiting';
+      if (window.logEmailSentToFirestore) await window.logEmailSentToFirestore(supplier);
+      sent++;
+    } catch(e) {
+      failed++;
+      console.error(`Failed ${supplier.sectorCode}:`, e);
+    }
+    await new Promise(r => setTimeout(r, 800));
+  }
+  document.getElementById('batchProgressFill').style.width = '100%';
+  document.getElementById('batchProgressText').textContent = `Done! ${sent} sent, ${failed} failed.`;
+  btn.textContent = 'Complete';
+  selectedSuppliers.clear();
+  renderTable();
+  renderStats();
+  setTimeout(() => { closeModal('batchModal'); showToast(`Batch complete: ${sent} emails sent`, 'success'); }, 1500);
+}
+
+// ══════════════════════════════════════════════════════════════
+// SYNTHESIS EXCEL REPORT
+// ══════════════════════════════════════════════════════════════
+function openSynthesisModal() {
+  if (!supplierData.length) { showToast('Upload a Working File first', 'error'); return; }
+  const myPerimeter = window.userProfile?.perimeter || 'ALL';
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('fr-FR');
+
+  // Use filteredData for the perimeter in view
+  const data = filteredData.length > 0 ? filteredData : supplierData;
+  const total = data.length;
+  const complete = data.filter(s => s.status === 'complete').length;
+  const waiting = data.filter(s => s.status === 'waiting').length;
+  const toContact = data.filter(s => s.status === 'to_contact').length;
+  const completePct = total > 0 ? Math.round((complete / total) * 100) : 0;
+  const lateSuppliers = data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7);
+  const avgDays = (() => {
+    const contacted = data.filter(s => s.lastEmailDate);
+    if (!contacted.length) return null;
+    const sum = contacted.reduce((a, s) => a + (daysSince(s.lastEmailDate) || 0), 0);
+    return Math.round(sum / contacted.length);
+  })();
+
+  document.getElementById('synthesisContent').innerHTML = `
+    <div class="synthesis-section">
+      <div class="section-title">📋 Overview — Perimeter: ${myPerimeter} · ${dateStr}</div>
+      <div class="synthesis-kpi-grid">
+        <div class="synthesis-kpi"><div class="val">${total}</div><div class="lbl">Total Suppliers</div></div>
+        <div class="synthesis-kpi"><div class="val" style="color:#137a44">${completePct}%</div><div class="lbl">Completion Rate</div></div>
+        <div class="synthesis-kpi"><div class="val" style="color:#C0392B">${lateSuppliers.length}</div><div class="lbl">Late (>7 days)</div></div>
+        <div class="synthesis-kpi"><div class="val" style="color:#B75E00">${toContact}</div><div class="lbl">Still To Contact</div></div>
+        <div class="synthesis-kpi"><div class="val" style="color:#2B6DA8">${waiting}</div><div class="lbl">Awaiting Reply</div></div>
+        <div class="synthesis-kpi"><div class="val" style="color:#137a44">${complete}</div><div class="lbl">Completed</div></div>
+      </div>
+    </div>
+    <div class="synthesis-section">
+      <div class="section-title">🔴 Late Suppliers (No response > 7 days)</div>
+      ${lateSuppliers.length === 0 ? '<p style="color:#137a44;font-size:13px">✓ No late suppliers!</p>' : `
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr>
+          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Supplier</th>
+          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Code</th>
+          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Days Late</th>
+          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Missing Fields</th>
+          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Next Step</th>
+        </tr></thead>
+        <tbody>
+          ${lateSuppliers.map(s => `<tr style="border-bottom:1px solid #F3F4F6">
+            <td style="padding:8px;font-weight:500">${esc(s.name)}</td>
+            <td style="padding:8px;font-family:monospace;font-size:11px">${esc(s.sectorCode)}</td>
+            <td style="padding:8px;color:#C0392B;font-weight:600">${daysSince(s.lastEmailDate)}d</td>
+            <td style="padding:8px">${s.missing.slice(0,3).join(', ')}${s.missing.length > 3 ? ` +${s.missing.length-3} more` : ''}</td>
+            <td style="padding:8px;color:#2B6DA8">Send follow-up email</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`}
+    </div>
+    <div class="synthesis-section">
+      <div class="section-title">📌 What Still Needs To Be Done</div>
+      <div style="font-size:13px;line-height:2;color:#374151">
+        ${toContact > 0 ? `<div>📧 <strong>${toContact} suppliers</strong> still need to be contacted for the first time.</div>` : ''}
+        ${waiting > 0 ? `<div>⏳ <strong>${waiting} suppliers</strong> have been contacted and are awaiting their reply.</div>` : ''}
+        ${lateSuppliers.length > 0 ? `<div>🔴 <strong>${lateSuppliers.length} suppliers</strong> have not replied in over 7 days — follow-up required.</div>` : ''}
+        ${complete === total ? '<div style="color:#137a44">✅ All suppliers are complete!</div>' : ''}
+      </div>
+    </div>
+  `;
+  openModal('synthesisModal');
+}
+
+function downloadSynthesisExcel() {
+  if (!supplierData.length) return;
+  const data = filteredData.length > 0 ? filteredData : supplierData;
+  const myPerimeter = window.userProfile?.perimeter || 'ALL';
+  const wb = XLSX.utils.book_new();
+
+  // Summary sheet
+  const summaryData = [
+    ['COFORIZATION Synthesis Report'],
+    [`Perimeter: ${myPerimeter}`],
+    [`Generated: ${new Date().toLocaleString('fr-FR')}`],
+    [],
+    ['Metric', 'Value'],
+    ['Total Suppliers', data.length],
+    ['Complete', data.filter(s => s.status === 'complete').length],
+    ['Awaiting Reply', data.filter(s => s.status === 'waiting').length],
+    ['To Contact', data.filter(s => s.status === 'to_contact').length],
+    ['Completion Rate (%)', data.length > 0 ? Math.round((data.filter(s=>s.status==='complete').length / data.length) * 100) : 0],
+    ['Late Suppliers (>7d)', data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7).length],
+    [],
+    ['Next Steps'],
+    ...(() => {
+      const steps = [];
+      const toC = data.filter(s => s.status === 'to_contact').length;
+      const wait = data.filter(s => s.status === 'waiting').length;
+      const late = data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7).length;
+      if (toC > 0) steps.push([`Contact ${toC} suppliers for the first time`]);
+      if (wait > 0) steps.push([`Follow up with ${wait} suppliers awaiting reply`]);
+      if (late > 0) steps.push([`URGENT: Send follow-up to ${late} suppliers (no reply >7 days)`]);
+      return steps.length ? steps : [['All tasks complete!']];
+    })()
+  ];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+  // Detail sheet
+  const headers = ['Supplier Name','Sector Code','Status','Parts #','Contacted','Days Since Contact','Missing Fields Count','Missing Fields','Plants Perimeter','Last Updated','Notes','Next Step'];
+  const rows = [headers, ...data.map(s => {
+    const days = daysSince(s.lastEmailDate);
+    let nextStep = '';
+    if (s.status === 'complete') nextStep = 'Done ✓';
+    else if (s.status === 'to_contact') nextStep = 'Send initial email';
+    else if (days !== null && days > 7) nextStep = "URGENT: Follow up (" + days + "d no reply)";
+    else if (s.status === 'waiting') nextStep = 'Wait for reply';
+    return [
+      s.name, s.sectorCode, s.status, s.rows.length,
+      s.contacted || 'No',
+      days !== null ? days : 'N/A',
+      s.missing.length, s.missing.join('; '),
+      s.plantsPerimeter || '',
+      s.lastEmailDate || '',
+      s.note || '',
+      nextStep
+    ];
+  })];
+  const wsDetail = XLSX.utils.aoa_to_sheet(rows);
+  wsDetail['!cols'] = headers.map((h, i) => ({ wch: [30,14,12,8,10,14,16,50,16,18,30,30][i] || 15 }));
+  XLSX.utils.book_append_sheet(wb, wsDetail, 'Supplier Detail');
+
+  // Late suppliers sheet
+  const lateData = data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7);
+  if (lateData.length > 0) {
+    const lateHeaders = ['Supplier Name','Sector Code','Days Late','Missing Fields','Last Contact Date','Next Step'];
+    const lateRows = [lateHeaders, ...lateData.map(s => [
+      s.name, s.sectorCode, daysSince(s.lastEmailDate),
+      s.missing.join('; '), s.lastEmailDate || '', 'Send follow-up email URGENTLY'
+    ])];
+    const wsLate = XLSX.utils.aoa_to_sheet(lateRows);
+    XLSX.utils.book_append_sheet(wb, wsLate, '🔴 Late Suppliers');
+  }
+
+  XLSX.writeFile(wb, `COFORIZATION_Synthesis_${myPerimeter}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Synthesis Excel downloaded!', 'success');
+}
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function showLoading(msg) { document.getElementById('loadingText').textContent = msg; document.getElementById('loadingOverlay').style.display = 'flex'; }
+function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
+function showToast(msg, type = 'info') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${type==='success'?'<path d="M20 6 9 17l-5-5"/>':(type==='error'?'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>':'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>')}</svg> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100px)'; t.style.transition = 'all 0.3s'; setTimeout(() => t.remove(), 300); }, 4000);
+}
+
+// Close modal on backdrop click
+document.querySelectorAll('.modal-backdrop').forEach(b => {
+  b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
