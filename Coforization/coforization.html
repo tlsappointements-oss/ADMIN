@@ -472,7 +472,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 
   <!-- PERIMETER FILTER BAR -->
   <div class="perimeter-bar" id="perimeterBar">
-    <label>Filter by Perimeter:</label>
+    <label title="Each pill = one buyer from your Excel file. Click to filter the table to that person's suppliers.">👤 Filter by Owner / Buyer:</label>
     <button class="perimeter-pill-btn active" id="allPerimeterBtn" onclick="filterByPerimeter('all')">🌐 All</button>
     <div id="otherPerimeterBtns" style="display:flex;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:#9CA3AF;padding:5px 0">Upload an Excel file to see perimeters</span>
@@ -570,6 +570,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
                 <th>Status</th>
                 <th>Days Since Contact</th>
                 <th>Missing Fields</th>
+                <th>Owner / Buyer</th>
                 <th>Contact</th>
                 <th>Actions</th>
               </tr>
@@ -783,25 +784,32 @@ async function getAccessToken() {
 function populatePerimeterFilter() {
   const container = document.getElementById('otherPerimeterBtns');
   if (!container) return;
-  // Gather unique perimeter values directly from Excel "Plants perimeter" column
-  const allPerimeters = new Set();
+
+  // Build perimeter pills from the Buyer column (each buyer = one person's perimeter)
+  const buyerCount = {};
   (supplierData || []).forEach(s => {
-    const pp = (s.plantsPerimeter || '').trim();
-    if (pp) {
-      // Handle values like "PARIS / LYON" or "P1, P2"
-      pp.split(/[,\/;|]+/).forEach(p => {
-        const clean = p.trim();
-        if (clean) allPerimeters.add(clean);
-      });
+    const b = (s.buyer || '').trim();
+    if (b && !b.startsWith('=')) {
+      buyerCount[b] = (buyerCount[b] || 0) + 1;
     }
   });
+
   container.innerHTML = '';
-  [...allPerimeters].sort().forEach(p => {
+  const buyers = Object.keys(buyerCount).sort();
+
+  if (!buyers.length) {
+    container.innerHTML = '<span style="font-size:12px;color:#9CA3AF;padding:5px 0">Upload an Excel file to see perimeters</span>';
+    return;
+  }
+
+  buyers.forEach(buyer => {
+    const count = buyerCount[buyer];
     const btn = document.createElement('button');
     btn.className = 'perimeter-pill-btn';
-    btn.dataset.perimeter = p;
-    btn.textContent = p;
-    btn.onclick = () => filterByPerimeter(p);
+    btn.dataset.perimeter = buyer;
+    btn.title = 'Filter to ' + buyer + ' (' + count + ' suppliers)';
+    btn.innerHTML = buyer + ' <span style="font-size:10px;opacity:0.55;margin-left:2px">(' + count + ')</span>';
+    btn.onclick = () => filterByPerimeter(buyer);
     container.appendChild(btn);
   });
 }
@@ -869,6 +877,7 @@ function parseWorkingFile(data, filename) {
         infoCompleted: null,
         note: row[hi['NOTE']] || null,
         plantsPerimeter: row[hi['Plants perimeter']] || null,
+        buyer: row[hi['Buyer']] || null,
         firstContactedDate: null,
         lastEmailDate: null
       };
@@ -968,13 +977,10 @@ function applyFilters() {
   filteredData = supplierData.filter(s => {
     const matchQ = !q || s.name.toLowerCase().includes(q) || s.sectorCode.toLowerCase().includes(q);
     const matchS = sf === 'all' || s.status === sf;
-    // Perimeter filter — match against Plants perimeter column from Excel
+    // Perimeter filter — match against Buyer column from Excel
     let matchP = true;
     if (activePerimeterFilter !== 'all') {
-      const pp = (s.plantsPerimeter || '');
-      // Split multi-value cells and check if any part matches
-      const parts = pp.split(/[,\/;|]+/).map(p => p.trim().toUpperCase());
-      matchP = parts.some(p => p === activePerimeterFilter.toUpperCase());
+      matchP = (s.buyer || '') === activePerimeterFilter;
     }
     return matchQ && matchS && matchP;
   });
@@ -999,6 +1005,9 @@ function renderTable() {
       ? s.missing.map(f => `<span class="missing-tag">${shortName(f)}</span>`).join('')
       : `<span class="badge badge-green" style="font-size:10px">All filled</span>`;
     const contact = s.toEmails ? `<span style="font-size:11px;color:#6B7280;font-family:'DM Mono',monospace">${s.toEmails.split(',')[0].trim()}</span>` : `<span style="font-size:11px;color:#E8520A">Missing</span>`;
+    const buyerCell = s.buyer && !s.buyer.startsWith('=')
+      ? `<span style="font-size:11px;color:#374151;font-weight:500">${esc(s.buyer)}</span>`
+      : `<span style="font-size:11px;color:#9CA3AF">—</span>`;
     const isChecked = selectedSuppliers.has(s.sectorCode);
     const canSend = s.status !== 'complete';
     const days = getDaysSinceContactDisplay(s);
@@ -1011,6 +1020,7 @@ function renderTable() {
       <td>${statusBadge}</td>
       <td>${days}</td>
       <td><div class="missing-fields">${missingHtml}</div></td>
+      <td>${buyerCell}</td>
       <td>${contact}</td>
       <td onclick="event.stopPropagation()" style="display:flex;gap:6px;align-items:center">
         <button class="btn-row" onclick="openEmailPreview('${esc(s.sectorCode)}')">
@@ -1019,7 +1029,7 @@ function renderTable() {
         </button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="9"><div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/></svg><p>No suppliers match the current filters.</p></div></td></tr>`;
+  }).join('') || `<tr><td colspan="10"><div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/></svg><p>No suppliers match the current filters.</p></div></td></tr>`;
   
   const total = filteredData.length;
   document.getElementById('tableCount').textContent = `${total} supplier${total !== 1 ? 's' : ''}`;
@@ -1103,100 +1113,84 @@ function openOutlookDesktop() {
   if (!to) { showToast('Please enter at least one recipient email', 'error'); return; }
 
   const supplier = currentModalSupplier;
-  const filename = `${supplier.sectorCode} ${supplier.name.replace(/[^a-zA-Z0-9 ]/g,'').trim()} CONFIRMATION.xlsx`;
-  const subject = `Stellantis suppliers' COFORIZATION - Request for Confirmation of COFOR Codes - ${supplier.name} - ${supplier.sectorCode}`;
+  const filename = supplier.sectorCode + ' ' + supplier.name.replace(/[^a-zA-Z0-9 ]/g,'').trim() + ' CONFIRMATION.xlsx';
+  const subject = "Stellantis suppliers' COFORIZATION - Request for Confirmation of COFOR Codes - " + supplier.name + " - " + supplier.sectorCode;
   const htmlBody = generateEmailBody(supplier);
   const confirmB64 = generateConfirmationXlsx(supplier);
 
-  // Build a RFC 2822 MIME multipart .eml file
-  const boundary = '----=_Part_' + Math.random().toString(36).substr(2, 12);
-  const boundary2 = '----=_Part_' + Math.random().toString(36).substr(2, 12);
+  // RFC 2822 requires CRLF line endings everywhere
+  const CRLF = '\r\n';
 
+  // Wrap base64 data at exactly 76 chars per line (RFC 2045 requirement)
+  function wrapB64(b64str) {
+    return (b64str.match(/.{1,76}/g) || [b64str]).join(CRLF);
+  }
+
+  // UTF-8 → base64 for the HTML body
+  const htmlB64 = wrapB64(btoa(unescape(encodeURIComponent(htmlBody))));
+
+  const mixedBnd  = 'MixedBoundary' + Date.now() + 'X';
+  const altBnd    = 'AltBoundary'   + Date.now() + 'Y';
+
+  // Build EML using explicit string concatenation — NO template literals spanning lines
+  // (template literals embed literal LF, not CRLF, which breaks RFC 2822 parsers)
   let eml = '';
-  eml += `To: ${to}
-`;
-  if (cc) eml += `Cc: ${cc}
-`;
-  eml += `Subject: ${subject}
-`;
-  eml += `MIME-Version: 1.0
-`;
-  eml += `Content-Type: multipart/mixed; boundary="${boundary}"
-`;
-  eml += `X-Unsent: 1
-`;  // tells Outlook to open as unsent draft
-  eml += `
-`;
+  eml += 'To: ' + to + CRLF;
+  if (cc) eml += 'Cc: ' + cc + CRLF;
+  eml += 'Subject: ' + subject + CRLF;
+  eml += 'MIME-Version: 1.0' + CRLF;
+  eml += 'Content-Type: multipart/mixed; boundary="' + mixedBnd + '"' + CRLF;
+  eml += 'X-Unsent: 1' + CRLF;              // tells Outlook to open as new unsent draft
+  eml += CRLF;                               // blank line = end of headers
 
-  // Part 1: HTML body
-  eml += `--${boundary}
-`;
-  eml += `Content-Type: multipart/alternative; boundary="${boundary2}"
-`;
-  eml += `
-`;
-  eml += `--${boundary2}
-`;
-  eml += `Content-Type: text/html; charset="utf-8"
-`;
-  eml += `Content-Transfer-Encoding: base64
-`;
-  eml += `
-`;
-  // Base64 encode the HTML body in 76-char lines (RFC 2045)
-  const htmlB64 = btoa(unescape(encodeURIComponent(htmlBody)));
-  eml += htmlB64.match(/.{1,76}/g).join('
-');
-  eml += `
-`;
-  eml += `--${boundary2}--
-`;
+  // ── Part 1: HTML body wrapped in multipart/alternative ──
+  eml += '--' + mixedBnd + CRLF;
+  eml += 'Content-Type: multipart/alternative; boundary="' + altBnd + '"' + CRLF;
+  eml += CRLF;
 
-  // Part 2: CONFIRMATION xlsx attachment
-  eml += `--${boundary}
-`;
-  eml += `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; name="${filename}"
-`;
-  eml += `Content-Transfer-Encoding: base64
-`;
-  eml += `Content-Disposition: attachment; filename="${filename}"
-`;
-  eml += `
-`;
-  eml += confirmB64.match(/.{1,76}/g).join('
-');
-  eml += `
-`;
+  eml += '--' + altBnd + CRLF;
+  eml += 'Content-Type: text/html; charset="utf-8"' + CRLF;
+  eml += 'Content-Transfer-Encoding: base64' + CRLF;
+  eml += CRLF;
+  eml += htmlB64 + CRLF;
+  eml += CRLF;
+  eml += '--' + altBnd + '--' + CRLF;
+  eml += CRLF;
 
-  // Part 3: COFOR template attachment
-  eml += `--${boundary}
-`;
-  eml += `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; name="COFOR_Creation_request_template.xlsx"
-`;
-  eml += `Content-Transfer-Encoding: base64
-`;
-  eml += `Content-Disposition: attachment; filename="COFOR_Creation_request_template.xlsx"
-`;
-  eml += `
-`;
-  eml += COFOR_TEMPLATE_B64.match(/.{1,76}/g).join('
-');
-  eml += `
-`;
+  // ── Part 2: CONFIRMATION xlsx attachment ──
+  eml += '--' + mixedBnd + CRLF;
+  eml += 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;' + CRLF;
+  eml += '\tname="' + filename + '"' + CRLF;
+  eml += 'Content-Transfer-Encoding: base64' + CRLF;
+  eml += 'Content-Disposition: attachment;' + CRLF;
+  eml += '\tfilename="' + filename + '"' + CRLF;
+  eml += CRLF;
+  eml += wrapB64(confirmB64) + CRLF;
+  eml += CRLF;
 
-  eml += `--${boundary}--
-`;
+  // ── Part 3: COFOR Creation template attachment ──
+  eml += '--' + mixedBnd + CRLF;
+  eml += 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;' + CRLF;
+  eml += '\tname="COFOR_Creation_request_template.xlsx"' + CRLF;
+  eml += 'Content-Transfer-Encoding: base64' + CRLF;
+  eml += 'Content-Disposition: attachment;' + CRLF;
+  eml += '\tfilename="COFOR_Creation_request_template.xlsx"' + CRLF;
+  eml += CRLF;
+  eml += wrapB64(COFOR_TEMPLATE_B64) + CRLF;
+  eml += CRLF;
 
-  // Trigger download of the .eml file — double-click opens in Outlook
+  eml += '--' + mixedBnd + '--' + CRLF;
+
+  // Download — Outlook opens .eml files natively as a draft ready to send
   const blob = new Blob([eml], { type: 'message/rfc822' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${supplier.sectorCode}_${supplier.name.replace(/[^a-zA-Z0-9]/g,'_').trim()}.eml`;
+  a.download = supplier.sectorCode + '_' + supplier.name.replace(/[^a-zA-Z0-9]/g,'_') + '.eml';
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
-  showToast('📧 .eml file downloaded — double-click it to open in Outlook with full body & attachments!', 'success');
+  showToast('📧 .eml downloaded — double-click it to open in Outlook as a ready-to-send draft with both attachments!', 'success');
 }
 
 // ══════════════════════════════════════════════════════════════
