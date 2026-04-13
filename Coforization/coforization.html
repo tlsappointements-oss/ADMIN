@@ -3,15 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>COFORIZATION · Email Tool</title>
+<title>COFORIZATION · Quality Check Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
-<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
@@ -22,107 +19,58 @@ const firebaseConfig = {
   appId: "1:142475379783:web:2849d07fb6eb8da4715d62"
 };
 
-// ── Always show the app immediately — never block on auth ──
-document.getElementById('authLoadingScreen').style.display = 'none';
-document.getElementById('appContent').style.display = 'block';
-
-let fbApp, auth, db;
+let db;
 try {
-  fbApp = initializeApp(firebaseConfig);
-  auth   = getAuth(fbApp);
-  db     = getFirestore(fbApp);
-} catch(e) {
-  console.warn('Firebase init failed (offline or blocked):', e);
-}
+  const fbApp = initializeApp(firebaseConfig);
+  db = getFirestore(fbApp);
+  window._db = db;
+} catch(e) { console.warn('Firebase init failed:', e); }
 
-// ── Auth state: update header if logged in, but NEVER redirect or block ──
-if (auth) {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      // Not logged in — app still fully usable, just no Firestore sync
-      document.getElementById('headerUserName').textContent = 'Guest';
-      document.getElementById('headerPerimeter').textContent = 'No Firebase session';
-      return;
-    }
+window._firestore = { doc, setDoc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, orderBy };
 
-    window.currentFirebaseUser = user;
-
-    // Load or create user profile
-    try {
-      const profileRef = doc(db, 'users', user.uid);
-      const profileSnap = await getDoc(profileRef);
-      if (profileSnap.exists()) {
-        window.userProfile = profileSnap.data();
-      } else {
-        const local = user.email.split('@')[0];
-        const defaultProfile = {
-          email: user.email,
-          displayName: user.displayName || local,
-          createdAt: new Date().toISOString()
-        };
-        await setDoc(profileRef, defaultProfile);
-        window.userProfile = defaultProfile;
-      }
-    } catch(e) { console.warn('Profile load error:', e); }
-
-    const name = window.userProfile?.displayName || user.email;
-    document.getElementById('headerUserName').textContent = name;
-    document.getElementById('headerPerimeter').textContent = user.email;
-
-    // Silently load Firestore data if Excel already loaded
-    if (window.loadFirestoreData) await window.loadFirestoreData();
-  });
-}
-
-// ── Firestore helpers — all silent, never block the UI ──
-window.loadFirestoreData = async function() {
-  if (!db || !window.currentFirebaseUser) return;
+window.saveSnapshotToFirestore = async function(rows, version) {
+  if (!db) return;
   try {
-    const suppRef = collection(db, 'users', window.currentFirebaseUser.uid, 'suppliers');
-    const snap = await getDocs(suppRef);
-    window.firestoreSupplierData = {};
-    snap.forEach(d => { window.firestoreSupplierData[d.id] = d.data(); });
-    if (window.supplierData && window.supplierData.length > 0) {
-      if (typeof mergeFirestoreIntoSuppliers === 'function') mergeFirestoreIntoSuppliers();
-    }
-  } catch(e) { console.warn('Firestore load error:', e); }
-};
-
-window.saveSupplierToFirestore = async function(supplier) {
-  if (!db || !window.currentFirebaseUser) return;
-  try {
-    const ref = doc(db, 'users', window.currentFirebaseUser.uid, 'suppliers', supplier.sectorCode);
-    await setDoc(ref, {
-      sectorCode: supplier.sectorCode, name: supplier.name, status: supplier.status,
-      contacted: supplier.contacted || null, note: supplier.note || null,
-      toEmails: supplier.toEmails || null, missing: supplier.missing || [],
-      lastUpdated: new Date().toISOString(), updatedBy: window.currentFirebaseUser.email
-    }, { merge: true });
-  } catch(e) { console.warn('Firestore save error:', e); }
-};
-
-window.logEmailSentToFirestore = async function(supplier) {
-  if (!db || !window.currentFirebaseUser) return;
-  try {
-    const ref = doc(db, 'users', window.currentFirebaseUser.uid, 'suppliers', supplier.sectorCode);
-    await setDoc(ref, {
-      contacted: 'Yes', lastContactedAt: new Date().toISOString(),
-      lastEmailSentBy: window.currentFirebaseUser.email, status: supplier.status
-    }, { merge: true });
-    await addDoc(collection(db, 'users', window.currentFirebaseUser.uid, 'changelog'), {
-      sectorCode: supplier.sectorCode, supplierName: supplier.name,
-      action: 'email_sent', timestamp: serverTimestamp(), by: window.currentFirebaseUser.email
+    const snap = { version, rows: rows.map(r => ({
+      key: r._key,
+      supplierName: r['Seller Supplier Name'] || '',
+      sectorCode: r['Seller Sector Code'] || '',
+      pn: r['Part Number'] || '',
+      plant: r['Plant'] || '',
+      contacted: r['Contacted'] || '',
+      infoCompleted: r['Info completed'] || '',
+      status: r['Status'] || '',
+      owner: r['Owner'] || '',
+      note: r['NOTE'] || '',
+      incoherences: r._incoherences || [],
+      qualityIssues: r._qualityIssues || [],
+      savedAt: new Date().toISOString()
+    })), savedAt: serverTimestamp(), rowCount: rows.length };
+    await setDoc(doc(db, 'snapshots', version), snap);
+    await addDoc(collection(db, 'changelog'), {
+      version, action: 'upload', rowCount: rows.length, timestamp: serverTimestamp()
     });
-  } catch(e) { console.warn('Firestore log error:', e); }
+    console.log('Snapshot saved:', version);
+    return true;
+  } catch(e) { console.warn('Firestore save error:', e); return false; }
 };
 
-window.doSignOut = async function() {
-  if (auth && window.currentFirebaseUser) {
-    await signOut(auth);
-    window.currentFirebaseUser = null;
-    document.getElementById('headerUserName').textContent = 'Guest';
-    document.getElementById('headerPerimeter').textContent = 'Signed out';
-  }
+window.loadAllSnapshots = async function() {
+  if (!db) return [];
+  try {
+    const q = query(collection(db, 'snapshots'), orderBy('savedAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { console.warn('Load error:', e); return []; }
+};
+
+window.loadChangelog = async function() {
+  if (!db) return [];
+  try {
+    const q = query(collection(db, 'changelog'), orderBy('timestamp', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { return []; }
 };
 </script>
 <style>
@@ -139,6 +87,8 @@ window.doSignOut = async function() {
   --yellow-light: #FFF4E5;
   --red: #C0392B;
   --red-light: #FDEDEC;
+  --purple: #6D28D9;
+  --purple-light: #EDE9FE;
   --gray-900: #111827;
   --gray-700: #374151;
   --gray-500: #6B7280;
@@ -152,1427 +102,1113 @@ window.doSignOut = async function() {
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Lexend', sans-serif; background: #F0F4F8; color: var(--gray-900); min-height: 100vh; }
-code, .mono { font-family: 'DM Mono', monospace; }
 
-/* ── AUTH LOADING SCREEN ── */
-#authLoadingScreen {
-  position: fixed; inset: 0; background: var(--navy); display: flex; align-items: center; justify-content: center;
-  flex-direction: column; gap: 20px; z-index: 500; color: white;
-}
-.auth-spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #E8520A; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* HEADER */
+.header { background: var(--navy); color: white; padding: 0 32px; display: flex; align-items: center; gap: 20px; height: 64px; position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.header-brand { display: flex; align-items: center; gap: 12px; }
+.header-logo-wrap { width: 38px; height: 38px; background: var(--orange); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.header-sub { font-size: 11px; color: rgba(255,255,255,0.55); font-family: 'DM Mono', monospace; margin-top: 1px; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.header-version-badge { background: rgba(232,82,10,0.25); border: 1px solid rgba(232,82,10,0.5); color: #FFB38A; font-size: 11px; font-family: 'DM Mono', monospace; padding: 4px 10px; border-radius: 20px; }
+.nav-tabs { display: flex; gap: 4px; margin-left: 32px; }
+.nav-tab { padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65); cursor: pointer; transition: all 0.15s; border: none; background: transparent; font-family: 'Lexend', sans-serif; }
+.nav-tab:hover { color: white; background: rgba(255,255,255,0.1); }
+.nav-tab.active { color: white; background: rgba(255,255,255,0.15); border-bottom: 2px solid var(--orange); }
 
-/* ── HEADER ── */
-.header { background: var(--navy); color: white; padding: 0 32px; display: flex; align-items: center; gap: 20px; height: 64px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-.header-logo { display: flex; align-items: center; gap: 10px; }
-.header-logo svg { width: 36px; height: 36px; }
-.header-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
-.header-auth { display: flex; align-items: center; gap: 14px; margin-left: auto; }
-.header-user { display: flex; flex-direction: column; align-items: flex-end; }
-.header-user-name { font-size: 13px; font-weight: 500; color: white; }
-.header-user-perimeter { font-size: 11px; color: rgba(255,255,255,0.55); font-family: 'DM Mono', monospace; }
-.btn-auth { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 7px 16px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.15s; }
-.btn-auth:hover { background: rgba(255,255,255,0.2); }
-.btn-auth.signed-in { background: rgba(19, 122, 68, 0.3); border-color: rgba(19,122,68,0.5); }
-.btn-signout { background: rgba(192,57,43,0.25); border: 1px solid rgba(192,57,43,0.4); color: white; padding: 7px 14px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.15s; }
-.btn-signout:hover { background: rgba(192,57,43,0.45); }
-.auth-dot { width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; display: inline-block; }
+/* CONTAINER */
+.container { max-width: 1600px; margin: 0 auto; padding: 28px 24px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
 
-/* ── LAYOUT ── */
-.container { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+/* UPLOAD CARD */
+.upload-card { background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%); border-radius: 12px; padding: 36px 40px; color: white; margin-bottom: 24px; position: relative; overflow: hidden; }
+.upload-card::before { content: ''; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; background: rgba(255,255,255,0.04); border-radius: 50%; }
+.upload-card-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.upload-card-sub { font-size: 13px; color: rgba(255,255,255,0.65); margin-bottom: 28px; line-height: 1.6; }
+.upload-zone { border: 2px dashed rgba(255,255,255,0.3); border-radius: 10px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.06); }
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--orange); background: rgba(232,82,10,0.15); }
+.upload-zone.has-file { border-color: #2ecc71; background: rgba(46,204,113,0.12); }
+.upload-icon { font-size: 40px; margin-bottom: 12px; }
+.upload-zone-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.upload-zone-sub { font-size: 12px; color: rgba(255,255,255,0.55); }
+#fileInput { display: none; }
+.btn-primary { background: var(--orange); color: white; border: none; padding: 10px 22px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-primary:hover { background: #c9440a; }
+.btn-secondary { background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 9px 20px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.btn-secondary:hover { background: rgba(255,255,255,0.2); }
+.btn-outline { background: transparent; color: var(--blue-mid); border: 1.5px solid var(--blue-mid); padding: 8px 16px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.btn-outline:hover { background: var(--blue-light); }
+.btn-green { background: var(--green); color: white; border: none; padding: 8px 18px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.15s; }
+.btn-green:hover { background: #0e6035; }
+.upload-actions { display: flex; gap: 12px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+.upload-meta { font-size: 12px; color: rgba(255,255,255,0.6); font-family: 'DM Mono', monospace; }
 
-/* ── CARDS ── */
-.card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid #E5E9EF; }
-.card-header { padding: 18px 24px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; gap: 10px; }
-.card-header h2 { font-size: 14px; font-weight: 600; color: var(--gray-900); }
-.card-body { padding: 20px 24px; }
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; border-radius: 10px; padding: 20px; box-shadow: var(--shadow); border: 1px solid #E5E9EF; position: relative; overflow: hidden; }
+.stat-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; }
+.stat-card.s-total::after { background: var(--navy); }
+.stat-card.s-complete::after { background: var(--green); }
+.stat-card.s-pending::after { background: var(--yellow); }
+.stat-card.s-issues::after { background: var(--red); }
+.stat-card.s-incoherence::after { background: var(--purple); }
+.stat-label { font-size: 10px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+.stat-value { font-size: 32px; font-weight: 700; color: var(--gray-900); line-height: 1; }
+.stat-value.c-green { color: var(--green); }
+.stat-value.c-yellow { color: var(--yellow); }
+.stat-value.c-red { color: var(--red); }
+.stat-value.c-purple { color: var(--purple); }
+.stat-sub { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
 
-/* ── SETUP PANEL ── */
-.setup-panel { background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%); border-radius: var(--radius); padding: 28px 32px; color: white; margin-bottom: 24px; }
-.setup-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-.setup-sub { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 24px; line-height: 1.6; }
-.setup-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
-.form-field label { display: block; font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.7); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
-.form-field input { width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 9px 13px; border-radius: 6px; font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.15s; }
-.form-field input::placeholder { color: rgba(255,255,255,0.35); }
-.form-field input:focus { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); }
-.btn-primary { background: var(--orange); color: white; border: none; padding: 10px 22px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-.btn-primary:hover { background: #c9440a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,82,10,0.35); }
-.btn-primary:disabled { background: rgba(255,255,255,0.2); cursor: not-allowed; transform: none; box-shadow: none; }
-.btn-secondary { background: transparent; color: var(--blue-mid); border: 1px solid var(--blue-mid); padding: 8px 18px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
-.btn-secondary:hover { background: var(--blue-light); }
-.setup-hint { margin-top: 18px; font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.6; }
-.setup-hint a { color: rgba(255,255,255,0.8); }
+/* FILTER BAR */
+.filter-bar { background: white; border-radius: 10px; padding: 16px 20px; border: 1px solid #E5E9EF; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; box-shadow: var(--shadow); }
+.filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-label { font-size: 10px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+.filter-select { padding: 8px 12px; border: 1.5px solid var(--gray-300); border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 12px; color: var(--gray-700); outline: none; background: white; cursor: pointer; min-width: 140px; transition: border-color 0.15s; }
+.filter-select:focus { border-color: var(--blue-mid); }
+.search-wrap { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 5px; }
+.search-input { padding: 8px 12px 8px 36px; border: 1.5px solid var(--gray-300); border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 12px; outline: none; width: 100%; transition: border-color 0.15s; }
+.search-input:focus { border-color: var(--blue-mid); }
+.search-wrap-inner { position: relative; }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--gray-500); font-size: 15px; pointer-events: none; }
+.filter-actions { display: flex; gap: 8px; align-items: flex-end; margin-left: auto; }
+.active-filters-count { font-size: 11px; color: var(--blue-mid); background: var(--blue-light); padding: 3px 10px; border-radius: 20px; font-weight: 500; align-self: flex-end; margin-bottom: 2px; }
 
-/* ── PERIMETER FILTER BAR ── */
-.perimeter-bar {
-  background: var(--white); border-radius: var(--radius); padding: 14px 20px;
-  border: 1px solid #E5E9EF; margin-bottom: 20px;
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  box-shadow: var(--shadow);
-}
-.perimeter-bar label { font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
-.perimeter-pill-btn {
-  padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
-  border: 1.5px solid var(--gray-300); background: white; cursor: pointer;
-  font-family: 'Lexend', sans-serif; transition: all 0.15s; color: var(--gray-700);
-}
-.perimeter-pill-btn:hover { border-color: var(--blue-mid); color: var(--blue-mid); background: var(--blue-light); }
-.perimeter-pill-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
-.perimeter-pill-btn.my-perimeter { border-color: var(--orange); }
-.perimeter-pill-btn.my-perimeter.active { background: var(--orange); border-color: var(--orange); }
+/* TABLE SECTION */
+.section-card { background: white; border-radius: 10px; box-shadow: var(--shadow); border: 1px solid #E5E9EF; margin-bottom: 24px; overflow: hidden; }
+.section-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.section-title { font-size: 14px; font-weight: 700; color: var(--gray-900); display: flex; align-items: center; gap: 10px; }
+.section-title-dot { width: 10px; height: 10px; border-radius: 50%; }
+.section-count { font-size: 12px; color: var(--gray-500); font-weight: 400; background: var(--gray-100); padding: 2px 8px; border-radius: 10px; }
+.section-actions { display: flex; gap: 8px; }
+.btn-export { background: transparent; border: 1.5px solid var(--gray-300); color: var(--gray-700); padding: 6px 14px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.btn-export:hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
 
-/* ── UPLOAD ZONE ── */
-.upload-zone { border: 2px dashed var(--gray-300); border-radius: var(--radius); padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--gray-100); }
-.upload-zone:hover, .upload-zone.drag-over { border-color: var(--blue-mid); background: var(--blue-light); }
-.upload-zone svg { color: var(--gray-500); margin-bottom: 12px; }
-.upload-zone-title { font-size: 14px; font-weight: 500; color: var(--gray-700); margin-bottom: 4px; }
-.upload-zone-sub { font-size: 12px; color: var(--gray-500); }
-.upload-zone.has-file { border-color: var(--green); background: var(--green-light); }
-.upload-zone.has-file svg { color: var(--green); }
-
-/* ── STATS BAR ── */
-.stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-.stat-card { background: var(--white); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); border: 1px solid #E5E9EF; }
-.stat-label { font-size: 11px; font-weight: 500; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-.stat-value { font-size: 28px; font-weight: 700; color: var(--gray-900); }
-.stat-value.orange { color: var(--orange); }
-.stat-value.green { color: var(--green); }
-.stat-value.yellow { color: var(--yellow); }
-.stat-sub { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
-
-/* ── TOOLBAR ── */
-.toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-.toolbar-left { display: flex; align-items: center; gap: 10px; flex: 1; }
-.search-box { position: relative; flex: 1; max-width: 320px; }
-.search-box input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--gray-300); border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s; }
-.search-box input:focus { border-color: var(--blue-mid); }
-.search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--gray-500); pointer-events: none; }
-.filter-select { padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; outline: none; background: white; color: var(--gray-700); }
-.btn-send-all { background: var(--blue); color: white; border: none; padding: 8px 18px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.15s; }
-.btn-send-all:hover { background: var(--navy); }
-.btn-send-all:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-excel-synthesis { background: var(--green); color: white; border: none; padding: 8px 18px; border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.15s; }
-.btn-excel-synthesis:hover { background: #0e6035; }
-.selection-info { font-size: 13px; color: var(--gray-500); padding: 6px 12px; background: var(--blue-light); border-radius: 6px; }
-
-/* ── TABLE ── */
+/* TABLE */
 .table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-thead th { background: var(--navy); color: white; padding: 11px 14px; font-size: 11px; font-weight: 600; text-align: left; letter-spacing: 0.5px; text-transform: uppercase; position: sticky; top: 64px; }
-thead th:first-child { border-radius: 6px 0 0 0; }
-thead th:last-child { border-radius: 0 6px 0 0; }
-tbody tr { border-bottom: 1px solid var(--gray-100); transition: background 0.1s; cursor: pointer; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { background: var(--navy); color: white; padding: 10px 14px; font-size: 10px; font-weight: 600; text-align: left; letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; }
+thead th.th-sortable { cursor: pointer; user-select: none; }
+thead th.th-sortable:hover { background: var(--blue); }
+tbody tr { border-bottom: 1px solid var(--gray-100); transition: background 0.1s; }
 tbody tr:hover { background: var(--blue-light); }
-tbody tr.selected { background: #EBF2FA; }
-tbody td { padding: 11px 14px; font-size: 13px; }
-.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 500; white-space: nowrap; }
-.badge-orange { background: var(--orange-light); color: var(--orange); }
-.badge-green { background: var(--green-light); color: var(--green); }
-.badge-yellow { background: var(--yellow-light); color: var(--yellow); }
-.badge-blue { background: var(--blue-light); color: var(--blue); }
-.badge-red { background: var(--red-light); color: var(--red); }
-.missing-fields { display: flex; flex-wrap: wrap; gap: 4px; }
-.missing-tag { padding: 2px 7px; background: var(--orange-light); color: var(--orange); font-size: 10px; border-radius: 4px; font-family: 'DM Mono', monospace; font-weight: 400; }
-.present-tag { padding: 2px 7px; background: var(--green-light); color: var(--green); font-size: 10px; border-radius: 4px; font-family: 'DM Mono', monospace; font-weight: 400; }
-.check-col { width: 40px; padding-left: 16px; }
-input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--blue-mid); }
-.btn-row { background: var(--blue); color: white; border: none; padding: 5px 12px; border-radius: 5px; font-family: 'Lexend', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.15s; }
-.btn-row:hover { background: var(--navy); }
-.btn-row.outline { background: transparent; color: var(--blue-mid); border: 1px solid var(--blue-mid); }
-.btn-row.outline:hover { background: var(--blue-light); }
-.late-badge { padding: 2px 7px; background: #FDEDEC; color: #C0392B; font-size: 10px; border-radius: 4px; font-weight: 600; }
+tbody td { padding: 10px 14px; vertical-align: top; }
+tbody td.td-mono { font-family: 'DM Mono', monospace; font-size: 11px; }
 
-/* ── PAGINATION ── */
-.pagination { display: flex; align-items: center; justify-content: between; gap: 8px; padding: 14px 0; font-size: 13px; color: var(--gray-500); }
-.pagination-left { flex: 1; }
-.pagination-btns { display: flex; align-items: center; gap: 4px; }
-.page-btn { padding: 5px 10px; border: 1px solid var(--gray-300); border-radius: 5px; background: white; cursor: pointer; font-family: 'Lexend', sans-serif; font-size: 12px; transition: all 0.1s; }
+/* BADGES */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.badge-green { background: var(--green-light); color: var(--green); }
+.badge-orange { background: var(--orange-light); color: var(--orange); }
+.badge-yellow { background: var(--yellow-light); color: var(--yellow); }
+.badge-red { background: var(--red-light); color: var(--red); }
+.badge-blue { background: var(--blue-light); color: var(--blue-mid); }
+.badge-purple { background: var(--purple-light); color: var(--purple); }
+.badge-gray { background: var(--gray-100); color: var(--gray-500); }
+.badge-navy { background: #e8ecf3; color: var(--navy); }
+
+/* INCOHERENCE COLUMN */
+.incoherence-cell { max-width: 220px; }
+.inco-tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-family: 'DM Mono', monospace; margin: 2px 2px 2px 0; background: var(--purple-light); color: var(--purple); }
+.issue-tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-family: 'DM Mono', monospace; margin: 2px 2px 2px 0; background: var(--red-light); color: var(--red); }
+.ok-tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-family: 'DM Mono', monospace; background: var(--green-light); color: var(--green); }
+
+/* QUALITY REPORT */
+.qc-section { background: white; border-radius: 10px; box-shadow: var(--shadow); border: 1px solid #E5E9EF; padding: 24px; margin-bottom: 24px; }
+.qc-section-title { font-size: 15px; font-weight: 700; color: var(--gray-900); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.qc-rule-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.qc-rule-card { border: 1.5px solid var(--gray-200); border-radius: 8px; padding: 14px 16px; }
+.qc-rule-card.pass { border-color: var(--green); background: var(--green-light); }
+.qc-rule-card.fail { border-color: var(--red); background: var(--red-light); }
+.qc-rule-card.warn { border-color: #F59E0B; background: #FFFBEB; }
+.qc-rule-name { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.qc-rule-detail { font-size: 11px; color: var(--gray-600); }
+.qc-summary-bar { display: flex; gap: 20px; padding: 16px 20px; background: var(--gray-100); border-radius: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.qc-summary-item { text-align: center; }
+.qc-summary-num { font-size: 24px; font-weight: 700; }
+.qc-summary-lbl { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+
+/* HISTORY TAB */
+.history-entry { background: white; border-radius: 8px; border: 1px solid #E5E9EF; padding: 16px 20px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 16px; }
+.history-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.history-meta { flex: 1; }
+.history-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.history-detail { font-size: 12px; color: var(--gray-500); font-family: 'DM Mono', monospace; }
+.history-time { font-size: 11px; color: var(--gray-400); }
+.diff-added { color: var(--green); font-weight: 600; }
+.diff-removed { color: var(--red); font-weight: 600; }
+.diff-changed { color: var(--orange); font-weight: 600; }
+
+/* PAGINATION */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; border-top: 1px solid var(--gray-100); font-size: 12px; color: var(--gray-500); }
+.page-btns { display: flex; gap: 4px; }
+.page-btn { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-300); border-radius: 5px; cursor: pointer; font-family: 'Lexend', sans-serif; font-size: 12px; background: white; transition: all 0.1s; }
 .page-btn:hover { background: var(--blue-light); border-color: var(--blue-mid); }
-.page-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+.page-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
 .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ── MODAL ── */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+/* MODAL */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
 .modal-backdrop.open { opacity: 1; pointer-events: all; }
-.modal { background: white; border-radius: 12px; box-shadow: var(--shadow-lg); width: 100%; max-width: 840px; max-height: 90vh; display: flex; flex-direction: column; transform: translateY(20px); transition: transform 0.2s; }
+.modal { background: white; border-radius: 14px; box-shadow: var(--shadow-lg); width: 100%; max-width: 900px; max-height: 88vh; display: flex; flex-direction: column; transform: translateY(24px); transition: transform 0.2s; overflow: hidden; }
 .modal-backdrop.open .modal { transform: translateY(0); }
-.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; }
-.modal-header h3 { font-size: 15px; font-weight: 600; }
-.modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray-500); padding: 4px 8px; border-radius: 4px; line-height: 1; }
-.modal-close:hover { background: var(--gray-100); }
-.modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
-.modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; gap: 10px; }
+.modal-header { padding: 20px 24px 18px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; background: var(--navy); color: white; }
+.modal-title { font-size: 15px; font-weight: 700; }
+.modal-close { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; background: rgba(255,255,255,0.15); border: none; color: white; font-size: 18px; font-family: inherit; }
+.modal-close:hover { background: rgba(255,255,255,0.25); }
+.modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-100); display: flex; gap: 10px; justify-content: flex-end; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.detail-field { display: flex; flex-direction: column; gap: 4px; }
+.detail-field label { font-size: 10px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+.detail-field .detail-value { font-size: 13px; color: var(--gray-900); padding: 8px 12px; background: var(--gray-100); border-radius: 6px; font-family: 'DM Mono', monospace; word-break: break-all; }
+.detail-field .detail-value.missing { background: var(--red-light); color: var(--red); }
+.detail-field .detail-value.ok { background: var(--green-light); color: var(--green); }
+.qc-checks-section { margin-top: 20px; }
+.qc-checks-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-100); }
+.qc-check-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; background: var(--gray-100); }
+.qc-check-row.pass { background: var(--green-light); }
+.qc-check-row.fail { background: var(--red-light); }
+.qc-check-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.qc-check-content { flex: 1; }
+.qc-check-field { font-size: 11px; font-weight: 600; color: var(--gray-700); }
+.qc-check-detail { font-size: 11px; color: var(--gray-500); margin-top: 2px; font-family: 'DM Mono', monospace; }
 
-/* ── EMAIL PREVIEW ── */
-.email-preview { border: 1px solid var(--gray-300); border-radius: 8px; overflow: hidden; }
-.email-meta { background: var(--gray-100); padding: 14px 18px; font-size: 12px; line-height: 1.8; color: var(--gray-700); }
-.email-meta strong { color: var(--gray-900); display: inline-block; width: 45px; }
-.email-body-preview { padding: 18px; font-size: 13px; line-height: 1.7; color: var(--gray-700); max-height: 420px; overflow-y: auto; }
-.email-body-preview table { border-collapse: collapse; width: 100%; margin: 14px 0; }
-.email-body-preview th { background: #1A4E78; color: white; padding: 8px 12px; font-size: 12px; text-align: center; font-weight: 600; }
-.email-body-preview td.etd { padding: 7px 12px; border: 1px solid #ddd; font-size: 12px; text-align: center; background: white; }
-.email-body-preview tr:nth-child(even) td.etd { background: #f9f9f9; }
-.attachments-bar { padding: 12px 18px; background: var(--blue-light); border-top: 1px solid var(--gray-200); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.attach-badge { display: flex; align-items: center; gap: 6px; padding: 5px 12px; background: white; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 12px; color: var(--gray-700); }
-.attach-badge svg { color: var(--green); }
+/* HISTORY DIFF PANEL */
+.diff-panel { background: var(--gray-100); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.diff-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+.diff-row { display: flex; gap: 10px; font-size: 11px; margin-bottom: 6px; padding: 6px 10px; background: white; border-radius: 5px; font-family: 'DM Mono', monospace; }
+.diff-row.new { border-left: 3px solid var(--green); }
+.diff-row.removed { border-left: 3px solid var(--red); }
+.diff-row.changed { border-left: 3px solid var(--orange); }
 
-/* ── CONTACT FIELDS ── */
-.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-.contact-field label { display: block; font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-.contact-field input { width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 13px; outline: none; }
-.contact-field input:focus { border-color: var(--blue-mid); }
-.contact-field textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-family: 'Lexend', sans-serif; font-size: 12px; outline: none; resize: vertical; min-height: 60px; }
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 60px 24px; color: var(--gray-500); }
+.empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-state-title { font-size: 15px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+.empty-state-sub { font-size: 13px; line-height: 1.6; }
 
-/* ── TOAST ── */
-.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
-.toast { padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg); animation: slideIn 0.3s ease; min-width: 280px; max-width: 400px; }
-.toast.success { background: var(--green); color: white; }
-.toast.error { background: var(--red); color: white; }
-.toast.info { background: var(--blue); color: white; }
-@keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+/* CHANGELOG NOTIFICATION */
+.change-banner { background: linear-gradient(135deg, var(--orange-light), #fff); border: 1.5px solid var(--orange); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 14px; }
+.change-banner-icon { font-size: 22px; flex-shrink: 0; }
+.change-banner-content { flex: 1; }
+.change-banner-title { font-size: 13px; font-weight: 700; color: var(--orange); margin-bottom: 4px; }
+.change-banner-detail { font-size: 12px; color: var(--gray-700); line-height: 1.5; }
+.change-banner-close { cursor: pointer; color: var(--gray-400); font-size: 18px; background: none; border: none; }
 
-/* ── EMPTY STATE ── */
-.empty-state { text-align: center; padding: 60px 20px; color: var(--gray-500); }
-.empty-state svg { margin: 0 auto 16px; display: block; }
-.empty-state p { font-size: 14px; }
+/* LOADING OVERLAY */
+.loading-overlay { position: fixed; inset: 0; background: rgba(14,33,64,0.85); z-index: 500; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; color: white; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.loading-overlay.active { opacity: 1; pointer-events: all; }
+.spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.2); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: rgba(255,255,255,0.8); font-family: 'DM Mono', monospace; }
 
-/* ── PROGRESS ── */
-.progress-bar { height: 4px; background: var(--gray-100); border-radius: 2px; overflow: hidden; margin-top: 8px; }
-.progress-fill { height: 100%; border-radius: 2px; background: var(--blue-mid); transition: width 0.3s; }
+/* TOOLTIP */
+.tooltip-wrap { position: relative; display: inline-flex; }
+.tooltip-wrap:hover .tooltip-box { display: block; }
+.tooltip-box { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--gray-900); color: white; font-size: 11px; padding: 6px 10px; border-radius: 5px; white-space: nowrap; margin-bottom: 5px; z-index: 100; pointer-events: none; }
 
-/* ── SECTION DIVIDER ── */
-.section { margin-bottom: 24px; }
-.section-title { font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-
-/* ── LOADING ── */
-.loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 250; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
-.spinner { width: 40px; height: 40px; border: 3px solid var(--gray-200); border-top-color: var(--blue-mid); border-radius: 50%; animation: spin 0.8s linear infinite; }
-.loading-text { font-size: 14px; color: var(--gray-500); }
-
-/* ── SYNTHESIS MODAL ── */
-.synthesis-section { margin-bottom: 20px; }
-.synthesis-kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-.synthesis-kpi { background: var(--gray-100); border-radius: 8px; padding: 14px; text-align: center; }
-.synthesis-kpi .val { font-size: 24px; font-weight: 700; }
-.synthesis-kpi .lbl { font-size: 11px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px; }
-.late-row { background: #FFF4E5 !important; }
-.late-row:hover { background: #FFE8CC !important; }
+/* RESPONSIVE */
+@media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
 </head>
 <body>
 
-<!-- AUTH LOADING SCREEN -->
-<div id="authLoadingScreen">
-  <div class="auth-spinner"></div>
-  <div style="font-size:14px;color:rgba(255,255,255,0.7)">Verifying your session...</div>
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Processing file...</div>
 </div>
-
-<!-- APP CONTENT (hidden until auth verified) -->
-<div id="appContent" style="display:none">
 
 <!-- HEADER -->
 <div class="header">
-  <div class="header-logo">
-    <svg viewBox="0 0 36 36" fill="none">
-      <rect width="36" height="36" rx="6" fill="rgba(255,255,255,0.12)"/>
-      <path d="M8 10h20M8 18h14M8 26h20" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-      <circle cx="26" cy="26" r="4" fill="#E8520A"/>
-    </svg>
-    <span class="header-title">COFORIZATION · Email Tool</span>
-  </div>
-  <div class="header-auth">
-    <span class="auth-dot" id="authDot"></span>
-    <span id="authStatus" style="font-size:12px;color:rgba(255,255,255,0.7)">Not connected</span>
-    <button class="btn-auth" id="authBtn" onclick="toggleAuth()">Connect Outlook</button>
-    <div style="width:1px;height:28px;background:rgba(255,255,255,0.15);margin:0 4px"></div>
-    <div class="header-user">
-      <span class="header-user-name" id="headerUserName">Loading...</span>
-      <span class="header-user-perimeter" id="headerPerimeter">Perimeter: —</span>
+  <div class="header-brand">
+    <div class="header-logo-wrap">
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <button class="btn-signout" onclick="doSignOut()">Sign Out</button>
+    <div>
+      <div class="header-title">COFORIZATION</div>
+      <div class="header-sub">Quality Check Dashboard</div>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="nav-tab" onclick="switchTab('quality')">✅ Quality Report</button>
+    <button class="nav-tab" onclick="switchTab('history')">🕐 History</button>
+  </div>
+  <div class="header-right">
+    <div class="header-version-badge" id="versionBadge">No file loaded</div>
   </div>
 </div>
-
-<!-- LOADING OVERLAY -->
-<div class="loading-overlay" id="loadingOverlay" style="display:none">
-  <div class="spinner"></div>
-  <div class="loading-text" id="loadingText">Processing...</div>
-</div>
-
-<!-- TOAST CONTAINER -->
-<div class="toast-container" id="toastContainer"></div>
 
 <!-- MAIN -->
 <div class="container">
 
-  <!-- SETUP PANEL (Outlook/MSAL) -->
-  <div class="setup-panel" id="setupPanel">
-    <div class="setup-title">⚙️ Azure AD Configuration</div>
-    <div class="setup-sub">To send emails through your Outlook account, enter your Azure Active Directory app credentials below. <strong style="color:white">These are saved in your browser only.</strong></div>
-    <div class="setup-grid">
-      <div class="form-field">
-        <label>Client ID (Application ID)</label>
-        <input type="text" id="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-      </div>
-      <div class="form-field">
-        <label>Tenant ID (Directory ID)</label>
-        <input type="text" id="tenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-      </div>
-      <div>
-        <button class="btn-primary" onclick="saveConfig()">Save & Connect</button>
-      </div>
+  <!-- CHANGE BANNER -->
+  <div class="change-banner" id="changeBanner" style="display:none">
+    <div class="change-banner-icon">🔔</div>
+    <div class="change-banner-content">
+      <div class="change-banner-title" id="changeBannerTitle">Changes detected</div>
+      <div class="change-banner-detail" id="changeBannerDetail"></div>
     </div>
-    <div class="setup-hint">
-      💡 <strong>Setup steps:</strong>
-      1. Go to <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps" target="_blank">Azure Portal → App registrations</a> → New registration<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;2. Name it "COFORIZATION Tool", select "Accounts in this org directory"<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;3. Under Redirect URIs add: <code style="background:rgba(255,255,255,0.15);padding:1px 5px;border-radius:3px">http://localhost</code> (or your website URL)<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;4. Under API permissions, add <strong>Microsoft Graph → Mail.Send</strong> (delegated)<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;5. Copy the Application (client) ID and Directory (tenant) ID here.
-    </div>
+    <button class="change-banner-close" onclick="document.getElementById('changeBanner').style.display='none'">×</button>
   </div>
 
-  <!-- PERIMETER FILTER BAR -->
-  <div class="perimeter-bar" id="perimeterBar">
-    <label title="Each pill = one buyer from your Excel file. Click to filter the table to that person's suppliers.">👤 Filter by Owner / Buyer:</label>
-    <button class="perimeter-pill-btn active" id="allPerimeterBtn" onclick="filterByPerimeter('all')">🌐 All</button>
-    <div id="otherPerimeterBtns" style="display:flex;gap:8px;flex-wrap:wrap">
-      <span style="font-size:12px;color:#9CA3AF;padding:5px 0">Upload an Excel file to see perimeters</span>
-    </div>
-    <div style="margin-left:auto;display:flex;gap:8px">
-      <button class="btn-excel-synthesis" onclick="openSynthesisModal()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        Generate Synthesis Excel
-      </button>
-    </div>
-  </div>
+  <!-- DASHBOARD TAB -->
+  <div class="tab-panel active" id="tab-dashboard">
 
-  <!-- FILE UPLOAD -->
-  <div class="section">
-    <div class="section-title">Working File</div>
-    <div class="card">
-      <div class="card-body">
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
-          <div class="upload-zone-title" id="uploadTitle">Drop your Working File Excel here</div>
-          <div class="upload-zone-sub" id="uploadSub">or click to browse · Accepts .xlsx files</div>
-        </div>
-        <input type="file" id="fileInput" accept=".xlsx" style="display:none" onchange="handleFileSelect(event)">
+    <!-- UPLOAD -->
+    <div class="upload-card">
+      <div class="upload-card-title">📁 Upload Working File</div>
+      <div class="upload-card-sub">Upload the Coforization Excel file to analyze supplier data, run quality checks, detect incoherences, and track changes.</div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+        <div class="upload-icon" id="uploadIcon">📂</div>
+        <div class="upload-zone-title" id="uploadTitle">Drop Excel file here or click to browse</div>
+        <div class="upload-zone-sub" id="uploadSub">Supports .xlsx, .xls files</div>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileSelect(event)">
+      <div class="upload-actions">
+        <button class="btn-primary" onclick="document.getElementById('fileInput').click()">📂 Browse File</button>
+        <button class="btn-secondary" id="processBtn" onclick="processFile()" style="display:none">⚡ Process & Analyze</button>
+        <div class="upload-meta" id="uploadMeta"></div>
       </div>
     </div>
-  </div>
 
-  <!-- STATS -->
-  <div class="stats-bar" id="statsBar" style="display:none">
-    <div class="stat-card">
-      <div class="stat-label">Total Suppliers</div>
-      <div class="stat-value" id="statTotal">0</div>
-      <div class="stat-sub">unique sector codes</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">To Contact</div>
-      <div class="stat-value orange" id="statToContact">0</div>
-      <div class="stat-sub">missing info, not contacted</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Awaiting Reply</div>
-      <div class="stat-value yellow" id="statWaiting">0</div>
-      <div class="stat-sub">contacted, not complete</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Complete</div>
-      <div class="stat-value green" id="statComplete">0</div>
-      <div class="stat-sub">all fields filled</div>
-    </div>
-  </div>
-
-  <!-- SUPPLIER TABLE -->
-  <div class="section" id="tableSection" style="display:none">
-    <div class="card">
-      <div class="card-header">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A4E78" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-        <h2>Supplier Analysis</h2>
-        <span id="tableCount" style="font-size:12px;color:#6B7280;font-weight:400;margin-left:auto"></span>
+    <!-- STATS -->
+    <div class="stats-grid" id="statsGrid" style="display:none">
+      <div class="stat-card s-total">
+        <div class="stat-label">Total Records</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-sub">PNs (Part–Supplier–Plant)</div>
       </div>
-      <div class="card-body" style="padding-top:16px">
-        <!-- Toolbar -->
-        <div class="toolbar">
-          <div class="toolbar-left">
-            <div class="search-box">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" placeholder="Search supplier name or code..." id="searchInput" oninput="applyFilters()">
-            </div>
-            <select class="filter-select" id="statusFilter" onchange="applyFilters()">
-              <option value="all">All statuses</option>
-              <option value="to_contact">To Contact</option>
-              <option value="waiting">Awaiting Reply</option>
-              <option value="complete">Complete</option>
-            </select>
-          </div>
-          <span id="selectionInfo" class="selection-info" style="display:none">0 selected</span>
-          <button class="btn-send-all" id="btnSendSelected" onclick="openBatchSend()" style="display:none">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
-            Send to Selected
-          </button>
-          <button class="btn-send-all" onclick="selectAllVisible()" style="background:var(--gray-700)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg>
-            Select All Visible
-          </button>
-        </div>
+      <div class="stat-card s-complete">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value c-green" id="statComplete">0</div>
+        <div class="stat-sub" id="statCompletePct">0% of total</div>
+      </div>
+      <div class="stat-card s-pending">
+        <div class="stat-label">Pending / In Progress</div>
+        <div class="stat-value c-yellow" id="statPending">0</div>
+        <div class="stat-sub">Not yet complete</div>
+      </div>
+      <div class="stat-card s-issues">
+        <div class="stat-label">Quality Issues</div>
+        <div class="stat-value c-red" id="statIssues">0</div>
+        <div class="stat-sub">Format violations</div>
+      </div>
+      <div class="stat-card s-incoherence">
+        <div class="stat-label">Incoherences</div>
+        <div class="stat-value c-purple" id="statInco">0</div>
+        <div class="stat-sub">Status ≠ actual completeness</div>
+      </div>
+    </div>
 
-        <!-- Table -->
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th class="check-col"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this)"></th>
-                <th>Supplier Name</th>
-                <th>Sector Code</th>
-                <th>Parts #</th>
-                <th>Status</th>
-                <th>Days Since Contact</th>
-                <th>Missing Fields</th>
-                <th>Owner / Buyer</th>
-                <th>Contact</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="supplierTableBody"></tbody>
-          </table>
-        </div>
-
-        <!-- Pagination -->
-        <div class="pagination" id="paginationBar">
-          <div class="pagination-left" id="paginationInfo"></div>
-          <div class="pagination-btns" id="paginationBtns"></div>
+    <!-- FILTERS -->
+    <div class="filter-bar" id="filterBar" style="display:none">
+      <div class="filter-group">
+        <div class="filter-label">🔍 Contacted</div>
+        <select class="filter-select" id="fContacted" onchange="applyFilters()">
+          <option value="">All</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+          <option value="Empty">Empty</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">📋 Info Completed</div>
+        <select class="filter-select" id="fInfoCompleted" onchange="applyFilters()">
+          <option value="">All</option>
+          <option value="Complete">Complete</option>
+          <option value="Incomplete">Incomplete</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">🏷️ Status</div>
+        <select class="filter-select" id="fStatus" onchange="applyFilters()">
+          <option value="">All</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">👤 Owner</div>
+        <select class="filter-select" id="fOwner" onchange="applyFilters()">
+          <option value="">All</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">⚠️ Incoherences</div>
+        <select class="filter-select" id="fInco" onchange="applyFilters()">
+          <option value="">All</option>
+          <option value="yes">Has Incoherences</option>
+          <option value="no">No Incoherences</option>
+        </select>
+      </div>
+      <div class="search-wrap">
+        <div class="filter-label">🔎 Search</div>
+        <div class="search-wrap-inner">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="searchInput" placeholder="Supplier, PN, COFOR..." oninput="applyFilters()">
         </div>
       </div>
+      <div class="filter-actions">
+        <span class="active-filters-count" id="activeFiltersCount" style="display:none">0 filters</span>
+        <button class="btn-outline" onclick="clearFilters()">✕ Clear</button>
+        <button class="btn-export" onclick="exportAllVisible()">⬇️ Export Visible</button>
+      </div>
+    </div>
+
+    <!-- TABLE SECTIONS -->
+    <div id="tableSections">
+      <div class="empty-state">
+        <div class="empty-state-icon">📊</div>
+        <div class="empty-state-title">No data loaded</div>
+        <div class="empty-state-sub">Upload an Excel file above to start analyzing your Coforization data.</div>
+      </div>
     </div>
   </div>
-</div><!-- end .container -->
 
-<!-- EMAIL PREVIEW MODAL -->
-<div class="modal-backdrop" id="emailModal">
+  <!-- QUALITY REPORT TAB -->
+  <div class="tab-panel" id="tab-quality">
+    <div class="empty-state" id="qcEmpty">
+      <div class="empty-state-icon">✅</div>
+      <div class="empty-state-title">No quality report yet</div>
+      <div class="empty-state-sub">Upload and process a file to generate the quality report.</div>
+    </div>
+    <div id="qcReport" style="display:none"></div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="tab-panel" id="tab-history">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-title-dot" style="background:var(--blue-mid)"></div>
+          Upload History & Changes
+        </div>
+        <button class="btn-export" onclick="loadHistory()">🔄 Refresh</button>
+      </div>
+      <div style="padding:20px" id="historyContent">
+        <div class="empty-state">
+          <div class="empty-state-icon">🕐</div>
+          <div class="empty-state-title">Loading history...</div>
+          <div class="empty-state-sub">Firebase data will appear here once loaded.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-backdrop" id="detailModal">
   <div class="modal">
     <div class="modal-header">
-      <h3>📧 Email Preview &amp; Send</h3>
-      <button class="modal-close" onclick="closeModal('emailModal')">×</button>
+      <div class="modal-title" id="modalTitle">Record Detail</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
     </div>
-    <div class="modal-body">
-      <div class="section">
-        <div class="section-title">Recipients</div>
-        <div class="contact-grid">
-          <div class="contact-field">
-            <label>To (comma-separated)</label>
-            <input type="text" id="emailTo" placeholder="supplier@example.com">
-          </div>
-          <div class="contact-field">
-            <label>CC (optional)</label>
-            <input type="text" id="emailCc" placeholder="cc@stellantis.com">
-          </div>
-        </div>
-      </div>
-      <div class="section">
-        <div class="section-title">Email Preview</div>
-        <div class="email-preview">
-          <div class="email-meta" id="emailMeta"></div>
-          <div class="email-body-preview" id="emailBodyPreview"></div>
-          <div class="attachments-bar" id="attachmentsBar"></div>
-        </div>
-      </div>
-    </div>
+    <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('emailModal')">Cancel</button>
-      <button onclick="openOutlookDesktop()" title="Downloads a .eml file — double-click it to open in Outlook with full body &amp; attachments" style="background:var(--navy);color:white;border:none;padding:10px 20px;border-radius:6px;font-family:'Lexend',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:7px" id="btnOpenOutlook">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        📥 Generate .eml for Outlook
-      </button>
-      <button class="btn-primary" onclick="sendCurrentEmail()" id="btnSendEmail">Send via Graph API</button>
+      <button class="btn-outline" onclick="closeModal()">Close</button>
+      <button class="btn-export" onclick="exportSingleRow()">⬇️ Export Row</button>
     </div>
   </div>
 </div>
-
-<!-- BATCH SEND MODAL -->
-<div class="modal-backdrop" id="batchModal">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-header">
-      <h3>📤 Batch Send</h3>
-      <button class="modal-close" onclick="closeModal('batchModal')">×</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:13px;color:#6B7280;margin-bottom:16px">
-        You are about to send emails to <strong id="batchCount">0</strong> suppliers.
-        Each email will be sent individually with the correct CONFIRMATION.xlsx and COFOR template attached.
-      </p>
-      <div class="contact-field" style="margin-bottom:16px">
-        <label>CC for all emails (optional)</label>
-        <input type="text" id="batchCc" placeholder="e.g. kaoutar.benkaddour@external.stellantis.com">
-      </div>
-      <div id="batchList" style="max-height:260px;overflow-y:auto;border:1px solid #E5E9EF;border-radius:6px;padding:10px 14px;font-size:12px;color:#374151;line-height:2"></div>
-      <div class="progress-bar" id="batchProgress" style="display:none;margin-top:16px">
-        <div class="progress-fill" id="batchProgressFill" style="width:0%"></div>
-      </div>
-      <div id="batchProgressText" style="font-size:12px;color:#6B7280;margin-top:8px;text-align:center"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('batchModal')">Cancel</button>
-      <button class="btn-primary" onclick="runBatchSend()" id="btnBatchSend">Send All Emails</button>
-    </div>
-  </div>
-</div>
-
-<!-- SYNTHESIS MODAL -->
-<div class="modal-backdrop" id="synthesisModal">
-  <div class="modal" style="max-width:720px">
-    <div class="modal-header">
-      <h3>📊 Synthesis Report — My Perimeter</h3>
-      <button class="modal-close" onclick="closeModal('synthesisModal')">×</button>
-    </div>
-    <div class="modal-body">
-      <div id="synthesisContent"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('synthesisModal')">Close</button>
-      <button class="btn-excel-synthesis" onclick="downloadSynthesisExcel()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download Excel
-      </button>
-    </div>
-  </div>
-</div>
-
-</div><!-- end #appContent -->
 
 <script>
-// ══════════════════════════════════════════════════════════════
-// CONSTANTS & CONFIG
-// ══════════════════════════════════════════════════════════════
-const ORANGE_COLS = ['Seller COFOR2','Manufacturer COFOR','Manufacturer address','Shipper COFOR2','Shipper address','Location ID2','Location ID address2','Quality contact','Logistic contact'];
-const STATIC_COLS = ['Part Number','Seller Supplier Name','Seller Sector Code','Plant','Plants perimeter','Incoterm'];
-const ALL_TRACK = [...ORANGE_COLS,'Contacted','Info completed','NOTE'];
-const COFOR_TEMPLATE_B64 = "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";
-
-// ══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // STATE
-// ══════════════════════════════════════════════════════════════
-let msalInstance = null;
-let currentAccount = null;
-let supplierData = [];
-let filteredData = [];
-let selectedSuppliers = new Set();
-let currentModalSupplier = null;
-let rawHeaders = [];
+// ═══════════════════════════════════════════════════════════
+let allRows = [];
+let filteredRows = [];
 let currentPage = 1;
 const PAGE_SIZE = 50;
-let activePerimeterFilter = 'me';
+let currentFile = null;
+let currentModalRow = null;
+let previousSnapshot = null;
 
-// ══════════════════════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════════════════════
-window.onload = () => {
-  const cid = localStorage.getItem('cofor_clientId') || '';
-  const tid = localStorage.getItem('cofor_tenantId') || '';
-  if (cid) document.getElementById('clientId').value = cid;
-  if (tid) document.getElementById('tenantId').value = tid;
-  if (cid && tid) initMsal(cid, tid);
+// Quality check rules (non-STL columns)
+const QC_RULES = {
+  'Seller COFOR2':        { type: 'cofor10', label: 'Seller COFOR' },
+  'Manufacturer COFOR':   { type: 'cofor10', label: 'Manufacturer COFOR' },
+  'Manufacturer address': { type: 'address', label: 'Manufacturer Address' },
+  'Shipper COFOR2':       { type: 'cofor10', label: 'Shipper COFOR' },
+  'Shipper address':      { type: 'address', label: 'Shipper Address' },
+  'Location ID2':         { type: 'locid12', label: 'Location ID' },
+  'Location ID address2': { type: 'address', label: 'Location ID Address' },
+  'Quality contact':      { type: 'email',   label: 'Quality Contact' },
+  'Logistic contact':     { type: 'email',   label: 'Logistic Contact' },
+  'Contacted':            { type: 'yesno',   label: 'Contacted' },
+  'NOTE':                 { type: 'datetext',label: 'NOTE' },
+  'Owner':                { type: 'prenom',  label: 'Owner' },
 };
 
-function initMsal(clientId, tenantId) {
-  try {
-    msalInstance = new msal.PublicClientApplication({
-      auth: { clientId, authority: `https://login.microsoftonline.com/${tenantId}`, redirectUri: window.location.href.split('?')[0].split('#')[0] },
-      cache: { cacheLocation: 'localStorage' }
-    });
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-      currentAccount = accounts[0];
-      updateAuthUI(true);
-    }
-  } catch(e) { console.warn('MSAL init error:', e); }
+const REQUIRED_FIELDS = ['Seller COFOR2','Manufacturer COFOR','Manufacturer address',
+  'Shipper COFOR2','Shipper address','Location ID2','Location ID address2',
+  'Quality contact','Logistic contact'];
+
+// ═══════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'history') loadHistory();
 }
 
-function saveConfig() {
-  const cid = document.getElementById('clientId').value.trim();
-  const tid = document.getElementById('tenantId').value.trim();
-  if (!cid || !tid) { showToast('Please enter both Client ID and Tenant ID', 'error'); return; }
-  localStorage.setItem('cofor_clientId', cid);
-  localStorage.setItem('cofor_tenantId', tid);
-  initMsal(cid, tid);
-  showToast('Configuration saved! Click "Connect Outlook" to sign in.', 'success');
-}
-
-async function toggleAuth() {
-  if (!msalInstance) { showToast('Save configuration first', 'error'); return; }
-  if (currentAccount) {
-    await msalInstance.logoutPopup({ account: currentAccount });
-    currentAccount = null;
-    updateAuthUI(false);
-    return;
-  }
-  try {
-    const result = await msalInstance.loginPopup({ scopes: ['Mail.Send', 'User.Read'] });
-    currentAccount = result.account;
-    updateAuthUI(true);
-    showToast(`Connected as ${currentAccount.username}`, 'success');
-  } catch(e) {
-    if (e.errorCode !== 'user_cancelled') showToast('Authentication failed: ' + e.message, 'error');
-  }
-}
-
-function updateAuthUI(isAuth) {
-  const dot = document.getElementById('authDot');
-  const status = document.getElementById('authStatus');
-  const btn = document.getElementById('authBtn');
-  dot.className = 'auth-dot' + (isAuth ? ' active' : '');
-  status.textContent = isAuth ? currentAccount.username : 'Not connected';
-  btn.textContent = isAuth ? 'Disconnect' : 'Connect Outlook';
-  btn.className = 'btn-auth' + (isAuth ? ' signed-in' : '');
-}
-
-async function getAccessToken() {
-  if (!msalInstance || !currentAccount) throw new Error('Not authenticated. Please connect Outlook first.');
-  try {
-    const result = await msalInstance.acquireTokenSilent({ scopes: ['Mail.Send'], account: currentAccount });
-    return result.accessToken;
-  } catch {
-    const result = await msalInstance.acquireTokenPopup({ scopes: ['Mail.Send'], account: currentAccount });
-    return result.accessToken;
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// PERIMETER FILTER
-// ══════════════════════════════════════════════════════════════
-function populatePerimeterFilter() {
-  const container = document.getElementById('otherPerimeterBtns');
-  if (!container) return;
-
-  // Build perimeter pills from the Owner column (each owner = one person's perimeter)
-  const buyerCount = {};
-  (supplierData || []).forEach(s => {
-    const b = (s.owner || '').trim();
-    if (b && !b.startsWith('=')) {
-      buyerCount[b] = (buyerCount[b] || 0) + 1;
-    }
-  });
-
-  container.innerHTML = '';
-  const buyers = Object.keys(buyerCount).sort();
-
-  if (!buyers.length) {
-    container.innerHTML = '<span style="font-size:12px;color:#9CA3AF;padding:5px 0">Upload an Excel file to see perimeters</span>';
-    return;
-  }
-
-  buyers.forEach(buyer => {
-    const count = buyerCount[buyer];
-    const btn = document.createElement('button');
-    btn.className = 'perimeter-pill-btn';
-    btn.dataset.perimeter = buyer;
-    btn.title = 'Filter to ' + buyer + ' (' + count + ' suppliers)';
-    btn.innerHTML = buyer + ' <span style="font-size:10px;opacity:0.55;margin-left:2px">(' + count + ')</span>';
-    btn.onclick = () => filterByPerimeter(buyer);
-    container.appendChild(btn);
-  });
-}
-
-function filterByPerimeter(perimeterKey) {
-  activePerimeterFilter = perimeterKey;
-  document.querySelectorAll('.perimeter-pill-btn').forEach(b => b.classList.remove('active'));
-  if (perimeterKey === 'all') {
-    document.getElementById('allPerimeterBtn').classList.add('active');
-  } else {
-    document.querySelectorAll(`[data-perimeter="${perimeterKey}"]`).forEach(b => b.classList.add('active'));
-  }
-  applyFilters();
-}
-
-// ══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // FILE HANDLING
-// ══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 function handleDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag-over'); }
-function handleDragLeave() { document.getElementById('uploadZone').classList.remove('drag-over'); }
-function handleDrop(e) { e.preventDefault(); handleDragLeave(); const f = e.dataTransfer.files[0]; if (f) processFile(f); }
-function handleFileSelect(e) { const f = e.target.files[0]; if (f) processFile(f); }
+function handleDragLeave(e) { document.getElementById('uploadZone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) setFile(file);
+}
+function handleFileSelect(e) { const file = e.target.files[0]; if (file) setFile(file); }
 
-function processFile(file) {
-  if (!file.name.endsWith('.xlsx')) { showToast('Please upload a .xlsx file', 'error'); return; }
-  showLoading('Parsing Excel file...');
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const wb = XLSX.read(e.target.result, { type: 'binary' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-      parseWorkingFile(data, file.name);
-      const zone = document.getElementById('uploadZone');
-      zone.classList.add('has-file');
-      zone.classList.remove('drag-over');
-      document.getElementById('uploadTitle').textContent = `✓ ${file.name}`;
-      document.getElementById('uploadSub').textContent = `${supplierData.length} unique suppliers loaded`;
-    } catch(err) {
-      showToast('Error reading file: ' + err.message, 'error');
-    }
-    hideLoading();
-  };
-  reader.readAsBinaryString(file);
+function setFile(file) {
+  currentFile = file;
+  const zone = document.getElementById('uploadZone');
+  zone.classList.add('has-file');
+  document.getElementById('uploadIcon').textContent = '✅';
+  document.getElementById('uploadTitle').textContent = file.name;
+  document.getElementById('uploadSub').textContent = `${(file.size/1024).toFixed(1)} KB · ${new Date().toLocaleString()}`;
+  document.getElementById('processBtn').style.display = '';
+  document.getElementById('uploadMeta').textContent = 'Ready to process';
 }
 
-function parseWorkingFile(data, filename) {
-  if (!data.length) return;
-  rawHeaders = data[0];
-  const hi = {};
-  rawHeaders.forEach((h, i) => { if (h) hi[h] = i; });
-  
-  const bySupplier = {};
-  for (let r = 1; r < data.length; r++) {
-    const row = data[r];
-    if (!row || !row.some(v => v !== null)) continue;
-    const sc = row[hi['Seller Sector Code']];
-    if (!sc) continue;
-    if (!bySupplier[sc]) {
-      bySupplier[sc] = {
-        sectorCode: String(sc),
-        name: row[hi['Seller Supplier Name']] || '',
-        rows: [],
-        contacted: row[hi['Contacted']] || null,
-        infoCompleted: null,
-        note: row[hi['NOTE']] || null,
-        plantsPerimeter: row[hi['Plants perimeter']] || null,
-        owner: row[hi['Owner']] || null,
-        firstContactedDate: null,
-        lastEmailDate: null
-      };
-    }
-    bySupplier[sc].rows.push(row);
-    if (!bySupplier[sc].contacted && row[hi['Contacted']]) bySupplier[sc].contacted = row[hi['Contacted']];
-    if (!bySupplier[sc].infoCompleted && row[hi['Info completed']] === 'Complete') bySupplier[sc].infoCompleted = 'Complete';
-  }
-
-  supplierData = Object.values(bySupplier).map(s => {
-    const firstRow = s.rows[0];
-    const filled = {}, missing = [];
-    ORANGE_COLS.forEach(col => {
-      const v = firstRow[hi[col]];
-      if (v !== null && v !== undefined && v !== '' && String(v).trim() !== '') filled[col] = String(v).trim();
-      else missing.push(col);
+async function processFile() {
+  if (!currentFile) return;
+  showLoading('Reading Excel file...');
+  try {
+    const data = await currentFile.arrayBuffer();
+    const wb = XLSX.read(data, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    setLoadingText('Analyzing rows...');
+    // Filter out the "Check" row
+    const dataRows = raw.filter(r => r['Title'] !== 'Check' && r['Title'] !== undefined);
+    // Enrich rows
+    allRows = dataRows.map((r, i) => {
+      const row = { ...r, _idx: i };
+      row._key = `${r['Seller Sector Code']||''}|${r['Part Number']||''}|${r['Plant']||''}`;
+      row._qcResult = runQualityCheck(row);
+      row._incoherences = detectIncoherences(row);
+      row._qualityIssues = row._qcResult.failures;
+      return row;
     });
-    const qualContact = filled['Quality contact'] || null;
-    const logContact = filled['Logistic contact'] || null;
-    const toEmails = [qualContact, logContact].filter(Boolean).join(', ');
-    let status;
-    if (s.infoCompleted === 'Complete') status = 'complete';
-    else if (s.contacted && String(s.contacted).toLowerCase() === 'yes') status = 'waiting';
-    else status = 'to_contact';
-    return { ...s, filled, missing, toEmails, status, headerIndex: hi };
-  });
-
-  // Merge Firestore data if available
-  if (window.firestoreSupplierData) mergeFirestoreIntoSuppliers();
-
-  window.supplierData = supplierData;
-  filteredData = [...supplierData];
-  // Build perimeter filter buttons from Excel data
-  populatePerimeterFilter();
-  renderStats();
-  renderTable();
-  document.getElementById('statsBar').style.display = 'grid';
-  document.getElementById('tableSection').style.display = 'block';
-}
-
-function mergeFirestoreIntoSuppliers() {
-  if (!window.firestoreSupplierData || !supplierData.length) return;
-  supplierData.forEach(s => {
-    const fs = window.firestoreSupplierData[s.sectorCode];
-    if (fs) {
-      if (fs.status) s.status = fs.status;
-      if (fs.contacted) s.contacted = fs.contacted;
-      if (fs.lastContactedAt) s.lastEmailDate = fs.lastContactedAt;
-      if (fs.note) s.note = fs.note;
-    }
-  });
-  renderTable();
-  renderStats();
-}
-
-// ══════════════════════════════════════════════════════════════
-// DAYS SINCE CONTACT
-// ══════════════════════════════════════════════════════════════
-function daysSince(dateStr) {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (isNaN(d)) return null;
-  return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function getDaysSinceContactDisplay(s) {
-  if (s.status === 'complete') return '';
-  const days = daysSince(s.lastEmailDate);
-  if (days === null) {
-    if (s.contacted === 'Yes') return '<span class="late-badge">📧 No date</span>';
-    return '<span style="font-size:11px;color:#9CA3AF">—</span>';
+    setLoadingText('Comparing with history...');
+    // Load previous snapshot for diff
+    await loadPreviousSnapshot();
+    setLoadingText('Saving to Firebase...');
+    const version = `v_${Date.now()}`;
+    document.getElementById('versionBadge').textContent = `${currentFile.name} · ${new Date().toLocaleTimeString()}`;
+    await window.saveSnapshotToFirestore(allRows, version);
+    filteredRows = [...allRows];
+    updateStats();
+    populateFilterOptions();
+    renderSections();
+    generateQCReport();
+    document.getElementById('statsGrid').style.display = '';
+    document.getElementById('filterBar').style.display = '';
+    hideLoading();
+  } catch(e) {
+    hideLoading();
+    alert('Error processing file: ' + e.message);
+    console.error(e);
   }
-  if (days > 7) return `<span class="late-badge">🔴 ${days}d late</span>`;
-  if (days > 3) return `<span style="background:#FFF4E5;color:#B75E00;padding:2px 7px;font-size:10px;border-radius:4px;font-weight:600">🟡 ${days}d</span>`;
-  return `<span style="background:#E6F6EE;color:#137a44;padding:2px 7px;font-size:10px;border-radius:4px;font-weight:600">🟢 ${days}d</span>`;
 }
 
-// ══════════════════════════════════════════════════════════════
-// STATS
-// ══════════════════════════════════════════════════════════════
-function renderStats() {
-  const data = filteredData.length > 0 ? filteredData : supplierData;
-  document.getElementById('statTotal').textContent = data.length;
-  document.getElementById('statToContact').textContent = data.filter(s => s.status === 'to_contact').length;
-  document.getElementById('statWaiting').textContent = data.filter(s => s.status === 'waiting').length;
-  document.getElementById('statComplete').textContent = data.filter(s => s.status === 'complete').length;
+// ═══════════════════════════════════════════════════════════
+// QUALITY CHECK
+// ═══════════════════════════════════════════════════════════
+function validateField(col, val) {
+  const rule = QC_RULES[col];
+  if (!rule) return { pass: true };
+  const v = String(val || '').trim();
+  if (!v) return { pass: false, reason: 'Empty field' };
+  switch(rule.type) {
+    case 'cofor10':
+      // Pattern: XXXXXX XX (10 chars, space at pos 7: "A00MDA  01")
+      if (v.length !== 10) return { pass: false, reason: `Length ${v.length} (expected 10)` };
+      // Two spaces somewhere in middle
+      if (!v.match(/^.{6}\s{2}.{2}$/)) return { pass: false, reason: 'Format: XXXXXX  XX expected' };
+      return { pass: true };
+    case 'locid12':
+      if (v.length !== 12) return { pass: false, reason: `Length ${v.length} (expected 12)` };
+      return { pass: true };
+    case 'email':
+      const emails = v.split(';').map(e => e.trim());
+      const invalid = emails.filter(e => e && !e.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/));
+      if (invalid.length) return { pass: false, reason: `Invalid email: ${invalid[0]}` };
+      return { pass: true };
+    case 'yesno':
+      if (!['yes','no',''].includes(v.toLowerCase())) return { pass: false, reason: `Value "${v}" not Yes/No/Empty` };
+      return { pass: true };
+    case 'datetext':
+      if (!v.match(/^\d{2}\.\d{2}\.\d{4}/)) return { pass: false, reason: 'Must start with DD.MM.YYYY' };
+      return { pass: true };
+    case 'address':
+      if (v.length < 5) return { pass: false, reason: 'Address too short' };
+      return { pass: true };
+    case 'prenom':
+      if (v.length < 2) return { pass: false, reason: 'Owner name too short' };
+      return { pass: true };
+  }
+  return { pass: true };
 }
 
-// ══════════════════════════════════════════════════════════════
-// TABLE RENDERING
-// ══════════════════════════════════════════════════════════════
+function runQualityCheck(row) {
+  const results = {};
+  const failures = [];
+  for (const [col, rule] of Object.entries(QC_RULES)) {
+    const check = validateField(col, row[col]);
+    results[col] = check;
+    if (!check.pass) failures.push({ col, label: rule.label, reason: check.reason });
+  }
+  return { results, failures, passed: failures.length === 0 };
+}
+
+function detectIncoherences(row) {
+  const incos = [];
+  const status = String(row['Status'] || '').toLowerCase().trim();
+  const infoCompleted = String(row['Info completed'] || '').toLowerCase().trim();
+  const isStatusComplete = status === 'complete' || status === 'completed';
+  const isInfoComplete = infoCompleted === 'complete' || infoCompleted === 'completed';
+
+  // Check required fields
+  const missingReq = REQUIRED_FIELDS.filter(f => !String(row[f] || '').trim());
+
+  // Main incoherence: status says complete but info missing
+  if (isStatusComplete && missingReq.length > 0) {
+    incos.push(`Status=Complete but ${missingReq.length} required field(s) empty`);
+  }
+  if (isInfoComplete && missingReq.length > 0) {
+    incos.push(`Info Completed=Complete but ${missingReq.length} field(s) empty`);
+  }
+  // Vice versa: all fields filled but not marked complete
+  if (!isStatusComplete && missingReq.length === 0) {
+    incos.push('All fields filled but Status not Complete');
+  }
+  // Quality issues with Complete status
+  if (isStatusComplete && row._qcResult && row._qcResult.failures.length > 0) {
+    incos.push(`Status=Complete but ${row._qcResult.failures.length} format issue(s)`);
+  }
+  return incos;
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILTERS & STATS
+// ═══════════════════════════════════════════════════════════
+function populateFilterOptions() {
+  const statuses = [...new Set(allRows.map(r => String(r['Status']||'').trim()).filter(Boolean))];
+  const owners = [...new Set(allRows.map(r => String(r['Owner']||'').trim()).filter(Boolean))];
+  const fStatus = document.getElementById('fStatus');
+  fStatus.innerHTML = '<option value="">All</option>' + statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+  const fOwner = document.getElementById('fOwner');
+  fOwner.innerHTML = '<option value="">All</option>' + owners.map(o => `<option value="${o}">${o}</option>`).join('');
+}
+
 function applyFilters() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  const sf = document.getElementById('statusFilter').value;
-  const myPerimeter = window.userProfile?.perimeter;
+  const fC = document.getElementById('fContacted').value;
+  const fI = document.getElementById('fInfoCompleted').value;
+  const fS = document.getElementById('fStatus').value;
+  const fO = document.getElementById('fOwner').value;
+  const fInco = document.getElementById('fInco').value;
+  const search = document.getElementById('searchInput').value.toLowerCase();
 
-  filteredData = supplierData.filter(s => {
-    const matchQ = !q || s.name.toLowerCase().includes(q) || s.sectorCode.toLowerCase().includes(q);
-    const matchS = sf === 'all' || s.status === sf;
-    // Perimeter filter — match against Owner column from Excel
-    let matchP = true;
-    if (activePerimeterFilter !== 'all') {
-      matchP = (s.owner || '') === activePerimeterFilter;
+  filteredRows = allRows.filter(r => {
+    const contacted = String(r['Contacted']||'').trim();
+    const infoC = String(r['Info completed']||'').trim().toLowerCase();
+    const status = String(r['Status']||'').trim();
+    const owner = String(r['Owner']||'').trim();
+
+    if (fC && !contacted.toLowerCase().startsWith(fC.toLowerCase())) return false;
+    if (fI) {
+      const isComplete = infoC === 'complete' || infoC === 'completed';
+      if (fI === 'Complete' && !isComplete) return false;
+      if (fI === 'Incomplete' && isComplete) return false;
     }
-    return matchQ && matchS && matchP;
+    if (fS && status !== fS) return false;
+    if (fO && owner !== fO) return false;
+    if (fInco === 'yes' && (!r._incoherences || r._incoherences.length === 0)) return false;
+    if (fInco === 'no' && r._incoherences && r._incoherences.length > 0) return false;
+    if (search) {
+      const searchable = [r['Seller Supplier Name'], r['Part Number'], r['Seller Sector Code'],
+        r['Seller COFOR2'], r['Plant'], r['Owner']].join(' ').toLowerCase();
+      if (!searchable.includes(search)) return false;
+    }
+    return true;
   });
+
+  // Count active filters
+  let activeCount = [fC,fI,fS,fO,fInco,search].filter(Boolean).length;
+  const badge = document.getElementById('activeFiltersCount');
+  if (activeCount > 0) { badge.style.display = ''; badge.textContent = `${activeCount} filter${activeCount>1?'s':''} active`; }
+  else { badge.style.display = 'none'; }
+
   currentPage = 1;
-  renderStats();
-  renderTable();
+  renderSections();
+  updateStats();
 }
 
-function renderTable() {
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
-  const pageData = filteredData.slice(start, end);
-  const tbody = document.getElementById('supplierTableBody');
-  tbody.innerHTML = pageData.map((s, i) => {
-    const absIdx = start + i;
-    const statusBadge = s.status === 'complete'
-      ? `<span class="badge badge-green">✓ Complete</span>`
-      : s.status === 'waiting'
-      ? `<span class="badge badge-yellow">⏳ Waiting</span>`
-      : `<span class="badge badge-orange">⚠ To Contact</span>`;
-    const missingHtml = s.missing.length
-      ? s.missing.map(f => `<span class="missing-tag">${shortName(f)}</span>`).join('')
-      : `<span class="badge badge-green" style="font-size:10px">All filled</span>`;
-    const contact = s.toEmails ? `<span style="font-size:11px;color:#6B7280;font-family:'DM Mono',monospace">${s.toEmails.split(',')[0].trim()}</span>` : `<span style="font-size:11px;color:#E8520A">Missing</span>`;
-    const buyerCell = s.owner && !s.owner.startsWith('=')
-      ? `<span style="font-size:11px;color:#374151;font-weight:500">${esc(s.owner)}</span>`
-      : `<span style="font-size:11px;color:#9CA3AF">—</span>`;
-    const isChecked = selectedSuppliers.has(s.sectorCode);
-    const canSend = s.status !== 'complete';
-    const days = getDaysSinceContactDisplay(s);
-    const isLate = s.status === 'waiting' && daysSince(s.lastEmailDate) > 7;
-    return `<tr class="${isChecked ? 'selected' : ''} ${isLate ? 'late-row' : ''}" onclick="handleRowClick(event, '${esc(s.sectorCode)}')">
-      <td class="check-col" onclick="event.stopPropagation()"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCheck('${esc(s.sectorCode)}', this.checked)"></td>
-      <td style="font-weight:500">${esc(s.name)}</td>
-      <td><code style="font-size:11px;background:#F3F4F6;padding:2px 6px;border-radius:3px">${esc(s.sectorCode)}</code></td>
-      <td style="color:#6B7280">${s.rows.length}</td>
-      <td>${statusBadge}</td>
-      <td>${days}</td>
-      <td><div class="missing-fields">${missingHtml}</div></td>
-      <td>${buyerCell}</td>
-      <td>${contact}</td>
-      <td onclick="event.stopPropagation()" style="display:flex;gap:6px;align-items:center">
-        <button class="btn-row" onclick="openEmailPreview('${esc(s.sectorCode)}')">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          Email
-        </button>
-      </td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="10"><div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/></svg><p>No suppliers match the current filters.</p></div></td></tr>`;
-  
-  const total = filteredData.length;
-  document.getElementById('tableCount').textContent = `${total} supplier${total !== 1 ? 's' : ''}`;
-  renderPagination(total);
+function clearFilters() {
+  ['fContacted','fInfoCompleted','fStatus','fOwner','fInco'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('searchInput').value = '';
+  filteredRows = [...allRows];
+  currentPage = 1;
+  renderSections();
+  updateStats();
+  document.getElementById('activeFiltersCount').style.display = 'none';
 }
 
-function renderPagination(total) {
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-  document.getElementById('paginationInfo').textContent = `Showing ${Math.min((currentPage-1)*PAGE_SIZE+1, total)}-${Math.min(currentPage*PAGE_SIZE, total)} of ${total}`;
-  const btns = document.getElementById('paginationBtns');
-  let html = `<button class="page-btn" onclick="gotoPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
-  for (let p = Math.max(1, currentPage-2); p <= Math.min(totalPages, currentPage+2); p++) {
-    html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="gotoPage(${p})">${p}</button>`;
-  }
-  html += `<button class="page-btn" onclick="gotoPage(${currentPage+1})" ${currentPage===totalPages||totalPages===0?'disabled':''}>›</button>`;
-  btns.innerHTML = html;
+function updateStats() {
+  const rows = filteredRows.length ? filteredRows : allRows;
+  const total = rows.length;
+  const complete = rows.filter(r => ['complete','completed'].includes(String(r['Status']||'').toLowerCase().trim())).length;
+  const issues = rows.filter(r => r._qualityIssues && r._qualityIssues.length > 0).length;
+  const incos = rows.filter(r => r._incoherences && r._incoherences.length > 0).length;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statComplete').textContent = complete;
+  document.getElementById('statCompletePct').textContent = total ? `${Math.round(complete/total*100)}% of total` : '0%';
+  document.getElementById('statPending').textContent = total - complete;
+  document.getElementById('statIssues').textContent = issues;
+  document.getElementById('statInco').textContent = incos;
 }
 
-function gotoPage(p) {
-  const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
-  if (p < 1 || p > totalPages) return;
-  currentPage = p;
-  renderTable();
-}
-
-function shortName(col) {
-  const map = {
-    'Seller COFOR2': 'Seller COFOR', 'Manufacturer COFOR': 'Mfr COFOR', 'Manufacturer address': 'Mfr Addr',
-    'Shipper COFOR2': 'Shipper COFOR', 'Shipper address': 'Shipper Addr', 'Location ID2': 'Loc ID',
-    'Location ID address2': 'Loc Addr', 'Quality contact': 'Quality', 'Logistic contact': 'Logistic'
-  };
-  return map[col] || col;
-}
-
-function esc(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-function toggleCheck(sc, checked) {
-  if (checked) selectedSuppliers.add(sc);
-  else selectedSuppliers.delete(sc);
-  updateSelectionUI();
-  renderTable();
-}
-function toggleCheckAll(cb) {
-  const visible = filteredData.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
-  visible.forEach(s => { if (cb.checked) selectedSuppliers.add(s.sectorCode); else selectedSuppliers.delete(s.sectorCode); });
-  updateSelectionUI();
-  renderTable();
-}
-function selectAllVisible() {
-  filteredData.forEach(s => selectedSuppliers.add(s.sectorCode));
-  updateSelectionUI();
-  renderTable();
-}
-function updateSelectionUI() {
-  const n = selectedSuppliers.size;
-  const info = document.getElementById('selectionInfo');
-  const btn = document.getElementById('btnSendSelected');
-  if (n > 0) {
-    info.style.display = 'inline-block';
-    info.textContent = `${n} supplier${n>1?'s':''} selected`;
-    btn.style.display = 'flex';
-    btn.textContent = `Send to ${n} Selected`;
-  } else {
-    info.style.display = 'none';
-    btn.style.display = 'none';
-  }
-}
-function handleRowClick(e, sc) {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-  openEmailPreview(sc);
-}
-
-// ══════════════════════════════════════════════════════════════
-// OPEN IN DESKTOP OUTLOOK — generates a real .eml file
-// Outlook opens .eml files natively with full body + attachments
-// ══════════════════════════════════════════════════════════════
-function openOutlookDesktop() {
-  if (!currentModalSupplier) return;
-  const to = document.getElementById('emailTo').value.trim();
-  const cc = document.getElementById('emailCc').value.trim();
-  if (!to) { showToast('Please enter at least one recipient email', 'error'); return; }
-
-  const supplier = currentModalSupplier;
-  const filename = supplier.sectorCode + ' ' + supplier.name.replace(/[^a-zA-Z0-9 ]/g,'').trim() + ' CONFIRMATION.xlsx';
-  const subject = "Stellantis suppliers' COFORIZATION - Request for Confirmation of COFOR Codes - " + supplier.name + " - " + supplier.sectorCode;
-  const htmlBody = generateEmailBody(supplier);
-  const confirmB64 = generateConfirmationXlsx(supplier);
-
-  // RFC 2822 requires CRLF line endings everywhere
-  const CRLF = '\r\n';
-
-  // Wrap base64 data at exactly 76 chars per line (RFC 2045 requirement)
-  function wrapB64(b64str) {
-    return (b64str.match(/.{1,76}/g) || [b64str]).join(CRLF);
+// ═══════════════════════════════════════════════════════════
+// TABLE RENDERING
+// ═══════════════════════════════════════════════════════════
+function renderSections() {
+  const container = document.getElementById('tableSections');
+  if (!filteredRows.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">No results</div><div class="empty-state-sub">Try adjusting your filters.</div></div>`;
+    return;
   }
 
-  // UTF-8 → base64 for the HTML body
-  const htmlB64 = wrapB64(btoa(unescape(encodeURIComponent(htmlBody))));
-
-  const mixedBnd  = 'MixedBoundary' + Date.now() + 'X';
-  const altBnd    = 'AltBoundary'   + Date.now() + 'Y';
-
-  // Build EML using explicit string concatenation — NO template literals spanning lines
-  // (template literals embed literal LF, not CRLF, which breaks RFC 2822 parsers)
-  let eml = '';
-  eml += 'To: ' + to + CRLF;
-  if (cc) eml += 'Cc: ' + cc + CRLF;
-  eml += 'Subject: ' + subject + CRLF;
-  eml += 'MIME-Version: 1.0' + CRLF;
-  eml += 'Content-Type: multipart/mixed; boundary="' + mixedBnd + '"' + CRLF;
-  eml += 'X-Unsent: 1' + CRLF;              // tells Outlook to open as new unsent draft
-  eml += CRLF;                               // blank line = end of headers
-
-  // ── Part 1: HTML body wrapped in multipart/alternative ──
-  eml += '--' + mixedBnd + CRLF;
-  eml += 'Content-Type: multipart/alternative; boundary="' + altBnd + '"' + CRLF;
-  eml += CRLF;
-
-  eml += '--' + altBnd + CRLF;
-  eml += 'Content-Type: text/html; charset="utf-8"' + CRLF;
-  eml += 'Content-Transfer-Encoding: base64' + CRLF;
-  eml += CRLF;
-  eml += htmlB64 + CRLF;
-  eml += CRLF;
-  eml += '--' + altBnd + '--' + CRLF;
-  eml += CRLF;
-
-  // ── Part 2: CONFIRMATION xlsx attachment ──
-  eml += '--' + mixedBnd + CRLF;
-  eml += 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;' + CRLF;
-  eml += '\tname="' + filename + '"' + CRLF;
-  eml += 'Content-Transfer-Encoding: base64' + CRLF;
-  eml += 'Content-Disposition: attachment;' + CRLF;
-  eml += '\tfilename="' + filename + '"' + CRLF;
-  eml += CRLF;
-  eml += wrapB64(confirmB64) + CRLF;
-  eml += CRLF;
-
-  // ── Part 3: COFOR Creation template attachment ──
-  eml += '--' + mixedBnd + CRLF;
-  eml += 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;' + CRLF;
-  eml += '\tname="COFOR_Creation_request_template.xlsx"' + CRLF;
-  eml += 'Content-Transfer-Encoding: base64' + CRLF;
-  eml += 'Content-Disposition: attachment;' + CRLF;
-  eml += '\tfilename="COFOR_Creation_request_template.xlsx"' + CRLF;
-  eml += CRLF;
-  eml += wrapB64(COFOR_TEMPLATE_B64) + CRLF;
-  eml += CRLF;
-
-  eml += '--' + mixedBnd + '--' + CRLF;
-
-  // Download — Outlook opens .eml files natively as a draft ready to send
-  const blob = new Blob([eml], { type: 'message/rfc822' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = supplier.sectorCode + '_' + supplier.name.replace(/[^a-zA-Z0-9]/g,'_') + '.eml';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
-  showToast('📧 .eml downloaded — double-click it to open in Outlook as a ready-to-send draft with both attachments!', 'success');
-}
-
-// ══════════════════════════════════════════════════════════════
-// EMAIL GENERATION
-// ══════════════════════════════════════════════════════════════
-function generateEmailBody(supplier) {
-  const filename = `${supplier.sectorCode} ${supplier.name.replace(/[^a-zA-Z0-9 ]/g,'').trim()} CONFIRMATION.xlsx`;
-  const tableRows = supplier.rows.map(row => {
-    const hi = supplier.headerIndex;
-    const pn = row[hi['Part Number']] || '';
-    const sn = row[hi['Seller Supplier Name']] || '';
-    const sc = row[hi['Seller Sector Code']] || '';
-    const pl = row[hi['Plant']] || '';
-    const pp = row[hi['Plants perimeter']] || '';
-    const ic = row[hi['Incoterm']] || '';
-    return `<tr>
-      <td class="etd">${esc(pn)}</td>
-      <td class="etd">${esc(sn)}</td>
-      <td class="etd">${esc(sc)}</td>
-      <td class="etd">${esc(pl)}</td>
-      <td class="etd">${esc(pp)}</td>
-      <td class="etd">${esc(ic)}</td>
-    </tr>`;
-  }).join('');
-  
-  return `<div style="font-family:Calibri,Helvetica,sans-serif;font-size:12pt;color:black;line-height:1.6">
-<p>Dear Supplier,</p>
-<p>With the target of converging towards common processes, increasing overall efficiency, and expanding collaboration opportunities, Stellantis is proceeding with the harmonized codification of all suppliers according to the COFOR logic.</p>
-<p>As a reminder, this codification requires three distinct codes:</p>
-<ul>
-<li><b>Seller&nbsp;COFOR</b>&nbsp;– identifying the supplier's legal entity</li>
-<li><b>Manufacturer COFOR</b>&nbsp;– identifying the production site</li>
-<li><b>Shipper COFOR</b>&nbsp;– identifying the shipping location</li>
-</ul>
-<p>Some checks, updates, and applications of this logic have already been performed in the past for certain suppliers as part of previous projects. Other suppliers, however, are being contacted for the first time.</p>
-<ol>
-<li>
-<p>We kindly ask you to <b>review and confirm the COFOR codes listed below and in the attached file <i>${esc(filename)}</i></b>. Please, also indicate and confirm the following information:</p>
-</li>
-</ol>
-<table style="width:540pt;border-collapse:collapse;border-spacing:0" border="0" cellpadding="0" cellspacing="0">
-<tbody><tr>
-<td style="width:70pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Part Number</span></td>
-<td style="width:130pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Seller Supplier Name</span></td>
-<td style="width:90pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Seller Sector Code</span></td>
-<td style="width:60pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Plant</span></td>
-<td style="width:100pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Plants perimeter</span></td>
-<td style="width:90pt;text-align:center;white-space:nowrap;border:0.5pt solid;background-color:rgb(31,78,120);padding:4px 8px"><span style="color:white;font-weight:700;font-size:11pt">Incoterm</span></td>
-</tr>
-${tableRows}
-</tbody></table>
-<ul>
-<li>Location ID (xFCA shipping location code)</li>
-<li>Logistic and Quality contacts (email address)</li>
-</ul>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;If your codes are missing, please indicate the correct ones.</p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;2- If you do not have this information, please complete the attached form <b>"COFOR Creation request Template"</b> with the required details so that a new COFOR code can be created.</p>
-<p>We kindly request that the required data be shared <b>within 5 days</b> from receipt of this email.</p>
-<p>Should you need any additional information or assistance, please do not hesitate to contact us. We remain at your disposal.</p>
-<p>Best regards,<br>Thank you<br><b>Supplier OnBoarding team</b></p>
-</div>`;
-}
-
-
-// Pre-built confirmation template: navy header + 20 blank styled rows, Calibri 11, thin borders
-// Generated with openpyxl — exact match to original CONFIRMATION file format
-const CONFIRMATION_TEMPLATE_B64 = "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";
-
-function generateConfirmationXlsx(supplier) {
-  const hi = supplier.headerIndex;
-  const COL_HEADERS = [
-    'Part Number','Seller Supplier Name','Seller Sector Code','Plant','Plants perimeter','Incoterm',
-    'Seller COFOR2','Manufacturer COFOR','Manufacturer address',
-    'Shipper COFOR2','Shipper address','Location ID2','Location ID address2',
-    'Quality contact','Logistic contact'
+  // Group by section type for display
+  const sections = [
+    { id: 'complete', label: 'Completed', color: '#137a44', icon: '✅', rows: filteredRows.filter(r => ['complete','completed'].includes(String(r['Status']||'').toLowerCase().trim())) },
+    { id: 'incoherence', label: 'Incoherences', color: '#6D28D9', icon: '⚠️', rows: filteredRows.filter(r => r._incoherences && r._incoherences.length > 0) },
+    { id: 'issues', label: 'Quality Issues', color: '#C0392B', icon: '❌', rows: filteredRows.filter(r => r._qualityIssues && r._qualityIssues.length > 0) },
+    { id: 'pending', label: 'Pending / In Progress', color: '#B75E00', icon: '⏳', rows: filteredRows.filter(r => !['complete','completed'].includes(String(r['Status']||'').toLowerCase().trim())) },
   ];
 
-  // Load our pre-styled template (navy header + 20 blank styled rows)
-  const wb = XLSX.read(CONFIRMATION_TEMPLATE_B64, { type: 'base64' });
-  const ws = wb.Sheets['Feuil3'];
-
-  const supplierRows = supplier.rows;
-  const nDataRows = supplierRows.length;
-
-  // Fill data into the pre-styled rows (styles stay intact, we only touch .v and .t)
-  supplierRows.forEach((row, rIdx) => {
-    const excelRow = rIdx + 2; // row 1 = header, data starts at row 2
-    COL_HEADERS.forEach((h, cIdx) => {
-      const colLetter = String.fromCharCode(65 + cIdx); // A, B, C...
-      const cellAddr = colLetter + excelRow;
-      let v = row[hi[h]];
-      // Skip formulas and blanks
-      if (v === null || v === undefined || (typeof v === 'string' && (v.startsWith('=') || v.trim() === ''))) v = null;
-      if (!ws[cellAddr]) {
-        // Cell doesn't exist in template (beyond 20 rows) — create plain cell
-        ws[cellAddr] = { t: 's', v: '' };
-      }
-      if (v !== null) {
-        ws[cellAddr].v = String(v);
-        ws[cellAddr].t = 's'; // store as string to preserve leading zeros (e.g. sector codes)
-      } else {
-        ws[cellAddr].v = '';
-      }
-    });
-  });
-
-  // Trim the sheet ref to only header + supplier data rows (remove unused template rows)
-  const lastRow = nDataRows + 1;
-  ws['!ref'] = 'A1:O' + lastRow;
-
-  return XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-}
-
-// ══════════════════════════════════════════════════════════════
-// EMAIL MODAL
-// ══════════════════════════════════════════════════════════════
-function openEmailPreview(sc) {
-  const supplier = supplierData.find(s => s.sectorCode === sc);
-  if (!supplier) return;
-  currentModalSupplier = supplier;
-  const filename = `${supplier.sectorCode} ${supplier.name.replace(/[^a-zA-Z0-9 ]/g,'').trim()} CONFIRMATION.xlsx`;
-  const subject = `Stellantis suppliers' COFORIZATION - Request for Confirmation of COFOR Codes - ${supplier.name} - ${supplier.sectorCode}`;
-  document.getElementById('emailTo').value = supplier.toEmails || '';
-  document.getElementById('emailCc').value = localStorage.getItem('cofor_defaultCc') || '';
-  document.getElementById('emailMeta').innerHTML = `
-    <strong>From:</strong> Supplier OnBoarding (your Outlook)<br>
-    <strong>To:</strong> ${esc(supplier.toEmails || '⚠ Please fill in recipient emails')}<br>
-    <strong>Subj:</strong> ${esc(subject)}`;
-  document.getElementById('emailBodyPreview').innerHTML = generateEmailBody(supplier);
-  document.getElementById('attachmentsBar').innerHTML = `
-    <span style="font-size:11px;color:#6B7280;font-weight:500">📎 Attachments:</span>
-    <span class="attach-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> ${esc(filename)}</span>
-    <span class="attach-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> COFOR_Creation_request_template.xlsx</span>`;
-  openModal('emailModal');
-}
-
-async function sendCurrentEmail() {
-  if (!currentModalSupplier) return;
-  const to = document.getElementById('emailTo').value.trim();
-  const cc = document.getElementById('emailCc').value.trim();
-  if (!to) { showToast('Please enter at least one recipient email', 'error'); return; }
-  const btn = document.getElementById('btnSendEmail');
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
-  try {
-    await sendEmail(currentModalSupplier, to, cc);
-    closeModal('emailModal');
-    currentModalSupplier.contacted = 'Yes';
-    currentModalSupplier.lastEmailDate = new Date().toISOString();
-    if (currentModalSupplier.status === 'to_contact') currentModalSupplier.status = 'waiting';
-    // Save to Firestore
-    if (window.logEmailSentToFirestore) await window.logEmailSentToFirestore(currentModalSupplier);
-    if (window.saveSupplierToFirestore) await window.saveSupplierToFirestore(currentModalSupplier);
-    renderTable();
-    renderStats();
-    showToast(`Email sent to ${to.split(',')[0]}!`, 'success');
-    if (cc) localStorage.setItem('cofor_defaultCc', cc);
-  } catch(e) {
-    showToast('Send failed: ' + e.message, 'error');
-  }
-  btn.disabled = false;
-  btn.textContent = 'Send via Graph API';
-}
-
-async function sendEmail(supplier, toStr, ccStr) {
-  const token = await getAccessToken();
-  const filename = `${supplier.sectorCode} ${supplier.name.replace(/[^a-zA-Z0-9 ]/g,'').trim()} CONFIRMATION.xlsx`;
-  const subject = `Stellantis suppliers' COFORIZATION - Request for Confirmation of COFOR Codes - ${supplier.name} - ${supplier.sectorCode}`;
-  const htmlBody = generateEmailBody(supplier);
-  const confirmB64 = generateConfirmationXlsx(supplier);
-  const toList = toStr.split(',').map(e => ({ emailAddress: { address: e.trim() } })).filter(e => e.emailAddress.address);
-  const ccList = ccStr ? ccStr.split(',').map(e => ({ emailAddress: { address: e.trim() } })).filter(e => e.emailAddress.address) : [];
-  const body = {
-    message: {
-      subject,
-      body: { contentType: 'HTML', content: htmlBody },
-      toRecipients: toList,
-      ccRecipients: ccList,
-      attachments: [
-        { '@odata.type': '#microsoft.graph.fileAttachment', name: filename, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', contentBytes: confirmB64 },
-        { '@odata.type': '#microsoft.graph.fileAttachment', name: 'COFOR_Creation_request_template.xlsx', contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', contentBytes: COFOR_TEMPLATE_B64 }
-      ]
-    },
-    saveToSentItems: 'true'
-  };
-  const res = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: { message: 'Unknown error' } }));
-    throw new Error(err.error?.message || `HTTP ${res.status}`);
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// BATCH SEND
-// ══════════════════════════════════════════════════════════════
-function openBatchSend() {
-  const selected = supplierData.filter(s => selectedSuppliers.has(s.sectorCode));
-  document.getElementById('batchCount').textContent = selected.length;
-  document.getElementById('batchList').innerHTML = selected.map(s => {
-    const to = s.toEmails || '<span style="color:#E8520A">⚠ No contacts</span>';
-    return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f3f4f6">
-      <span><b>${esc(s.name)}</b> <code style="font-size:10px;color:#9CA3AF">${esc(s.sectorCode)}</code></span>
-      <span style="font-size:11px;color:#6B7280">${to}</span>
+  container.innerHTML = sections.map(sec => {
+    if (!sec.rows.length) return '';
+    return `
+    <div class="section-card" id="sec-${sec.id}">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-title-dot" style="background:${sec.color}"></div>
+          ${sec.icon} ${sec.label}
+          <span class="section-count">${sec.rows.length} record${sec.rows.length>1?'s':''}</span>
+        </div>
+        <div class="section-actions">
+          <button class="btn-export" onclick="exportSection('${sec.id}')">⬇️ Export Table</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        ${renderTable(sec.rows, sec.id)}
+      </div>
+      ${renderPagination(sec.rows.length, sec.id)}
     </div>`;
   }).join('');
-  document.getElementById('batchProgress').style.display = 'none';
-  document.getElementById('batchProgressText').textContent = '';
-  document.getElementById('btnBatchSend').disabled = false;
-  document.getElementById('btnBatchSend').textContent = 'Send All Emails';
-  openModal('batchModal');
 }
 
-async function runBatchSend() {
-  const selected = supplierData.filter(s => selectedSuppliers.has(s.sectorCode));
-  const cc = document.getElementById('batchCc').value.trim();
-  if (!selected.length) return;
-  const missingContacts = selected.filter(s => !s.toEmails);
-  if (missingContacts.length > 0 && !confirm(`${missingContacts.length} supplier(s) have no contact emails and will be skipped. Continue?`)) return;
-  const sendable = selected.filter(s => s.toEmails);
-  if (!sendable.length) { showToast('No suppliers with contact emails', 'error'); return; }
-  const btn = document.getElementById('btnBatchSend');
-  btn.disabled = true;
-  document.getElementById('batchProgress').style.display = 'block';
-  let sent = 0, failed = 0;
-  for (const supplier of sendable) {
-    document.getElementById('batchProgressText').textContent = `Sending ${sent+1}/${sendable.length}: ${supplier.name}...`;
-    document.getElementById('batchProgressFill').style.width = `${(sent/sendable.length)*100}%`;
-    try {
-      await sendEmail(supplier, supplier.toEmails, cc);
-      supplier.contacted = 'Yes';
-      supplier.lastEmailDate = new Date().toISOString();
-      if (supplier.status === 'to_contact') supplier.status = 'waiting';
-      if (window.logEmailSentToFirestore) await window.logEmailSentToFirestore(supplier);
-      sent++;
-    } catch(e) {
-      failed++;
-      console.error(`Failed ${supplier.sectorCode}:`, e);
-    }
-    await new Promise(r => setTimeout(r, 800));
-  }
-  document.getElementById('batchProgressFill').style.width = '100%';
-  document.getElementById('batchProgressText').textContent = `Done! ${sent} sent, ${failed} failed.`;
-  btn.textContent = 'Complete';
-  selectedSuppliers.clear();
-  renderTable();
-  renderStats();
-  setTimeout(() => { closeModal('batchModal'); showToast(`Batch complete: ${sent} emails sent`, 'success'); }, 1500);
+function renderTable(rows, sectionId) {
+  const paged = rows.slice(0, PAGE_SIZE);
+  return `
+  <table id="tbl-${sectionId}">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Supplier Name</th>
+        <th>Sector Code</th>
+        <th>Part Number</th>
+        <th>Plant</th>
+        <th>Contacted</th>
+        <th>Info Completed</th>
+        <th>Status</th>
+        <th>Owner</th>
+        <th>Les Incoherences</th>
+        <th>Quality Issues</th>
+        <th>NOTE</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      ${paged.map((r, i) => renderRow(r, i + 1)).join('')}
+    </tbody>
+  </table>`;
 }
 
-// ══════════════════════════════════════════════════════════════
-// SYNTHESIS EXCEL REPORT
-// ══════════════════════════════════════════════════════════════
-function openSynthesisModal() {
-  if (!supplierData.length) { showToast('Upload a Working File first', 'error'); return; }
-  const myPerimeter = window.userProfile?.perimeter || 'ALL';
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('fr-FR');
+function renderRow(r, num) {
+  const status = String(r['Status']||'').trim();
+  const contacted = String(r['Contacted']||'').trim();
+  const infoC = String(r['Info completed']||'').trim();
+  const owner = String(r['Owner']||'').trim();
+  const note = String(r['NOTE']||'').trim();
+  const hasInco = r._incoherences && r._incoherences.length > 0;
+  const hasIssues = r._qualityIssues && r._qualityIssues.length > 0;
 
-  // Use filteredData for the perimeter in view
-  const data = filteredData.length > 0 ? filteredData : supplierData;
-  const total = data.length;
-  const complete = data.filter(s => s.status === 'complete').length;
-  const waiting = data.filter(s => s.status === 'waiting').length;
-  const toContact = data.filter(s => s.status === 'to_contact').length;
-  const completePct = total > 0 ? Math.round((complete / total) * 100) : 0;
-  const lateSuppliers = data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7);
-  const avgDays = (() => {
-    const contacted = data.filter(s => s.lastEmailDate);
-    if (!contacted.length) return null;
-    const sum = contacted.reduce((a, s) => a + (daysSince(s.lastEmailDate) || 0), 0);
-    return Math.round(sum / contacted.length);
-  })();
+  const statusBadge = getStatusBadge(status);
+  const contactedBadge = getContactedBadge(contacted);
+  const infoCompletedBadge = getInfoBadge(infoC);
 
-  document.getElementById('synthesisContent').innerHTML = `
-    <div class="synthesis-section">
-      <div class="section-title">📋 Overview — Perimeter: ${myPerimeter} · ${dateStr}</div>
-      <div class="synthesis-kpi-grid">
-        <div class="synthesis-kpi"><div class="val">${total}</div><div class="lbl">Total Suppliers</div></div>
-        <div class="synthesis-kpi"><div class="val" style="color:#137a44">${completePct}%</div><div class="lbl">Completion Rate</div></div>
-        <div class="synthesis-kpi"><div class="val" style="color:#C0392B">${lateSuppliers.length}</div><div class="lbl">Late (>7 days)</div></div>
-        <div class="synthesis-kpi"><div class="val" style="color:#B75E00">${toContact}</div><div class="lbl">Still To Contact</div></div>
-        <div class="synthesis-kpi"><div class="val" style="color:#2B6DA8">${waiting}</div><div class="lbl">Awaiting Reply</div></div>
-        <div class="synthesis-kpi"><div class="val" style="color:#137a44">${complete}</div><div class="lbl">Completed</div></div>
-      </div>
-    </div>
-    <div class="synthesis-section">
-      <div class="section-title">🔴 Late Suppliers (No response > 7 days)</div>
-      ${lateSuppliers.length === 0 ? '<p style="color:#137a44;font-size:13px">✓ No late suppliers!</p>' : `
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr>
-          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Supplier</th>
-          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Code</th>
-          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Days Late</th>
-          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Missing Fields</th>
-          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Next Step</th>
-        </tr></thead>
-        <tbody>
-          ${lateSuppliers.map(s => `<tr style="border-bottom:1px solid #F3F4F6">
-            <td style="padding:8px;font-weight:500">${esc(s.name)}</td>
-            <td style="padding:8px;font-family:monospace;font-size:11px">${esc(s.sectorCode)}</td>
-            <td style="padding:8px;color:#C0392B;font-weight:600">${daysSince(s.lastEmailDate)}d</td>
-            <td style="padding:8px">${s.missing.slice(0,3).join(', ')}${s.missing.length > 3 ? ` +${s.missing.length-3} more` : ''}</td>
-            <td style="padding:8px;color:#2B6DA8">Send follow-up email</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`}
-    </div>
-    <div class="synthesis-section">
-      <div class="section-title">📌 What Still Needs To Be Done</div>
-      <div style="font-size:13px;line-height:2;color:#374151">
-        ${toContact > 0 ? `<div>📧 <strong>${toContact} suppliers</strong> still need to be contacted for the first time.</div>` : ''}
-        ${waiting > 0 ? `<div>⏳ <strong>${waiting} suppliers</strong> have been contacted and are awaiting their reply.</div>` : ''}
-        ${lateSuppliers.length > 0 ? `<div>🔴 <strong>${lateSuppliers.length} suppliers</strong> have not replied in over 7 days — follow-up required.</div>` : ''}
-        ${complete === total ? '<div style="color:#137a44">✅ All suppliers are complete!</div>' : ''}
-      </div>
-    </div>
-  `;
-  openModal('synthesisModal');
+  const incoHtml = hasInco
+    ? r._incoherences.map(i => `<span class="inco-tag" title="${i}">${truncate(i, 28)}</span>`).join('')
+    : `<span class="ok-tag">✓ OK</span>`;
+
+  const issuesHtml = hasIssues
+    ? r._qualityIssues.map(q => `<span class="issue-tag" title="${q.reason}">${q.label}</span>`).join('')
+    : `<span class="ok-tag">✓ OK</span>`;
+
+  return `<tr onclick="openDetail(${r._idx})">
+    <td class="td-mono" style="color:var(--gray-400)">${num}</td>
+    <td><strong style="font-size:12px">${r['Seller Supplier Name']||'—'}</strong></td>
+    <td class="td-mono">${r['Seller Sector Code']||'—'}</td>
+    <td class="td-mono">${r['Part Number']||'—'}</td>
+    <td class="td-mono">${r['Plant']||'—'}</td>
+    <td>${contactedBadge}</td>
+    <td>${infoCompletedBadge}</td>
+    <td>${statusBadge}</td>
+    <td>${owner ? `<span class="badge badge-blue">${owner}</span>` : '—'}</td>
+    <td class="incoherence-cell">${incoHtml}</td>
+    <td class="incoherence-cell">${issuesHtml}</td>
+    <td style="max-width:180px;font-size:11px;color:var(--gray-500)">${note ? truncate(note, 40) : '—'}</td>
+    <td><button class="btn-export" onclick="event.stopPropagation();openDetail(${r._idx})">Detail</button></td>
+  </tr>`;
 }
 
-function downloadSynthesisExcel() {
-  if (!supplierData.length) return;
-  const data = filteredData.length > 0 ? filteredData : supplierData;
-  const myPerimeter = window.userProfile?.perimeter || 'ALL';
-  const wb = XLSX.utils.book_new();
+function getStatusBadge(s) {
+  const sl = s.toLowerCase();
+  if (sl === 'complete' || sl === 'completed') return `<span class="badge badge-green">✓ ${s}</span>`;
+  if (sl === 'in progress') return `<span class="badge badge-yellow">⏳ ${s}</span>`;
+  if (!s) return `<span class="badge badge-gray">—</span>`;
+  return `<span class="badge badge-orange">${s}</span>`;
+}
 
-  // Summary sheet
-  const summaryData = [
-    ['COFORIZATION Synthesis Report'],
-    [`Perimeter: ${myPerimeter}`],
-    [`Generated: ${new Date().toLocaleString('fr-FR')}`],
-    [],
-    ['Metric', 'Value'],
-    ['Total Suppliers', data.length],
-    ['Complete', data.filter(s => s.status === 'complete').length],
-    ['Awaiting Reply', data.filter(s => s.status === 'waiting').length],
-    ['To Contact', data.filter(s => s.status === 'to_contact').length],
-    ['Completion Rate (%)', data.length > 0 ? Math.round((data.filter(s=>s.status==='complete').length / data.length) * 100) : 0],
-    ['Late Suppliers (>7d)', data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7).length],
-    [],
-    ['Next Steps'],
-    ...(() => {
-      const steps = [];
-      const toC = data.filter(s => s.status === 'to_contact').length;
-      const wait = data.filter(s => s.status === 'waiting').length;
-      const late = data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7).length;
-      if (toC > 0) steps.push([`Contact ${toC} suppliers for the first time`]);
-      if (wait > 0) steps.push([`Follow up with ${wait} suppliers awaiting reply`]);
-      if (late > 0) steps.push([`URGENT: Send follow-up to ${late} suppliers (no reply >7 days)`]);
-      return steps.length ? steps : [['All tasks complete!']];
-    })()
+function getContactedBadge(c) {
+  const cl = c.toLowerCase();
+  if (cl === 'yes') return `<span class="badge badge-green">✓ Yes</span>`;
+  if (cl === 'no') return `<span class="badge badge-red">✗ No</span>`;
+  return `<span class="badge badge-gray">—</span>`;
+}
+
+function getInfoBadge(c) {
+  const cl = c.toLowerCase();
+  if (cl === 'complete' || cl === 'completed') return `<span class="badge badge-green">✓ Complete</span>`;
+  if (!c) return `<span class="badge badge-gray">—</span>`;
+  return `<span class="badge badge-orange">${c}</span>`;
+}
+
+function truncate(s, n) { return s.length > n ? s.slice(0, n) + '…' : s; }
+
+function renderPagination(total, sectionId) {
+  if (total <= PAGE_SIZE) return '';
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const btns = Array.from({length: Math.min(pages, 7)}, (_, i) =>
+    `<button class="page-btn ${i===0?'active':''}" onclick="goPage(${sectionId},${i+1},this)">${i+1}</button>`
+  ).join('');
+  return `<div class="pagination"><div>${total} records · Page 1 of ${pages}</div><div class="page-btns">${btns}</div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DETAIL MODAL
+// ═══════════════════════════════════════════════════════════
+function openDetail(idx) {
+  const row = allRows.find(r => r._idx === idx);
+  if (!row) return;
+  currentModalRow = row;
+  document.getElementById('modalTitle').textContent = `${row['Seller Supplier Name']||'Unknown'} · ${row['Part Number']||''}`;
+
+  const qcResult = row._qcResult || { results: {}, failures: [] };
+  const incos = row._incoherences || [];
+
+  const detailFields = [
+    ['Seller Supplier Name','Supplier'], ['Seller Sector Code','Sector Code'],
+    ['Part Number','Part Number'], ['Plant','Plant'], ['Incoterm','Incoterm'],
+    ['Buyer','Buyer'], ['Contacted','Contacted'], ['Info completed','Info Completed'],
+    ['Status','Status'], ['Owner','Owner'], ['NOTE','Note'],
   ];
-  const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
-  // Detail sheet
-  const headers = ['Supplier Name','Sector Code','Status','Parts #','Contacted','Days Since Contact','Missing Fields Count','Missing Fields','Plants Perimeter','Last Updated','Notes','Next Step'];
-  const rows = [headers, ...data.map(s => {
-    const days = daysSince(s.lastEmailDate);
-    let nextStep = '';
-    if (s.status === 'complete') nextStep = 'Done ✓';
-    else if (s.status === 'to_contact') nextStep = 'Send initial email';
-    else if (days !== null && days > 7) nextStep = "URGENT: Follow up (" + days + "d no reply)";
-    else if (s.status === 'waiting') nextStep = 'Wait for reply';
-    return [
-      s.name, s.sectorCode, s.status, s.rows.length,
-      s.contacted || 'No',
-      days !== null ? days : 'N/A',
-      s.missing.length, s.missing.join('; '),
-      s.plantsPerimeter || '',
-      s.lastEmailDate || '',
-      s.note || '',
-      nextStep
-    ];
-  })];
-  const wsDetail = XLSX.utils.aoa_to_sheet(rows);
-  wsDetail['!cols'] = headers.map((h, i) => ({ wch: [30,14,12,8,10,14,16,50,16,18,30,30][i] || 15 }));
-  XLSX.utils.book_append_sheet(wb, wsDetail, 'Supplier Detail');
+  const grid = detailFields.map(([col, lbl]) => {
+    const val = String(row[col]||'').trim();
+    const check = qcResult.results[col];
+    const cls = check ? (check.pass ? 'ok' : 'missing') : '';
+    return `<div class="detail-field"><label>${lbl}</label><div class="detail-value ${cls}">${val||'—'}</div></div>`;
+  }).join('');
 
-  // Late suppliers sheet
-  const lateData = data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7);
-  if (lateData.length > 0) {
-    const lateHeaders = ['Supplier Name','Sector Code','Days Late','Missing Fields','Last Contact Date','Next Step'];
-    const lateRows = [lateHeaders, ...lateData.map(s => [
-      s.name, s.sectorCode, daysSince(s.lastEmailDate),
-      s.missing.join('; '), s.lastEmailDate || '', 'Send follow-up email URGENTLY'
-    ])];
-    const wsLate = XLSX.utils.aoa_to_sheet(lateRows);
-    XLSX.utils.book_append_sheet(wb, wsLate, '🔴 Late Suppliers');
+  const qcRows = Object.entries(QC_RULES).map(([col, rule]) => {
+    const check = qcResult.results[col] || { pass: true };
+    const val = String(row[col]||'').trim();
+    return `<div class="qc-check-row ${check.pass ? 'pass' : 'fail'}">
+      <div class="qc-check-icon">${check.pass ? '✅' : '❌'}</div>
+      <div class="qc-check-content">
+        <div class="qc-check-field">${rule.label}</div>
+        <div class="qc-check-detail">${val ? `"${truncate(val,50)}"` : 'Empty'} ${!check.pass ? '· ' + check.reason : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const incoHtml = incos.length
+    ? incos.map(i => `<div class="qc-check-row fail"><div class="qc-check-icon">⚠️</div><div class="qc-check-content"><div class="qc-check-field">${i}</div></div></div>`).join('')
+    : `<div class="qc-check-row pass"><div class="qc-check-icon">✅</div><div class="qc-check-content"><div class="qc-check-field">No incoherences detected</div></div></div>`;
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="detail-grid">${grid}</div>
+    <div class="qc-checks-section">
+      <div class="qc-checks-title">📋 Format Quality Checks</div>
+      ${qcRows}
+      <div class="qc-checks-title" style="margin-top:16px">⚠️ Incoherences</div>
+      ${incoHtml}
+    </div>`;
+
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('detailModal').classList.remove('open'); }
+
+// ═══════════════════════════════════════════════════════════
+// QUALITY REPORT TAB
+// ═══════════════════════════════════════════════════════════
+function generateQCReport() {
+  if (!allRows.length) return;
+  document.getElementById('qcEmpty').style.display = 'none';
+  document.getElementById('qcReport').style.display = '';
+
+  const total = allRows.length;
+  const passed = allRows.filter(r => r._qcResult && r._qcResult.passed).length;
+  const failed = total - passed;
+  const incos = allRows.filter(r => r._incoherences && r._incoherences.length > 0).length;
+
+  // Per-field stats
+  const fieldStats = {};
+  for (const [col, rule] of Object.entries(QC_RULES)) {
+    const fails = allRows.filter(r => r._qcResult && r._qcResult.results[col] && !r._qcResult.results[col].pass).length;
+    const pct = total ? Math.round((total-fails)/total*100) : 0;
+    fieldStats[col] = { label: rule.label, fails, total, pct };
   }
 
-  XLSX.writeFile(wb, `COFORIZATION_Synthesis_${myPerimeter}_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast('Synthesis Excel downloaded!', 'success');
+  // Incoherence breakdown
+  const incoTypes = {};
+  allRows.forEach(r => (r._incoherences||[]).forEach(i => { incoTypes[i] = (incoTypes[i]||0)+1; }));
+
+  const fieldCardsHtml = Object.entries(fieldStats).map(([col, s]) => {
+    const cls = s.pct === 100 ? 'pass' : s.pct >= 80 ? 'warn' : 'fail';
+    return `<div class="qc-rule-card ${cls}">
+      <div class="qc-rule-name">${s.label}</div>
+      <div class="qc-rule-detail">${s.pct}% valid · ${s.fails} issue${s.fails!==1?'s':''}</div>
+    </div>`;
+  }).join('');
+
+  const incoListHtml = Object.entries(incoTypes).map(([msg, cnt]) =>
+    `<div class="diff-row changed"><span style="flex:1">${msg}</span><span class="badge badge-purple">${cnt}</span></div>`
+  ).join('') || '<div class="diff-row"><span>No incoherences found 🎉</span></div>';
+
+  document.getElementById('qcReport').innerHTML = `
+    <div class="qc-section">
+      <div class="qc-section-title">📊 Summary</div>
+      <div class="qc-summary-bar">
+        <div class="qc-summary-item">
+          <div class="qc-summary-num" style="color:var(--navy)">${total}</div>
+          <div class="qc-summary-lbl">Total Records</div>
+        </div>
+        <div class="qc-summary-item">
+          <div class="qc-summary-num" style="color:var(--green)">${passed}</div>
+          <div class="qc-summary-lbl">All Checks Passed</div>
+        </div>
+        <div class="qc-summary-item">
+          <div class="qc-summary-num" style="color:var(--red)">${failed}</div>
+          <div class="qc-summary-lbl">Format Issues</div>
+        </div>
+        <div class="qc-summary-item">
+          <div class="qc-summary-num" style="color:var(--purple)">${incos}</div>
+          <div class="qc-summary-lbl">Incoherences</div>
+        </div>
+        <div class="qc-summary-item">
+          <div class="qc-summary-num">${total ? Math.round(passed/total*100) : 0}%</div>
+          <div class="qc-summary-lbl">Pass Rate</div>
+        </div>
+      </div>
+    </div>
+    <div class="qc-section">
+      <div class="qc-section-title">✅ Field-by-Field Quality (Format Check — Columns W–AE)</div>
+      <div class="qc-rule-grid">${fieldCardsHtml}</div>
+    </div>
+    <div class="qc-section">
+      <div class="qc-section-title">⚠️ Incoherence Analysis</div>
+      <p style="font-size:12px;color:var(--gray-500);margin-bottom:12px">A supplier cannot be marked "Complete" if required information is missing or format rules are violated (Email rule: columns W–AE + Status AW check).</p>
+      <div class="diff-panel">${incoListHtml}</div>
+    </div>
+    <div class="qc-section">
+      <div class="qc-section-title">📋 Records with Issues</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Supplier</th><th>Sector Code</th><th>Part #</th><th>Status</th><th>Issues</th><th>Incoherences</th></tr></thead>
+          <tbody>
+            ${allRows.filter(r => (r._qualityIssues&&r._qualityIssues.length)||(r._incoherences&&r._incoherences.length)).map(r => `
+              <tr onclick="openDetail(${r._idx})">
+                <td><strong>${r['Seller Supplier Name']||'—'}</strong></td>
+                <td class="td-mono">${r['Seller Sector Code']||'—'}</td>
+                <td class="td-mono">${r['Part Number']||'—'}</td>
+                <td>${getStatusBadge(String(r['Status']||''))}</td>
+                <td>${(r._qualityIssues||[]).map(q=>`<span class="issue-tag">${q.label}</span>`).join('')||'—'}</td>
+                <td>${(r._incoherences||[]).map(i=>`<span class="inco-tag">${truncate(i,30)}</span>`).join('')||'—'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
-// ══════════════════════════════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════════════════════════════
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function showLoading(msg) { document.getElementById('loadingText').textContent = msg; document.getElementById('loadingOverlay').style.display = 'flex'; }
-function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
-function showToast(msg, type = 'info') {
-  const c = document.getElementById('toastContainer');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${type==='success'?'<path d="M20 6 9 17l-5-5"/>':(type==='error'?'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>':'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>')}</svg> ${msg}`;
-  c.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100px)'; t.style.transition = 'all 0.3s'; setTimeout(() => t.remove(), 300); }, 4000);
+// ═══════════════════════════════════════════════════════════
+// HISTORY & DIFF
+// ═══════════════════════════════════════════════════════════
+async function loadPreviousSnapshot() {
+  const snaps = await window.loadAllSnapshots();
+  if (snaps && snaps.length > 0) {
+    previousSnapshot = snaps[0]; // Most recent
+    // Compare
+    if (allRows.length && previousSnapshot.rows) {
+      const diffs = computeDiff(previousSnapshot.rows, allRows);
+      if (diffs.total > 0) showChangeBanner(diffs, previousSnapshot.version);
+    }
+  }
 }
+
+function computeDiff(oldRows, newRows) {
+  const oldMap = {};
+  (oldRows||[]).forEach(r => { oldMap[r.key] = r; });
+  const newMap = {};
+  newRows.forEach(r => { newMap[r._key] = r; });
+
+  const added = newRows.filter(r => !oldMap[r._key]);
+  const removed = (oldRows||[]).filter(r => !newMap[r.key]);
+  const changed = newRows.filter(r => {
+    const o = oldMap[r._key];
+    if (!o) return false;
+    return o.status !== String(r['Status']||'').trim() ||
+           o.contacted !== String(r['Contacted']||'').trim() ||
+           o.infoCompleted !== String(r['Info completed']||'').trim();
+  });
+
+  return { added, removed, changed, total: added.length + removed.length + changed.length };
+}
+
+function showChangeBanner(diffs, prevVersion) {
+  const details = [];
+  if (diffs.added.length) details.push(`<span class="diff-added">+${diffs.added.length} new record(s)</span>`);
+  if (diffs.removed.length) details.push(`<span class="diff-removed">-${diffs.removed.length} removed</span>`);
+  if (diffs.changed.length) details.push(`<span class="diff-changed">~${diffs.changed.length} status changed</span>`);
+  document.getElementById('changeBannerTitle').textContent = `🔔 Changes detected vs previous upload`;
+  document.getElementById('changeBannerDetail').innerHTML = details.join(' · ') + ` (compared to ${prevVersion})`;
+  document.getElementById('changeBanner').style.display = '';
+}
+
+async function loadHistory() {
+  const container = document.getElementById('historyContent');
+  container.innerHTML = '<div style="padding:20px;color:var(--gray-500);font-family:\'DM Mono\',monospace">Loading...</div>';
+  try {
+    const snaps = await window.loadAllSnapshots();
+    if (!snaps || snaps.length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🕐</div><div class="empty-state-title">No history yet</div><div class="empty-state-sub">Upload a file to start tracking changes.</div></div>`;
+      return;
+    }
+    container.innerHTML = snaps.map((snap, i) => {
+      const prev = snaps[i+1];
+      let diffHtml = '';
+      if (prev && snap.rows && prev.rows) {
+        const diffs = computeDiff(prev.rows, snap.rows.map(r => ({ ...r, _key: r.key, 'Status': r.status, 'Contacted': r.contacted, 'Info completed': r.infoCompleted })));
+        if (diffs.total > 0) {
+          const parts = [];
+          if (diffs.added.length) parts.push(`<span class="diff-added">+${diffs.added.length} added</span>`);
+          if (diffs.removed.length) parts.push(`<span class="diff-removed">-${diffs.removed.length} removed</span>`);
+          if (diffs.changed.length) parts.push(`<span class="diff-changed">~${diffs.changed.length} changed</span>`);
+          diffHtml = `<div style="margin-top:6px;font-size:11px">${parts.join(' · ')}</div>`;
+        } else {
+          diffHtml = `<div style="margin-top:6px;font-size:11px;color:var(--green)">No changes from previous</div>`;
+        }
+      }
+      const date = snap.savedAt?.seconds ? new Date(snap.savedAt.seconds*1000).toLocaleString() : 'Unknown date';
+      return `<div class="history-entry">
+        <div class="history-icon" style="background:var(--blue-light)">📁</div>
+        <div class="history-meta">
+          <div class="history-title">${snap.version || snap.id}</div>
+          <div class="history-detail">${snap.rowCount || 0} records</div>
+          ${diffHtml}
+        </div>
+        <div class="history-time">${date}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Could not load history</div><div class="empty-state-sub">${e.message}</div></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════
+function exportSection(sectionId) {
+  const sections = {
+    complete: filteredRows.filter(r => ['complete','completed'].includes(String(r['Status']||'').toLowerCase().trim())),
+    incoherence: filteredRows.filter(r => r._incoherences && r._incoherences.length > 0),
+    issues: filteredRows.filter(r => r._qualityIssues && r._qualityIssues.length > 0),
+    pending: filteredRows.filter(r => !['complete','completed'].includes(String(r['Status']||'').toLowerCase().trim())),
+  };
+  exportRows(sections[sectionId] || [], `coforization_${sectionId}`);
+}
+
+function exportAllVisible() { exportRows(filteredRows, 'coforization_filtered'); }
+function exportSingleRow() { if (currentModalRow) exportRows([currentModalRow], 'coforization_row'); }
+
+function exportRows(rows, filename) {
+  if (!rows.length) { alert('No rows to export.'); return; }
+  const exportData = rows.map(r => ({
+    'Supplier Name': r['Seller Supplier Name'] || '',
+    'Sector Code': r['Seller Sector Code'] || '',
+    'Part Number': r['Part Number'] || '',
+    'Plant': r['Plant'] || '',
+    'Contacted': r['Contacted'] || '',
+    'Info Completed': r['Info completed'] || '',
+    'Status': r['Status'] || '',
+    'Owner': r['Owner'] || '',
+    'Quality Contact': r['Quality contact'] || '',
+    'Logistic Contact': r['Logistic contact'] || '',
+    'Seller COFOR': r['Seller COFOR2'] || '',
+    'Manufacturer COFOR': r['Manufacturer COFOR'] || '',
+    'Shipper COFOR': r['Shipper COFOR2'] || '',
+    'Location ID': r['Location ID2'] || '',
+    'NOTE': r['NOTE'] || '',
+    'Les Incoherences': (r._incoherences || []).join(' | ') || 'OK',
+    'Quality Issues': (r._qualityIssues || []).map(q => `${q.label}: ${q.reason}`).join(' | ') || 'OK',
+  }));
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data');
+  XLSX.writeFile(wb, `${filename}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOADING
+// ═══════════════════════════════════════════════════════════
+function showLoading(msg) {
+  document.getElementById('loadingText').textContent = msg || 'Processing...';
+  document.getElementById('loadingOverlay').classList.add('active');
+}
+function setLoadingText(msg) { document.getElementById('loadingText').textContent = msg; }
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
 
 // Close modal on backdrop click
-document.querySelectorAll('.modal-backdrop').forEach(b => {
-  b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
+document.getElementById('detailModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
 });
+
+// Load history on init
+setTimeout(() => loadHistory(), 1500);
 </script>
 </body>
 </html>
