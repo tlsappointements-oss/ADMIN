@@ -11,7 +11,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
@@ -124,6 +124,53 @@ window.doSignOut = async function() {
     document.getElementById('headerPerimeter').textContent = 'Signed out';
   }
 };
+
+// ── Snapshot history: save full upload state, load previous for diff ──
+window.saveUploadSnapshot = async function(supplierArr, versionId) {
+  if (!db) return;
+  try {
+    const snap = {
+      version: versionId,
+      savedAt: serverTimestamp(),
+      rowCount: supplierArr.length,
+      rows: supplierArr.map(s => ({
+        key: s.sectorCode,
+        name: s.name,
+        status: s.status,
+        contacted: s.contacted || null,
+        infoCompleted: s.infoCompleted || null,
+        owner: s.owner || null,
+        missingCount: s.missing.length,
+        incoherences: s.incoherences || [],
+        qcFailCount: (s.qcFailures||[]).length
+      }))
+    };
+    await setDoc(doc(db, 'cofor_snapshots', versionId), snap);
+    await addDoc(collection(db, 'cofor_changelog'), {
+      version: versionId, action: 'upload',
+      rowCount: supplierArr.length, timestamp: serverTimestamp()
+    });
+  } catch(e) { console.warn('Snapshot save error:', e); }
+};
+
+window.loadPreviousSnapshot = async function() {
+  if (!db) return null;
+  try {
+    const q = query(collection(db, 'cofor_snapshots'), orderBy('savedAt', 'desc'));
+    const snap = await getDocs(q);
+    const docs = snap.docs;
+    return docs.length >= 2 ? { id: docs[1].id, ...docs[1].data() } : (docs.length === 1 ? null : null);
+  } catch(e) { return null; }
+};
+
+window.loadSnapshotHistory = async function() {
+  if (!db) return [];
+  try {
+    const q = query(collection(db, 'cofor_snapshots'), orderBy('savedAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { return []; }
+};
 </script>
 <style>
 :root {
@@ -139,6 +186,8 @@ window.doSignOut = async function() {
   --yellow-light: #FFF4E5;
   --red: #C0392B;
   --red-light: #FDEDEC;
+  --purple: #6D28D9;
+  --purple-light: #EDE9FE;
   --gray-900: #111827;
   --gray-700: #374151;
   --gray-500: #6B7280;
@@ -232,7 +281,7 @@ code, .mono { font-family: 'DM Mono', monospace; }
 .upload-zone.has-file svg { color: var(--green); }
 
 /* ── STATS BAR ── */
-.stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stats-bar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 24px; }
 .stat-card { background: var(--white); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); border: 1px solid #E5E9EF; }
 .stat-label { font-size: 11px; font-weight: 500; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .stat-value { font-size: 28px; font-weight: 700; color: var(--gray-900); }
@@ -358,6 +407,32 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 .synthesis-kpi .lbl { font-size: 11px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px; }
 .late-row { background: #FFF4E5 !important; }
 .late-row:hover { background: #FFE8CC !important; }
+
+/* ── NEW: INCOHERENCE / QC TAGS ── */
+.inco-tag { display:inline-block; padding:2px 7px; border-radius:4px; font-size:10px; font-family:'DM Mono',monospace; margin:2px 2px 2px 0; background:var(--purple-light); color:var(--purple); font-weight:500; }
+.issue-tag { display:inline-block; padding:2px 7px; border-radius:4px; font-size:10px; font-family:'DM Mono',monospace; margin:2px 2px 2px 0; background:var(--red-light); color:var(--red); font-weight:500; }
+.ok-inco-tag { display:inline-block; padding:2px 7px; border-radius:4px; font-size:10px; font-family:'DM Mono',monospace; background:var(--green-light); color:var(--green); font-weight:500; }
+.section-group-header td { background:var(--gray-100); padding:10px 14px; font-size:11px; font-weight:700; color:var(--gray-700); text-transform:uppercase; letter-spacing:0.5px; border-top:2px solid var(--gray-300); }
+.section-group-header .sg-dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px; vertical-align:middle; }
+.section-group-header .sg-count { font-size:10px; font-weight:400; background:white; padding:1px 7px; border-radius:10px; margin-left:8px; color:var(--gray-500); }
+.btn-export-section { background:transparent; border:1.5px solid var(--gray-300); color:var(--gray-700); padding:4px 12px; border-radius:5px; font-family:'Lexend',sans-serif; font-size:11px; font-weight:500; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all 0.15s; }
+.btn-export-section:hover { border-color:var(--green); color:var(--green); background:var(--green-light); }
+/* ── NEW: CHANGE BANNER ── */
+.change-banner { background:linear-gradient(135deg,#FEF0E8,#fff); border:1.5px solid var(--orange); border-radius:var(--radius); padding:14px 20px; margin-bottom:20px; display:flex; align-items:flex-start; gap:14px; }
+.change-banner-icon { font-size:20px; flex-shrink:0; }
+.change-banner-body { flex:1; }
+.change-banner-title { font-size:13px; font-weight:700; color:var(--orange); margin-bottom:3px; }
+.change-banner-detail { font-size:12px; color:var(--gray-700); line-height:1.6; }
+.change-banner-close { background:none; border:none; font-size:18px; color:var(--gray-400); cursor:pointer; padding:0 4px; }
+.change-banner-close:hover { color:var(--gray-700); }
+.diff-added { color:var(--green); font-weight:600; }
+.diff-removed { color:var(--red); font-weight:600; }
+.diff-changed { color:var(--orange); font-weight:600; }
+/* ── NEW: EXTRA FILTER SELECTS ── */
+.extra-filters { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.extra-filter-group { display:flex; flex-direction:column; gap:3px; }
+.extra-filter-label { font-size:10px; font-weight:600; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.4px; }
+.badge-purple { background:var(--purple-light); color:var(--purple); }
 </style>
 </head>
 <body>
@@ -441,6 +516,10 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       <span style="font-size:12px;color:#9CA3AF;padding:5px 0">Upload an Excel file to see perimeters</span>
     </div>
     <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn-excel-synthesis" style="background:var(--blue)" onclick="openHistoryModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        History
+      </button>
       <button class="btn-excel-synthesis" onclick="openSynthesisModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         Generate Synthesis Excel
@@ -461,6 +540,16 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
         <input type="file" id="fileInput" accept=".xlsx" style="display:none" onchange="handleFileSelect(event)">
       </div>
     </div>
+  </div>
+
+  <!-- CHANGE BANNER (hidden until diff detected) -->
+  <div class="change-banner" id="changeBanner" style="display:none">
+    <div class="change-banner-icon">🔔</div>
+    <div class="change-banner-body">
+      <div class="change-banner-title" id="changeBannerTitle">Changes detected vs previous upload</div>
+      <div class="change-banner-detail" id="changeBannerDetail"></div>
+    </div>
+    <button class="change-banner-close" onclick="document.getElementById('changeBanner').style.display='none'">×</button>
   </div>
 
   <!-- STATS -->
@@ -484,6 +573,16 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
       <div class="stat-label">Complete</div>
       <div class="stat-value green" id="statComplete">0</div>
       <div class="stat-sub">all fields filled</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Incoherences</div>
+      <div class="stat-value" style="color:var(--purple)" id="statInco">0</div>
+      <div class="stat-sub">status ≠ actual completeness</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Quality Issues</div>
+      <div class="stat-value" style="color:var(--red)" id="statQC">0</div>
+      <div class="stat-sub">format violations</div>
     </div>
   </div>
 
@@ -509,6 +608,24 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
               <option value="waiting">Awaiting Reply</option>
               <option value="complete">Complete</option>
             </select>
+            <select class="filter-select" id="contactedFilter" onchange="applyFilters()" title="Filter by Contacted">
+              <option value="">Contacted: All</option>
+              <option value="Yes">Contacted: Yes</option>
+              <option value="No">Contacted: No</option>
+            </select>
+            <select class="filter-select" id="infoFilter" onchange="applyFilters()" title="Filter by Info Completed">
+              <option value="">Info: All</option>
+              <option value="complete">Info: Complete</option>
+              <option value="incomplete">Info: Incomplete</option>
+            </select>
+            <select class="filter-select" id="ownerFilter" onchange="applyFilters()" title="Filter by Owner">
+              <option value="">Owner: All</option>
+            </select>
+            <select class="filter-select" id="incoFilter" onchange="applyFilters()" title="Filter by Incoherences">
+              <option value="">Incoherences: All</option>
+              <option value="yes">Has Incoherences</option>
+              <option value="no">No Incoherences</option>
+            </select>
           </div>
           <span id="selectionInfo" class="selection-info" style="display:none">0 selected</span>
           <button class="btn-send-all" id="btnSendSelected" onclick="openBatchSend()" style="display:none">
@@ -533,6 +650,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
                 <th>Status</th>
                 <th>Days Since Contact</th>
                 <th>Missing Fields</th>
+                <th>Les Incohérences</th>
                 <th>Owner / Buyer</th>
                 <th>Contact</th>
                 <th>Actions</th>
@@ -638,6 +756,21 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Download Excel
       </button>
+    </div>
+  </div>
+</div>
+<!-- HISTORY MODAL -->
+<div class="modal-backdrop" id="historyModal">
+  <div class="modal" style="max-width:780px">
+    <div class="modal-header">
+      <h3>🕐 Upload History &amp; Changes</h3>
+      <button class="modal-close" onclick="closeModal('historyModal')">×</button>
+    </div>
+    <div class="modal-body" id="historyModalBody">
+      <div style="text-align:center;padding:40px;color:#9CA3AF">Loading history…</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('historyModal')">Close</button>
     </div>
   </div>
 </div>
@@ -865,7 +998,10 @@ function parseWorkingFile(data, filename) {
     if (s.infoCompleted === 'Complete') status = 'complete';
     else if (s.contacted && String(s.contacted).toLowerCase() === 'yes') status = 'waiting';
     else status = 'to_contact';
-    return { ...s, filled, missing, toEmails, status, headerIndex: hi };
+    const enriched = { ...s, filled, missing, toEmails, status, headerIndex: hi };
+    enriched.qcFailures = runQCOnSupplier(enriched);
+    enriched.incoherences = detectIncoherences(enriched);
+    return enriched;
   });
 
   // Merge Firestore data if available
@@ -875,10 +1011,18 @@ function parseWorkingFile(data, filename) {
   filteredData = [...supplierData];
   // Build perimeter filter buttons from Excel data
   populatePerimeterFilter();
+  populateOwnerFilter();
   renderStats();
   renderTable();
   document.getElementById('statsBar').style.display = 'grid';
   document.getElementById('tableSection').style.display = 'block';
+
+  // Save snapshot to Firebase, then check diff vs previous
+  const versionId = `v_${Date.now()}`;
+  (async () => {
+    await window.saveUploadSnapshot(supplierData, versionId);
+    await checkAndShowDiff();
+  })();
 }
 
 function mergeFirestoreIntoSuppliers() {
@@ -927,6 +1071,8 @@ function renderStats() {
   document.getElementById('statToContact').textContent = data.filter(s => s.status === 'to_contact').length;
   document.getElementById('statWaiting').textContent = data.filter(s => s.status === 'waiting').length;
   document.getElementById('statComplete').textContent = data.filter(s => s.status === 'complete').length;
+  document.getElementById('statInco').textContent = data.filter(s => s.incoherences && s.incoherences.length > 0).length;
+  document.getElementById('statQC').textContent = data.filter(s => s.qcFailures && s.qcFailures.length > 0).length;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -935,17 +1081,31 @@ function renderStats() {
 function applyFilters() {
   const q = document.getElementById('searchInput').value.toLowerCase();
   const sf = document.getElementById('statusFilter').value;
+  const cf = document.getElementById('contactedFilter').value;
+  const inf = document.getElementById('infoFilter').value;
+  const owf = document.getElementById('ownerFilter').value;
+  const incof = document.getElementById('incoFilter').value;
   const myPerimeter = window.userProfile?.perimeter;
 
   filteredData = supplierData.filter(s => {
     const matchQ = !q || s.name.toLowerCase().includes(q) || s.sectorCode.toLowerCase().includes(q);
     const matchS = sf === 'all' || s.status === sf;
-    // Perimeter filter — match against Owner column from Excel
+    // Contacted filter
+    const contacted = String(s.contacted || '').trim().toLowerCase();
+    const matchC = !cf || (cf === 'Yes' ? contacted === 'yes' : contacted !== 'yes');
+    // Info completed filter
+    const infoC = String(s.infoCompleted || '').toLowerCase();
+    const isInfoComplete = infoC === 'complete' || infoC === 'completed';
+    const matchI = !inf || (inf === 'complete' ? isInfoComplete : !isInfoComplete);
+    // Owner filter
+    const matchO = !owf || (s.owner || '').trim() === owf;
+    // Incoherence filter
+    const hasInco = s.incoherences && s.incoherences.length > 0;
+    const matchInco = !incof || (incof === 'yes' ? hasInco : !hasInco);
+    // Perimeter filter
     let matchP = true;
-    if (activePerimeterFilter !== 'all') {
-      matchP = (s.owner || '') === activePerimeterFilter;
-    }
-    return matchQ && matchS && matchP;
+    if (activePerimeterFilter !== 'all') matchP = (s.owner || '') === activePerimeterFilter;
+    return matchQ && matchS && matchC && matchI && matchO && matchInco && matchP;
   });
   currentPage = 1;
   renderStats();
@@ -957,49 +1117,91 @@ function renderTable() {
   const end = start + PAGE_SIZE;
   const pageData = filteredData.slice(start, end);
   const tbody = document.getElementById('supplierTableBody');
-  tbody.innerHTML = pageData.map((s, i) => {
-    const absIdx = start + i;
-    const statusBadge = s.status === 'complete'
-      ? `<span class="badge badge-green">✓ Complete</span>`
-      : s.status === 'waiting'
-      ? `<span class="badge badge-yellow">⏳ Waiting</span>`
-      : `<span class="badge badge-orange">⚠ To Contact</span>`;
-    const missingHtml = s.missing.length
-      ? s.missing.map(f => `<span class="missing-tag">${shortName(f)}</span>`).join('')
-      : `<span class="badge badge-green" style="font-size:10px">All filled</span>`;
-    const contact = s.toEmails ? `<span style="font-size:11px;color:#6B7280;font-family:'DM Mono',monospace">${s.toEmails.split(',')[0].trim()}</span>` : `<span style="font-size:11px;color:#E8520A">Missing</span>`;
-    const buyerCell = s.owner && !s.owner.startsWith('=')
-      ? `<span style="font-size:11px;color:#374151;font-weight:500">${esc(s.owner)}</span>`
-      : `<span style="font-size:11px;color:#9CA3AF">—</span>`;
-    const isChecked = selectedSuppliers.has(s.sectorCode);
-    const canSend = s.status !== 'complete';
-    const days = getDaysSinceContactDisplay(s);
-    const isLate = s.status === 'waiting' && daysSince(s.lastEmailDate) > 7;
-    return `<tr class="${isChecked ? 'selected' : ''} ${isLate ? 'late-row' : ''}" onclick="handleRowClick(event, '${esc(s.sectorCode)}')">
-      <td class="check-col" onclick="event.stopPropagation()"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCheck('${esc(s.sectorCode)}', this.checked)"></td>
-      <td style="font-weight:500">${esc(s.name)}</td>
-      <td><code style="font-size:11px;background:#F3F4F6;padding:2px 6px;border-radius:3px">${esc(s.sectorCode)}</code></td>
-      <td style="color:#6B7280">${s.rows.length}</td>
-      <td>${statusBadge}</td>
-      <td>${days}</td>
-      <td><div class="missing-fields">${missingHtml}</div></td>
-      <td>${buyerCell}</td>
-      <td>${contact}</td>
-      <td onclick="event.stopPropagation()" style="display:flex;gap:6px;align-items:center">
-        <button class="btn-row" onclick="openEmailPreview('${esc(s.sectorCode)}')">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          Email
-        </button>
+
+  if (!pageData.length) {
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/></svg><p>No suppliers match the current filters.</p></div></td></tr>`;
+    document.getElementById('tableCount').textContent = '0 suppliers';
+    renderPagination(0);
+    return;
+  }
+
+  // Group into sections: Complete | Incoherences | Waiting | To Contact
+  const sections = [
+    { key: 'complete',   label: 'Completed',          color: '#137a44', rows: pageData.filter(s => s.status === 'complete' && !(s.incoherences||[]).length) },
+    { key: 'inco',       label: 'Incoherences',        color: '#6D28D9', rows: pageData.filter(s => (s.incoherences||[]).length > 0) },
+    { key: 'waiting',    label: 'Awaiting Reply',      color: '#B75E00', rows: pageData.filter(s => s.status === 'waiting' && !(s.incoherences||[]).length) },
+    { key: 'to_contact', label: 'To Contact',          color: '#E8520A', rows: pageData.filter(s => s.status === 'to_contact' && !(s.incoherences||[]).length) },
+  ];
+
+  let html = '';
+  sections.forEach(sec => {
+    if (!sec.rows.length) return;
+    html += `<tr class="section-group-header">
+      <td colspan="11">
+        <span class="sg-dot" style="background:${sec.color}"></span>${sec.label}
+        <span class="sg-count">${sec.rows.length}</span>
+        <button class="btn-export-section" style="float:right;margin-top:-2px" onclick="exportSection('${sec.key}')">⬇ Export section</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="10"><div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/></svg><p>No suppliers match the current filters.</p></div></td></tr>`;
-  
+    sec.rows.forEach((s, i) => {
+      html += buildRow(s, start + i);
+    });
+  });
+
+  tbody.innerHTML = html;
   const total = filteredData.length;
   document.getElementById('tableCount').textContent = `${total} supplier${total !== 1 ? 's' : ''}`;
   renderPagination(total);
 }
 
-function renderPagination(total) {
+function buildRow(s, absIdx) {
+  const statusBadge = s.status === 'complete'
+    ? `<span class="badge badge-green">✓ Complete</span>`
+    : s.status === 'waiting'
+    ? `<span class="badge badge-yellow">⏳ Waiting</span>`
+    : `<span class="badge badge-orange">⚠ To Contact</span>`;
+
+  const missingHtml = s.missing.length
+    ? s.missing.map(f => `<span class="missing-tag">${shortName(f)}</span>`).join('')
+    : `<span class="badge badge-green" style="font-size:10px">All filled</span>`;
+
+  // Les Incohérences column
+  const hasInco = s.incoherences && s.incoherences.length > 0;
+  const incoHtml = hasInco
+    ? s.incoherences.map(i => `<span class="inco-tag" title="${esc(i)}">${esc(i.length > 32 ? i.slice(0,32)+'…' : i)}</span>`).join('')
+    : `<span class="ok-inco-tag">✓ OK</span>`;
+
+  const contact = s.toEmails
+    ? `<span style="font-size:11px;color:#6B7280;font-family:'DM Mono',monospace">${s.toEmails.split(',')[0].trim()}</span>`
+    : `<span style="font-size:11px;color:#E8520A">Missing</span>`;
+
+  const buyerCell = s.owner && !s.owner.startsWith('=')
+    ? `<span style="font-size:11px;color:#374151;font-weight:500">${esc(s.owner)}</span>`
+    : `<span style="font-size:11px;color:#9CA3AF">—</span>`;
+
+  const isChecked = selectedSuppliers.has(s.sectorCode);
+  const days = getDaysSinceContactDisplay(s);
+  const isLate = s.status === 'waiting' && daysSince(s.lastEmailDate) > 7;
+
+  return `<tr class="${isChecked ? 'selected' : ''} ${isLate ? 'late-row' : ''}" onclick="handleRowClick(event, '${esc(s.sectorCode)}')">
+    <td class="check-col" onclick="event.stopPropagation()"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCheck('${esc(s.sectorCode)}', this.checked)"></td>
+    <td style="font-weight:500">${esc(s.name)}</td>
+    <td><code style="font-size:11px;background:#F3F4F6;padding:2px 6px;border-radius:3px">${esc(s.sectorCode)}</code></td>
+    <td style="color:#6B7280">${s.rows.length}</td>
+    <td>${statusBadge}</td>
+    <td>${days}</td>
+    <td><div class="missing-fields">${missingHtml}</div></td>
+    <td style="max-width:200px">${incoHtml}</td>
+    <td>${buyerCell}</td>
+    <td>${contact}</td>
+    <td onclick="event.stopPropagation()" style="display:flex;gap:6px;align-items:center">
+      <button class="btn-row" onclick="openEmailPreview('${esc(s.sectorCode)}')">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        Email
+      </button>
+    </td>
+  </tr>`;
+}
   const totalPages = Math.ceil(total / PAGE_SIZE);
   document.getElementById('paginationInfo').textContent = `Showing ${Math.min((currentPage-1)*PAGE_SIZE+1, total)}-${Math.min(currentPage*PAGE_SIZE, total)} of ${total}`;
   const btns = document.getElementById('paginationBtns');
@@ -1569,10 +1771,256 @@ function showToast(msg, type = 'info') {
   setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100px)'; t.style.transition = 'all 0.3s'; setTimeout(() => t.remove(), 300); }, 4000);
 }
 
-// Close modal on backdrop click
-document.querySelectorAll('.modal-backdrop').forEach(b => {
+// ══════════════════════════════════════════════════════════════
+// HISTORY MODAL
+// ══════════════════════════════════════════════════════════════
+async function openHistoryModal() {
+  openModal('historyModal');
+  const body = document.getElementById('historyModalBody');
+  body.innerHTML = '<div style="text-align:center;padding:40px;color:#9CA3AF;font-family:\'DM Mono\',monospace">Loading…</div>';
+
+  const snaps = await window.loadSnapshotHistory();
+  if (!snaps || !snaps.length) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:#9CA3AF">No history found. Upload a file to start tracking changes.</div>';
+    return;
+  }
+
+  let html = '';
+  snaps.forEach((snap, idx) => {
+    const prev = snaps[idx + 1];
+    const date = snap.savedAt?.seconds
+      ? new Date(snap.savedAt.seconds * 1000).toLocaleString('fr-FR')
+      : '—';
+
+    let diffHtml = '';
+    if (prev && snap.rows && prev.rows) {
+      const prevMap = {};
+      (prev.rows || []).forEach(r => { prevMap[r.key] = r; });
+      const currMap = {};
+      (snap.rows || []).forEach(r => { currMap[r.key] = r; });
+
+      const added   = (snap.rows||[]).filter(r => !prevMap[r.key]);
+      const removed = (prev.rows||[]).filter(r => !currMap[r.key]);
+      const changed = (snap.rows||[]).filter(r => {
+        const p = prevMap[r.key];
+        return p && (p.status !== r.status || p.missingCount !== r.missingCount ||
+          p.contacted !== r.contacted);
+      });
+
+      if (added.length || removed.length || changed.length) {
+        const parts = [];
+        if (added.length)   parts.push(`<span class="diff-added">+${added.length} new</span>`);
+        if (removed.length) parts.push(`<span class="diff-removed">−${removed.length} removed</span>`);
+        if (changed.length) parts.push(`<span class="diff-changed">~${changed.length} changed</span>`);
+        diffHtml = `<div style="margin-top:8px;font-size:11px">${parts.join(' · ')}</div>`;
+
+        if (changed.length) {
+          diffHtml += `<div style="margin-top:6px;background:#F9FAFB;border-radius:6px;padding:8px 12px;font-size:11px;font-family:'DM Mono',monospace;max-height:100px;overflow-y:auto">`;
+          changed.slice(0, 5).forEach(r => {
+            const p = prevMap[r.key];
+            const d = [];
+            if (p.status !== r.status) d.push(`status: <b>${p.status}</b> → <b>${r.status}</b>`);
+            if (p.contacted !== r.contacted) d.push(`contacted: <b>${p.contacted||'—'}</b> → <b>${r.contacted||'—'}</b>`);
+            if (p.missingCount !== r.missingCount) d.push(`missing: <b>${p.missingCount}</b> → <b>${r.missingCount}</b>`);
+            diffHtml += `<div style="padding:2px 0;border-bottom:1px solid #F3F4F6"><b>${esc(r.name||r.key)}</b>: ${d.join(', ')}</div>`;
+          });
+          if (changed.length > 5) diffHtml += `<div style="color:#9CA3AF;padding-top:4px">…and ${changed.length - 5} more</div>`;
+          diffHtml += '</div>';
+        }
+      } else {
+        diffHtml = `<div style="margin-top:6px;font-size:11px;color:#137a44">✓ No changes vs previous upload</div>`;
+      }
+    }
+
+    html += `
+    <div style="background:white;border:1px solid #E5E9EF;border-radius:8px;padding:16px 20px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start">
+      <div style="width:36px;height:36px;border-radius:50%;background:#EBF2FA;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📁</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:#111827">${esc(snap.id)}</div>
+        <div style="font-size:12px;color:#6B7280;font-family:'DM Mono',monospace">${snap.rowCount || 0} suppliers</div>
+        ${diffHtml}
+      </div>
+      <div style="font-size:11px;color:#9CA3AF;white-space:nowrap">${date}</div>
+    </div>`;
+  });
+
+  body.innerHTML = html;
+}
+
   b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
 });
+
+// ══════════════════════════════════════════════════════════════
+// QUALITY CHECK ENGINE
+// ══════════════════════════════════════════════════════════════
+const QC_RULES = {
+  'Seller COFOR2':        { type: 'cofor10',  label: 'Seller COFOR' },
+  'Manufacturer COFOR':   { type: 'cofor10',  label: 'Mfr COFOR' },
+  'Manufacturer address': { type: 'address',  label: 'Mfr Addr' },
+  'Shipper COFOR2':       { type: 'cofor10',  label: 'Shipper COFOR' },
+  'Shipper address':      { type: 'address',  label: 'Shipper Addr' },
+  'Location ID2':         { type: 'locid12',  label: 'Loc ID' },
+  'Location ID address2': { type: 'address',  label: 'Loc Addr' },
+  'Quality contact':      { type: 'email',    label: 'Quality Email' },
+  'Logistic contact':     { type: 'email',    label: 'Logistic Email' },
+  'Contacted':            { type: 'yesno',    label: 'Contacted' },
+  'NOTE':                 { type: 'datetext', label: 'NOTE' },
+  'Owner':                { type: 'prenom',   label: 'Owner' },
+};
+
+function validateField(col, val) {
+  const rule = QC_RULES[col];
+  if (!rule) return { pass: true };
+  const v = String(val || '').trim();
+  if (!v) return { pass: false, reason: 'Empty' };
+  switch (rule.type) {
+    case 'cofor10':
+      if (v.length !== 10) return { pass: false, reason: `Length ${v.length}≠10` };
+      if (!v.match(/^.{6}\s{2}.{2}$/)) return { pass: false, reason: 'Format: XXXXXX  XX' };
+      return { pass: true };
+    case 'locid12':
+      if (v.length !== 12) return { pass: false, reason: `Length ${v.length}≠12` };
+      return { pass: true };
+    case 'email':
+      const emails = v.split(/[;,]/).map(e => e.trim()).filter(Boolean);
+      const bad = emails.filter(e => !e.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/));
+      if (bad.length) return { pass: false, reason: `Invalid: ${bad[0]}` };
+      return { pass: true };
+    case 'yesno':
+      if (!['yes','no',''].includes(v.toLowerCase())) return { pass: false, reason: `"${v}" not Yes/No` };
+      return { pass: true };
+    case 'datetext':
+      if (!v.match(/^\d{2}\.\d{2}\.\d{4}/)) return { pass: false, reason: 'Needs DD.MM.YYYY start' };
+      return { pass: true };
+    case 'address':
+      if (v.length < 5) return { pass: false, reason: 'Too short' };
+      return { pass: true };
+    case 'prenom':
+      if (v.length < 2) return { pass: false, reason: 'Too short' };
+      return { pass: true };
+  }
+  return { pass: true };
+}
+
+function runQCOnSupplier(supplier) {
+  const firstRow = supplier.rows[0];
+  const hi = supplier.headerIndex;
+  const failures = [];
+  for (const [col] of Object.entries(QC_RULES)) {
+    const val = firstRow ? firstRow[hi[col]] : '';
+    const r = validateField(col, val);
+    if (!r.pass) failures.push({ col, label: QC_RULES[col].label, reason: r.reason });
+  }
+  return failures;
+}
+
+function detectIncoherences(supplier) {
+  const incos = [];
+  const isStatusComplete = ['complete','completed'].includes(String(supplier.status || '').toLowerCase());
+  const isInfoComplete = ['complete','completed'].includes(String(supplier.infoCompleted || '').toLowerCase());
+  const missingCount = supplier.missing.length;
+  const qcFailCount = (supplier.qcFailures || []).length;
+
+  if (isStatusComplete && missingCount > 0)
+    incos.push(`Status=Complete but ${missingCount} required field(s) empty`);
+  if (isInfoComplete && missingCount > 0)
+    incos.push(`Info=Complete but ${missingCount} field(s) missing`);
+  if (isStatusComplete && qcFailCount > 0)
+    incos.push(`Status=Complete but ${qcFailCount} format issue(s)`);
+  if (!isStatusComplete && missingCount === 0 && supplier.contacted === 'Yes')
+    incos.push('All fields filled but Status not Complete');
+  return incos;
+}
+
+// ══════════════════════════════════════════════════════════════
+// OWNER FILTER POPULATION
+// ══════════════════════════════════════════════════════════════
+function populateOwnerFilter() {
+  const owners = [...new Set(supplierData.map(s => (s.owner||'').trim()).filter(Boolean))].sort();
+  const sel = document.getElementById('ownerFilter');
+  sel.innerHTML = '<option value="">Owner: All</option>' +
+    owners.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SECTION EXPORT
+// ══════════════════════════════════════════════════════════════
+function exportSection(statusKey) {
+  const sectionRows = filteredData.filter(s => {
+    if (statusKey === 'complete') return s.status === 'complete';
+    if (statusKey === 'inco') return s.incoherences && s.incoherences.length > 0;
+    if (statusKey === 'waiting') return s.status === 'waiting';
+    if (statusKey === 'to_contact') return s.status === 'to_contact';
+    return true;
+  });
+  if (!sectionRows.length) { showToast('No rows to export for this section', 'error'); return; }
+
+  const headers = ['Supplier Name','Sector Code','Status','Parts #','Contacted','Info Completed','Owner',
+    'Missing Fields','Les Incohérences','QC Issues','Quality Contact','Logistic Contact'];
+  const wb = XLSX.utils.book_new();
+  const wsData = [headers, ...sectionRows.map(s => [
+    s.name, s.sectorCode, s.status, s.rows.length,
+    s.contacted || '',
+    s.infoCompleted || '',
+    s.owner || '',
+    s.missing.join('; '),
+    (s.incoherences || []).join(' | ') || 'OK',
+    (s.qcFailures || []).map(f => `${f.label}: ${f.reason}`).join(' | ') || 'OK',
+    s.filled['Quality contact'] || '',
+    s.filled['Logistic contact'] || ''
+  ])];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = headers.map((_,i) => ({ wch: [30,14,12,8,10,12,15,40,50,50,30,30][i]||15 }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Data');
+  XLSX.writeFile(wb, `coforization_${statusKey}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast(`Exported ${sectionRows.length} rows`, 'success');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SNAPSHOT DIFF & CHANGE BANNER
+// ══════════════════════════════════════════════════════════════
+async function checkAndShowDiff() {
+  const prev = await window.loadPreviousSnapshot();
+  if (!prev || !prev.rows) return;
+  const prevMap = {};
+  prev.rows.forEach(r => { prevMap[r.key] = r; });
+  const currMap = {};
+  supplierData.forEach(s => { currMap[s.sectorCode] = s; });
+
+  const added = supplierData.filter(s => !prevMap[s.sectorCode]);
+  const removed = prev.rows.filter(r => !currMap[r.key]);
+  const changed = supplierData.filter(s => {
+    const p = prevMap[s.sectorCode];
+    if (!p) return false;
+    return p.status !== s.status || p.contacted !== (s.contacted||null) || p.missingCount !== s.missing.length;
+  });
+
+  if (!added.length && !removed.length && !changed.length) return;
+
+  const parts = [];
+  if (added.length) parts.push(`<span class="diff-added">+${added.length} new supplier(s)</span>`);
+  if (removed.length) parts.push(`<span class="diff-removed">−${removed.length} removed</span>`);
+  if (changed.length) parts.push(`<span class="diff-changed">~${changed.length} status/field change(s)</span>`);
+
+  let detail = parts.join(' · ');
+  if (changed.length > 0) {
+    const examples = changed.slice(0, 3).map(s => {
+      const p = prevMap[s.sectorCode];
+      const diffs = [];
+      if (p.status !== s.status) diffs.push(`Status: ${p.status} → ${s.status}`);
+      if (p.contacted !== (s.contacted||null)) diffs.push(`Contacted: ${p.contacted||'—'} → ${s.contacted||'—'}`);
+      if (p.missingCount !== s.missing.length) diffs.push(`Missing: ${p.missingCount} → ${s.missing.length}`);
+      return `<em>${esc(s.name)}</em> (${diffs.join(', ')})`;
+    });
+    detail += `<br><span style="font-size:11px;color:#6B7280">e.g. ${examples.join(' · ')}</span>`;
+  }
+
+  document.getElementById('changeBannerTitle').textContent =
+    `🔔 ${added.length + removed.length + changed.length} change(s) detected vs previous upload (${prev.id})`;
+  document.getElementById('changeBannerDetail').innerHTML = detail;
+  document.getElementById('changeBanner').style.display = '';
+}
+
 </script>
 </body>
 </html>
