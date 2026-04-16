@@ -1206,6 +1206,8 @@ function buildRow(s, absIdx) {
     </td>
   </tr>`;
 }
+
+function renderPagination(total) {
   const totalPages = Math.ceil(total / PAGE_SIZE);
   document.getElementById('paginationInfo').textContent = `Showing ${Math.min((currentPage-1)*PAGE_SIZE+1, total)}-${Math.min(currentPage*PAGE_SIZE, total)} of ${total}`;
   const btns = document.getElementById('paginationBtns');
@@ -1851,6 +1853,7 @@ async function openHistoryModal() {
   body.innerHTML = html;
 }
 
+document.querySelectorAll('.modal-backdrop').forEach(b => {
   b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
 });
 
