@@ -22,9 +22,7 @@ const firebaseConfig = {
   appId: "1:142475379783:web:2849d07fb6eb8da4715d62"
 };
 
-// ── Always show the app immediately — never block on auth ──
-document.getElementById('authLoadingScreen').style.display = 'none';
-document.getElementById('appContent').style.display = 'block';
+// ── Auth is optional — UI always visible immediately ──
 
 let fbApp, auth, db;
 try {
@@ -458,13 +456,13 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 <body>
 
 <!-- AUTH LOADING SCREEN -->
-<div id="authLoadingScreen">
+<div id="authLoadingScreen" style="display:none">
   <div class="auth-spinner"></div>
   <div style="font-size:14px;color:rgba(255,255,255,0.7)">Verifying your session...</div>
 </div>
 
 <!-- APP CONTENT (hidden until auth verified) -->
-<div id="appContent" style="display:none">
+<div id="appContent">
 
 <!-- HEADER -->
 <div class="header">
