@@ -271,6 +271,26 @@ code, .mono { font-family: 'DM Mono', monospace; }
 .perimeter-pill-btn.my-perimeter { border-color: var(--orange); }
 .perimeter-pill-btn.my-perimeter.active { background: var(--orange); border-color: var(--orange); }
 
+
+/* ── IMPORT ZONE (supplier data auto-fill) ── */
+.import-zone { border: 2px dashed var(--blue-mid); border-radius: var(--radius); padding: 24px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--blue-light); margin-top: 14px; }
+.import-zone:hover, .import-zone.drag-over { border-color: var(--navy); background: #D6E8F7; }
+.import-zone svg { color: var(--blue-mid); margin-bottom: 8px; }
+.import-zone-title { font-size: 13px; font-weight: 500; color: var(--blue); margin-bottom: 3px; }
+.import-zone-sub { font-size: 11px; color: var(--blue-mid); }
+.import-zone.has-file { border-color: var(--green); background: var(--green-light); }
+.import-zone.has-file svg { color: var(--green); }
+
+/* ── EXPORT MODAL ── */
+.export-filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.export-filter-block { background: var(--gray-100); border-radius: 8px; padding: 14px 16px; }
+.export-filter-block h4 { font-size: 11px; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.export-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-700); margin-bottom: 7px; cursor: pointer; }
+.export-checkbox input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--blue); }
+.diff-added { color: var(--green); font-weight: 600; }
+.diff-removed { color: var(--red); font-weight: 600; }
+.diff-changed { color: var(--yellow); font-weight: 600; }
+
 /* ── UPLOAD ZONE ── */
 .upload-zone { border: 2px dashed var(--gray-300); border-radius: var(--radius); padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--gray-100); }
 .upload-zone:hover, .upload-zone.drag-over { border-color: var(--blue-mid); background: var(--blue-light); }
@@ -308,7 +328,7 @@ code, .mono { font-family: 'DM Mono', monospace; }
 /* ── TABLE ── */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-thead th { background: var(--navy); color: white; padding: 11px 14px; font-size: 11px; font-weight: 600; text-align: left; letter-spacing: 0.5px; text-transform: uppercase; position: sticky; top: 64px; }
+thead th { background: var(--navy); color: white; padding: 11px 14px; font-size: 11px; font-weight: 600; text-align: left; letter-spacing: 0.5px; text-transform: uppercase; position: sticky; top: 64px; z-index: 10; }
 thead th:first-child { border-radius: 6px 0 0 0; }
 thead th:last-child { border-radius: 0 6px 0 0; }
 tbody tr { border-bottom: 1px solid var(--gray-100); transition: background 0.1s; cursor: pointer; }
@@ -520,9 +540,13 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         History
       </button>
-      <button class="btn-excel-synthesis" onclick="openSynthesisModal()">
+      <button class="btn-excel-synthesis" style="background:var(--orange)" onclick="openExportModal('all')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Excel
+      </button>
+      <button class="btn-excel-synthesis" onclick="generateSynthesisExcel()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        Generate Synthesis Excel
+        Synthèse Complète
       </button>
     </div>
   </div>
@@ -538,6 +562,21 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
           <div class="upload-zone-sub" id="uploadSub">or click to browse · Accepts .xlsx files</div>
         </div>
         <input type="file" id="fileInput" accept=".xlsx" style="display:none" onchange="handleFileSelect(event)">
+
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100)">
+          <div style="font-size:12px;font-weight:600;color:var(--blue-mid);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Auto-fill from Supplier Confirmation File
+          </div>
+          <div class="import-zone" id="importZone"
+            onclick="document.getElementById('importFileInput').click()"
+            ondragover="handleImportDragOver(event)" ondrop="handleImportDrop(event)" ondragleave="handleImportDragLeave(event)">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 16 4 4 4-4"/></svg>
+            <div class="import-zone-title" id="importTitle">Drop a supplier confirmation .xlsx here</div>
+            <div class="import-zone-sub" id="importSub">Fields (COFOR, addresses, emails…) will be auto-merged into matching suppliers</div>
+          </div>
+          <input type="file" id="importFileInput" accept=".xlsx" style="display:none" onchange="handleImportFileSelect(event)">
+        </div>
       </div>
     </div>
   </div>
@@ -741,23 +780,50 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 </div>
 
 <!-- SYNTHESIS MODAL -->
-<div class="modal-backdrop" id="synthesisModal">
-  <div class="modal" style="max-width:720px">
+<!-- EXPORT FILTER MODAL -->
+<div class="modal-backdrop" id="exportModal">
+  <div class="modal" style="max-width:580px">
     <div class="modal-header">
-      <h3>📊 Synthesis Report — My Perimeter</h3>
-      <button class="modal-close" onclick="closeModal('synthesisModal')">×</button>
+      <h3>⬇ Export Excel — Select Filters</h3>
+      <button class="modal-close" onclick="closeModal('exportModal')">×</button>
     </div>
     <div class="modal-body">
-      <div id="synthesisContent"></div>
+      <div class="export-filter-grid">
+        <div class="export-filter-block">
+          <h4>Sections to include</h4>
+          <label class="export-checkbox"><input type="checkbox" id="exp_complete" checked> ✅ Completed suppliers</label>
+          <label class="export-checkbox"><input type="checkbox" id="exp_waiting" checked> ⏳ Awaiting reply</label>
+          <label class="export-checkbox"><input type="checkbox" id="exp_tocontact" checked> ⚠ To contact</label>
+          <label class="export-checkbox"><input type="checkbox" id="exp_inco" checked> 🔴 With incoherences</label>
+        </div>
+        <div class="export-filter-block">
+          <h4>Columns to include</h4>
+          <label class="export-checkbox"><input type="checkbox" id="exp_qc" checked> 🔬 QC issues detail</label>
+          <label class="export-checkbox"><input type="checkbox" id="exp_missing" checked> 📋 Missing fields detail</label>
+          <label class="export-checkbox"><input type="checkbox" id="exp_ecarts" checked> ⚡ Écarts (incoherences)</label>
+          <label class="export-checkbox"><input type="checkbox" id="exp_pns" checked> 🔢 Part Numbers list</label>
+        </div>
+      </div>
+      <div class="export-filter-block" style="margin-bottom:0">
+        <h4>Filter by owner</h4>
+        <select class="filter-select" id="exp_owner" style="width:100%">
+          <option value="">All owners</option>
+        </select>
+      </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('synthesisModal')">Close</button>
-      <button class="btn-excel-synthesis" onclick="downloadSynthesisExcel()">
+      <button class="btn-secondary" onclick="closeModal('exportModal')">Cancel</button>
+      <button class="btn-excel-synthesis" onclick="runExportExcel()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download Excel
+        Export Excel
       </button>
     </div>
   </div>
+</div>
+
+<!-- SYNTHESIS MODAL (kept for UI trigger, generates directly) -->
+<div class="modal-backdrop" id="synthesisModal" style="display:none">
+  <div style="display:none"></div>
 </div>
 <!-- HISTORY MODAL -->
 <div class="modal-backdrop" id="historyModal">
@@ -1144,7 +1210,7 @@ function renderTable() {
       <td colspan="11">
         <span class="sg-dot" style="background:${sec.color}"></span>${sec.label}
         <span class="sg-count">${sec.rows.length}</span>
-        <button class="btn-export-section" style="float:right;margin-top:-2px" onclick="exportSection('${sec.key}')">⬇ Export section</button>
+        <button class="btn-export-section" style="float:right;margin-top:-2px" onclick="openExportModal('${sec.key}')">⬇ Export section</button>
       </td>
     </tr>`;
     sec.rows.forEach((s, i) => {
@@ -1618,244 +1684,366 @@ async function runBatchSend() {
 // ══════════════════════════════════════════════════════════════
 // SYNTHESIS EXCEL REPORT
 // ══════════════════════════════════════════════════════════════
-function openSynthesisModal() {
-  if (!supplierData.length) { showToast('Upload a Working File first', 'error'); return; }
-  const myPerimeter = window.userProfile?.perimeter || 'ALL';
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('fr-FR');
-
-  // Use filteredData for the perimeter in view
-  const data = filteredData.length > 0 ? filteredData : supplierData;
-  const total = data.length;
-  const complete = data.filter(s => s.status === 'complete').length;
-  const waiting = data.filter(s => s.status === 'waiting').length;
-  const toContact = data.filter(s => s.status === 'to_contact').length;
-  const completePct = total > 0 ? Math.round((complete / total) * 100) : 0;
-  const lateSuppliers = data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7);
-  const avgDays = (() => {
-    const contacted = data.filter(s => s.lastEmailDate);
-    if (!contacted.length) return null;
-    const sum = contacted.reduce((a, s) => a + (daysSince(s.lastEmailDate) || 0), 0);
-    return Math.round(sum / contacted.length);
-  })();
-
-  document.getElementById('synthesisContent').innerHTML = `
-    <div class="synthesis-section">
-      <div class="section-title">📋 Overview — Perimeter: ${myPerimeter} · ${dateStr}</div>
-      <div class="synthesis-kpi-grid">
-        <div class="synthesis-kpi"><div class="val">${total}</div><div class="lbl">Total Suppliers</div></div>
-        <div class="synthesis-kpi"><div class="val" style="color:#137a44">${completePct}%</div><div class="lbl">Completion Rate</div></div>
-        <div class="synthesis-kpi"><div class="val" style="color:#C0392B">${lateSuppliers.length}</div><div class="lbl">Late (>7 days)</div></div>
-        <div class="synthesis-kpi"><div class="val" style="color:#B75E00">${toContact}</div><div class="lbl">Still To Contact</div></div>
-        <div class="synthesis-kpi"><div class="val" style="color:#2B6DA8">${waiting}</div><div class="lbl">Awaiting Reply</div></div>
-        <div class="synthesis-kpi"><div class="val" style="color:#137a44">${complete}</div><div class="lbl">Completed</div></div>
-      </div>
-    </div>
-    <div class="synthesis-section">
-      <div class="section-title">🔴 Late Suppliers (No response > 7 days)</div>
-      ${lateSuppliers.length === 0 ? '<p style="color:#137a44;font-size:13px">✓ No late suppliers!</p>' : `
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr>
-          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Supplier</th>
-          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Code</th>
-          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Days Late</th>
-          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Missing Fields</th>
-          <th style="background:#0E2140;color:white;padding:8px;text-align:left">Next Step</th>
-        </tr></thead>
-        <tbody>
-          ${lateSuppliers.map(s => `<tr style="border-bottom:1px solid #F3F4F6">
-            <td style="padding:8px;font-weight:500">${esc(s.name)}</td>
-            <td style="padding:8px;font-family:monospace;font-size:11px">${esc(s.sectorCode)}</td>
-            <td style="padding:8px;color:#C0392B;font-weight:600">${daysSince(s.lastEmailDate)}d</td>
-            <td style="padding:8px">${s.missing.slice(0,3).join(', ')}${s.missing.length > 3 ? ` +${s.missing.length-3} more` : ''}</td>
-            <td style="padding:8px;color:#2B6DA8">Send follow-up email</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`}
-    </div>
-    <div class="synthesis-section">
-      <div class="section-title">📌 What Still Needs To Be Done</div>
-      <div style="font-size:13px;line-height:2;color:#374151">
-        ${toContact > 0 ? `<div>📧 <strong>${toContact} suppliers</strong> still need to be contacted for the first time.</div>` : ''}
-        ${waiting > 0 ? `<div>⏳ <strong>${waiting} suppliers</strong> have been contacted and are awaiting their reply.</div>` : ''}
-        ${lateSuppliers.length > 0 ? `<div>🔴 <strong>${lateSuppliers.length} suppliers</strong> have not replied in over 7 days — follow-up required.</div>` : ''}
-        ${complete === total ? '<div style="color:#137a44">✅ All suppliers are complete!</div>' : ''}
-      </div>
-    </div>
-  `;
-  openModal('synthesisModal');
-}
-
-function downloadSynthesisExcel() {
-  if (!supplierData.length) return;
-  const data = filteredData.length > 0 ? filteredData : supplierData;
-  const myPerimeter = window.userProfile?.perimeter || 'ALL';
-  const wb = XLSX.utils.book_new();
-
-  // Summary sheet
-  const summaryData = [
-    ['COFORIZATION Synthesis Report'],
-    [`Perimeter: ${myPerimeter}`],
-    [`Generated: ${new Date().toLocaleString('fr-FR')}`],
-    [],
-    ['Metric', 'Value'],
-    ['Total Suppliers', data.length],
-    ['Complete', data.filter(s => s.status === 'complete').length],
-    ['Awaiting Reply', data.filter(s => s.status === 'waiting').length],
-    ['To Contact', data.filter(s => s.status === 'to_contact').length],
-    ['Completion Rate (%)', data.length > 0 ? Math.round((data.filter(s=>s.status==='complete').length / data.length) * 100) : 0],
-    ['Late Suppliers (>7d)', data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7).length],
-    [],
-    ['Next Steps'],
-    ...(() => {
-      const steps = [];
-      const toC = data.filter(s => s.status === 'to_contact').length;
-      const wait = data.filter(s => s.status === 'waiting').length;
-      const late = data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7).length;
-      if (toC > 0) steps.push([`Contact ${toC} suppliers for the first time`]);
-      if (wait > 0) steps.push([`Follow up with ${wait} suppliers awaiting reply`]);
-      if (late > 0) steps.push([`URGENT: Send follow-up to ${late} suppliers (no reply >7 days)`]);
-      return steps.length ? steps : [['All tasks complete!']];
-    })()
-  ];
-  const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
-
-  // Detail sheet
-  const headers = ['Supplier Name','Sector Code','Status','Parts #','Contacted','Days Since Contact','Missing Fields Count','Missing Fields','Plants Perimeter','Last Updated','Notes','Next Step'];
-  const rows = [headers, ...data.map(s => {
-    const days = daysSince(s.lastEmailDate);
-    let nextStep = '';
-    if (s.status === 'complete') nextStep = 'Done ✓';
-    else if (s.status === 'to_contact') nextStep = 'Send initial email';
-    else if (days !== null && days > 7) nextStep = "URGENT: Follow up (" + days + "d no reply)";
-    else if (s.status === 'waiting') nextStep = 'Wait for reply';
-    return [
-      s.name, s.sectorCode, s.status, s.rows.length,
-      s.contacted || 'No',
-      days !== null ? days : 'N/A',
-      s.missing.length, s.missing.join('; '),
-      s.plantsPerimeter || '',
-      s.lastEmailDate || '',
-      s.note || '',
-      nextStep
-    ];
-  })];
-  const wsDetail = XLSX.utils.aoa_to_sheet(rows);
-  wsDetail['!cols'] = headers.map((h, i) => ({ wch: [30,14,12,8,10,14,16,50,16,18,30,30][i] || 15 }));
-  XLSX.utils.book_append_sheet(wb, wsDetail, 'Supplier Detail');
-
-  // Late suppliers sheet
-  const lateData = data.filter(s => s.status === 'waiting' && daysSince(s.lastEmailDate) > 7);
-  if (lateData.length > 0) {
-    const lateHeaders = ['Supplier Name','Sector Code','Days Late','Missing Fields','Last Contact Date','Next Step'];
-    const lateRows = [lateHeaders, ...lateData.map(s => [
-      s.name, s.sectorCode, daysSince(s.lastEmailDate),
-      s.missing.join('; '), s.lastEmailDate || '', 'Send follow-up email URGENTLY'
-    ])];
-    const wsLate = XLSX.utils.aoa_to_sheet(lateRows);
-    XLSX.utils.book_append_sheet(wb, wsLate, '🔴 Late Suppliers');
-  }
-
-  XLSX.writeFile(wb, `COFORIZATION_Synthesis_${myPerimeter}_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast('Synthesis Excel downloaded!', 'success');
-}
-
 // ══════════════════════════════════════════════════════════════
-// HELPERS
+// AUTO-IMPORT: SUPPLIER CONFIRMATION FILE
 // ══════════════════════════════════════════════════════════════
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function showLoading(msg) { document.getElementById('loadingText').textContent = msg; document.getElementById('loadingOverlay').style.display = 'flex'; }
-function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
-function showToast(msg, type = 'info') {
-  const c = document.getElementById('toastContainer');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${type==='success'?'<path d="M20 6 9 17l-5-5"/>':(type==='error'?'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>':'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>')}</svg> ${msg}`;
-  c.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100px)'; t.style.transition = 'all 0.3s'; setTimeout(() => t.remove(), 300); }, 4000);
-}
+function handleImportDragOver(e) { e.preventDefault(); document.getElementById('importZone').classList.add('drag-over'); }
+function handleImportDragLeave() { document.getElementById('importZone').classList.remove('drag-over'); }
+function handleImportDrop(e) { e.preventDefault(); handleImportDragLeave(); const f = e.dataTransfer.files[0]; if (f) processSupplierDataFile(f); }
+function handleImportFileSelect(e) { const f = e.target.files[0]; if (f) processSupplierDataFile(f); }
 
-// ══════════════════════════════════════════════════════════════
-// HISTORY MODAL
-// ══════════════════════════════════════════════════════════════
-async function openHistoryModal() {
-  openModal('historyModal');
-  const body = document.getElementById('historyModalBody');
-  body.innerHTML = '<div style="text-align:center;padding:40px;color:#9CA3AF;font-family:\'DM Mono\',monospace">Loading…</div>';
+function processSupplierDataFile(file) {
+  if (!file.name.endsWith('.xlsx')) { showToast('Please upload a .xlsx file', 'error'); return; }
+  if (!supplierData.length) { showToast('Load the main Working File first', 'error'); return; }
+  showLoading('Merging supplier data…');
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+      if (!data.length) { showToast('Empty file', 'error'); hideLoading(); return; }
 
-  const snaps = await window.loadSnapshotHistory();
-  if (!snaps || !snaps.length) {
-    body.innerHTML = '<div style="text-align:center;padding:40px;color:#9CA3AF">No history found. Upload a file to start tracking changes.</div>';
-    return;
-  }
+      const headers = data[0];
+      const hi = {};
+      headers.forEach((h, i) => { if (h) hi[String(h).trim()] = i; });
+      if (hi['Seller Sector Code'] === undefined) {
+        showToast('File must have a "Seller Sector Code" column', 'error');
+        hideLoading(); return;
+      }
 
-  let html = '';
-  snaps.forEach((snap, idx) => {
-    const prev = snaps[idx + 1];
-    const date = snap.savedAt?.seconds
-      ? new Date(snap.savedAt.seconds * 1000).toLocaleString('fr-FR')
-      : '—';
+      // Group import rows by sector code
+      const importMap = {};
+      for (let r = 1; r < data.length; r++) {
+        const row = data[r];
+        if (!row || !row.some(v => v !== null)) continue;
+        const sc = String(row[hi['Seller Sector Code']] || '').trim().replace(/^0+/, '').padStart(10, '0');
+        if (!sc || sc === '0000000000') continue;
+        if (!importMap[sc]) importMap[sc] = row;
+      }
 
-    let diffHtml = '';
-    if (prev && snap.rows && prev.rows) {
-      const prevMap = {};
-      (prev.rows || []).forEach(r => { prevMap[r.key] = r; });
-      const currMap = {};
-      (snap.rows || []).forEach(r => { currMap[r.key] = r; });
+      let updatedCount = 0, fieldsCount = 0;
+      const updateLog = [];
 
-      const added   = (snap.rows||[]).filter(r => !prevMap[r.key]);
-      const removed = (prev.rows||[]).filter(r => !currMap[r.key]);
-      const changed = (snap.rows||[]).filter(r => {
-        const p = prevMap[r.key];
-        return p && (p.status !== r.status || p.missingCount !== r.missingCount ||
-          p.contacted !== r.contacted);
+      supplierData.forEach(s => {
+        const importRow = importMap[s.sectorCode] || importMap[s.sectorCode.replace(/^0+/, '')];
+        if (!importRow) return;
+        const changes = [];
+        ORANGE_COLS.forEach(col => {
+          const colIdx = hi[col];
+          if (colIdx === undefined) return;
+          const importVal = importRow[colIdx] != null ? String(importRow[colIdx]).trim() : '';
+          if (!importVal) return;
+          if (s.filled[col]) return; // Don't overwrite existing data
+          // Fill this field in all rows
+          const mainColIdx = s.headerIndex[col];
+          if (mainColIdx !== undefined) {
+            s.rows.forEach(r => { r[mainColIdx] = importVal; });
+          }
+          s.filled[col] = importVal;
+          const idx = s.missing.indexOf(col);
+          if (idx > -1) s.missing.splice(idx, 1);
+          changes.push(col);
+          fieldsCount++;
+        });
+        if (changes.length > 0) {
+          updatedCount++;
+          updateLog.push(`${s.name} (${s.sectorCode}): ${changes.join(', ')}`);
+          s.qcFailures = runQCOnSupplier(s);
+          s.incoherences = detectIncoherences(s);
+          // Recompute toEmails
+          const q = s.filled['Quality contact'] || null;
+          const l = s.filled['Logistic contact'] || null;
+          s.toEmails = [q, l].filter(Boolean).join(', ');
+          // Recompute status
+          if (s.missing.length === 0 && !['complete','waiting'].includes(s.status)) s.status = 'waiting';
+        }
       });
 
-      if (added.length || removed.length || changed.length) {
-        const parts = [];
-        if (added.length)   parts.push(`<span class="diff-added">+${added.length} new</span>`);
-        if (removed.length) parts.push(`<span class="diff-removed">−${removed.length} removed</span>`);
-        if (changed.length) parts.push(`<span class="diff-changed">~${changed.length} changed</span>`);
-        diffHtml = `<div style="margin-top:8px;font-size:11px">${parts.join(' · ')}</div>`;
+      window.supplierData = supplierData;
+      filteredData = [...supplierData];
+      applyFilters();
+      renderStats();
 
-        if (changed.length) {
-          diffHtml += `<div style="margin-top:6px;background:#F9FAFB;border-radius:6px;padding:8px 12px;font-size:11px;font-family:'DM Mono',monospace;max-height:100px;overflow-y:auto">`;
-          changed.slice(0, 5).forEach(r => {
-            const p = prevMap[r.key];
-            const d = [];
-            if (p.status !== r.status) d.push(`status: <b>${p.status}</b> → <b>${r.status}</b>`);
-            if (p.contacted !== r.contacted) d.push(`contacted: <b>${p.contacted||'—'}</b> → <b>${r.contacted||'—'}</b>`);
-            if (p.missingCount !== r.missingCount) d.push(`missing: <b>${p.missingCount}</b> → <b>${r.missingCount}</b>`);
-            diffHtml += `<div style="padding:2px 0;border-bottom:1px solid #F3F4F6"><b>${esc(r.name||r.key)}</b>: ${d.join(', ')}</div>`;
-          });
-          if (changed.length > 5) diffHtml += `<div style="color:#9CA3AF;padding-top:4px">…and ${changed.length - 5} more</div>`;
-          diffHtml += '</div>';
-        }
+      const zone = document.getElementById('importZone');
+      zone.classList.add('has-file');
+      document.getElementById('importTitle').textContent = `✓ ${file.name}`;
+      document.getElementById('importSub').textContent = `${updatedCount} suppliers updated · ${fieldsCount} fields filled in`;
+
+      if (updatedCount > 0) {
+        showToast(`✅ ${updatedCount} fournisseurs mis à jour, ${fieldsCount} champs remplis`, 'success');
+        console.log('Import log:', updateLog);
       } else {
-        diffHtml = `<div style="margin-top:6px;font-size:11px;color:#137a44">✓ No changes vs previous upload</div>`;
+        showToast('Aucun nouveau champ trouvé dans ce fichier', 'info');
       }
+    } catch(err) {
+      showToast('Error reading file: ' + err.message, 'error');
     }
-
-    html += `
-    <div style="background:white;border:1px solid #E5E9EF;border-radius:8px;padding:16px 20px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start">
-      <div style="width:36px;height:36px;border-radius:50%;background:#EBF2FA;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📁</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;color:#111827">${esc(snap.id)}</div>
-        <div style="font-size:12px;color:#6B7280;font-family:'DM Mono',monospace">${snap.rowCount || 0} suppliers</div>
-        ${diffHtml}
-      </div>
-      <div style="font-size:11px;color:#9CA3AF;white-space:nowrap">${date}</div>
-    </div>`;
-  });
-
-  body.innerHTML = html;
+    hideLoading();
+  };
+  reader.onerror = () => { showToast('Failed to read file', 'error'); hideLoading(); };
+  reader.readAsArrayBuffer(file);
 }
 
-document.querySelectorAll('.modal-backdrop').forEach(b => {
-  b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
-});
+// ══════════════════════════════════════════════════════════════
+// EXPORT MODAL WITH FILTERS
+// ══════════════════════════════════════════════════════════════
+let _exportSectionPreset = null;
+
+function openExportModal(presetSection) {
+  if (!supplierData.length) { showToast('No data loaded', 'error'); return; }
+  _exportSectionPreset = presetSection || null;
+
+  // Populate owner filter
+  const sel = document.getElementById('exp_owner');
+  const owners = [...new Set(supplierData.map(s => (s.owner||'').trim()).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All owners</option>' + owners.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+
+  // Preset checkboxes based on section
+  if (presetSection && presetSection !== 'all') {
+    ['complete','waiting','to_contact','inco'].forEach(k => {
+      const el = document.getElementById(`exp_${k === 'to_contact' ? 'tocontact' : k}`);
+      if (el) el.checked = (k === presetSection);
+    });
+  } else {
+    ['exp_complete','exp_waiting','exp_tocontact','exp_inco'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.checked = true;
+    });
+  }
+  openModal('exportModal');
+}
+
+function runExportExcel() {
+  const incComplete = document.getElementById('exp_complete').checked;
+  const incWaiting  = document.getElementById('exp_waiting').checked;
+  const incToContact= document.getElementById('exp_tocontact').checked;
+  const incInco     = document.getElementById('exp_inco').checked;
+  const incQC       = document.getElementById('exp_qc').checked;
+  const incMissing  = document.getElementById('exp_missing').checked;
+  const incEcarts   = document.getElementById('exp_ecarts').checked;
+  const incPNs      = document.getElementById('exp_pns').checked;
+  const ownerFilter = document.getElementById('exp_owner').value;
+
+  let rows = supplierData.filter(s => {
+    const okStatus = (incComplete && s.status === 'complete') ||
+                     (incWaiting  && s.status === 'waiting') ||
+                     (incToContact && s.status === 'to_contact') ||
+                     (incInco && s.incoherences && s.incoherences.length > 0);
+    const okOwner  = !ownerFilter || (s.owner||'').trim() === ownerFilter;
+    return okStatus && okOwner;
+  });
+
+  if (!rows.length) { showToast('No rows match these filters', 'error'); return; }
+
+  const headers = ['Fournisseur','Code Secteur','Statut','Responsable','Contacté','Info Complète'];
+  if (incPNs) headers.push('Références (PNs)', '# PNs');
+  if (incMissing) headers.push('Champs manquants', '# Champs manquants');
+  if (incEcarts) headers.push('Incohérences / Écarts');
+  if (incQC) headers.push('Problèmes QC');
+  headers.push('Email Qualité', 'Email Logistique', 'Note');
+
+  const wb = XLSX.utils.book_new();
+  const wsData = [headers, ...rows.map(s => {
+    const statusLabel = s.status === 'complete' ? '✅ Complété' : s.status === 'waiting' ? '⏳ En attente' : '⚠ À contacter';
+    const row = [s.name, s.sectorCode, statusLabel, s.owner||'—', s.contacted||'—', s.infoCompleted||'—'];
+    if (incPNs) { const pns = s.rows.map(r => r[s.headerIndex['Part Number']]).filter(Boolean).join(', '); row.push(pns, s.rows.length); }
+    if (incMissing) row.push(s.missing.join('; ')||'—', s.missing.length);
+    if (incEcarts) row.push((s.incoherences||[]).join(' | ')||'✓ OK');
+    if (incQC) row.push((s.qcFailures||[]).map(f => `${f.label}: ${f.reason}`).join(' | ')||'✓ OK');
+    row.push(s.filled['Quality contact']||'—', s.filled['Logistic contact']||'—', s.note||'—');
+    return row;
+  })];
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = headers.map(() => ({ wch: 20 }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Export');
+
+  const tag = ownerFilter ? ownerFilter.replace(/\s+/g, '_') : 'ALL';
+  XLSX.writeFile(wb, `COFORIZATION_Export_${tag}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast(`Exported ${rows.length} rows`, 'success');
+  closeModal('exportModal');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SYNTHESIS EXCEL — FULL MULTI-SHEET (Global + Per Owner)
+// ══════════════════════════════════════════════════════════════
+function generateSynthesisExcel() {
+  if (!supplierData.length) { showToast('Upload a Working File first', 'error'); return; }
+  showLoading('Generating synthesis Excel…');
+  setTimeout(() => {
+    try {
+      const wb = XLSX.utils.book_new();
+      const today = new Date().toLocaleDateString('fr-FR');
+      const owners = [...new Set(supplierData.map(s => (s.owner||'').trim()).filter(Boolean))].sort();
+
+      // ── SHEET 1: GLOBAL SYNTHESIS ──
+      _addGlobalSynthesisSheet(wb, today, owners);
+
+      // ── SHEET 2: FULL DETAIL ──
+      _addDetailSheet(wb, supplierData, '📋 Détail Complet', today);
+
+      // ── SHEET PER OWNER ──
+      owners.forEach(owner => {
+        const ownerData = supplierData.filter(s => (s.owner||'').trim() === owner);
+        if (ownerData.length) _addOwnerSheet(wb, owner, ownerData, today);
+      });
+
+      XLSX.writeFile(wb, `COFORIZATION_Synthese_${today.replace(/\//g,'-')}.xlsx`);
+      showToast('✅ Synthesis Excel generated!', 'success');
+    } catch(err) {
+      showToast('Error: ' + err.message, 'error');
+      console.error(err);
+    }
+    hideLoading();
+  }, 60);
+}
+
+function _addGlobalSynthesisSheet(wb, today, owners) {
+  const sd = supplierData;
+  const total = sd.length;
+  const complete = sd.filter(s => s.status === 'complete').length;
+  const waiting  = sd.filter(s => s.status === 'waiting').length;
+  const toContact= sd.filter(s => s.status === 'to_contact').length;
+  const inco     = sd.filter(s => (s.incoherences||[]).length > 0).length;
+  const qcIssues = sd.filter(s => (s.qcFailures||[]).length > 0).length;
+  const notCont  = sd.filter(s => String(s.contacted||'').toLowerCase() !== 'yes').length;
+  const filled   = sd.filter(s => s.missing.length === 0).length;
+  const pct = v => total > 0 ? `${Math.round(v/total*100)}%` : '0%';
+
+  const rows = [
+    ['COFORIZATION — SYNTHÈSE GLOBALE'],
+    [`Générée le ${today} | ${total} fournisseurs | ${owners.length} responsables`],
+    [],
+    ['INDICATEURS CLÉS GLOBAUX','','','','','','','','','',''],
+    ['Total Fournisseurs','Complétés','% Complété','En attente','À contacter','Non contactés','% Non contactés','Incohérences','Pb QC','% Périmètre rempli',''],
+    [total, complete, pct(complete), waiting, toContact, notCont, pct(notCont), inco, qcIssues, pct(filled), ''],
+    [],
+    ['SYNTHÈSE PAR RESPONSABLE','','','','','','','','','',''],
+    ['Responsable','Total','Complétés','% Complété','En attente','À contacter','Non contactés','% Non contactés','Incohérences','Pb QC','% Rempli'],
+  ];
+
+  owners.forEach(owner => {
+    const os = sd.filter(s => (s.owner||'').trim() === owner);
+    const ot = os.length;
+    const oc = os.filter(s => s.status === 'complete').length;
+    const ow = os.filter(s => s.status === 'waiting').length;
+    const otc= os.filter(s => s.status === 'to_contact').length;
+    const onc= os.filter(s => String(s.contacted||'').toLowerCase() !== 'yes').length;
+    const oi = os.filter(s => (s.incoherences||[]).length > 0).length;
+    const oqc= os.filter(s => (s.qcFailures||[]).length > 0).length;
+    const of = os.filter(s => s.missing.length === 0).length;
+    const p = v => ot > 0 ? `${Math.round(v/ot*100)}%` : '0%';
+    rows.push([owner, ot, oc, p(oc), ow, otc, onc, p(onc), oi, oqc, p(of)]);
+  });
+
+  rows.push(['TOTAL', total, complete, pct(complete), waiting, toContact, notCont, pct(notCont), inco, qcIssues, pct(filled)]);
+  rows.push([]);
+  rows.push(['FOURNISSEURS NON CONTACTÉS PAR RESPONSABLE','','','','','','','','','','']);
+  rows.push(['Responsable','Fournisseur','Code Secteur','Champs manquants','Email Qualité','Email Logistique','','','','','']);
+  sd.filter(s => String(s.contacted||'').toLowerCase() !== 'yes' && s.status !== 'complete').forEach(s => {
+    rows.push([s.owner||'—', s.name, s.sectorCode, s.missing.join('; ')||'—', s.filled['Quality contact']||'MANQUANT', s.filled['Logistic contact']||'MANQUANT','','','','','']);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [22,10,12,14,12,14,16,18,10,10,14].map(w=>({wch:w}));
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:10}},{s:{r:1,c:0},e:{r:1,c:10}},{s:{r:3,c:0},e:{r:3,c:10}},{s:{r:7,c:0},e:{r:7,c:10}}];
+  XLSX.utils.book_append_sheet(wb, ws, '📊 Synthèse Globale');
+}
+
+function _addDetailSheet(wb, suppliers, sheetName, today) {
+  const headers = ['Fournisseur','Code Secteur','Périmètre (Plants)','Responsable','Références (PNs)','# PNs','Statut','Contacté','Info Complète','Champs manquants','# Manquants','Incohérences / Écarts','Problèmes QC','Email Qualité','Email Logistique','Note'];
+  const rows = [[sheetName], [`Généré le ${today}`], [], headers];
+  suppliers.forEach(s => {
+    const pns = s.rows.map(r => r[s.headerIndex['Part Number']]).filter(Boolean).join(', ');
+    const statusLabel = s.status === 'complete' ? 'Complété' : s.status === 'waiting' ? 'En attente' : 'À contacter';
+    rows.push([
+      s.name, s.sectorCode, s.plantsPerimeter||'—', s.owner||'—', pns, s.rows.length,
+      statusLabel, s.contacted||'—', s.infoCompleted||'—',
+      s.missing.join('; ')||'—', s.missing.length,
+      (s.incoherences||[]).join(' | ')||'✓ OK',
+      (s.qcFailures||[]).map(f=>`${f.label}: ${f.reason}`).join(' | ')||'✓ OK',
+      s.filled['Quality contact']||'—', s.filled['Logistic contact']||'—', s.note||'—'
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [32,14,20,18,35,7,14,12,14,45,12,50,45,30,30,30].map(w=>({wch:w}));
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:15}},{s:{r:1,c:0},e:{r:1,c:15}}];
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0,31));
+}
+
+function _addOwnerSheet(wb, owner, suppliers, today) {
+  const total = suppliers.length;
+  const complete = suppliers.filter(s => s.status === 'complete').length;
+  const waiting  = suppliers.filter(s => s.status === 'waiting').length;
+  const toContact= suppliers.filter(s => s.status === 'to_contact').length;
+  const notCont  = suppliers.filter(s => String(s.contacted||'').toLowerCase() !== 'yes').length;
+  const withInco = suppliers.filter(s => (s.incoherences||[]).length > 0).length;
+  const withQC   = suppliers.filter(s => (s.qcFailures||[]).length > 0).length;
+  const pctFilled= total > 0 ? `${Math.round(suppliers.filter(s=>s.missing.length===0).length/total*100)}%` : '0%';
+  const p = v => total > 0 ? `${Math.round(v/total*100)}%` : '0%';
+
+  const rows = [
+    [`PÉRIMÈTRE : ${owner.toUpperCase()}`,'','','','','','','','','','',''],
+    [`Généré le ${today} | ${total} fournisseurs`,'','','','','','','','','','',''],
+    [],
+    ['INDICATEURS DU PÉRIMÈTRE','','','','','','','','','','',''],
+    ['Total','Complétés','% Complété','En attente','À contacter','Non contactés','% Non contactés','Incohérences','Pb QC','% Périmètre rempli','',''],
+    [total, complete, p(complete), waiting, toContact, notCont, p(notCont), withInco, withQC, pctFilled,'',''],
+    [],
+    ['DÉTAIL PAR FOURNISSEUR','','','','','','','','','','',''],
+    ['Fournisseur','Code Secteur','Références (PNs)','# PNs','Statut','Contacté','Info Complète','Champs manquants','Incohérences','Pb QC','Email Qualité','Email Logistique'],
+  ];
+
+  suppliers.forEach(s => {
+    const pns = s.rows.map(r => r[s.headerIndex['Part Number']]).filter(Boolean).join(', ');
+    const statusLabel = s.status === 'complete' ? '✅ Complété' : s.status === 'waiting' ? '⏳ En attente' : '⚠ À contacter';
+    rows.push([
+      s.name, s.sectorCode, pns, s.rows.length, statusLabel,
+      s.contacted||'—', s.infoCompleted||'—',
+      s.missing.join('; ')||'—',
+      (s.incoherences||[]).join(' | ')||'✓ OK',
+      (s.qcFailures||[]).map(f=>`${f.label}: ${f.reason}`).join(' | ')||'✓ OK',
+      s.filled['Quality contact']||'—', s.filled['Logistic contact']||'—'
+    ]);
+  });
+
+  rows.push([],[]);
+
+  // Section: Non contactés
+  const nonCont = suppliers.filter(s => String(s.contacted||'').toLowerCase() !== 'yes' && s.status !== 'complete');
+  if (nonCont.length) {
+    rows.push([`⚠ FOURNISSEURS NON CONTACTÉS (${nonCont.length} — ${p(nonCont.length)} du périmètre)`,'','','','','','','','','','','']);
+    rows.push(['Fournisseur','Code Secteur','Champs manquants','Email Qualité','Email Logistique','','','','','','','']);
+    nonCont.forEach(s => rows.push([s.name, s.sectorCode, s.missing.join('; ')||'—', s.filled['Quality contact']||'MANQUANT', s.filled['Logistic contact']||'MANQUANT','','','','','','','']));
+    rows.push([]);
+  }
+
+  // Section: Non remplis
+  const nonFilled = suppliers.filter(s => s.missing.length > 0);
+  if (nonFilled.length) {
+    rows.push([`📋 PÉRIMÈTRE NON REMPLI : ${nonFilled.length}/${total} fournisseurs (${p(nonFilled.length)} du périmètre)`,'','','','','','','','','','','']);
+    rows.push(['Fournisseur','Code Secteur','# Champs manquants','Champs manquants','Statut','','','','','','','']);
+    nonFilled.forEach(s => rows.push([s.name, s.sectorCode, s.missing.length, s.missing.join('; '), s.status,'','','','','','','']));
+    rows.push([]);
+  }
+
+  // Section: Écarts
+  const ecarts = suppliers.filter(s => (s.incoherences||[]).length > 0);
+  if (ecarts.length) {
+    rows.push(['🔴 ÉCARTS DÉTECTÉS : statut déclaré ≠ réalité','','','','','','','','','','','']);
+    rows.push(['Fournisseur','Code Secteur','Statut déclaré','Écarts constatés','','','','','','','','']);
+    ecarts.forEach(s => rows.push([s.name, s.sectorCode, s.status, (s.incoherences||[]).join(' | '),'','','','','','','','']));
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [32,14,35,7,14,12,14,45,45,40,30,30].map(w=>({wch:w}));
+  ws['!merges'] = [
+    {s:{r:0,c:0},e:{r:0,c:11}},{s:{r:1,c:0},e:{r:1,c:11}},
+    {s:{r:3,c:0},e:{r:3,c:11}},{s:{r:7,c:0},e:{r:7,c:11}},
+  ];
+  const safeSheetName = owner.replace(/[/\\[\]?*:]/g,'').slice(0,31);
+  XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+}
 
 // ══════════════════════════════════════════════════════════════
 // QUALITY CHECK ENGINE
@@ -1927,15 +2115,14 @@ function detectIncoherences(supplier) {
   const isInfoComplete = ['complete','completed'].includes(String(supplier.infoCompleted || '').toLowerCase());
   const missingCount = supplier.missing.length;
   const qcFailCount = (supplier.qcFailures || []).length;
-
   if (isStatusComplete && missingCount > 0)
-    incos.push(`Status=Complete but ${missingCount} required field(s) empty`);
+    incos.push(`Status=Complete mais ${missingCount} champ(s) requis vides`);
   if (isInfoComplete && missingCount > 0)
-    incos.push(`Info=Complete but ${missingCount} field(s) missing`);
+    incos.push(`Info=Complete mais ${missingCount} champ(s) manquants`);
   if (isStatusComplete && qcFailCount > 0)
-    incos.push(`Status=Complete but ${qcFailCount} format issue(s)`);
+    incos.push(`Status=Complete mais ${qcFailCount} problème(s) de format`);
   if (!isStatusComplete && missingCount === 0 && supplier.contacted === 'Yes')
-    incos.push('All fields filled but Status not Complete');
+    incos.push('Tous les champs remplis mais statut non Complete');
   return incos;
 }
 
@@ -1950,39 +2137,7 @@ function populateOwnerFilter() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// SECTION EXPORT
-// ══════════════════════════════════════════════════════════════
-function exportSection(statusKey) {
-  const sectionRows = filteredData.filter(s => {
-    if (statusKey === 'complete') return s.status === 'complete';
-    if (statusKey === 'inco') return s.incoherences && s.incoherences.length > 0;
-    if (statusKey === 'waiting') return s.status === 'waiting';
-    if (statusKey === 'to_contact') return s.status === 'to_contact';
-    return true;
-  });
-  if (!sectionRows.length) { showToast('No rows to export for this section', 'error'); return; }
-
-  const headers = ['Supplier Name','Sector Code','Status','Parts #','Contacted','Info Completed','Owner',
-    'Missing Fields','Les Incohérences','QC Issues','Quality Contact','Logistic Contact'];
-  const wb = XLSX.utils.book_new();
-  const wsData = [headers, ...sectionRows.map(s => [
-    s.name, s.sectorCode, s.status, s.rows.length,
-    s.contacted || '',
-    s.infoCompleted || '',
-    s.owner || '',
-    s.missing.join('; '),
-    (s.incoherences || []).join(' | ') || 'OK',
-    (s.qcFailures || []).map(f => `${f.label}: ${f.reason}`).join(' | ') || 'OK',
-    s.filled['Quality contact'] || '',
-    s.filled['Logistic contact'] || ''
-  ])];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = headers.map((_,i) => ({ wch: [30,14,12,8,10,12,15,40,50,50,30,30][i]||15 }));
-  XLSX.utils.book_append_sheet(wb, ws, 'Data');
-  XLSX.writeFile(wb, `coforization_${statusKey}_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast(`Exported ${sectionRows.length} rows`, 'success');
-}
-
+// SNAPSHOT DIFF
 // ══════════════════════════════════════════════════════════════
 // SNAPSHOT DIFF & CHANGE BANNER
 // ══════════════════════════════════════════════════════════════
