@@ -554,11 +554,11 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
     <div class="section-title">Working File</div>
     <div class="card">
       <div class="card-body">
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+        <label for="fileInput" class="upload-zone" id="uploadZone" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)" style="cursor:pointer;display:block;text-align:center">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
           <div class="upload-zone-title" id="uploadTitle">Drop your Working File Excel here</div>
           <div class="upload-zone-sub" id="uploadSub">or click to browse · Accepts .xlsx files</div>
-        </div>
+        </label>
         <input type="file" id="fileInput" accept=".xlsx" style="display:none" onchange="handleFileSelect(event)">
 
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100)">
@@ -566,13 +566,12 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Auto-fill from Supplier Confirmation File
           </div>
-          <div class="import-zone" id="importZone"
-            onclick="document.getElementById('importFileInput').click()"
-            ondragover="handleImportDragOver(event)" ondrop="handleImportDrop(event)" ondragleave="handleImportDragLeave(event)">
+          <label for="importFileInput" class="import-zone" id="importZone"
+            ondragover="handleImportDragOver(event)" ondrop="handleImportDrop(event)" ondragleave="handleImportDragLeave(event)" style="cursor:pointer;display:block;text-align:center">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 16 4 4 4-4"/></svg>
             <div class="import-zone-title" id="importTitle">Drop a supplier confirmation .xlsx here</div>
             <div class="import-zone-sub" id="importSub">Fields (COFOR, addresses, emails…) will be auto-merged into matching suppliers</div>
-          </div>
+          </label>
           <input type="file" id="importFileInput" accept=".xlsx" style="display:none" onchange="handleImportFileSelect(event)">
         </div>
       </div>
@@ -995,6 +994,10 @@ function handleFileSelect(e) { const f = e.target.files[0]; if (f) processFile(f
 
 function processFile(file) {
   if (!file.name.endsWith('.xlsx')) { showToast('Please upload a .xlsx file', 'error'); return; }
+  if (typeof XLSX === 'undefined') {
+    showToast('Excel library not loaded. Check your internet connection and reload the page.', 'error');
+    return;
+  }
   showLoading('Parsing Excel file...');
   const reader = new FileReader();
   reader.onload = (e) => {
