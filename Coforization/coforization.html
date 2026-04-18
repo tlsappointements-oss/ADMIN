@@ -883,7 +883,7 @@ let currentModalSupplier = null;
 let rawHeaders = [];
 let currentPage = 1;
 const PAGE_SIZE = 50;
-let activePerimeterFilter = 'me';
+let activePerimeterFilter = 'all';
 
 // ══════════════════════════════════════════════════════════════
 // INIT
@@ -1014,28 +1014,80 @@ function handleDragLeave() { document.getElementById('uploadZone').classList.rem
 function handleDrop(e) { e.preventDefault(); handleDragLeave(); const f = e.dataTransfer.files[0]; if (f) processFile(f); }
 function handleFileSelect(e) { const f = e.target.files[0]; if (f) processFile(f); }
 
+function showFileError(msg) {
+  const sub = document.getElementById('uploadSub');
+  if (sub) { sub.style.color = '#C0392B'; sub.style.fontWeight = '600'; sub.textContent = '❌ ' + msg; }
+  const title = document.getElementById('uploadTitle');
+  if (title) title.textContent = 'Error — try again';
+  console.error('[COFOR] ' + msg);
+}
+
 function processFile(file) {
-  if (!file.name.endsWith('.xlsx')) { showToast('Please upload a .xlsx file', 'error'); return; }
+  if (!file.name.endsWith('.xlsx')) {
+    showFileError('Please upload a .xlsx file (got: ' + file.name + ')');
+    return;
+  }
   showLoading('Parsing Excel file...');
+  document.getElementById('uploadSub').style.color = '';
+  document.getElementById('uploadSub').textContent = 'Reading...';
+
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const result = e.target.result;
+      if (!result || result.byteLength === 0) {
+        showFileError('File appears empty (0 bytes)');
+        hideLoading(); return;
+      }
+
+      let wb;
+      try {
+        wb = XLSX.read(result, { type: 'array' });
+      } catch(xlsxErr) {
+        showFileError('Cannot parse Excel: ' + xlsxErr.message);
+        hideLoading(); return;
+      }
+
+      if (!wb.SheetNames || !wb.SheetNames.length) {
+        showFileError('No sheets found in the file');
+        hideLoading(); return;
+      }
+
       const ws = wb.Sheets[wb.SheetNames[0]];
       const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+      if (!data || data.length < 2) {
+        showFileError('File has fewer than 2 rows (need header + data). Rows found: ' + (data ? data.length : 0));
+        hideLoading(); return;
+      }
+
+      // Check header row
+      const headers = (data[0] || []).map(h => String(h || '').trim());
+      if (!headers.includes('Seller Sector Code')) {
+        showFileError('Column "Seller Sector Code" not found. Headers found: ' + headers.filter(Boolean).slice(0,6).join(', '));
+        hideLoading(); return;
+      }
+
       parseWorkingFile(data, file.name);
+
+      if (!supplierData.length) {
+        showFileError('0 suppliers loaded — check that "Seller Sector Code" column has values');
+        hideLoading(); return;
+      }
+
       const zone = document.getElementById('uploadZone');
       zone.classList.add('has-file');
       zone.classList.remove('drag-over');
-      document.getElementById('uploadTitle').textContent = `✓ ${file.name}`;
-      document.getElementById('uploadSub').textContent = `${supplierData.length} unique suppliers loaded`;
+      document.getElementById('uploadTitle').textContent = '✓ ' + file.name;
+      document.getElementById('uploadSub').style.color = '#137a44';
+      document.getElementById('uploadSub').textContent = supplierData.length + ' unique suppliers loaded';
     } catch(err) {
-      showToast('Error reading file: ' + err.message, 'error');
+      showFileError(err.message + (err.stack ? ' | ' + err.stack.split('\n')[1] : ''));
     }
     hideLoading();
   };
   reader.onerror = () => {
-    showToast('Failed to read file. Please try again.', 'error');
+    showFileError('FileReader failed — try a different file');
     hideLoading();
   };
   reader.readAsArrayBuffer(file);
