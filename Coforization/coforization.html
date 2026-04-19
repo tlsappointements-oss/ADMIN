@@ -1364,6 +1364,35 @@ function shortName(col) {
 
 function esc(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+function showLoading(msg) {
+  const overlay = document.getElementById('loadingOverlay');
+  const text = document.getElementById('loadingText');
+  if (text) text.textContent = msg || 'Chargement...';
+  if (overlay) overlay.style.display = 'flex';
+}
+function hideLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+function showToast(msg, type) {
+  type = type || 'info';
+  const c = document.getElementById('toastContainer');
+  if (!c) { console.log('[Toast]', msg); return; }
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(function() { t.style.opacity='0'; t.style.transform='translateX(100px)'; t.style.transition='all 0.3s'; setTimeout(function(){ t.remove(); }, 300); }, 4000);
+}
+
 function toggleCheck(sc, checked) {
   if (checked) selectedSuppliers.add(sc);
   else selectedSuppliers.delete(sc);
@@ -1852,258 +1881,289 @@ function processSupplierDataFile(file) {
 let _exportSectionPreset = null;
 
 function openExportModal(presetSection) {
-  if (!supplierData.length) { showToast('No data loaded', 'error'); return; }
+  if (!supplierData || !supplierData.length) { showToast('Chargez un fichier d\'abord', 'error'); return; }
   _exportSectionPreset = presetSection || null;
-
-  // Populate owner filter
   const sel = document.getElementById('exp_owner');
-  const owners = [...new Set(supplierData.map(s => (s.owner||'').trim()).filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">All owners</option>' + owners.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
-
-  // Preset checkboxes based on section
+  if (sel) {
+    const owners = [...new Set(supplierData.map(s => (s.owner||'').trim()).filter(Boolean))].sort();
+    sel.innerHTML = '<option value="">Tous les responsables</option>' + owners.map(o => '<option value="'+esc(o)+'">'+esc(o)+'</option>').join('');
+  }
+  const allIds = ['exp_complete','exp_waiting','exp_tocontact','exp_inco'];
   if (presetSection && presetSection !== 'all') {
-    ['complete','waiting','to_contact','inco'].forEach(k => {
-      const el = document.getElementById(`exp_${k === 'to_contact' ? 'tocontact' : k}`);
-      if (el) el.checked = (k === presetSection);
-    });
+    const map = { complete:'exp_complete', waiting:'exp_waiting', to_contact:'exp_tocontact', inco:'exp_inco' };
+    allIds.forEach(id => { const el=document.getElementById(id); if(el) el.checked = false; });
+    const target = map[presetSection];
+    if (target) { const el=document.getElementById(target); if(el) el.checked=true; }
   } else {
-    ['exp_complete','exp_waiting','exp_tocontact','exp_inco'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.checked = true;
-    });
+    allIds.forEach(id => { const el=document.getElementById(id); if(el) el.checked=true; });
   }
   openModal('exportModal');
 }
 
 function runExportExcel() {
-  const incComplete = document.getElementById('exp_complete').checked;
-  const incWaiting  = document.getElementById('exp_waiting').checked;
-  const incToContact= document.getElementById('exp_tocontact').checked;
-  const incInco     = document.getElementById('exp_inco').checked;
-  const incQC       = document.getElementById('exp_qc').checked;
-  const incMissing  = document.getElementById('exp_missing').checked;
-  const incEcarts   = document.getElementById('exp_ecarts').checked;
-  const incPNs      = document.getElementById('exp_pns').checked;
-  const ownerFilter = document.getElementById('exp_owner').value;
+  const g = id => document.getElementById(id);
+  const chk = id => { const el=g(id); return el ? el.checked : true; };
+  const incComplete = chk('exp_complete');
+  const incWaiting  = chk('exp_waiting');
+  const incToContact= chk('exp_tocontact');
+  const incInco     = chk('exp_inco');
+  const incQC       = chk('exp_qc');
+  const incMissing  = chk('exp_missing');
+  const incEcarts   = chk('exp_ecarts');
+  const incPNs      = chk('exp_pns');
+  const ownerFilter = (g('exp_owner')||{}).value || '';
 
   let rows = supplierData.filter(s => {
-    const okStatus = (incComplete && s.status === 'complete') ||
-                     (incWaiting  && s.status === 'waiting') ||
-                     (incToContact && s.status === 'to_contact') ||
-                     (incInco && s.incoherences && s.incoherences.length > 0);
-    const okOwner  = !ownerFilter || (s.owner||'').trim() === ownerFilter;
-    return okStatus && okOwner;
+    const okS = (incComplete && s.status==='complete') ||
+                (incWaiting  && s.status==='waiting')  ||
+                (incToContact && s.status==='to_contact') ||
+                (incInco && (s.incoherences||[]).length > 0);
+    const okO = !ownerFilter || (s.owner||'').trim() === ownerFilter;
+    return okS && okO;
   });
 
-  if (!rows.length) { showToast('No rows match these filters', 'error'); return; }
+  if (!rows.length) { showToast('Aucune ligne ne correspond aux filtres', 'error'); return; }
 
   const headers = ['Fournisseur','Code Secteur','Statut','Responsable','Contacté','Info Complète'];
   if (incPNs) headers.push('Références (PNs)', '# PNs');
-  if (incMissing) headers.push('Champs manquants', '# Champs manquants');
+  if (incMissing) headers.push('Champs manquants', '# Manquants');
   if (incEcarts) headers.push('Incohérences / Écarts');
   if (incQC) headers.push('Problèmes QC');
   headers.push('Email Qualité', 'Email Logistique', 'Note');
 
   const wb = XLSX.utils.book_new();
   const wsData = [headers, ...rows.map(s => {
-    const statusLabel = s.status === 'complete' ? '✅ Complété' : s.status === 'waiting' ? '⏳ En attente' : '⚠ À contacter';
+    const statusLabel = s.status==='complete' ? '✅ Complété' : s.status==='waiting' ? '⏳ En attente' : '⚠ À contacter';
     const row = [s.name, s.sectorCode, statusLabel, s.owner||'—', s.contacted||'—', s.infoCompleted||'—'];
     if (incPNs) { const pns = s.rows.map(r => r[s.headerIndex['Part Number']]).filter(Boolean).join(', '); row.push(pns, s.rows.length); }
     if (incMissing) row.push(s.missing.join('; ')||'—', s.missing.length);
     if (incEcarts) row.push((s.incoherences||[]).join(' | ')||'✓ OK');
-    if (incQC) row.push((s.qcFailures||[]).map(f => `${f.label}: ${f.reason}`).join(' | ')||'✓ OK');
+    if (incQC) row.push((s.qcFailures||[]).map(f => f.label+': '+f.reason).join(' | ')||'✓ OK');
     row.push(s.filled['Quality contact']||'—', s.filled['Logistic contact']||'—', s.note||'—');
     return row;
   })];
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = headers.map(() => ({ wch: 20 }));
+  ws['!cols'] = headers.map(() => ({ wch: 22 }));
   XLSX.utils.book_append_sheet(wb, ws, 'Export');
-
-  const tag = ownerFilter ? ownerFilter.replace(/\s+/g, '_') : 'ALL';
-  XLSX.writeFile(wb, `COFORIZATION_Export_${tag}_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast(`Exported ${rows.length} rows`, 'success');
+  const tag = ownerFilter ? ownerFilter.replace(/\s+/g,'_') : 'ALL';
+  XLSX.writeFile(wb, 'COFORIZATION_Export_'+tag+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('Exporté '+rows.length+' lignes', 'success');
   closeModal('exportModal');
 }
 
-// ══════════════════════════════════════════════════════════════
-// SYNTHESIS EXCEL — FULL MULTI-SHEET (Global + Per Owner)
-// ══════════════════════════════════════════════════════════════
+// ─── SYNTHESIS EXCEL ────────────────────────────────────────────
 function generateSynthesisExcel() {
-  if (!supplierData.length) { showToast('Upload a Working File first', 'error'); return; }
-  showLoading('Generating synthesis Excel…');
-  setTimeout(() => {
+  if (!supplierData || !supplierData.length) { showToast('Chargez un fichier d\'abord', 'error'); return; }
+  showLoading('Génération de la synthèse...');
+  setTimeout(function() {
     try {
       const wb = XLSX.utils.book_new();
       const today = new Date().toLocaleDateString('fr-FR');
       const owners = [...new Set(supplierData.map(s => (s.owner||'').trim()).filter(Boolean))].sort();
-
-      // ── SHEET 1: GLOBAL SYNTHESIS ──
-      _addGlobalSynthesisSheet(wb, today, owners);
-
-      // ── SHEET 2: FULL DETAIL ──
-      _addDetailSheet(wb, supplierData, '📋 Détail Complet', today);
-
-      // ── SHEET PER OWNER ──
-      owners.forEach(owner => {
-        const ownerData = supplierData.filter(s => (s.owner||'').trim() === owner);
-        if (ownerData.length) _addOwnerSheet(wb, owner, ownerData, today);
+      _buildGlobalSheet(wb, today, owners);
+      _buildDetailSheet(wb, supplierData, '📋 Détail Complet', today);
+      owners.forEach(function(owner) {
+        const d = supplierData.filter(s => (s.owner||'').trim() === owner);
+        if (d.length) _buildOwnerSheet(wb, owner, d, today);
       });
-
-      XLSX.writeFile(wb, `COFORIZATION_Synthese_${today.replace(/\//g,'-')}.xlsx`);
-      showToast('✅ Synthesis Excel generated!', 'success');
+      XLSX.writeFile(wb, 'COFORIZATION_Synthese_'+today.replace(/\//g,'-')+'.xlsx');
+      showToast('✅ Synthèse générée !', 'success');
     } catch(err) {
-      showToast('Error: ' + err.message, 'error');
+      showToast('Erreur: '+err.message, 'error');
       console.error(err);
     }
     hideLoading();
-  }, 60);
+  }, 80);
 }
 
-function _addGlobalSynthesisSheet(wb, today, owners) {
-  const sd = supplierData;
-  const total = sd.length;
-  const complete = sd.filter(s => s.status === 'complete').length;
-  const waiting  = sd.filter(s => s.status === 'waiting').length;
-  const toContact= sd.filter(s => s.status === 'to_contact').length;
-  const inco     = sd.filter(s => (s.incoherences||[]).length > 0).length;
-  const qcIssues = sd.filter(s => (s.qcFailures||[]).length > 0).length;
-  const notCont  = sd.filter(s => String(s.contacted||'').toLowerCase() !== 'yes').length;
-  const filled   = sd.filter(s => s.missing.length === 0).length;
-  const pct = v => total > 0 ? `${Math.round(v/total*100)}%` : '0%';
+function _kpis(data) {
+  const total = data.length;
+  const complete = data.filter(s => s.status==='complete').length;
+  const waiting  = data.filter(s => s.status==='waiting').length;
+  const toContact= data.filter(s => s.status==='to_contact').length;
+  const notCont  = data.filter(s => String(s.contacted||'').toLowerCase() !== 'yes').length;
+  const inco     = data.filter(s => (s.incoherences||[]).length > 0).length;
+  const qcIss    = data.filter(s => (s.qcFailures||[]).length > 0).length;
+  const filled   = data.filter(s => s.missing.length === 0).length;
+  const p = v => total > 0 ? Math.round(v/total*100)+'%' : '0%';
+  return { total, complete, waiting, toContact, notCont, inco, qcIss, filled, p };
+}
 
+function _buildGlobalSheet(wb, today, owners) {
+  const k = _kpis(supplierData);
   const rows = [
-    ['COFORIZATION — SYNTHÈSE GLOBALE'],
-    [`Générée le ${today} | ${total} fournisseurs | ${owners.length} responsables`],
+    ['COFORIZATION — SYNTHÈSE GLOBALE', '', '', '', '', '', '', '', '', '', ''],
+    ['Générée le '+today+' · '+k.total+' fournisseurs · '+owners.length+' responsables', '', '', '', '', '', '', '', '', '', ''],
     [],
-    ['INDICATEURS CLÉS GLOBAUX','','','','','','','','','',''],
+    ['═══ INDICATEURS GLOBAUX ═══', '', '', '', '', '', '', '', '', '', ''],
     ['Total Fournisseurs','Complétés','% Complété','En attente','À contacter','Non contactés','% Non contactés','Incohérences','Pb QC','% Périmètre rempli',''],
-    [total, complete, pct(complete), waiting, toContact, notCont, pct(notCont), inco, qcIssues, pct(filled), ''],
+    [k.total, k.complete, k.p(k.complete), k.waiting, k.toContact, k.notCont, k.p(k.notCont), k.inco, k.qcIss, k.p(k.filled), ''],
     [],
-    ['SYNTHÈSE PAR RESPONSABLE','','','','','','','','','',''],
+    ['═══ SYNTHÈSE PAR RESPONSABLE ═══', '', '', '', '', '', '', '', '', '', ''],
     ['Responsable','Total','Complétés','% Complété','En attente','À contacter','Non contactés','% Non contactés','Incohérences','Pb QC','% Rempli'],
   ];
-
-  owners.forEach(owner => {
-    const os = sd.filter(s => (s.owner||'').trim() === owner);
-    const ot = os.length;
-    const oc = os.filter(s => s.status === 'complete').length;
-    const ow = os.filter(s => s.status === 'waiting').length;
-    const otc= os.filter(s => s.status === 'to_contact').length;
-    const onc= os.filter(s => String(s.contacted||'').toLowerCase() !== 'yes').length;
-    const oi = os.filter(s => (s.incoherences||[]).length > 0).length;
-    const oqc= os.filter(s => (s.qcFailures||[]).length > 0).length;
-    const of = os.filter(s => s.missing.length === 0).length;
-    const p = v => ot > 0 ? `${Math.round(v/ot*100)}%` : '0%';
-    rows.push([owner, ot, oc, p(oc), ow, otc, onc, p(onc), oi, oqc, p(of)]);
+  owners.forEach(function(owner) {
+    const ok = _kpis(supplierData.filter(s => (s.owner||'').trim() === owner));
+    rows.push([owner, ok.total, ok.complete, ok.p(ok.complete), ok.waiting, ok.toContact, ok.notCont, ok.p(ok.notCont), ok.inco, ok.qcIss, ok.p(ok.filled)]);
   });
-
-  rows.push(['TOTAL', total, complete, pct(complete), waiting, toContact, notCont, pct(notCont), inco, qcIssues, pct(filled)]);
-  rows.push([]);
-  rows.push(['FOURNISSEURS NON CONTACTÉS PAR RESPONSABLE','','','','','','','','','','']);
+  rows.push(['TOTAL', k.total, k.complete, k.p(k.complete), k.waiting, k.toContact, k.notCont, k.p(k.notCont), k.inco, k.qcIss, k.p(k.filled)]);
+  rows.push([], ['═══ FOURNISSEURS NON CONTACTÉS ═══', '', '', '', '', '', '', '', '', '', '']);
   rows.push(['Responsable','Fournisseur','Code Secteur','Champs manquants','Email Qualité','Email Logistique','','','','','']);
-  sd.filter(s => String(s.contacted||'').toLowerCase() !== 'yes' && s.status !== 'complete').forEach(s => {
-    rows.push([s.owner||'—', s.name, s.sectorCode, s.missing.join('; ')||'—', s.filled['Quality contact']||'MANQUANT', s.filled['Logistic contact']||'MANQUANT','','','','','']);
-  });
-
+  supplierData.filter(s => String(s.contacted||'').toLowerCase() !== 'yes' && s.status !== 'complete')
+    .forEach(s => rows.push([s.owner||'—', s.name, s.sectorCode, s.missing.join('; ')||'—', s.filled['Quality contact']||'MANQUANT', s.filled['Logistic contact']||'MANQUANT','','','','','']));
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [22,10,12,14,12,14,16,18,10,10,14].map(w=>({wch:w}));
-  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:10}},{s:{r:1,c:0},e:{r:1,c:10}},{s:{r:3,c:0},e:{r:3,c:10}},{s:{r:7,c:0},e:{r:7,c:10}}];
+  ws['!cols'] = [24,10,12,14,12,14,18,18,12,10,12].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb, ws, '📊 Synthèse Globale');
 }
 
-function _addDetailSheet(wb, suppliers, sheetName, today) {
-  const headers = ['Fournisseur','Code Secteur','Périmètre (Plants)','Responsable','Références (PNs)','# PNs','Statut','Contacté','Info Complète','Champs manquants','# Manquants','Incohérences / Écarts','Problèmes QC','Email Qualité','Email Logistique','Note'];
-  const rows = [[sheetName], [`Généré le ${today}`], [], headers];
-  suppliers.forEach(s => {
-    const pns = s.rows.map(r => r[s.headerIndex['Part Number']]).filter(Boolean).join(', ');
-    const statusLabel = s.status === 'complete' ? 'Complété' : s.status === 'waiting' ? 'En attente' : 'À contacter';
-    rows.push([
-      s.name, s.sectorCode, s.plantsPerimeter||'—', s.owner||'—', pns, s.rows.length,
-      statusLabel, s.contacted||'—', s.infoCompleted||'—',
-      s.missing.join('; ')||'—', s.missing.length,
-      (s.incoherences||[]).join(' | ')||'✓ OK',
-      (s.qcFailures||[]).map(f=>`${f.label}: ${f.reason}`).join(' | ')||'✓ OK',
-      s.filled['Quality contact']||'—', s.filled['Logistic contact']||'—', s.note||'—'
-    ]);
-  });
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [32,14,20,18,35,7,14,12,14,45,12,50,45,30,30,30].map(w=>({wch:w}));
-  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:15}},{s:{r:1,c:0},e:{r:1,c:15}}];
+function _buildDetailSheet(wb, suppliers, sheetName, today) {
+  const headers = ['Fournisseur','Code Secteur','Périmètre (Plants)','Responsable','Références (PNs)','# PNs','Statut','Contacté','Info Complète','# Champs manquants','Champs manquants','Incohérences','Pb QC','Email Qualité','Email Logistique','Note'];
+  const wsData = [['DÉTAIL COMPLET — '+today, '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''], [], headers,
+    ...suppliers.map(s => {
+      const pns = s.rows.map(r => r[s.headerIndex['Part Number']]).filter(Boolean).join(', ');
+      const st = s.status==='complete'?'✅ Complété':s.status==='waiting'?'⏳ En attente':'⚠ À contacter';
+      return [s.name, s.sectorCode, s.plantsPerimeter||'—', s.owner||'—', pns, s.rows.length, st,
+        s.contacted||'—', s.infoCompleted||'—', s.missing.length, s.missing.join('; ')||'—',
+        (s.incoherences||[]).join(' | ')||'✓ OK',
+        (s.qcFailures||[]).map(f=>f.label+': '+f.reason).join(' | ')||'✓ OK',
+        s.filled['Quality contact']||'—', s.filled['Logistic contact']||'—', s.note||'—'];
+    })
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [32,14,20,18,40,6,14,10,12,10,45,50,45,30,30,30].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0,31));
 }
 
-function _addOwnerSheet(wb, owner, suppliers, today) {
-  const total = suppliers.length;
-  const complete = suppliers.filter(s => s.status === 'complete').length;
-  const waiting  = suppliers.filter(s => s.status === 'waiting').length;
-  const toContact= suppliers.filter(s => s.status === 'to_contact').length;
-  const notCont  = suppliers.filter(s => String(s.contacted||'').toLowerCase() !== 'yes').length;
-  const withInco = suppliers.filter(s => (s.incoherences||[]).length > 0).length;
-  const withQC   = suppliers.filter(s => (s.qcFailures||[]).length > 0).length;
-  const pctFilled= total > 0 ? `${Math.round(suppliers.filter(s=>s.missing.length===0).length/total*100)}%` : '0%';
-  const p = v => total > 0 ? `${Math.round(v/total*100)}%` : '0%';
-
+function _buildOwnerSheet(wb, owner, suppliers, today) {
+  const k = _kpis(suppliers);
   const rows = [
-    [`PÉRIMÈTRE : ${owner.toUpperCase()}`,'','','','','','','','','','',''],
-    [`Généré le ${today} | ${total} fournisseurs`,'','','','','','','','','','',''],
+    ['PÉRIMÈTRE : '+owner.toUpperCase(), '', '', '', '', '', '', '', '', '', '', ''],
+    ['Généré le '+today+' · '+k.total+' fournisseurs', '', '', '', '', '', '', '', '', '', '', ''],
     [],
-    ['INDICATEURS DU PÉRIMÈTRE','','','','','','','','','','',''],
+    ['═══ INDICATEURS DU PÉRIMÈTRE ═══', '', '', '', '', '', '', '', '', '', '', ''],
     ['Total','Complétés','% Complété','En attente','À contacter','Non contactés','% Non contactés','Incohérences','Pb QC','% Périmètre rempli','',''],
-    [total, complete, p(complete), waiting, toContact, notCont, p(notCont), withInco, withQC, pctFilled,'',''],
+    [k.total, k.complete, k.p(k.complete), k.waiting, k.toContact, k.notCont, k.p(k.notCont), k.inco, k.qcIss, k.p(k.filled),'',''],
     [],
-    ['DÉTAIL PAR FOURNISSEUR','','','','','','','','','','',''],
-    ['Fournisseur','Code Secteur','Références (PNs)','# PNs','Statut','Contacté','Info Complète','Champs manquants','Incohérences','Pb QC','Email Qualité','Email Logistique'],
+    ['═══ DÉTAIL PAR FOURNISSEUR ET PNs ═══', '', '', '', '', '', '', '', '', '', '', ''],
+    ['Fournisseur','Code Secteur','Références (PNs)','# PNs','Statut','Contacté','Info Complète','# Champs manquants','Champs manquants','Incohérences','Pb QC','Emails'],
   ];
-
   suppliers.forEach(s => {
     const pns = s.rows.map(r => r[s.headerIndex['Part Number']]).filter(Boolean).join(', ');
-    const statusLabel = s.status === 'complete' ? '✅ Complété' : s.status === 'waiting' ? '⏳ En attente' : '⚠ À contacter';
-    rows.push([
-      s.name, s.sectorCode, pns, s.rows.length, statusLabel,
-      s.contacted||'—', s.infoCompleted||'—',
-      s.missing.join('; ')||'—',
+    const st = s.status==='complete'?'✅ Complété':s.status==='waiting'?'⏳ En attente':'⚠ À contacter';
+    rows.push([s.name, s.sectorCode, pns, s.rows.length, st, s.contacted||'—', s.infoCompleted||'—',
+      s.missing.length, s.missing.join('; ')||'—',
       (s.incoherences||[]).join(' | ')||'✓ OK',
-      (s.qcFailures||[]).map(f=>`${f.label}: ${f.reason}`).join(' | ')||'✓ OK',
-      s.filled['Quality contact']||'—', s.filled['Logistic contact']||'—'
+      (s.qcFailures||[]).map(f=>f.label+': '+f.reason).join(' | ')||'✓ OK',
+      [s.filled['Quality contact'], s.filled['Logistic contact']].filter(Boolean).join('; ')||'—'
     ]);
   });
+  rows.push([], []);
 
-  rows.push([],[]);
-
-  // Section: Non contactés
-  const nonCont = suppliers.filter(s => String(s.contacted||'').toLowerCase() !== 'yes' && s.status !== 'complete');
-  if (nonCont.length) {
-    rows.push([`⚠ FOURNISSEURS NON CONTACTÉS (${nonCont.length} — ${p(nonCont.length)} du périmètre)`,'','','','','','','','','','','']);
+  // Non contactés
+  const nc = suppliers.filter(s => String(s.contacted||'').toLowerCase() !== 'yes' && s.status !== 'complete');
+  if (nc.length) {
+    rows.push(['⚠ FOURNISSEURS NON CONTACTÉS : '+nc.length+'/'+k.total+' ('+k.p(nc.length)+' du périmètre)', '', '', '', '', '', '', '', '', '', '', '']);
     rows.push(['Fournisseur','Code Secteur','Champs manquants','Email Qualité','Email Logistique','','','','','','','']);
-    nonCont.forEach(s => rows.push([s.name, s.sectorCode, s.missing.join('; ')||'—', s.filled['Quality contact']||'MANQUANT', s.filled['Logistic contact']||'MANQUANT','','','','','','','']));
+    nc.forEach(s => rows.push([s.name, s.sectorCode, s.missing.join('; ')||'—', s.filled['Quality contact']||'MANQUANT', s.filled['Logistic contact']||'MANQUANT','','','','','','','']));
     rows.push([]);
   }
 
-  // Section: Non remplis
-  const nonFilled = suppliers.filter(s => s.missing.length > 0);
-  if (nonFilled.length) {
-    rows.push([`📋 PÉRIMÈTRE NON REMPLI : ${nonFilled.length}/${total} fournisseurs (${p(nonFilled.length)} du périmètre)`,'','','','','','','','','','','']);
+  // Périmètre non rempli
+  const nf = suppliers.filter(s => s.missing.length > 0);
+  if (nf.length) {
+    rows.push(['📋 PÉRIMÈTRE NON REMPLI : '+nf.length+'/'+k.total+' fournisseurs ('+k.p(nf.length)+' du périmètre non rempli)', '', '', '', '', '', '', '', '', '', '', '']);
     rows.push(['Fournisseur','Code Secteur','# Champs manquants','Champs manquants','Statut','','','','','','','']);
-    nonFilled.forEach(s => rows.push([s.name, s.sectorCode, s.missing.length, s.missing.join('; '), s.status,'','','','','','','']));
+    nf.forEach(s => rows.push([s.name, s.sectorCode, s.missing.length, s.missing.join('; '), s.status,'','','','','','','']));
     rows.push([]);
   }
 
-  // Section: Écarts
-  const ecarts = suppliers.filter(s => (s.incoherences||[]).length > 0);
-  if (ecarts.length) {
-    rows.push(['🔴 ÉCARTS DÉTECTÉS : statut déclaré ≠ réalité','','','','','','','','','','','']);
-    rows.push(['Fournisseur','Code Secteur','Statut déclaré','Écarts constatés','','','','','','','','']);
-    ecarts.forEach(s => rows.push([s.name, s.sectorCode, s.status, (s.incoherences||[]).join(' | '),'','','','','','','','']));
+  // Écarts
+  const ec = suppliers.filter(s => (s.incoherences||[]).length > 0);
+  if (ec.length) {
+    rows.push(['🔴 ÉCARTS DÉTECTÉS (statut déclaré ≠ réalité) : '+ec.length+' fournisseur(s)', '', '', '', '', '', '', '', '', '', '', '']);
+    rows.push(['Fournisseur','Code Secteur','Statut déclaré','Écarts','','','','','','','','']);
+    ec.forEach(s => rows.push([s.name, s.sectorCode, s.status, (s.incoherences||[]).join(' | '),'','','','','','','','']));
   }
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [32,14,35,7,14,12,14,45,45,40,30,30].map(w=>({wch:w}));
-  ws['!merges'] = [
-    {s:{r:0,c:0},e:{r:0,c:11}},{s:{r:1,c:0},e:{r:1,c:11}},
-    {s:{r:3,c:0},e:{r:3,c:11}},{s:{r:7,c:0},e:{r:7,c:11}},
-  ];
-  const safeSheetName = owner.replace(/[/\\[\]?*:]/g,'').slice(0,31);
-  XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+  ws['!cols'] = [32,14,40,6,14,10,12,10,45,45,40,30].map(w=>({wch:w}));
+  const safe = owner.replace(/[\/\[\]\?\*:'"]/g,'').slice(0,31);
+  XLSX.utils.book_append_sheet(wb, ws, safe);
+}
+
+// ─── AUTO-IMPORT SUPPLIER FILE ────────────────────────────────
+function handleImportDragOver(e) { e.preventDefault(); const z=document.getElementById('importZone'); if(z) z.classList.add('drag-over'); }
+function handleImportDragLeave() { const z=document.getElementById('importZone'); if(z) z.classList.remove('drag-over'); }
+function handleImportDrop(e) { e.preventDefault(); handleImportDragLeave(); const f=e.dataTransfer.files[0]; if(f) processSupplierDataFile(f); }
+function handleImportFileSelect(e) { const f=e.target.files[0]; if(f) processSupplierDataFile(f); }
+
+function processSupplierDataFile(file) {
+  if (!supplierData || !supplierData.length) { showToast('Chargez le fichier principal d\'abord', 'error'); return; }
+  showLoading('Fusion des données fournisseur...');
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+      if (!data.length) { showToast('Fichier vide', 'error'); hideLoading(); return; }
+      const headers = (data[0]||[]).map(h => String(h||'').trim());
+      const hi = {};
+      headers.forEach(function(h,i){ if(h) hi[h]=i; });
+      if (hi['Seller Sector Code'] === undefined) {
+        showToast('Colonne "Seller Sector Code" introuvable dans ce fichier', 'error');
+        hideLoading(); return;
+      }
+      const importMap = {};
+      for (let r = 1; r < data.length; r++) {
+        const row = data[r];
+        if (!row || !row.some(v => v !== null)) continue;
+        const sc = String(row[hi['Seller Sector Code']]||'').trim();
+        if (sc) importMap[sc] = row;
+      }
+      let updated = 0, fields = 0;
+      supplierData.forEach(function(s) {
+        const importRow = importMap[s.sectorCode] || importMap[s.sectorCode.replace(/^0+/,'')];
+        if (!importRow) return;
+        const changes = [];
+        ORANGE_COLS.forEach(function(col) {
+          const idx = hi[col];
+          if (idx === undefined) return;
+          const val = importRow[idx] != null ? String(importRow[idx]).trim() : '';
+          if (!val || s.filled[col]) return;
+          const mainIdx = s.headerIndex[col];
+          if (mainIdx !== undefined) s.rows.forEach(function(r){ r[mainIdx] = val; });
+          s.filled[col] = val;
+          const mi = s.missing.indexOf(col);
+          if (mi > -1) s.missing.splice(mi, 1);
+          changes.push(col); fields++;
+        });
+        if (changes.length) {
+          updated++;
+          try { s.qcFailures = runQCOnSupplier(s); } catch(e) { s.qcFailures = []; }
+          try { s.incoherences = detectIncoherences(s); } catch(e) { s.incoherences = []; }
+          const q = s.filled['Quality contact']||null;
+          const l = s.filled['Logistic contact']||null;
+          s.toEmails = [q,l].filter(Boolean).join(', ');
+          if (s.missing.length === 0 && s.status === 'to_contact') s.status = 'waiting';
+        }
+      });
+      window.supplierData = supplierData;
+      filteredData = supplierData.slice();
+      try { applyFilters(); } catch(e) { try { renderTable(); renderStats(); } catch(e2){} }
+      const zone = document.getElementById('importZone');
+      if (zone) zone.classList.add('has-file');
+      const it = document.getElementById('importTitle'); if(it) it.textContent = '✓ '+file.name;
+      const is = document.getElementById('importSub'); if(is) is.textContent = updated+' fournisseurs mis à jour · '+fields+' champs remplis';
+      showToast('✅ '+updated+' fournisseurs mis à jour, '+fields+' champs remplis', 'success');
+    } catch(err) {
+      showToast('Erreur import: '+err.message, 'error');
+    }
+    hideLoading();
+  };
+  reader.onerror = function() { showToast('Impossible de lire le fichier', 'error'); hideLoading(); };
+  reader.readAsArrayBuffer(file);
 }
 
 // ══════════════════════════════════════════════════════════════
