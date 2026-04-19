@@ -1016,99 +1016,88 @@ function handleFileSelect(e) { const f = e.target.files[0]; if (f) processFile(f
 
 function showFileError(msg) {
   const sub = document.getElementById('uploadSub');
-  if (sub) { sub.style.color = '#C0392B'; sub.style.fontWeight = '600'; sub.textContent = '❌ ' + msg; }
   const title = document.getElementById('uploadTitle');
-  if (title) title.textContent = 'Error — try again';
-  console.error('[COFOR] ' + msg);
+  if (sub) { sub.style.color = '#C0392B'; sub.style.fontWeight = '600'; sub.textContent = '❌ ' + msg; }
+  if (title) title.textContent = 'Erreur — réessayez';
+  alert('ERREUR CHARGEMENT:\n' + msg);
 }
 
 function processFile(file) {
-  if (!file.name.endsWith('.xlsx')) {
-    showFileError('Please upload a .xlsx file (got: ' + file.name + ')');
+  document.getElementById('uploadTitle').textContent = '⏳ Lecture de ' + file.name + '...';
+  document.getElementById('uploadSub').textContent = 'Patientez...';
+  document.getElementById('uploadSub').style.color = '';
+
+  if (!file.name.match(/\.xlsx$/i)) {
+    showFileError('Fichier incorrect : "' + file.name + '". Utilisez un .xlsx');
     return;
   }
-  showLoading('Parsing Excel file...');
-  document.getElementById('uploadSub').style.color = '';
-  document.getElementById('uploadSub').textContent = 'Reading...';
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
+  var reader = new FileReader();
+  reader.onload = function(e) {
     try {
-      const result = e.target.result;
-      if (!result || result.byteLength === 0) {
-        showFileError('File appears empty (0 bytes)');
-        hideLoading(); return;
+      var arr = e.target.result;
+      document.getElementById('uploadSub').textContent = 'Parsing XLSX (' + arr.byteLength + ' bytes)...';
+
+      var wb = XLSX.read(arr, { type: 'array' });
+      var sheetName = wb.SheetNames[0];
+      var ws = wb.Sheets[sheetName];
+      var rawData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+      document.getElementById('uploadSub').textContent = rawData.length + ' lignes lues, sheet: ' + sheetName;
+
+      if (rawData.length < 2) {
+        showFileError('Fichier vide ou sans données (' + rawData.length + ' lignes)');
+        return;
       }
 
-      let wb;
-      try {
-        wb = XLSX.read(result, { type: 'array' });
-      } catch(xlsxErr) {
-        showFileError('Cannot parse Excel: ' + xlsxErr.message);
-        hideLoading(); return;
+      var headers = (rawData[0] || []).map(function(h){ return h ? String(h).trim() : ''; });
+      var sscIdx = headers.indexOf('Seller Sector Code');
+
+      if (sscIdx === -1) {
+        showFileError('Colonne "Seller Sector Code" introuvable.\nEn-têtes trouvées: ' + headers.filter(Boolean).join(', '));
+        return;
       }
 
-      if (!wb.SheetNames || !wb.SheetNames.length) {
-        showFileError('No sheets found in the file');
-        hideLoading(); return;
+      parseWorkingFile(rawData, file.name);
+
+      if (!supplierData || !supplierData.length) {
+        showFileError('0 fournisseurs chargés. Vérifiez que la colonne "Seller Sector Code" contient des valeurs.');
+        return;
       }
 
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-
-      if (!data || data.length < 2) {
-        showFileError('File has fewer than 2 rows (need header + data). Rows found: ' + (data ? data.length : 0));
-        hideLoading(); return;
-      }
-
-      // Check header row
-      const headers = (data[0] || []).map(h => String(h || '').trim());
-      if (!headers.includes('Seller Sector Code')) {
-        showFileError('Column "Seller Sector Code" not found. Headers found: ' + headers.filter(Boolean).slice(0,6).join(', '));
-        hideLoading(); return;
-      }
-
-      parseWorkingFile(data, file.name);
-
-      if (!supplierData.length) {
-        showFileError('0 suppliers loaded — check that "Seller Sector Code" column has values');
-        hideLoading(); return;
-      }
-
-      const zone = document.getElementById('uploadZone');
+      var zone = document.getElementById('uploadZone');
       zone.classList.add('has-file');
-      zone.classList.remove('drag-over');
       document.getElementById('uploadTitle').textContent = '✓ ' + file.name;
       document.getElementById('uploadSub').style.color = '#137a44';
-      document.getElementById('uploadSub').textContent = supplierData.length + ' unique suppliers loaded';
+      document.getElementById('uploadSub').textContent = supplierData.length + ' fournisseurs chargés';
     } catch(err) {
-      showFileError(err.message + (err.stack ? ' | ' + err.stack.split('\n')[1] : ''));
+      showFileError(err.message);
     }
-    hideLoading();
   };
-  reader.onerror = () => {
-    showFileError('FileReader failed — try a different file');
-    hideLoading();
+  reader.onerror = function() {
+    showFileError('Impossible de lire le fichier.');
   };
   reader.readAsArrayBuffer(file);
 }
 
 function parseWorkingFile(data, filename) {
-  if (!data.length) return;
+  if (!data || !data.length) return;
   rawHeaders = data[0];
-  const hi = {};
-  rawHeaders.forEach((h, i) => { if (h) hi[h] = i; });
-  
-  const bySupplier = {};
-  for (let r = 1; r < data.length; r++) {
-    const row = data[r];
-    if (!row || !row.some(v => v !== null)) continue;
-    const sc = row[hi['Seller Sector Code']];
+  var hi = {};
+  rawHeaders.forEach(function(h, i) { if (h) hi[String(h).trim()] = i; });
+
+  var bySupplier = {};
+  for (var r = 1; r < data.length; r++) {
+    var row = data[r];
+    if (!row || !row.some(function(v){ return v !== null; })) continue;
+    var sc = row[hi['Seller Sector Code']];
+    if (sc === null || sc === undefined || sc === '') continue;
+    sc = String(sc).trim();
     if (!sc) continue;
     if (!bySupplier[sc]) {
       bySupplier[sc] = {
-        sectorCode: String(sc),
-        name: row[hi['Seller Supplier Name']] || '',
+        sectorCode: sc,
+        name: (row[hi['Seller Supplier Name']] || ''),
         rows: [],
         contacted: row[hi['Contacted']] || null,
         infoCompleted: null,
@@ -1124,46 +1113,47 @@ function parseWorkingFile(data, filename) {
     if (!bySupplier[sc].infoCompleted && row[hi['Info completed']] === 'Complete') bySupplier[sc].infoCompleted = 'Complete';
   }
 
-  supplierData = Object.values(bySupplier).map(s => {
-    const firstRow = s.rows[0];
-    const filled = {}, missing = [];
-    ORANGE_COLS.forEach(col => {
-      const v = firstRow[hi[col]];
+  supplierData = Object.values(bySupplier).map(function(s) {
+    var firstRow = s.rows[0];
+    var filled = {}, missing = [];
+    ORANGE_COLS.forEach(function(col) {
+      var v = firstRow[hi[col]];
       if (v !== null && v !== undefined && v !== '' && String(v).trim() !== '') filled[col] = String(v).trim();
       else missing.push(col);
     });
-    const qualContact = filled['Quality contact'] || null;
-    const logContact = filled['Logistic contact'] || null;
-    const toEmails = [qualContact, logContact].filter(Boolean).join(', ');
-    let status;
+    var qualContact = filled['Quality contact'] || null;
+    var logContact = filled['Logistic contact'] || null;
+    var toEmails = [qualContact, logContact].filter(Boolean).join(', ');
+    var status;
     if (s.infoCompleted === 'Complete') status = 'complete';
     else if (s.contacted && String(s.contacted).toLowerCase() === 'yes') status = 'waiting';
     else status = 'to_contact';
-    const enriched = { ...s, filled, missing, toEmails, status, headerIndex: hi };
-    enriched.qcFailures = runQCOnSupplier(enriched);
-    enriched.incoherences = detectIncoherences(enriched);
+    var enriched = Object.assign({}, s, { filled: filled, missing: missing, toEmails: toEmails, status: status, headerIndex: hi });
+    try { enriched.qcFailures = runQCOnSupplier(enriched); } catch(e) { enriched.qcFailures = []; }
+    try { enriched.incoherences = detectIncoherences(enriched); } catch(e) { enriched.incoherences = []; }
     return enriched;
   });
 
-  // Merge Firestore data if available
-  if (window.firestoreSupplierData) mergeFirestoreIntoSuppliers();
+  if (window.firestoreSupplierData) { try { mergeFirestoreIntoSuppliers(); } catch(e) {} }
 
   window.supplierData = supplierData;
-  filteredData = [...supplierData];
-  // Build perimeter filter buttons from Excel data
-  populatePerimeterFilter();
-  populateOwnerFilter();
-  renderStats();
-  renderTable();
+  filteredData = supplierData.slice();
+
+  try { populatePerimeterFilter(); } catch(e) {}
+  try { populateOwnerFilter(); } catch(e) {}
+  try { renderStats(); } catch(e) {}
+  try { renderTable(); } catch(e) { alert('Erreur renderTable: ' + e.message); }
+
   document.getElementById('statsBar').style.display = 'grid';
   document.getElementById('tableSection').style.display = 'block';
 
-  // Save snapshot to Firebase, then check diff vs previous
-  const versionId = `v_${Date.now()}`;
-  (async () => {
-    await window.saveUploadSnapshot(supplierData, versionId);
-    await checkAndShowDiff();
-  })();
+  try {
+    var versionId = 'v_' + Date.now();
+    (async function() {
+      try { await window.saveUploadSnapshot(supplierData, versionId); } catch(e) {}
+      try { await checkAndShowDiff(); } catch(e) {}
+    })();
+  } catch(e) {}
 }
 
 function mergeFirestoreIntoSuppliers() {
