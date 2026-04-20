@@ -1804,237 +1804,287 @@ function processSupplierDataFile(file) {
     showToast('Chargez le fichier de travail principal d\'abord', 'error');
     return;
   }
-
   showLoading('Fusion en cours...');
 
   var reader = new FileReader();
   reader.onload = function(e) {
     try {
-      // ── 1. Read supplier confirmation file with XLSX ──────────
+      // ── 1. Read supplier confirmation file ────────────────────
       var supWb = XLSX.read(e.target.result, { type: 'array' });
       var supWs = supWb.Sheets[supWb.SheetNames[0]];
-      var supData = XLSX.utils.sheet_to_json(supWs, { header: 1, defval: null });
+      var supRows = XLSX.utils.sheet_to_json(supWs, { header: 1, defval: null });
 
-      if (!supData.length) { showToast('Fichier fournisseur vide', 'error'); hideLoading(); return; }
+      if (supRows.length < 2) { showToast('Fichier fournisseur vide', 'error'); hideLoading(); return; }
 
-      var supHeaders = (supData[0] || []).map(function(h) { return h ? String(h).trim() : ''; });
-      var supHi = {};
-      supHeaders.forEach(function(h, i) { if (h) supHi[h] = i; });
+      var supHeaders = (supRows[0] || []).map(function(h) { return h ? String(h).trim() : ''; });
+      var shi = {};
+      supHeaders.forEach(function(h, i) { if (h) shi[h] = i; });
+
+      // Column aliases — handle variants across supplier files
+      var COL_ALIASES = {
+        'Manufacturer COFOR':   ['Manufacturer COFOR', 'Manufacturer COFOR 1', 'Manufacturer COFOR1', 'Manuf COFOR'],
+        'Seller COFOR2':        ['Seller COFOR2', 'Seller COFOR 2'],
+        'Shipper COFOR2':       ['Shipper COFOR2', 'Shipper COFOR 2'],
+        'Location ID2':         ['Location ID2', 'Location ID 2'],
+        'Location ID address2': ['Location ID address2', 'Location ID address 2'],
+        'Seller Sector Code':   ['Seller Sector Code', 'Sector Code'],
+        'Part Number':          ['Part Number', 'PN', 'Part No'],
+        'Plant':                ['Plant', 'Plants'],
+      };
+
+      function getColIdx(targetCol) {
+        var aliases = COL_ALIASES[targetCol] || [targetCol];
+        for (var i = 0; i < aliases.length; i++) {
+          if (shi[aliases[i]] !== undefined) return shi[aliases[i]];
+        }
+        return undefined;
+      }
 
       var FILL_COLS = ['Seller COFOR2','Manufacturer COFOR','Manufacturer address',
                        'Shipper COFOR2','Shipper address','Location ID2','Location ID address2',
                        'Quality contact','Logistic contact'];
 
-      // Build map: normalizedSectorCode → { colName: value }
-      var supMap = {};
-      for (var r = 1; r < supData.length; r++) {
-        var row = supData[r];
-        if (!row || !row.some(function(v) { return v !== null; })) continue;
-        var sc = row[supHi['Seller Sector Code']];
-        if (sc === null || sc === undefined) continue;
-        sc = String(sc).trim().replace(/^0+/, '').padStart(10, '0');
-        if (!supMap[sc]) supMap[sc] = {};
-        FILL_COLS.forEach(function(col) {
-          var idx = supHi[col];
-          if (idx === undefined) return;
-          var val = row[idx];
-          if (val !== null && val !== undefined && String(val).trim() !== '') {
-            if (!supMap[sc][col]) supMap[sc][col] = String(val).trim();
-          }
-        });
+      var scIdx  = getColIdx('Seller Sector Code');
+      var pnIdx  = getColIdx('Part Number');
+      var plIdx  = getColIdx('Plant');
+
+      if (scIdx === undefined) {
+        showToast('Colonne "Seller Sector Code" introuvable dans le fichier fournisseur', 'error');
+        hideLoading(); return;
       }
 
-      var scCodes = Object.keys(supMap);
-      if (!scCodes.length) {
+      // Build lookup maps:
+      //   map1: sc + '_' + pn + '_' + plant → row   (most specific)
+      //   map2: sc + '_' + pn              → row   (PN match)
+      //   map3: sc                         → row   (sector code only)
+      var map1 = {}, map2 = {}, map3 = {};
+
+      for (var r = 1; r < supRows.length; r++) {
+        var row = supRows[r];
+        if (!row || !row.some(function(v) { return v !== null; })) continue;
+
+        var sc = row[scIdx];
+        if (sc === null || sc === undefined) continue;
+        sc = String(sc).trim().replace(/^0+/, '').padStart(10, '0');
+
+        var pn = pnIdx !== undefined && row[pnIdx] != null ? String(row[pnIdx]).trim() : '';
+        var pl = plIdx !== undefined && row[plIdx] != null ? String(row[plIdx]).trim() : '';
+
+        // Extract values for all fill cols
+        var vals = {};
+        FILL_COLS.forEach(function(col) {
+          var idx = getColIdx(col);
+          if (idx === undefined) return;
+          var v = row[idx];
+          if (v !== null && v !== undefined && String(v).trim() !== '') {
+            vals[col] = String(v).trim();
+          }
+        });
+        if (!Object.keys(vals).length) continue;
+
+        if (pn && pl) map1[sc + '_' + pn + '_' + pl] = vals;
+        if (pn)       map2[sc + '_' + pn]             = vals;
+                      map3[sc]                         = vals; // last row wins for sector-only
+      }
+
+      if (!Object.keys(map3).length) {
         showToast('Aucun fournisseur trouvé dans le fichier', 'error');
         hideLoading(); return;
       }
 
-      // ── 2. Open original file as ZIP ─────────────────────────
+      // ── 2. Open original file as ZIP ──────────────────────────
       JSZip.loadAsync(originalFileBuffer).then(function(zip) {
-        try {
-          // Find PN Level sheet file via workbook.xml
-          return zip.file('xl/workbook.xml').async('string').then(function(wbXml) {
-            // Get sheet rId for 'PN Level'
-            var sheetMatch = wbXml.match(/name="PN Level"[^>]+r:id="([^"]+)"/);
-            if (!sheetMatch) sheetMatch = wbXml.match(/name="PN Level"[^>]+sheetId="[^"]+"/);
-            var rId = sheetMatch ? sheetMatch[1] : 'rId1';
 
-            return zip.file('xl/_rels/workbook.xml.rels').async('string').then(function(relsXml) {
-              var targetMatch = new RegExp('Id="' + rId + '"[^>]+Target="([^"]+)"').exec(relsXml);
-              var sheetFile = targetMatch ? 'xl/' + targetMatch[1] : 'xl/worksheets/sheet1.xml';
+        zip.file('xl/workbook.xml').async('string').then(function(wbXml) {
+          // Find PN Level sheet
+          var sheetNameMatch = wbXml.match(/name="PN Level"[^>]+r:id="([^"]+)"/);
+          var rId = sheetNameMatch ? sheetNameMatch[1] : 'rId1';
 
-              return Promise.all([
-                zip.file(sheetFile).async('string'),
-                zip.file('xl/sharedStrings.xml').async('string')
-              ]).then(function(results) {
-                var sheetXml = results[0];
-                var ssXml = results[1];
+          return zip.file('xl/_rels/workbook.xml.rels').async('string').then(function(relsXml) {
+            var relMatch = new RegExp('Id="' + rId + '"[^>]+Target="([^"]+)"').exec(relsXml);
+            var sheetFile = relMatch ? 'xl/' + relMatch[1] : 'xl/worksheets/sheet1.xml';
 
-                // ── 3. Parse shared strings ────────────────────
-                var siList = ssXml.match(/<si>[\s\S]*?<\/si>/g) || [];
-                var ssMap = {}; // value → index
-                siList.forEach(function(si, idx) {
-                  var t = si.match(/<t[^>]*>([\s\S]*?)<\/t>/);
-                  if (t) ssMap[t[1].trim()] = idx;
-                });
+            return Promise.all([
+              zip.file(sheetFile).async('string'),
+              zip.file('xl/sharedStrings.xml').async('string')
+            ]).then(function(results) {
+              var sheetXml = results[0];
+              var ssXml = results[1];
 
-                function getOrAddSS(value) {
-                  if (ssMap.hasOwnProperty(value)) return ssMap[value];
-                  var newIdx = siList.length;
-                  ssMap[value] = newIdx;
-                  siList.push('<si><t xml:space="preserve">' + value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</t></si>');
-                  return newIdx;
+              // ── 3. Parse shared strings ────────────────────────
+              var siList = ssXml.match(/<si>[\s\S]*?<\/si>/g) || [];
+
+              function getSS(idx) {
+                var si = siList[idx];
+                if (!si) return '';
+                var t = si.match(/<t[^>]*>([\s\S]*?)<\/t>/);
+                return t ? t[1] : '';
+              }
+
+              var ssValToIdx = {};
+              siList.forEach(function(si, idx) {
+                var t = si.match(/<t[^>]*>([\s\S]*?)<\/t>/);
+                if (t) ssValToIdx[t[1]] = idx;
+              });
+
+              function getOrAddSS(value) {
+                if (ssValToIdx.hasOwnProperty(value)) return ssValToIdx[value];
+                var newIdx = siList.length;
+                ssValToIdx[value] = newIdx;
+                siList.push('<si><t xml:space="preserve">' +
+                  value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') +
+                '</t></si>');
+                return newIdx;
+              }
+
+              // ── 4. Get column letters from header row ──────────
+              var headerMatch = sheetXml.match(/<row\b[^>]+r="1"[^>]*>([\s\S]*?)<\/row>/);
+              if (!headerMatch) { showToast('En-tête introuvable', 'error'); hideLoading(); return; }
+
+              var colLetterOf = {};  // colName → Excel letter
+              var headerCells = headerMatch[1].match(/<c r="([A-Z]+)1"[^>]*t="s"[^>]*>\s*<v>(\d+)<\/v>/g) || [];
+              headerCells.forEach(function(cellXml) {
+                var m = cellXml.match(/<c r="([A-Z]+)1"[^>]*>\s*<v>(\d+)<\/v>/);
+                if (m) {
+                  var letter = m[1], ssIdx = parseInt(m[2]);
+                  var colName = getSS(ssIdx);
+                  if (colName) colLetterOf[colName] = letter;
                 }
+              });
 
-                // ── 4. Parse header row to get col name → col letter ──
-                var headerRowMatch = sheetXml.match(/<row\b[^>]+r="1"[^>]*>([\s\S]*?)<\/row>/);
-                if (!headerRowMatch) { showToast('En-tête introuvable', 'error'); hideLoading(); return; }
+              var scLetter = colLetterOf['Seller Sector Code'] || 'D';
+              var pnLetter = colLetterOf['Part Number'] || 'B';
+              var plLetter = colLetterOf['Plant'] || 'E';
 
-                var colLetterMap = {}; // colName → Excel col letter (e.g. "W")
-                var headerCells = headerRowMatch[1].match(/<c r="([A-Z]+)1"[\s\S]*?(?:<v>(\d+)<\/v>|\/?>)/g) || [];
-                headerCells.forEach(function(cellXml) {
-                  var addr = cellXml.match(/<c r="([A-Z]+)1"/);
-                  var val = cellXml.match(/<v>(\d+)<\/v>/);
-                  if (addr && val) {
-                    var ss = siList[parseInt(val[1])];
-                    if (ss) {
-                      var t = ss.match(/<t[^>]*>([\s\S]*?)<\/t>/);
-                      if (t) colLetterMap[t[1].trim()] = addr[1];
-                    }
+              // ── 5. Patch empty cells row by row ───────────────
+              var updatedCells = 0;
+              var updatedRows = new Set();
+
+              var newSheetXml = sheetXml.replace(
+                /<row\b([^>]+r="(\d+)"[^>]*)>([\s\S]*?)<\/row>/g,
+                function(fullRow, rowAttrs, rowNum, rowContent) {
+                  if (rowNum === '1') return fullRow; // skip header
+
+                  // Get sector code of this row
+                  var scCellRx = new RegExp('<c r="' + scLetter + rowNum + '"[^>]*>\\s*<v>(\\d+)<\\/v>');
+                  var scMatch  = rowContent.match(scCellRx);
+                  if (!scMatch) return fullRow;
+                  var sc = getSS(parseInt(scMatch[1])).trim().replace(/^0+/, '').padStart(10, '0');
+
+                  // Get part number
+                  var pnCellRx = new RegExp('<c r="' + pnLetter + rowNum + '"[^>]*>\\s*<v>(\\d+)<\\/v>');
+                  var pnMatch  = rowContent.match(pnCellRx);
+                  var pn = pnMatch ? getSS(parseInt(pnMatch[1])).trim() : '';
+                  // Part number might be numeric (not shared string)
+                  if (!pn) {
+                    var pnNumRx = new RegExp('<c r="' + pnLetter + rowNum + '"[^>]*>\\s*<v>([^<]+)<\\/v>');
+                    var pnNumM = rowContent.match(pnNumRx);
+                    if (pnNumM) pn = pnNumM[1].trim();
                   }
-                });
 
-                // Get sector code col letter
-                var scColLetter = colLetterMap['Seller Sector Code'] || 'D';
+                  // Get plant
+                  var plCellRx = new RegExp('<c r="' + plLetter + rowNum + '"[^>]*>\\s*<v>([^<]+)<\\/v>');
+                  var plMatch  = rowContent.match(plCellRx);
+                  var pl = plMatch ? plMatch[1].trim() : '';
 
-                // ── 5. Process each row — patch empty target cells ──
-                var updatedCells = 0;
-                var updatedRows = new Set();
-                var newSsAdded = 0;
+                  // Choose best match: triplet → PN → sector only
+                  var fillData = map1[sc + '_' + pn + '_' + pl]
+                              || map2[sc + '_' + pn]
+                              || map3[sc];
+                  if (!fillData) return fullRow;
 
-                // We'll process row by row using regex replacement
-                var newSheetXml = sheetXml.replace(/<row\b([^>]+r="(\d+)"[^>]*)>([\s\S]*?)<\/row>/g,
-                  function(fullRow, rowAttrs, rowNum, rowContent) {
-                    if (rowNum === '1') return fullRow; // skip header
+                  var newContent = rowContent;
+                  var changed = false;
 
-                    // Get sector code from this row
-                    var scCellRegex = new RegExp('<c r="' + scColLetter + rowNum + '"[^>]*>\\s*<v>(\\d+)<\\/v>');
-                    var scMatch = rowContent.match(scCellRegex);
-                    if (!scMatch) return fullRow;
+                  FILL_COLS.forEach(function(col) {
+                    var newVal = fillData[col];
+                    if (!newVal) return;
+                    var colLetter = colLetterOf[col];
+                    if (!colLetter) return;
 
-                    var scSS = siList[parseInt(scMatch[1])];
-                    if (!scSS) return fullRow;
-                    var scT = scSS.match(/<t[^>]*>([\s\S]*?)<\/t>/);
-                    if (!scT) return fullRow;
-                    var sc = scT[1].trim().replace(/^0+/, '').padStart(10, '0');
+                    var addr = colLetter + rowNum;
+                    // Match cell: self-closing or with content
+                    var cellRx = new RegExp('<c r="' + addr + '"([^>]*)(\\/>|>[\\s\\S]*?<\\/c>)');
+                    var cellMatch = newContent.match(cellRx);
+                    if (!cellMatch) return; // cell missing entirely
 
-                    var fillData = supMap[sc];
-                    if (!fillData) return fullRow;
+                    var cellFull = cellMatch[0];
+                    var cellAttrs = cellMatch[1];
 
-                    var newRowContent = rowContent;
-                    var rowChanged = false;
+                    // Is it empty? Self-closing OR no <v>
+                    var isEmpty = cellFull.indexOf('/>') !== -1
+                                || !/(<v>[^<]+<\/v>)/.test(cellFull)
+                                || /^<c r="[^"]*"[^>]*>\s*<\/c>/.test(cellFull);
 
-                    FILL_COLS.forEach(function(col) {
-                      var newVal = fillData[col];
-                      if (!newVal) return;
-                      var colLetter = colLetterMap[col];
-                      if (!colLetter) return;
+                    if (!isEmpty) return; // already has value — never overwrite
 
-                      // Find this cell in the row
-                      var cellAddr = colLetter + rowNum;
-                      var cellRegex = new RegExp('<c r="' + cellAddr + '"([^>]*)(\\/?>)([\\s\\S]*?)(?:<\\/c>|(?=<c r=))');
-                      var cellMatch = newRowContent.match(new RegExp('<c r="' + cellAddr + '"([^>]*)(\\/>|>[\\s\\S]*?<\\/c>)'));
-
-                      if (!cellMatch) return; // cell doesn't exist at all
-
-                      var cellFull = cellMatch[0];
-                      var cellAttrs = cellMatch[1];
-
-                      // Check if cell is empty: self-closing OR has no <v> tag
-                      var isEmpty = cellFull.indexOf('/>') !== -1 ||
-                                    cellFull.indexOf('<v>') === -1 ||
-                                    /^<c r="[^"]*"[^>]*>\s*<\/c>/.test(cellFull);
-
-                      if (!isEmpty) return; // already has a value, don't touch
-
-                      var ssIdx = getOrAddSS(newVal);
-                      if (!siList[ssIdx] || !siList[ssIdx].includes(newVal)) newSsAdded++;
-
-                      // Get style attribute from existing cell
-                      var styleMatch = cellAttrs.match(/s="(\d+)"/);
-                      var sAttr = styleMatch ? ' s="' + styleMatch[1] + '"' : '';
-
-                      var newCell = '<c r="' + cellAddr + '"' + sAttr + ' t="s"><v>' + ssIdx + '</v></c>';
-                      newRowContent = newRowContent.replace(cellFull, newCell);
-                      updatedCells++;
-                      rowChanged = true;
-                    });
-
-                    if (rowChanged) updatedRows.add(rowNum);
-                    return '<row' + rowAttrs + '>' + newRowContent + '</row>';
-                  }
-                );
-
-                if (updatedCells === 0) {
-                  showToast('Aucune cellule vide à remplir pour ces fournisseurs', 'info');
-                  hideLoading(); return;
-                }
-
-                // ── 6. Rebuild sharedStrings.xml ──────────────
-                var ssCount = siList.length;
-                var newSsXml = ssXml.replace(/<sst\b[^>]*>/, function(tag) {
-                  return tag
-                    .replace(/count="[^"]*"/, 'count="' + ssCount + '"')
-                    .replace(/uniqueCount="[^"]*"/, 'uniqueCount="' + ssCount + '"');
-                });
-                // Replace all <si>...</si> content
-                newSsXml = newSsXml.replace(/<si>[\s\S]*<\/si>[\s\S]*<\/sst>/, siList.join('') + '</sst>');
-
-                // ── 7. Update zip and download ─────────────────
-                zip.file(sheetFile, newSheetXml);
-                zip.file('xl/sharedStrings.xml', newSsXml);
-
-                return zip.generateAsync({
-                  type: 'arraybuffer',
-                  compression: 'DEFLATE',
-                  compressionOptions: { level: 6 }
-                }).then(function(outputBuf) {
-                  // Download with SAME filename
-                  var blob = new Blob([outputBuf], {
-                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    var styleMatch = cellAttrs.match(/s="(\d+)"/);
+                    var sAttr = styleMatch ? ' s="' + styleMatch[1] + '"' : '';
+                    var ssIdx = getOrAddSS(newVal);
+                    var newCell = '<c r="' + addr + '"' + sAttr + ' t="s"><v>' + ssIdx + '</v></c>';
+                    newContent = newContent.replace(cellFull, newCell);
+                    updatedCells++;
+                    changed = true;
                   });
-                  var url = URL.createObjectURL(blob);
-                  var a = document.createElement('a');
-                  a.href = url;
-                  a.download = originalFileName; // exact same name
-                  document.body.appendChild(a);
-                  a.click();
-                  setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 2000);
 
-                  // Update UI display too
-                  mergeSupplierFileIntoUI(supMap);
+                  if (changed) updatedRows.add(rowNum);
+                  return '<row' + rowAttrs + '>' + newContent + '</row>';
+                }
+              );
 
-                  var zone = document.getElementById('importZone');
-                  if (zone) zone.classList.add('has-file');
-                  var it = document.getElementById('importTitle');
-                  if (it) it.textContent = '✓ ' + file.name;
-                  var is = document.getElementById('importSub');
-                  if (is) is.textContent = '✅ ' + updatedRows.size + ' lignes · ' + updatedCells + ' cellules remplies → fichier téléchargé';
+              if (updatedCells === 0) {
+                showToast('Aucune cellule vide à remplir — données déjà présentes ?', 'info');
+                hideLoading(); return;
+              }
 
-                  showToast('✅ ' + updatedCells + ' cellules remplies · fichier téléchargé intact', 'success');
-                  hideLoading();
+              // ── 6. Rebuild sharedStrings.xml ──────────────────
+              var ssCount = siList.length;
+              var newSsXml = ssXml
+                .replace(/count="[^"]*"/, 'count="' + ssCount + '"')
+                .replace(/uniqueCount="[^"]*"/, 'uniqueCount="' + ssCount + '"')
+                .replace(/<si>[\s\S]*<\/sst>/, siList.join('') + '\n</sst>');
+
+              // ── 7. Update ZIP and download ─────────────────────
+              zip.file(sheetFile, newSheetXml);
+              zip.file('xl/sharedStrings.xml', newSsXml);
+
+              return zip.generateAsync({
+                type: 'arraybuffer',
+                compression: 'DEFLATE',
+                compressionOptions: { level: 6 }
+              }).then(function(buf) {
+                var blob = new Blob([buf], {
+                  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = originalFileName; // same filename
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 2000);
+
+                mergeSupplierFileIntoUI(map2, map3);
+
+                var zone = document.getElementById('importZone');
+                if (zone) zone.classList.add('has-file');
+                var it = document.getElementById('importTitle');
+                if (it) it.textContent = '✓ ' + file.name;
+                var is = document.getElementById('importSub');
+                if (is) is.textContent = '✅ ' + updatedRows.size + ' lignes · ' + updatedCells + ' cellules → fichier téléchargé';
+                showToast('✅ ' + updatedCells + ' cellules remplies dans ' + updatedRows.size + ' lignes', 'success');
+                hideLoading();
               });
             });
           });
-        } catch(err) {
-          showToast('Erreur ZIP: ' + err.message, 'error');
+        }).catch(function(err) {
+          showToast('Erreur: ' + err.message, 'error');
           console.error(err);
           hideLoading();
-        }
+        });
+
       }).catch(function(err) {
-        showToast('Erreur ouverture ZIP: ' + err.message, 'error');
+        showToast('Erreur ZIP: ' + err.message, 'error');
         console.error(err);
         hideLoading();
       });
@@ -2045,20 +2095,22 @@ function processSupplierDataFile(file) {
       hideLoading();
     }
   };
-  reader.onerror = function() { showToast('Impossible de lire le fichier', 'error'); hideLoading(); };
+  reader.onerror = function() { showToast('Erreur lecture fichier', 'error'); hideLoading(); };
   reader.readAsArrayBuffer(file);
 }
 
 
-function mergeSupplierFileIntoUI(supplierMap) {
+function mergeSupplierFileIntoUI(map2, map3) {
+  var supplierMap = map3 || map2 || {};
   if (!supplierData || !supplierData.length) return;
   var FILL_COLS = ['Seller COFOR2','Manufacturer COFOR','Manufacturer address',
                    'Shipper COFOR2','Shipper address','Location ID2','Location ID address2',
                    'Quality contact','Logistic contact'];
   var updated = 0;
   supplierData.forEach(function(s) {
-    var sc = s.sectorCode.replace(/^0+/,'').padStart(10,'0');
-    var fillData = supplierMap[sc];
+    var sc2 = s.sectorCode.replace(/^0+/,'').padStart(10,'0');
+    var pn2 = (s.rows[0] && s.rows[0][s.headerIndex['Part Number']]) ? String(s.rows[0][s.headerIndex['Part Number']]).trim() : '';
+    var fillData = (map2 && map2[sc2 + '_' + pn2]) || (map3 && map3[sc2]);
     if (!fillData) return;
     var changed = false;
     FILL_COLS.forEach(function(col) {
