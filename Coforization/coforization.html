@@ -1971,15 +1971,12 @@ function processSupplierDataFile(file) {
                   if (!scMatch) return fullRow;
                   var sc = getSS(parseInt(scMatch[1])).trim().replace(/^0+/, '').padStart(10, '0');
 
-                  // Get part number
-                  var pnCellRx = new RegExp('<c r="' + pnLetter + rowNum + '"[^>]*>\\s*<v>(\\d+)<\\/v>');
-                  var pnMatch  = rowContent.match(pnCellRx);
-                  var pn = pnMatch ? getSS(parseInt(pnMatch[1])).trim() : '';
-                  // Part number might be numeric (not shared string)
-                  if (!pn) {
-                    var pnNumRx = new RegExp('<c r="' + pnLetter + rowNum + '"[^>]*>\\s*<v>([^<]+)<\\/v>');
-                    var pnNumM = rowContent.match(pnNumRx);
-                    if (pnNumM) pn = pnNumM[1].trim();
+                  // Get part number — handle shared string OR numeric value
+                  var pnRx  = new RegExp('<c r="' + pnLetter + rowNum + '"([^>]*)>[\\s\\S]*?<v>([^<]+)<\\/v>[\\s\\S]*?<\\/c>');
+                  var pnM   = rowContent.match(pnRx);
+                  var pn = '';
+                  if (pnM) {
+                    pn = /t="s"/.test(pnM[1]) ? getSS(parseInt(pnM[2])).trim() : pnM[2].trim();
                   }
 
                   // Get plant
@@ -2003,20 +2000,27 @@ function processSupplierDataFile(file) {
                     if (!colLetter) return;
 
                     var addr = colLetter + rowNum;
-                    // Match cell: self-closing or with content
-                    var cellRx = new RegExp('<c r="' + addr + '"([^>]*)(\\/>|>[\\s\\S]*?<\\/c>)');
-                    var cellMatch = newContent.match(cellRx);
-                    if (!cellMatch) return; // cell missing entirely
 
-                    var cellFull = cellMatch[0];
-                    var cellAttrs = cellMatch[1];
+                    // Step 1: try self-closing pattern <c r="X42" s="29"/>
+                    // Use [^/]* to stop BEFORE the slash — avoids consuming slash into attrs
+                    var cellFull = null, cellAttrs = '', isEmpty = false;
+                    var scRx = new RegExp('<c r="' + addr + '"([^/]*)\/>');
+                    var scM  = newContent.match(scRx);
+                    if (scM) {
+                      cellFull  = scM[0];
+                      cellAttrs = scM[1];
+                      isEmpty   = true;
+                    } else {
+                      // Step 2: cell with content <c r="X42" attrs>...</c>
+                      var wcRx = new RegExp('<c r="' + addr + '"([^>]*)>([\\s\\S]*?)<\\/c>');
+                      var wcM  = newContent.match(wcRx);
+                      if (!wcM) return; // cell absent entirely
+                      cellFull  = wcM[0];
+                      cellAttrs = wcM[1];
+                      isEmpty   = !/<v>[^<]+<\/v>/.test(wcM[2]);
+                    }
 
-                    // Is it empty? Self-closing OR no <v>
-                    var isEmpty = cellFull.indexOf('/>') !== -1
-                                || !/(<v>[^<]+<\/v>)/.test(cellFull)
-                                || /^<c r="[^"]*"[^>]*>\s*<\/c>/.test(cellFull);
-
-                    if (!isEmpty) return; // already has value — never overwrite
+                    if (!isEmpty) return; // has a value — never overwrite
 
                     var styleMatch = cellAttrs.match(/s="(\d+)"/);
                     var sAttr = styleMatch ? ' s="' + styleMatch[1] + '"' : '';
