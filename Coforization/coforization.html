@@ -1971,18 +1971,22 @@ function processSupplierDataFile(file) {
                   if (!scMatch) return fullRow;
                   var sc = getSS(parseInt(scMatch[1])).trim().replace(/^0+/, '').padStart(10, '0');
 
-                  // Get part number — handle shared string OR numeric value
-                  var pnRx  = new RegExp('<c r="' + pnLetter + rowNum + '"([^>]*)>[\\s\\S]*?<v>([^<]+)<\\/v>[\\s\\S]*?<\\/c>');
-                  var pnM   = rowContent.match(pnRx);
-                  var pn = '';
+                  // Get Part Number — extract <v> content first, then resolve shared string
+                  var pnRx = new RegExp('<c r="' + pnLetter + rowNum + '"([^>]*)>\\s*<v>([^<]+)<\\/v>');
+                  var pnM  = rowContent.match(pnRx);
+                  var pn   = '';
                   if (pnM) {
+                    // pnM[1]=attrs, pnM[2]=raw value inside <v>
                     pn = /t="s"/.test(pnM[1]) ? getSS(parseInt(pnM[2])).trim() : pnM[2].trim();
                   }
 
-                  // Get plant
-                  var plCellRx = new RegExp('<c r="' + plLetter + rowNum + '"[^>]*>\\s*<v>([^<]+)<\\/v>');
-                  var plMatch  = rowContent.match(plCellRx);
-                  var pl = plMatch ? plMatch[1].trim() : '';
+                  // Get Plant — same pattern: extract <v> value, then resolve shared string
+                  var plRx = new RegExp('<c r="' + plLetter + rowNum + '"([^>]*)>\\s*<v>([^<]+)<\\/v>');
+                  var plM  = rowContent.match(plRx);
+                  var pl   = '';
+                  if (plM) {
+                    pl = /t="s"/.test(plM[1]) ? getSS(parseInt(plM[2])).trim() : plM[2].trim();
+                  }
 
                   // Choose best match: triplet → PN → sector only
                   var fillData = map1[sc + '_' + pn + '_' + pl]
