@@ -708,8 +708,9 @@ tr:hover td{background:var(--cream)}
     <h2>Welcome back</h2>
     <p>Sign in with your administrator credentials</p>
     <input type="email" id="adm-email" placeholder="user@admin.com" value="user@admin.com">
-    <input type="password" id="adm-pwd" placeholder="Password (min 6 chars)" onkeypress="if(event.key==='Enter')doAdminLogin()">
+    <input type="password" id="adm-pwd" placeholder="Mot de passe" onkeypress="if(event.key==='Enter')doAdminLogin()">
     <div id="admin-login-error"></div>
+    <div style="font-size:11px;color:rgba(255,255,255,.25);margin-bottom:10px">Mot de passe local par défaut : Admin@2024</div>
     <button class="btn-gold" id="admin-login-btn" onclick="doAdminLogin()" style="width:100%;padding:13px;font-size:15px;border-radius:8px;margin-top:4px">Sign In to Admin Panel →</button>
     <div style="text-align:center;margin-top:16px"><a href="#" onclick="document.getElementById('admin-login-overlay').classList.remove('open')" style="font-size:12px;color:rgba(255,255,255,.3);text-decoration:none">← Back to main site</a></div>
   </div>
@@ -733,6 +734,8 @@ tr:hover td{background:var(--cream)}
         <li><a onclick="showAdminTab('email-templates')">✉️ Email Templates</a></li>
         <li><a onclick="showAdminTab('smtp-config')">⚙️ SMTP Config</a></li>
         <li><a onclick="showAdminTab('email-log')">📬 Email Log</a></li>
+        <li class="nav-section">Personnalisation</li>
+        <li><a onclick="showAdminTab('signatures')">✍️ Signatures & Cachet</a></li>
         <li class="nav-section">System</li>
         <li><a onclick="adminLogOut()">🚪 Sign Out</a></li>
       </ul>
@@ -853,6 +856,103 @@ tr:hover td{background:var(--cream)}
       <div id="atab-email-log" class="admin-tab" style="display:none">
         <div class="admin-topbar"><div><h2>Email Log</h2></div></div>
         <div class="admin-card"><div class="admin-card-head"><h3>Sent Emails</h3></div><div id="email-log-list" style="padding:16px 20px"><div style="text-align:center;color:var(--muted);font-size:13px;padding:16px">No emails logged yet.</div></div></div>
+      </div>
+
+      <!-- SIGNATURES & CACHET -->
+      <div id="atab-signatures" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>Signatures & Cachet</h2><p>Votre signature et le cachet officiel apparaissent sur chaque reçu et document client</p></div>
+          <button class="btn-gold" onclick="saveSignatureSettings()" style="font-size:13px;padding:9px 20px;border-radius:8px">💾 Enregistrer tout</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+          <!-- SIGNATURE CARD -->
+          <div class="admin-card">
+            <div class="admin-card-head"><h3>✍️ Signature de l'agent</h3></div>
+            <div style="padding:20px">
+              <div style="margin-bottom:16px">
+                <label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Nom de l'agent</label>
+                <input type="text" id="sig-agent-name" placeholder="Ex : Mohamed Alami" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;outline:none;transition:border-color .2s" oninput="updateSigReceiptPreview()">
+              </div>
+              <div style="margin-bottom:8px">
+                <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px">Dessiner la signature ci-dessous</div>
+                <div style="position:relative;border:1.5px solid var(--border);border-radius:8px;background:#fff;overflow:hidden">
+                  <canvas id="sig-canvas" width="400" height="130" style="display:block;width:100%;cursor:crosshair;touch-action:none"></canvas>
+                  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;font-size:12px;color:rgba(0,0,0,.12);white-space:nowrap" id="sig-canvas-hint">Signez ici</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button onclick="clearSignatureCanvas()" style="background:var(--cream2);color:var(--navy);border:1px solid var(--border);padding:6px 13px;border-radius:7px;font-family:inherit;font-size:12px;cursor:pointer">🗑 Effacer</button>
+                <label style="background:var(--cream2);color:var(--navy);border:1px solid var(--border);padding:6px 13px;border-radius:7px;font-family:inherit;font-size:12px;cursor:pointer">
+                  📁 Importer image<input type="file" accept="image/*" onchange="loadSignatureImage(event)" style="display:none">
+                </label>
+              </div>
+              <div id="sig-saved-preview" style="display:none;margin-top:14px;padding:10px 12px;background:var(--cream);border-radius:8px;border:1px solid var(--border)">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Signature enregistrée</div>
+                <img id="sig-saved-img" src="" alt="Signature" style="max-height:52px;max-width:180px">
+              </div>
+            </div>
+          </div>
+
+          <!-- STAMP CARD -->
+          <div class="admin-card">
+            <div class="admin-card-head"><h3>🔵 Cachet de la société</h3></div>
+            <div style="padding:20px">
+              <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">Importez le cachet officiel de la société (PNG fond transparent recommandé) ou générez-en un automatiquement.</div>
+              <div id="stamp-drop-zone" onclick="document.getElementById('stamp-file-input').click()" ondragover="event.preventDefault()" ondrop="handleStampDrop(event)" style="border:2px dashed var(--border);border-radius:10px;padding:24px 16px;text-align:center;cursor:pointer;transition:.2s;background:var(--cream);min-height:110px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px">
+                <div id="stamp-drop-label">
+                  <div style="font-size:28px;margin-bottom:6px">🔵</div>
+                  <div style="font-size:13px;font-weight:500;color:var(--navy)">Cliquer ou glisser une image</div>
+                  <div style="font-size:11px;color:var(--muted);margin-top:2px">PNG, JPG · max 2 Mo</div>
+                </div>
+                <img id="stamp-preview-img" src="" alt="Cachet" style="display:none;max-height:90px;max-width:130px">
+              </div>
+              <input type="file" id="stamp-file-input" accept="image/*" style="display:none" onchange="loadStampImage(event)">
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                <button onclick="clearStamp()" style="background:var(--cream2);color:var(--navy);border:1px solid var(--border);padding:6px 13px;border-radius:7px;font-family:inherit;font-size:12px;cursor:pointer">🗑 Supprimer</button>
+                <button onclick="generateAutoStamp()" style="background:var(--navy);color:#fff;border:none;padding:6px 13px;border-radius:7px;font-family:inherit;font-size:12px;cursor:pointer;font-weight:600">✨ Générer cachet automatique</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE PREVIEW ON RECEIPT -->
+        <div class="admin-card">
+          <div class="admin-card-head"><h3>👁 Aperçu — Section reçu client</h3></div>
+          <div style="padding:20px">
+            <div style="border:1px solid var(--border);border-radius:10px;padding:16px 20px;background:#fff;max-width:500px">
+              <div style="font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9CA3AF;border-bottom:1px solid #EAEAE6;padding-bottom:8px;margin-bottom:12px">Aperçu de la section signature</div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;min-height:72px">
+                <div>
+                  <div style="font-size:7.5px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Agent responsable</div>
+                  <div id="prev-agent-name" style="font-size:12px;font-weight:700;color:#0B1D35;margin-bottom:5px">—</div>
+                  <img id="prev-sig-img" src="" alt="" style="display:none;max-height:42px;max-width:130px">
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:7.5px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Cachet officiel</div>
+                  <img id="prev-stamp-img" src="" alt="" style="display:none;max-height:72px;max-width:80px;opacity:.9">
+                  <div id="prev-stamp-placeholder" style="width:70px;height:70px;border:2px dashed #e5e7eb;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px">🔵</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOCAL ADMIN PASSWORD -->
+        <div class="admin-card" style="margin-top:20px">
+          <div class="admin-card-head"><h3>🔑 Mot de passe admin local</h3></div>
+          <div style="padding:20px;max-width:400px">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">Ce mot de passe est utilisé en fallback si Firebase est inaccessible. Défaut : <code style="background:var(--cream2);padding:1px 5px;border-radius:3px">Admin@2024</code></div>
+            <div style="display:flex;gap:10px;align-items:flex-end">
+              <div style="flex:1">
+                <label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Nouveau mot de passe (min 6 car.)</label>
+                <input type="password" id="local-admin-pwd-input" placeholder="Nouveau mot de passe" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;outline:none">
+              </div>
+              <button onclick="saveLocalAdminPwd()" style="background:var(--navy);color:#fff;border:none;padding:11px 16px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">💾 Changer</button>
+            </div>
+            <div id="local-pwd-msg" style="font-size:12px;color:#1B7A4A;margin-top:8px;display:none"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1310,24 +1410,50 @@ window.doAdminLogin = async function() {
   const btn   = document.getElementById('admin-login-btn');
   errEl.style.display = 'none'; errEl.textContent = '';
 
-  if (!email||!pwd) { showErr(errEl,'Please enter email and password.'); return; }
-  if (email !== ADMIN_EMAIL) { showErr(errEl,'This email is not an admin account.'); return; }
-  if (pwd.length < 6)        { showErr(errEl,'Password must be at least 6 characters.'); return; }
+  if (!email||!pwd) { showErr(errEl,'Veuillez saisir email et mot de passe.'); return; }
+  if (email !== ADMIN_EMAIL) { showErr(errEl,'Cet email n\'est pas un compte administrateur.'); return; }
+  if (pwd.length < 6) { showErr(errEl,'Le mot de passe doit avoir au moins 6 caractères.'); return; }
 
-  btn.textContent = 'Signing in…'; btn.disabled = true;
+  btn.textContent = 'Connexion…'; btn.disabled = true;
+
+  // Local fallback password (changeable in Signatures & Réglages tab)
+  const localPwd = localStorage.getItem('eurovisa_local_admin_pwd') || 'Admin@2024';
+  let authOk = false;
+
   try {
+    // ── Try Firebase auth first ──
     try {
-      await auth.signInWithEmailAndPassword(email, pwd);
-    } catch(e1) {
-      // Account doesn't exist yet — create it on first login
-      if (e1.code === 'auth/user-not-found' || e1.code === 'auth/invalid-credential') {
-        await auth.createUserWithEmailAndPassword(email, pwd);
-      } else { throw e1; }
+      try {
+        await auth.signInWithEmailAndPassword(email, pwd);
+        authOk = true;
+      } catch(e1) {
+        if (e1.code === 'auth/user-not-found' || e1.code === 'auth/invalid-credential') {
+          await auth.createUserWithEmailAndPassword(email, pwd);
+          authOk = true;
+        } else { throw e1; }
+      }
+    } catch(eFirebase) {
+      // ── Firebase failed → try local password fallback ──
+      if (pwd === localPwd) {
+        authOk = true; // local auth success
+      } else {
+        // Both failed — show sensible error
+        const strictCodes = ['auth/wrong-password','auth/invalid-login-credentials','auth/too-many-requests'];
+        if (strictCodes.includes(eFirebase.code)) {
+          showErr(errEl, 'Mot de passe incorrect.');
+        } else {
+          showErr(errEl, 'Mot de passe incorrect. (Firebase: ' + eFirebase.code + ')');
+        }
+        btn.textContent = 'Sign In to Admin Panel →'; btn.disabled = false;
+        return;
+      }
     }
+
+    if (!authOk) throw new Error('auth/unknown');
+
     isAdmin = true;
     document.getElementById('admin-login-overlay').classList.remove('open');
     document.getElementById('admin-access-btn').style.display = 'none';
-    // Show admin page
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-admin').classList.add('active');
     document.getElementById('nav-login-btn').style.display  = 'none';
@@ -1339,7 +1465,7 @@ window.doAdminLogin = async function() {
     window.scrollTo(0,0);
     await loadAdminData();
     startAdminNotifListener();
-    showNotif('🔐','Welcome to the Admin Panel');
+    showNotif('🔐','Bienvenue dans le Panneau Admin');
   } catch(e) {
     showErr(errEl, friendlyError(e.code));
   } finally {
@@ -1669,6 +1795,7 @@ window.showAdminTab = function(tab) {
   if (tab==='applications') { document.getElementById('admin-apps-table').innerHTML=buildAppsTable(allApplications); document.getElementById('apps-count').textContent=allApplications.length+' Applications'; }
   if (tab==='users')        { buildUsersTable(allUsers); }
   if (tab==='email-log')    { loadEmailLog(); }
+  if (tab==='signatures')   { initSignatureTab(); }
 };
 
 window.filterApps = function() {
@@ -2328,6 +2455,25 @@ window.showReceipt = function(data) {
   // Show modal
   var modal = document.getElementById('receipt-modal');
   if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+
+  // ── Signature & Stamp ──
+  var agentName  = localStorage.getItem('eurovisa_agent_name')  || '';
+  var agentSig   = localStorage.getItem('eurovisa_signature')   || '';
+  var agentStamp = localStorage.getItem('eurovisa_stamp')       || '';
+  var sigSection = document.getElementById('receipt-sig-section');
+  if (sigSection) {
+    if (agentName || agentSig || agentStamp) {
+      sigSection.style.display = 'block';
+      var nameEl = document.getElementById('receipt-agent-name');
+      if (nameEl) nameEl.textContent = agentName || 'EuroVisa Pro';
+      var sigImg = document.getElementById('receipt-agent-sig');
+      if (sigImg) { if (agentSig) { sigImg.src = agentSig; sigImg.style.display = 'block'; } else sigImg.style.display = 'none'; }
+      var stmpImg = document.getElementById('receipt-company-stamp');
+      if (stmpImg) { if (agentStamp) { stmpImg.src = agentStamp; stmpImg.style.display = 'block'; } else stmpImg.style.display = 'none'; }
+    } else {
+      sigSection.style.display = 'none';
+    }
+  }
 };
 
 window.closeReceipt = function() {
@@ -2418,6 +2564,26 @@ window.downloadReceiptPDF = function() {
     + '<div class="foot"><span>EuroVisa Pro &middot; Casablanca, Maroc</span><span>tls.appointements@gmail.com &middot; +212 682 652 382</span></div>'
     + '</div>';
 
+  // ── Inject signature & stamp if available ──
+  var agentName  = localStorage.getItem('eurovisa_agent_name')  || '';
+  var agentSig   = localStorage.getItem('eurovisa_signature')   || '';
+  var agentStamp = localStorage.getItem('eurovisa_stamp')       || '';
+  if (agentName || agentSig || agentStamp) {
+    var sigHtml = '<div style="border-top:1.5px solid #EAEAE6;margin:12px 20px 0;padding:10px 0 4px;display:flex;justify-content:space-between;align-items:flex-end;min-height:68px">'
+      + '<div>'
+        + '<div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9CA3AF;margin-bottom:3px">Agent responsable</div>'
+        + '<div style="font-size:10px;font-weight:700;color:#0B1D35;margin-bottom:4px">' + (agentName||'EuroVisa Pro') + '</div>'
+        + (agentSig ? '<img src="'+agentSig+'" style="max-height:38px;max-width:120px" alt="Signature">' : '')
+      + '</div>'
+      + '<div style="text-align:center">'
+        + '<div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9CA3AF;margin-bottom:3px">Cachet officiel</div>'
+        + (agentStamp ? '<img src="'+agentStamp+'" style="max-height:68px;max-width:76px;opacity:.9" alt="Cachet">' : '')
+      + '</div>'
+    + '</div>';
+    // Insert before the footer
+    body = body.replace('<div class="foot">', sigHtml + '<div class="foot">');
+  }
+
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recu ' + d.ref + '</title><style>' + css + '</style></head><body>' + body + '<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()};}<\/script></body></html>';
 
   var win = window.open('', '_blank');
@@ -2426,11 +2592,271 @@ window.downloadReceiptPDF = function() {
 }
 
 
-// Close on backdrop click
-document.addEventListener('click', function(e) {
-  var modal = document.getElementById('receipt-modal');
-  if (modal && e.target === modal) closeReceipt();
-});
+// ══════════════════════════════════════════
+//  SIGNATURES & CACHET
+// ══════════════════════════════════════════
+var _sigCanvas, _sigCtx, _sigDrawing = false, _sigHasMark = false;
+
+window.initSignatureTab = function() {
+  _sigCanvas = document.getElementById('sig-canvas');
+  if (!_sigCanvas || _sigCanvas._inited) return;
+  _sigCanvas._inited = true;
+  _sigCtx = _sigCanvas.getContext('2d');
+
+  // Load saved values
+  var name  = localStorage.getItem('eurovisa_agent_name') || '';
+  var sig   = localStorage.getItem('eurovisa_signature')  || '';
+  var stamp = localStorage.getItem('eurovisa_stamp')      || '';
+
+  var nameEl = document.getElementById('sig-agent-name');
+  if (nameEl && name) { nameEl.value = name; }
+
+  if (sig) {
+    var img = new Image();
+    img.onload = function() {
+      _sigCtx.clearRect(0,0,_sigCanvas.width,_sigCanvas.height);
+      _sigCtx.drawImage(img,0,0,_sigCanvas.width,_sigCanvas.height);
+      document.getElementById('sig-canvas-hint').style.display='none';
+      _sigHasMark = true;
+    };
+    img.src = sig;
+    var sp = document.getElementById('sig-saved-img');
+    var sw = document.getElementById('sig-saved-preview');
+    if (sp && sw) { sp.src = sig; sw.style.display='block'; }
+    var ps = document.getElementById('prev-sig-img');
+    if (ps) { ps.src=sig; ps.style.display='block'; }
+  }
+
+  if (stamp) {
+    var si = document.getElementById('stamp-preview-img');
+    var sl = document.getElementById('stamp-drop-label');
+    if (si) { si.src=stamp; si.style.display='block'; }
+    if (sl) sl.style.display='none';
+    var pst = document.getElementById('prev-stamp-img');
+    var psp = document.getElementById('prev-stamp-placeholder');
+    if (pst) { pst.src=stamp; pst.style.display='block'; }
+    if (psp) psp.style.display='none';
+  }
+
+  if (name) {
+    var pn = document.getElementById('prev-agent-name');
+    if (pn) pn.textContent = name;
+  }
+
+  // ── Canvas drawing events ──
+  function getPos(e) {
+    var r = _sigCanvas.getBoundingClientRect();
+    var sx = _sigCanvas.width  / r.width;
+    var sy = _sigCanvas.height / r.height;
+    var src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX-r.left)*sx, y: (src.clientY-r.top)*sy };
+  }
+  function startDraw(e) {
+    e.preventDefault();
+    _sigDrawing = true;
+    _sigHasMark = true;
+    document.getElementById('sig-canvas-hint').style.display='none';
+    var p = getPos(e);
+    _sigCtx.beginPath(); _sigCtx.moveTo(p.x, p.y);
+  }
+  function draw(e) {
+    e.preventDefault();
+    if (!_sigDrawing) return;
+    var p = getPos(e);
+    _sigCtx.lineWidth   = 2.2;
+    _sigCtx.lineCap     = 'round';
+    _sigCtx.lineJoin    = 'round';
+    _sigCtx.strokeStyle = '#0B1D35';
+    _sigCtx.lineTo(p.x, p.y);
+    _sigCtx.stroke();
+  }
+  function endDraw(e) { _sigDrawing = false; updateSigPreview(); }
+
+  _sigCanvas.addEventListener('mousedown',  startDraw);
+  _sigCanvas.addEventListener('mousemove',  draw);
+  _sigCanvas.addEventListener('mouseup',    endDraw);
+  _sigCanvas.addEventListener('mouseleave', endDraw);
+  _sigCanvas.addEventListener('touchstart', startDraw, {passive:false});
+  _sigCanvas.addEventListener('touchmove',  draw,      {passive:false});
+  _sigCanvas.addEventListener('touchend',   endDraw);
+};
+
+function updateSigPreview() {
+  if (!_sigCanvas || !_sigHasMark) return;
+  var src = _sigCanvas.toDataURL('image/png');
+  var ps  = document.getElementById('prev-sig-img');
+  if (ps) { ps.src=src; ps.style.display='block'; }
+}
+
+window.updateSigReceiptPreview = function() {
+  var name = (document.getElementById('sig-agent-name')||{}).value || '';
+  var pn   = document.getElementById('prev-agent-name');
+  if (pn) pn.textContent = name || '—';
+};
+
+window.clearSignatureCanvas = function() {
+  if (!_sigCtx || !_sigCanvas) return;
+  _sigCtx.clearRect(0,0,_sigCanvas.width,_sigCanvas.height);
+  _sigHasMark = false;
+  document.getElementById('sig-canvas-hint').style.display='';
+  var ps = document.getElementById('prev-sig-img');
+  if (ps) { ps.style.display='none'; ps.src=''; }
+  var sw = document.getElementById('sig-saved-preview');
+  if (sw) sw.style.display='none';
+};
+
+window.loadSignatureImage = function(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      _sigCtx.clearRect(0,0,_sigCanvas.width,_sigCanvas.height);
+      var ratio = Math.min(_sigCanvas.width/img.width, _sigCanvas.height/img.height);
+      var w=img.width*ratio, h=img.height*ratio;
+      _sigCtx.drawImage(img, (_sigCanvas.width-w)/2, (_sigCanvas.height-h)/2, w, h);
+      _sigHasMark = true;
+      document.getElementById('sig-canvas-hint').style.display='none';
+      updateSigPreview();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.loadStampImage = function(event) {
+  var file = event.target.files[0] || event;
+  if (!file || !file.type) return;
+  if (file.size > 2*1024*1024) { showNotif('⚠️','Image trop lourde (max 2 Mo)'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var src = e.target.result;
+    _applyStamp(src);
+  };
+  reader.readAsDataURL(file);
+};
+
+window.handleStampDrop = function(event) {
+  event.preventDefault();
+  var file = event.dataTransfer.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  loadStampImage(file);
+};
+
+function _applyStamp(src) {
+  var si = document.getElementById('stamp-preview-img');
+  var sl = document.getElementById('stamp-drop-label');
+  if (si) { si.src=src; si.style.display='block'; }
+  if (sl) sl.style.display='none';
+  var pst = document.getElementById('prev-stamp-img');
+  var psp = document.getElementById('prev-stamp-placeholder');
+  if (pst) { pst.src=src; pst.style.display='block'; }
+  if (psp) psp.style.display='none';
+}
+
+window.clearStamp = function() {
+  var si = document.getElementById('stamp-preview-img');
+  var sl = document.getElementById('stamp-drop-label');
+  if (si) { si.src=''; si.style.display='none'; }
+  if (sl) sl.style.display='flex';
+  var pst = document.getElementById('prev-stamp-img');
+  var psp = document.getElementById('prev-stamp-placeholder');
+  if (pst) { pst.src=''; pst.style.display='none'; }
+  if (psp) psp.style.display='block';
+  localStorage.removeItem('eurovisa_stamp');
+};
+
+window.generateAutoStamp = function() {
+  var c   = document.createElement('canvas');
+  c.width = 200; c.height = 200;
+  var ctx = c.getContext('2d');
+
+  // Outer ring
+  ctx.beginPath(); ctx.arc(100,100,92,0,Math.PI*2);
+  ctx.strokeStyle='#0B1D35'; ctx.lineWidth=5; ctx.stroke();
+  // Gold inner ring
+  ctx.beginPath(); ctx.arc(100,100,80,0,Math.PI*2);
+  ctx.strokeStyle='#C8952A'; ctx.lineWidth=2.5; ctx.stroke();
+  // Center filled circle
+  ctx.beginPath(); ctx.arc(100,100,18,0,Math.PI*2);
+  ctx.fillStyle='#C8952A'; ctx.fill();
+  // Star in center
+  ctx.fillStyle='#fff'; ctx.font='bold 18px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('★', 100, 101);
+
+  // Arc text helper
+  function arcText(text, cx, cy, r, startAngle, clockwise) {
+    ctx.save();
+    ctx.font = 'bold 11px Arial';
+    ctx.fillStyle = '#0B1D35';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var dir = clockwise ? 1 : -1;
+    var total = (text.length - 1) * 0.22;
+    for (var i = 0; i < text.length; i++) {
+      var angle = startAngle + dir * (i - (text.length-1)/2) * 0.22;
+      ctx.save();
+      ctx.translate(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+      ctx.rotate(angle + (clockwise ? Math.PI/2 : -Math.PI/2));
+      ctx.fillText(text[i], 0, 0);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  arcText('EUROVISA PRO', 100, 100, 66, -Math.PI/2, true);
+  arcText('CASABLANCA · MAROC', 100, 100, 66, Math.PI/2, false);
+
+  // Middle text
+  ctx.font = 'bold 10px Arial';
+  ctx.fillStyle = '#C8952A';
+  ctx.textAlign = 'center';
+  ctx.fillText('VISA', 100, 90);
+  ctx.fillText('SERVICES', 100, 103);
+
+  _applyStamp(c.toDataURL('image/png'));
+  showNotif('✅', 'Cachet automatique généré !');
+};
+
+window.saveSignatureSettings = function() {
+  var name  = (document.getElementById('sig-agent-name')||{}).value || '';
+  var si    = document.getElementById('stamp-preview-img');
+  var stamp = (si && si.style.display !== 'none' && si.src && si.src !== window.location.href) ? si.src : '';
+
+  // Get signature from canvas (only if user actually drew something)
+  var sig = localStorage.getItem('eurovisa_signature') || '';
+  if (_sigCanvas && _sigHasMark) {
+    sig = _sigCanvas.toDataURL('image/png');
+  }
+
+  if (name)  { localStorage.setItem('eurovisa_agent_name', name); }
+  else       { localStorage.removeItem('eurovisa_agent_name'); }
+  if (sig)   { localStorage.setItem('eurovisa_signature', sig); }
+  else       { localStorage.removeItem('eurovisa_signature'); }
+  if (stamp) { localStorage.setItem('eurovisa_stamp', stamp); }
+  else       { localStorage.removeItem('eurovisa_stamp'); }
+
+  // Refresh saved-preview panel
+  if (sig) {
+    var sw  = document.getElementById('sig-saved-preview');
+    var spi = document.getElementById('sig-saved-img');
+    if (sw && spi) { spi.src=sig; sw.style.display='block'; }
+  }
+
+  showNotif('✅', 'Signature et cachet enregistrés avec succès !');
+};
+
+window.saveLocalAdminPwd = function() {
+  var el  = document.getElementById('local-admin-pwd-input');
+  var msg = document.getElementById('local-pwd-msg');
+  if (!el) return;
+  var pwd = el.value.trim();
+  if (pwd.length < 6) { if (msg){msg.textContent='Minimum 6 caractères.';msg.style.color='#C0392B';msg.style.display='block';} return; }
+  localStorage.setItem('eurovisa_local_admin_pwd', pwd);
+  el.value = '';
+  if (msg) { msg.textContent='Mot de passe mis à jour !'; msg.style.color='#1B7A4A'; msg.style.display='block'; }
+  showNotif('🔑','Mot de passe admin mis à jour');
+};
 
 
 
@@ -2988,6 +3414,21 @@ window.addEventListener('DOMContentLoaded', function() {
       <!-- Footer note -->
       <div style="margin-top:10px;text-align:center;font-size:9px;color:#9CA3AF">
         Email de confirmation envoye a <span id="receipt-email-footer" style="font-weight:500"></span>
+      </div>
+
+      <!-- ── SIGNATURE & STAMP ── -->
+      <div id="receipt-sig-section" style="display:none;border-top:1.5px solid #EAEAE6;margin-top:14px;padding-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;min-height:68px">
+          <div>
+            <div style="font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9CA3AF;margin-bottom:4px">Agent responsable</div>
+            <div id="receipt-agent-name" style="font-size:11px;font-weight:700;color:#0B1D35;margin-bottom:5px"></div>
+            <img id="receipt-agent-sig" src="" alt="Signature" style="display:none;max-height:40px;max-width:120px">
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9CA3AF;margin-bottom:4px">Cachet officiel</div>
+            <img id="receipt-company-stamp" src="" alt="Cachet" style="display:none;max-height:70px;max-width:78px;opacity:.9">
+          </div>
+        </div>
       </div>
     </div>
   </div>
