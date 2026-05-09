@@ -315,6 +315,7 @@ tr:hover td{background:var(--cream)}
 #admin-access-btn button{background:rgba(11,29,53,.85);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 13px;font-size:11px;font-family:inherit;cursor:pointer;transition:.2s;backdrop-filter:blur(8px)}
 #admin-access-btn button:hover{color:#fff;border-color:rgba(255,255,255,.3)}
 @media(max-width:768px){.dash-layout{grid-template-columns:1fr}.dash-sidebar{display:none}.form-row{grid-template-columns:1fr}.hero{padding:48px 1.5rem 64px}nav{padding:0 1rem}.admin-layout{grid-template-columns:1fr}.admin-sidebar{display:none}}
+@media(max-width:860px){.sig-two-col{grid-template-columns:1fr !important}}
 /* UPLOAD ZONE */
 .upload-zone{border:2px dashed var(--border);border-radius:12px;padding:20px 16px;text-align:center;cursor:pointer;transition:.2s;background:var(--cream);position:relative}
 .upload-zone:hover{border-color:var(--gold);background:#FFFBF3}
@@ -865,7 +866,7 @@ tr:hover td{background:var(--cream)}
           <button class="btn-gold" onclick="saveSignatureSettings()" style="font-size:13px;padding:9px 20px;border-radius:8px">💾 Enregistrer tout</button>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+        <div class="sig-two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
           <!-- SIGNATURE CARD -->
           <div class="admin-card">
             <div class="admin-card-head"><h3>✍️ Signature de l'agent</h3></div>
@@ -2599,22 +2600,22 @@ var _sigCanvas, _sigCtx, _sigDrawing = false, _sigHasMark = false;
 
 window.initSignatureTab = function() {
   _sigCanvas = document.getElementById('sig-canvas');
-  if (!_sigCanvas || _sigCanvas._inited) return;
-  _sigCanvas._inited = true;
-  _sigCtx = _sigCanvas.getContext('2d');
+  if (!_sigCanvas) return;
 
-  // Load saved values
   var name  = localStorage.getItem('eurovisa_agent_name') || '';
   var sig   = localStorage.getItem('eurovisa_signature')  || '';
   var stamp = localStorage.getItem('eurovisa_stamp')      || '';
 
   var nameEl = document.getElementById('sig-agent-name');
-  if (nameEl && name) { nameEl.value = name; }
+  if (nameEl) { nameEl.value = name || ''; }
 
+  // Always restore canvas content from saved sig
+  _sigCtx = _sigCanvas.getContext('2d');
+  _sigCtx.clearRect(0,0,_sigCanvas.width,_sigCanvas.height);
+  _sigHasMark = false;
   if (sig) {
     var img = new Image();
     img.onload = function() {
-      _sigCtx.clearRect(0,0,_sigCanvas.width,_sigCanvas.height);
       _sigCtx.drawImage(img,0,0,_sigCanvas.width,_sigCanvas.height);
       document.getElementById('sig-canvas-hint').style.display='none';
       _sigHasMark = true;
@@ -2625,6 +2626,13 @@ window.initSignatureTab = function() {
     if (sp && sw) { sp.src = sig; sw.style.display='block'; }
     var ps = document.getElementById('prev-sig-img');
     if (ps) { ps.src=sig; ps.style.display='block'; }
+  } else {
+    var hint = document.getElementById('sig-canvas-hint');
+    if (hint) hint.style.display = '';
+    var ps2 = document.getElementById('prev-sig-img');
+    if (ps2) { ps2.style.display='none'; ps2.src=''; }
+    var sw2 = document.getElementById('sig-saved-preview');
+    if (sw2) sw2.style.display='none';
   }
 
   if (stamp) {
@@ -2636,6 +2644,15 @@ window.initSignatureTab = function() {
     var psp = document.getElementById('prev-stamp-placeholder');
     if (pst) { pst.src=stamp; pst.style.display='block'; }
     if (psp) psp.style.display='none';
+  } else {
+    var si2 = document.getElementById('stamp-preview-img');
+    var sl2 = document.getElementById('stamp-drop-label');
+    if (si2) { si2.src=''; si2.setAttribute('src',''); si2.style.display='none'; }
+    if (sl2) sl2.style.display='flex';
+    var pst2 = document.getElementById('prev-stamp-img');
+    var psp2 = document.getElementById('prev-stamp-placeholder');
+    if (pst2) { pst2.src=''; pst2.setAttribute('src',''); pst2.style.display='none'; }
+    if (psp2) psp2.style.display='block';
   }
 
   if (name) {
@@ -2643,7 +2660,9 @@ window.initSignatureTab = function() {
     if (pn) pn.textContent = name;
   }
 
-  // ── Canvas drawing events ──
+  // Bind canvas drawing events only once
+  if (_sigCanvas._inited) return;
+  _sigCanvas._inited = true;
   function getPos(e) {
     var r = _sigCanvas.getBoundingClientRect();
     var sx = _sigCanvas.width  / r.width;
@@ -2698,11 +2717,13 @@ window.clearSignatureCanvas = function() {
   if (!_sigCtx || !_sigCanvas) return;
   _sigCtx.clearRect(0,0,_sigCanvas.width,_sigCanvas.height);
   _sigHasMark = false;
-  document.getElementById('sig-canvas-hint').style.display='';
+  var hint = document.getElementById('sig-canvas-hint');
+  if (hint) hint.style.display='';
   var ps = document.getElementById('prev-sig-img');
   if (ps) { ps.style.display='none'; ps.src=''; }
   var sw = document.getElementById('sig-saved-preview');
   if (sw) sw.style.display='none';
+  localStorage.removeItem('eurovisa_signature');
 };
 
 window.loadSignatureImage = function(event) {
@@ -2725,14 +2746,15 @@ window.loadSignatureImage = function(event) {
   reader.readAsDataURL(file);
 };
 
-window.loadStampImage = function(event) {
-  var file = event.target.files[0] || event;
+window.loadStampImage = function(eventOrFile) {
+  var file = (eventOrFile instanceof File) ? eventOrFile
+           : (eventOrFile && eventOrFile.target && eventOrFile.target.files && eventOrFile.target.files[0]);
   if (!file || !file.type) return;
+  if (!file.type.startsWith('image/')) { showNotif('⚠️','Format non supporté (PNG, JPG uniquement)'); return; }
   if (file.size > 2*1024*1024) { showNotif('⚠️','Image trop lourde (max 2 Mo)'); return; }
   var reader = new FileReader();
   reader.onload = function(e) {
-    var src = e.target.result;
-    _applyStamp(src);
+    _applyStamp(e.target.result);
   };
   reader.readAsDataURL(file);
 };
@@ -2821,7 +2843,9 @@ window.generateAutoStamp = function() {
 window.saveSignatureSettings = function() {
   var name  = (document.getElementById('sig-agent-name')||{}).value || '';
   var si    = document.getElementById('stamp-preview-img');
-  var stamp = (si && si.style.display !== 'none' && si.src && si.src !== window.location.href) ? si.src : '';
+  // Only save stamp if a real image (data URL or blob URL) is loaded
+  var rawSrc = si ? si.getAttribute('src') : '';
+  var stamp = (si && si.style.display !== 'none' && rawSrc && (rawSrc.startsWith('data:') || rawSrc.startsWith('blob:'))) ? si.src : '';
 
   // Get signature from canvas (only if user actually drew something)
   var sig = localStorage.getItem('eurovisa_signature') || '';
