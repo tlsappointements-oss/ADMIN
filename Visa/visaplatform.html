@@ -242,7 +242,24 @@ tr:hover td{background:var(--cream)}
 .admin-nav li a.active{background:rgba(255,255,255,.1);color:#fff}
 .nav-section{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.2);padding:14px 12px 4px;list-style:none}
 .badge-count{margin-left:auto;background:#C0392B;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px}
-.admin-main{background:#F0EDE6;padding:28px 32px;overflow-y:auto}
+.admin-main{background:#F0EDE6;padding:28px 32px;overflow-y:auto;min-height:calc(100vh - 64px);height:calc(100vh - 64px)}
+@media(max-width:900px){.sig-3col{grid-template-columns:1fr 1fr !important}}
+@media(max-width:600px){.sig-3col{grid-template-columns:1fr !important}}
+.sig-save-btn{display:flex;align-items:center;gap:8px;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px 22px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;flex-shrink:0}
+.sig-save-btn:hover{background:#1a3a5c}
+.sig-btn-ghost{background:var(--cream2);color:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:.2s;flex:1}
+.sig-btn-ghost:hover{border-color:#C0392B;color:#C0392B}
+.sig-btn-import{flex:1;background:var(--cream);color:var(--navy);border:1.5px solid var(--gold);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:.2s;display:flex;align-items:center;justify-content:center;gap:5px}
+.sig-btn-import:hover{background:#FFFBF3}
+.sig-btn-gold{flex:1;background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.2s}
+.sig-btn-gold:hover{background:var(--gold2)}
+.sig-btn-navy{background:var(--navy);color:#fff;border:none;padding:12px 18px;border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.2s}
+.sig-btn-navy:hover{background:#1a3a5c}
+.sig-input{width:100%;border:2px solid var(--border);border-radius:9px;padding:12px 14px;font-family:inherit;font-size:15px;color:var(--navy);background:var(--cream);outline:none;transition:.2s;box-sizing:border-box}
+.sig-input:focus{border-color:var(--gold);background:#fff}
+.sig-pwd-input{width:100%;border:2px solid var(--border);border-radius:9px;padding:11px 13px;font-family:inherit;font-size:14px;outline:none;background:var(--cream);transition:.2s;box-sizing:border-box}
+.sig-pwd-input:focus{border-color:var(--gold);background:#fff}
+#stamp-drop-zone.sig-drop-hover{border-color:var(--gold) !important;background:#FFFBF3 !important}
 .admin-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
 .admin-topbar h2{font-family:'DM Serif Display',serif;font-size:24px;color:var(--navy)}
 .admin-topbar p{font-size:13px;color:var(--muted);margin-top:2px}
@@ -868,9 +885,8 @@ tr:hover td{background:var(--cream)}
             <h2 style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--navy);margin-bottom:4px">Signatures &amp; Cachet</h2>
             <p style="font-size:13px;color:var(--muted)">Votre signature et le cachet officiel s'affichent sur chaque reçu client</p>
           </div>
-          <button onclick="saveSignatureSettings()" style="display:flex;align-items:center;gap:8px;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px 22px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;flex-shrink:0" onmouseover="this.style.background='#1a3a5c'" onmouseout="this.style.background='var(--navy)'">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Enregistrer tout
+          <button onclick="saveSignatureSettings()" class="sig-save-btn">
+            💾 Enregistrer tout
           </button>
         </div>
 
@@ -888,10 +904,8 @@ tr:hover td{background:var(--cream)}
             </div>
             <div style="padding:20px">
               <input type="text" id="sig-agent-name" placeholder="Ex : Mohamed Alami"
-                style="width:100%;border:2px solid var(--border);border-radius:9px;padding:12px 14px;font-family:inherit;font-size:15px;color:var(--navy);background:var(--cream);outline:none;transition:.2s;box-sizing:border-box"
-                oninput="updateSigReceiptPreview()"
-                onfocus="this.style.borderColor='var(--gold)';this.style.background='#fff'"
-                onblur="this.style.borderColor='var(--border)';this.style.background='var(--cream)'">
+                class="sig-input"
+                oninput="updateSigReceiptPreview()">
               <p style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">Ce nom apparaît sous la signature sur tous les reçus générés.</p>
             </div>
           </div>
@@ -922,13 +936,8 @@ tr:hover td{background:var(--cream)}
               </div>
               <!-- Action buttons -->
               <div style="display:flex;gap:8px">
-                <button onclick="clearSignatureCanvas()"
-                  style="flex:1;background:var(--cream2);color:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:.2s"
-                  onmouseover="this.style.borderColor='#C0392B';this.style.color='#C0392B'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--navy)'">
-                  🗑 Effacer
-                </button>
-                <label style="flex:1;background:var(--cream);color:var(--navy);border:1.5px solid var(--gold);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:.2s;display:flex;align-items:center;justify-content:center;gap:5px"
-                  onmouseover="this.style.background='#FFFBF3'" onmouseout="this.style.background='var(--cream)'">
+                <button onclick="clearSignatureCanvas()" class="sig-btn-ghost">🗑 Effacer</button>
+                <label class="sig-btn-import">
                   📁 Importer
                   <input type="file" accept="image/*" onchange="loadSignatureImage(event)" style="display:none">
                 </label>
@@ -949,9 +958,9 @@ tr:hover td{background:var(--cream)}
               <!-- Drop zone -->
               <div id="stamp-drop-zone"
                 onclick="document.getElementById('stamp-file-input').click()"
-                ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='#FFFBF3'"
-                ondragleave="this.style.borderColor='var(--border)';this.style.background='#fafaf8'"
-                ondrop="handleStampDrop(event);this.style.borderColor='var(--border)';this.style.background='#fafaf8'"
+                ondragover="event.preventDefault();document.getElementById('stamp-drop-zone').classList.add('sig-drop-hover')"
+                ondragleave="document.getElementById('stamp-drop-zone').classList.remove('sig-drop-hover')"
+                ondrop="handleStampDrop(event);document.getElementById('stamp-drop-zone').classList.remove('sig-drop-hover')"
                 style="border:2px dashed var(--border);border-radius:10px;background:#fafaf8;min-height:160px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;cursor:pointer;transition:.2s;margin-bottom:12px;position:relative;overflow:hidden">
                 <div id="stamp-drop-label" style="text-align:center;padding:16px">
                   <div style="font-size:36px;margin-bottom:8px;opacity:.3">🔵</div>
@@ -967,16 +976,8 @@ tr:hover td{background:var(--cream)}
               </div>
               <!-- Action buttons -->
               <div style="display:flex;gap:8px">
-                <button onclick="clearStamp()"
-                  style="flex:1;background:var(--cream2);color:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:.2s"
-                  onmouseover="this.style.borderColor='#C0392B';this.style.color='#C0392B'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--navy)'">
-                  🗑 Supprimer
-                </button>
-                <button onclick="generateAutoStamp()"
-                  style="flex:1;background:var(--gold);color:var(--navy);border:none;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.2s"
-                  onmouseover="this.style.background='var(--gold2)'" onmouseout="this.style.background='var(--gold)'">
-                  ✨ Auto-générer
-                </button>
+                <button onclick="clearStamp()" class="sig-btn-ghost">🗑 Supprimer</button>
+                <button onclick="generateAutoStamp()" class="sig-btn-gold">✨ Auto-générer</button>
               </div>
             </div>
           </div>
@@ -1037,30 +1038,14 @@ tr:hover td{background:var(--cream)}
             <div style="display:flex;gap:10px;align-items:flex-end">
               <div style="flex:1">
                 <label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Nouveau mot de passe (min 6 caractères)</label>
-                <input type="password" id="local-admin-pwd-input" placeholder="Nouveau mot de passe"
-                  style="width:100%;border:2px solid var(--border);border-radius:9px;padding:11px 13px;font-family:inherit;font-size:14px;outline:none;background:var(--cream);transition:.2s;box-sizing:border-box"
-                  onfocus="this.style.borderColor='var(--gold)';this.style.background='#fff'"
-                  onblur="this.style.borderColor='var(--border)';this.style.background='var(--cream)'">
+                <input type="password" id="local-admin-pwd-input" placeholder="Nouveau mot de passe" class="sig-pwd-input">
               </div>
-              <button onclick="saveLocalAdminPwd()"
-                style="background:var(--navy);color:#fff;border:none;padding:12px 18px;border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.2s"
-                onmouseover="this.style.background='#1a3a5c'" onmouseout="this.style.background='var(--navy)'">
-                💾 Changer
-              </button>
+              <button onclick="saveLocalAdminPwd()" class="sig-btn-navy">💾 Changer</button>
             </div>
             <div id="local-pwd-msg" style="font-size:12px;margin-top:10px;display:none;padding:8px 12px;border-radius:7px"></div>
           </div>
         </div>
 
-        <!-- mobile stacking -->
-        <style>
-          @media(max-width:900px){
-            #atab-signatures .sig-3col{grid-template-columns:1fr 1fr !important}
-          }
-          @media(max-width:600px){
-            #atab-signatures .sig-3col{grid-template-columns:1fr !important}
-          }
-        </style>
       </div>
     </div>
   </div>
@@ -1898,12 +1883,17 @@ function updateAdminStats() {
 
 window.showAdminTab = function(tab) {
   document.querySelectorAll('.admin-tab').forEach(t=>t.style.display='none');
-  document.getElementById('atab-'+tab).style.display='block';
+  var el = document.getElementById('atab-'+tab);
+  if (el) el.style.display='block';
   document.querySelectorAll('.admin-nav a').forEach(a=>a.classList.remove('active'));
+  // Mark active nav item
+  document.querySelectorAll('.admin-nav a').forEach(a=>{
+    if (a.getAttribute('onclick') && a.getAttribute('onclick').includes("'"+tab+"'")) a.classList.add('active');
+  });
   if (tab==='applications') { document.getElementById('admin-apps-table').innerHTML=buildAppsTable(allApplications); document.getElementById('apps-count').textContent=allApplications.length+' Applications'; }
   if (tab==='users')        { buildUsersTable(allUsers); }
   if (tab==='email-log')    { loadEmailLog(); }
-  if (tab==='signatures')   { initSignatureTab(); }
+  if (tab==='signatures')   { try { initSignatureTab(); } catch(e) { console.error('initSignatureTab error:', e); } }
 };
 
 window.filterApps = function() {
