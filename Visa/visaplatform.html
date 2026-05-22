@@ -2913,72 +2913,7 @@ window.downloadReceiptPDF = function() {
     body = body.replace('<div class="foot">', sigHtml + '<div class="foot">');
   }
 
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recu ' + d.ref + '</title><style>' + css + '</style></head><body>' + body + '<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()};}<\/script>
-<!-- ADD AD MODAL -->
-<div id="add-ad-modal" class="b2b-modal-backdrop">
-  <div class="b2b-modal">
-    <div class="b2b-modal-head">
-      <div style="color:#fff;font-size:15px;font-weight:700" id="ad-modal-title">Nouvelle annonce</div>
-      <button onclick="document.getElementById('add-ad-modal').classList.remove('open')" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px">✕</button>
-    </div>
-    <div class="b2b-modal-body">
-      <div class="company-field-group"><label>Type</label>
-        <select id="ad-type" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
-          <option value="website">📌 Site web (affiché sur la page d'accueil)</option>
-          <option value="flyer">🖨️ Flyer (imprimable)</option>
-          <option value="promo">🎁 Promotion spéciale</option>
-        </select>
-      </div>
-      <div class="company-field-group"><label>Titre</label><input type="text" id="ad-title" placeholder="Ex: Promo visa France Été 2026"></div>
-      <div class="company-field-group"><label>Description courte</label><input type="text" id="ad-desc" placeholder="Ex: RDV TLScontact en 48h garantis"></div>
-      <div class="company-field-group"><label>Emoji / Pays représenté</label><input type="text" id="ad-emoji" placeholder="🇫🇷" style="font-size:24px;text-align:center"></div>
-      <div class="company-field-group"><label>Lien ou page de destination</label><input type="text" id="ad-link" placeholder="booking / home / countries"></div>
-      <div style="display:flex;gap:10px;margin-top:6px">
-        <button onclick="saveAd()" class="btn-gold" style="flex:1;padding:11px;border-radius:8px;font-size:13px">💾 Enregistrer</button>
-        <button onclick="document.getElementById('add-ad-modal').classList.remove('open')" style="flex:1;background:var(--cream2);color:var(--navy);border:1px solid var(--border);border-radius:8px;padding:11px;font-family:inherit;font-size:13px;cursor:pointer">Annuler</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ADD AGENCY MODAL -->
-<div id="add-agency-modal" class="b2b-modal-backdrop">
-  <div class="b2b-modal">
-    <div class="b2b-modal-head">
-      <div style="color:#fff;font-size:15px;font-weight:700" id="agency-modal-title">Nouvelle agence partenaire</div>
-      <button onclick="document.getElementById('add-agency-modal').classList.remove('open')" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px">✕</button>
-    </div>
-    <div class="b2b-modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div class="company-field-group" style="grid-column:1/-1"><label>Nom de l'agence *</label><input type="text" id="agency-name" placeholder="Ex: Voyage Express Maroc"></div>
-        <div class="company-field-group"><label>Email d'accès *</label><input type="email" id="agency-email" placeholder="contact@agence.ma"></div>
-        <div class="company-field-group"><label>Téléphone</label><input type="text" id="agency-phone" placeholder="+212 6XX XXX XXX"></div>
-        <div class="company-field-group"><label>Ville</label><input type="text" id="agency-city" placeholder="Casablanca"></div>
-        <div class="company-field-group"><label>Commission (%)</label><input type="number" id="agency-commission" placeholder="10" min="0" max="50" value="10"></div>
-        <div class="company-field-group" style="grid-column:1/-1"><label>Accès autorisés</label>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
-            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;font-weight:400"><input type="checkbox" id="agency-access-clients" checked> Voir ses clients</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;font-weight:400"><input type="checkbox" id="agency-access-commissions" checked> Voir ses commissions</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;font-weight:400"><input type="checkbox" id="agency-access-status"> Modifier statut</label>
-          </div>
-        </div>
-        <div class="company-field-group" style="grid-column:1/-1"><label>Statut initial</label>
-          <select id="agency-status" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
-            <option value="active">✅ Actif</option>
-            <option value="pending">⏳ En attente de validation</option>
-            <option value="suspended">🚫 Suspendu</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:6px">
-        <button onclick="saveAgency()" class="btn-gold" style="flex:1;padding:11px;border-radius:8px;font-size:13px">💾 Enregistrer l'agence</button>
-        <button onclick="document.getElementById('add-agency-modal').classList.remove('open')" style="flex:1;background:var(--cream2);color:var(--navy);border:1px solid var(--border);border-radius:8px;padding:11px;font-family:inherit;font-size:13px;cursor:pointer">Annuler</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-</body></html>';
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recu ' + d.ref + '</title><style>' + css + '</style></head><body>' + body + '<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()};}<\/script></body></html>';
 
   var win = window.open('', '_blank');
   if (win) { win.document.write(html); win.document.close(); }
