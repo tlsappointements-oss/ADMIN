@@ -829,6 +829,8 @@ tr:hover td{background:var(--cream)}
         <li><a onclick="showAdminTab('prices')">💰 Prices & Profits</a></li>
         <li><a onclick="showAdminTab('ads')">📣 Ads & Flyers</a></li>
         <li><a onclick="showAdminTab('b2b')">🤝 B2B Agencies</a></li>
+        <li><a onclick="showAdminTab('services-mgmt')">⚙️ Services</a></li>
+        <li><a onclick="showAdminTab('city-prices')">🏙️ Prix Villes</a></li>
         <li class="nav-section">Personnalisation</li>
         <li><a onclick="showAdminTab('signatures')">✍️ Signatures & Cachet</a></li>
         <li class="nav-section">System</li>
@@ -1137,6 +1139,43 @@ tr:hover td{background:var(--cream)}
           </div>
         </div>
       </div>
+
+      <!-- SERVICES MANAGEMENT -->
+      <div id="atab-services-mgmt" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>⚙️ Gestion des Services</h2><p>Ajoutez, modifiez et supprimez vos services. Les prix sont synchronisés en temps réel.</p></div>
+          <button class="btn-gold" onclick="openAddServiceModal()" style="font-size:13px;padding:9px 18px;border-radius:8px">+ Nouveau service</button>
+        </div>
+        <div class="admin-card" style="margin-bottom:16px">
+          <div class="admin-card-head"><h3>📊 Vue admin — Coûts &amp; Marges (visible uniquement par vous)</h3></div>
+          <div style="padding:20px">
+            <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:16px">
+              🔒 Les colonnes <strong>Coût interne</strong>, <strong>Marge</strong> et <strong>Commission agences</strong> sont uniquement visibles dans ce panneau admin. Les clients et agences ne voient que le <strong>Prix affiché</strong>.
+            </div>
+            <div id="services-admin-table">
+              <div style="text-align:center;padding:24px;color:var(--muted)">Chargement des services...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CITY PRICES -->
+      <div id="atab-city-prices" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>🏙️ Prix RDV par Ville</h2><p>Définissez un prix de rendez-vous différent selon la ville. Synchronisé en temps réel.</p></div>
+          <button class="btn-gold" onclick="saveCityPrices()" style="font-size:13px;padding:9px 18px;border-radius:8px">💾 Enregistrer</button>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-head"><h3>Tarifs rendez-vous par pays et par ville</h3></div>
+          <div style="padding:20px">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Pour chaque pays, définissez le prix du rendez-vous dans chaque ville du Maroc. Ces tarifs seront affichés lors de la réservation.</p>
+            <div id="city-prices-editor">
+              <div style="text-align:center;padding:24px;color:var(--muted)">Chargement...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
 
       <!-- SIGNATURES & CACHET -->
       <div id="atab-signatures" class="admin-tab" style="display:none">
@@ -1560,6 +1599,11 @@ auth.onAuthStateChanged(user => {
     s('dash-user-email', user.email);
     s('dash-user-name', user.email.split('@')[0]);
     s('dash-first-name', user.email.split('@')[0]);
+
+    // Check B2B agency login (non-admin users)
+    if (!isAdmin) {
+      loadB2BPortal(user).catch(function(e){ console.warn('[B2B] check failed:', e); });
+    }
   } else {
     isAdmin = false;
     loginBtn.style.display  = 'inline-block';
@@ -2723,87 +2767,520 @@ function friendlyError(code) {
   return map[code] || ('Erreur: ' + (code || 'inconnue') + '. Vérifiez la console (F12).');
 }
 
-// Close auth modal on backdrop click
-document.getElementById('auth-modal').addEventListener('click', e=>{ if(e.target===document.getElementById('auth-modal')) closeAuth(); });
 
-// ══════════════════════════════════════════
-//  RECEIPT MODAL
-// ══════════════════════════════════════════
-var _receiptData = null;
+// ══════════════════════════════════════════════════════════════════
+//  REAL-TIME FIRESTORE LISTENERS — services & city prices
+// ══════════════════════════════════════════════════════════════════
+var _servicesCache = [];
+var _cityPricesCache = {};
+var _agencyData = null;
+var _b2bApps = [];
 
-// Extract flag emoji from destination string like "France 🇫🇷 — TLScontact"
-function extractFlag(destination) {
-  var match = (destination||'').match(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu);
-  // Return first emoji that looks like a flag (regional indicator sequence)
-  if (!match) return '';
-  for (var i = 0; i < match.length; i++) {
-    var code = match[i].codePointAt(0);
-    if (code >= 0x1F1E0 && code <= 0x1F1FF) return match[i] + (match[i+1]||'');
-  }
-  return match[0] || '';
+function startServicesListener() {
+  db.collection('services').orderBy('order','asc').onSnapshot(function(snap) {
+    _servicesCache = [];
+    snap.forEach(function(d) { _servicesCache.push(Object.assign({id:d.id}, d.data())); });
+    renderBookingServices();
+    renderServicesAdmin();
+    renderB2BPrices();
+    renderB2BNewAppPackages();
+  }, function(e) { console.warn('[RT] Services:', e); });
 }
 
-function extractCountryName(destination) {
-  return (destination||'').split(' ')[0] || '';
+function startCityPricesListener() {
+  db.collection('city_prices').onSnapshot(function(snap) {
+    _cityPricesCache = {};
+    snap.forEach(function(d) { _cityPricesCache[d.id] = d.data(); });
+    renderCityPricesAdmin();
+    renderB2BCityPrices();
+  }, function(e) { console.warn('[RT] CityPrices:', e); });
 }
 
-window.showReceipt = function(data) {
-  _receiptData = data;
-  window._lastRef = data.ref;
-  var now = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
-          + ' ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+async function seedDefaultServices() {
+  var snap = await db.collection('services').limit(1).get();
+  if (!snap.empty) return;
+  var defaults = [
+    {order:1,category:'package',name:'Appointment Only',icon:'📅',desc:'Prise de RDV au centre de visa (TLS/VFS/BLS)',price:500,cost:150,commission:10,visible:true},
+    {order:2,category:'package',name:'Appointment + Documents',icon:'📋',desc:'RDV + preparation complete du dossier',price:1700,cost:400,commission:10,visible:true},
+    {order:3,category:'package',name:'Full Package',icon:'⭐',desc:'RDV + documents + etude de cas + assurance + vol + hotel',price:2800,cost:900,commission:10,visible:true},
+    {order:4,category:'addon',name:'Reservation de vol',icon:'✈️',desc:'Itineraire officiel pour le visa',price:200,cost:50,commission:10,visible:true},
+    {order:5,category:'addon',name:"Reservation d'hotel",icon:'🏨',desc:'Lettre de confirmation d\'hebergement',price:200,cost:50,commission:10,visible:true},
+    {order:6,category:'addon',name:'Assurance voyage',icon:'🛡️',desc:'Schengen-compliant, min. 30 000 EUR',price:350,cost:80,commission:10,visible:true},
+    {order:7,category:'addon',name:'Etude de cas',icon:'🔍',desc:'Analyse profil pour maximiser les chances',price:800,cost:200,commission:10,visible:true},
+    {order:8,category:'addon',name:'Releves bancaires',icon:'🏦',desc:'Mise en forme des documents financiers',price:300,cost:60,commission:10,visible:true},
+  ];
+  var batch = db.batch();
+  defaults.forEach(function(s) {
+    s.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    batch.set(db.collection('services').doc(), s);
+  });
+  await batch.commit();
+  console.log('[SEED] Services seeded');
+}
 
-  // Strip emojis from destination for display
-  var destClean = (data.destination||'').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
+async function seedDefaultCityPrices() {
+  var snap = await db.collection('city_prices').limit(1).get();
+  if (!snap.empty) return;
+  var countries = [
+    {id:'france',  name:'France',      cities:{Casablanca:600,Rabat:550,Marrakech:500,Fes:480,Tanger:450,Tetouan:400,Agadir:480,Oujda:430,Meknes:460,Laayoune:400}},
+    {id:'spain',   name:'Espagne',     cities:{Casablanca:550,Rabat:500,Marrakech:450,Fes:430,Tanger:350,Tetouan:300,Agadir:420,Oujda:380,Meknes:400,Laayoune:360}},
+    {id:'germany', name:'Allemagne',   cities:{Casablanca:600,Rabat:560,Marrakech:520,Fes:500,Tanger:470,Tetouan:450,Agadir:490,Oujda:460,Meknes:480,Laayoune:420}},
+    {id:'italy',   name:'Italie',      cities:{Casablanca:580,Rabat:540,Marrakech:500,Fes:480,Tanger:460,Tetouan:430,Agadir:470,Oujda:450,Meknes:460,Laayoune:410}},
+    {id:'belgium', name:'Belgique',    cities:{Casablanca:580,Rabat:540,Marrakech:500,Fes:480,Tanger:460,Tetouan:430,Agadir:470,Oujda:440,Meknes:460,Laayoune:410}},
+    {id:'netherlands',name:'Pays-Bas', cities:{Casablanca:600,Rabat:560,Marrakech:520,Fes:500,Tanger:470,Tetouan:450,Agadir:490,Oujda:455,Meknes:475,Laayoune:420}},
+    {id:'portugal',name:'Portugal',    cities:{Casablanca:560,Rabat:520,Marrakech:480,Fes:460,Tanger:420,Tetouan:390,Agadir:450,Oujda:430,Meknes:445,Laayoune:395}},
+    {id:'austria', name:'Autriche',    cities:{Casablanca:590,Rabat:550,Marrakech:510,Fes:490,Tanger:465,Tetouan:440,Agadir:480,Oujda:455,Meknes:470,Laayoune:415}},
+    {id:'switzerland',name:'Suisse',   cities:{Casablanca:650,Rabat:610,Marrakech:570,Fes:550,Tanger:520,Tetouan:490,Agadir:540,Oujda:510,Meknes:530,Laayoune:470}},
+    {id:'greece',  name:'Grece',       cities:{Casablanca:560,Rabat:520,Marrakech:480,Fes:460,Tanger:430,Tetouan:400,Agadir:450,Oujda:430,Meknes:445,Laayoune:400}},
+  ];
+  var batch = db.batch();
+  countries.forEach(function(c) {
+    batch.set(db.collection('city_prices').doc(c.id), {name:c.name, cities:c.cities, updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  });
+  await batch.commit();
+  console.log('[SEED] City prices seeded');
+}
 
-  var s = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val||'—'; };
-  s('receipt-ref',         data.ref);
-  s('receipt-name',        data.firstName + ' ' + (data.lastName||''));
-  s('receipt-email',       data.email);
-  s('receipt-phone',       data.phone);
-  s('receipt-nationality', data.nationality||'—');
-  s('receipt-destination', destClean || data.destination);
-  s('receipt-visatype',    data.visaType||'—');
-  s('receipt-package',     data.package||'—');
-  s('receipt-date-travel', data.travelDate||'A preciser');
-  s('receipt-travelers',   data.numApplicants||'1');
-  s('receipt-total',       (data.total||0) + ' MAD');
-  s('receipt-date',        now);
-  s('receipt-email-footer', data.email);
-
-  // Add-ons
-  var addonsRow = document.getElementById('receipt-addons-row');
-  var addonsEl  = document.getElementById('receipt-addons');
-  if (data.addons && data.addons.length > 0 && addonsEl) {
-    addonsEl.textContent = data.addons.join(', ');
-    if (addonsRow) addonsRow.style.display = 'block';
-  } else {
-    if (addonsRow) addonsRow.style.display = 'none';
+// ══════════════════════════════════════════════════════════════════
+//  RENDER BOOKING SERVICES (real-time from Firestore)
+// ══════════════════════════════════════════════════════════════════
+function renderBookingServices() {
+  var packages = _servicesCache.filter(function(s){ return s.category==='package' && s.visible; });
+  var addons   = _servicesCache.filter(function(s){ return s.category==='addon'   && s.visible; });
+  var optGrid = document.querySelector('.options-grid');
+  if (optGrid && packages.length) {
+    optGrid.innerHTML = packages.map(function(s) {
+      return '<label class="option-card" id="opt-'+s.id+'" onclick="selectServicePackage(\''+s.id+'\','+s.price+',\''+s.name.replace(/'/g,"\\'")+'\')">'
+        +'<input type="radio" name="pkg" value="'+s.id+'">'
+        +'<h4>'+s.icon+' '+s.name+'</h4>'
+        +'<p>'+(s.desc||'')+'</p>'
+        +'<div class="price">'+(s.price||0).toLocaleString()+' MAD</div>'
+        +'</label>';
+    }).join('');
   }
+  var addonsEl = document.querySelector('.add-ons-list');
+  if (addonsEl && addons.length) {
+    addonsEl.innerHTML = addons.map(function(s) {
+      return '<label class="addon-item" onclick="toggleAddon(this)">'
+        +'<input type="checkbox" value="'+s.price+'" data-name="'+s.name+'">'
+        +'<div class="addon-info"><h5>'+s.icon+' '+s.name+'</h5><p>'+(s.desc||'')+'</p></div>'
+        +'<div class="addon-price">'+(s.price||0).toLocaleString()+' MAD</div>'
+        +'</label>';
+    }).join('');
+  }
+}
 
-  // Show modal
-  var modal = document.getElementById('receipt-modal');
-  if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+window.selectServicePackage = function(id, price, name) {
+  document.querySelectorAll('.option-card').forEach(function(c){ c.classList.remove('selected'); });
+  var el = document.getElementById('opt-'+id);
+  if (el) el.classList.add('selected');
+  pkgPrice = price; pkgName = name;
+  var priceEl = document.getElementById('price-pkg');
+  if (priceEl) priceEl.textContent = price > 0 ? price.toLocaleString()+' MAD' : '—';
+  calcTotal();
+};
 
-  // ── Signature & Stamp ──
-  var agentName  = localStorage.getItem('eurovisa_agent_name')  || '';
-  var agentSig   = localStorage.getItem('eurovisa_signature')   || '';
-  var agentStamp = localStorage.getItem('eurovisa_stamp')       || '';
-  var sigSection = document.getElementById('receipt-sig-section');
-  if (sigSection) {
-    if (agentName || agentSig || agentStamp) {
-      sigSection.style.display = 'block';
-      var nameEl = document.getElementById('receipt-agent-name');
-      if (nameEl) nameEl.textContent = agentName || 'EuroVisa Pro';
-      var sigImg = document.getElementById('receipt-agent-sig');
-      if (sigImg) { if (agentSig) { sigImg.src = agentSig; sigImg.style.display = 'block'; } else sigImg.style.display = 'none'; }
-      var stmpImg = document.getElementById('receipt-company-stamp');
-      if (stmpImg) { if (agentStamp) { stmpImg.src = agentStamp; stmpImg.style.display = 'block'; } else stmpImg.style.display = 'none'; }
+// ══════════════════════════════════════════════════════════════════
+//  ADMIN — SERVICES MANAGEMENT
+// ══════════════════════════════════════════════════════════════════
+var _editingServiceId = null;
+
+window.openAddServiceModal = function() {
+  _editingServiceId = null;
+  document.getElementById('service-modal-title').textContent = 'Nouveau service';
+  ['svc-name','svc-desc','svc-price','svc-cost'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('svc-icon').value = '📅';
+  document.getElementById('svc-commission').value = '10';
+  document.getElementById('svc-category').value = 'package';
+  document.getElementById('svc-visible').value = 'true';
+  document.getElementById('add-service-modal').classList.add('open');
+};
+
+window.editService = function(id) {
+  var s = _servicesCache.find(function(x){ return x.id===id; });
+  if (!s) return;
+  _editingServiceId = id;
+  document.getElementById('service-modal-title').textContent = 'Modifier le service';
+  document.getElementById('svc-name').value = s.name||'';
+  document.getElementById('svc-desc').value = s.desc||'';
+  document.getElementById('svc-icon').value = s.icon||'📋';
+  document.getElementById('svc-price').value = s.price||0;
+  document.getElementById('svc-cost').value = s.cost||0;
+  document.getElementById('svc-commission').value = s.commission||10;
+  document.getElementById('svc-category').value = s.category||'package';
+  document.getElementById('svc-visible').value = s.visible ? 'true' : 'false';
+  document.getElementById('add-service-modal').classList.add('open');
+};
+
+window.saveService = async function() {
+  var name = document.getElementById('svc-name').value.trim();
+  if (!name) { showNotif('⚠️','Nom du service requis'); return; }
+  var data = {
+    name: name,
+    desc: document.getElementById('svc-desc').value.trim(),
+    icon: document.getElementById('svc-icon').value.trim()||'📋',
+    price: parseFloat(document.getElementById('svc-price').value)||0,
+    cost: parseFloat(document.getElementById('svc-cost').value)||0,
+    commission: parseFloat(document.getElementById('svc-commission').value)||10,
+    category: document.getElementById('svc-category').value,
+    visible: document.getElementById('svc-visible').value==='true',
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try {
+    if (_editingServiceId) {
+      await db.collection('services').doc(_editingServiceId).update(data);
+      showNotif('✅','Service mis a jour !');
     } else {
-      sigSection.style.display = 'none';
+      data.order = (_servicesCache.length||0)+1;
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('services').add(data);
+      showNotif('✅','Service ajoute !');
     }
+    document.getElementById('add-service-modal').classList.remove('open');
+  } catch(e) { showNotif('⚠️','Erreur: '+e.message); }
+};
+
+window.deleteService = async function(id) {
+  if (!confirm('Supprimer ce service ?')) return;
+  try { await db.collection('services').doc(id).delete(); showNotif('🗑️','Supprime'); }
+  catch(e) { showNotif('⚠️',e.message); }
+};
+
+window.toggleServiceVisibility = async function(id, visible) {
+  try {
+    await db.collection('services').doc(id).update({visible:visible, updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    showNotif(visible?'✅':'🙈', visible?'Service visible':'Service masque');
+  } catch(e) { showNotif('⚠️',e.message); }
+};
+
+function renderServicesAdmin() {
+  var el = document.getElementById('services-admin-table');
+  if (!el) return;
+  if (!_servicesCache.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Aucun service.<button class="btn-gold" onclick="openAddServiceModal()" style="margin-left:10px;font-size:12px;padding:6px 14px">+ Ajouter</button></div>';
+    return;
+  }
+  var cats = {package:'📦 Package',addon:'➕ Add-on',rdv:'🗓 RDV'};
+  el.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr><th style="text-align:left;padding:10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Service</th>'
+    +'<th style="text-align:left;padding:10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Cat.</th>'
+    +'<th style="text-align:right;padding:10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Prix client</th>'
+    +'<th style="text-align:right;padding:10px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase">🔒 Cout</th>'
+    +'<th style="text-align:right;padding:10px;font-size:11px;font-weight:700;color:#1B7A4A;text-transform:uppercase">🔒 Marge</th>'
+    +'<th style="text-align:right;padding:10px;font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase">🔒 Commission</th>'
+    +'<th style="padding:10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Visible</th>'
+    +'<th style="padding:10px"></th></tr></thead><tbody>'
+    + _servicesCache.map(function(s) {
+        var margin = (s.price||0)-(s.cost||0);
+        var marginPct = s.price>0 ? Math.round((margin/s.price)*100) : 0;
+        return '<tr style="border-bottom:1px solid var(--border)">'
+          +'<td style="padding:12px 10px"><strong>'+s.icon+' '+s.name+'</strong>'
+          +(s.desc ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+s.desc+'</div>' : '')+'</td>'
+          +'<td style="padding:12px 10px"><span style="background:var(--cream2);border-radius:6px;padding:3px 8px;font-size:11px">'+(cats[s.category]||s.category)+'</span></td>'
+          +'<td style="padding:12px 10px;text-align:right;font-weight:700;color:var(--gold)">'+(s.price||0).toLocaleString()+' MAD</td>'
+          +'<td style="padding:12px 10px;text-align:right;font-weight:600;color:#0369a1">'+(s.cost||0).toLocaleString()+' MAD</td>'
+          +'<td style="padding:12px 10px;text-align:right"><span style="color:#1B7A4A;font-weight:700">'+margin.toLocaleString()+' MAD</span><span style="color:var(--muted);font-size:11px;margin-left:4px">('+marginPct+'%)</span></td>'
+          +'<td style="padding:12px 10px;text-align:right"><span style="color:#7c3aed;font-weight:700">'+(s.commission||10)+'%</span></td>'
+          +'<td style="padding:12px 10px"><button onclick="toggleServiceVisibility(\''+s.id+'\','+(!s.visible)+')" style="background:'+(s.visible?'#D1FAE5':'#FEE2E2')+';border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:'+(s.visible?'#065f46':'#991b1b')+'">'+(s.visible?'✅ Oui':'🙈 Non')+'</button></td>'
+          +'<td style="padding:12px 10px;white-space:nowrap">'
+          +'<button onclick="editService(\''+s.id+'\')" style="background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;margin-right:4px">✏️</button>'
+          +'<button onclick="deleteService(\''+s.id+'\')" style="background:#FEE2E2;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;color:#991b1b">🗑</button>'
+          +'</td></tr>';
+      }).join('')
+    +'</tbody></table></div>';
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  CITY PRICES ADMIN
+// ══════════════════════════════════════════════════════════════════
+var CITIES_LIST = ['Casablanca','Rabat','Marrakech','Fes','Tanger','Tetouan','Agadir','Oujda','Meknes','Laayoune'];
+
+function renderCityPricesAdmin() {
+  var el = document.getElementById('city-prices-editor');
+  if (!el) return;
+  var countries = Object.keys(_cityPricesCache);
+  if (!countries.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px">Chargement...</div>'; return; }
+  el.innerHTML = countries.map(function(cid) {
+    var c = _cityPricesCache[cid];
+    return '<div style="margin-bottom:28px;background:var(--white);border-radius:12px;border:1px solid var(--border);padding:18px 20px">'
+      +'<h4 style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:14px">'+(c.name||cid)+'</h4>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">'
+      + CITIES_LIST.map(function(city) {
+          var val = (c.cities && c.cities[city]) || '';
+          return '<div style="display:flex;align-items:center;gap:8px;background:var(--cream);border-radius:8px;padding:8px 12px">'
+            +'<span style="font-size:12px;font-weight:600;color:var(--navy);flex:1">'+city+'</span>'
+            +'<input type="number" data-country="'+cid+'" data-city="'+city+'" value="'+val+'" min="0" placeholder="0"'
+            +' style="width:72px;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;font-family:inherit;text-align:right;outline:none" oninput="markCityDirty()">'
+            +'<span style="font-size:11px;color:var(--muted)">MAD</span>'
+            +'</div>';
+        }).join('')
+      +'</div></div>';
+  }).join('');
+}
+
+window.markCityDirty = function() {
+  var btn = document.querySelector('[onclick="saveCityPrices()"]');
+  if (btn) btn.style.background = '#F59E0B';
+};
+
+window.saveCityPrices = async function() {
+  var inputs = document.querySelectorAll('#city-prices-editor input[data-country]');
+  var updates = {};
+  inputs.forEach(function(inp) {
+    var cid = inp.dataset.country;
+    var city = inp.dataset.city;
+    if (!updates[cid]) updates[cid] = {};
+    updates[cid][city] = parseFloat(inp.value)||0;
+  });
+  try {
+    var batch = db.batch();
+    Object.keys(updates).forEach(function(cid) {
+      batch.update(db.collection('city_prices').doc(cid), {cities:updates[cid], updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    });
+    await batch.commit();
+    showNotif('✅','Prix par ville enregistres en temps reel !');
+    var btn = document.querySelector('[onclick="saveCityPrices()"]');
+    if (btn) btn.style.background = '';
+  } catch(e) { showNotif('⚠️','Erreur: '+e.message); }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  B2B PORTAL
+// ══════════════════════════════════════════════════════════════════
+window.showB2BTab = function(tab) {
+  document.querySelectorAll('.b2btab').forEach(function(t){ t.style.display='none'; });
+  var el = document.getElementById('b2btab-'+tab);
+  if (el) el.style.display = 'block';
+  if (tab==='overview')     loadB2BOverview();
+  if (tab==='applications') loadB2BApplications();
+  if (tab==='commissions')  loadB2BCommissions();
+  if (tab==='prices')       { renderB2BPrices(); renderB2BCityPrices(); }
+  if (tab==='newapp')       renderB2BNewAppPackages();
+};
+
+async function loadB2BPortal(user) {
+  try {
+    var snap = await db.collection('agencies').where('email','==',user.email).get();
+    if (snap.empty) return false;
+    var doc = snap.docs[0];
+    _agencyData = Object.assign({id:doc.id}, doc.data());
+    console.log('[B2B] Agency:', _agencyData.name);
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    document.getElementById('page-b2b').classList.add('active');
+    var initials = (_agencyData.name||'AG').slice(0,2).toUpperCase();
+    document.getElementById('b2b-avatar').textContent = initials;
+    document.getElementById('b2b-agency-name').textContent = _agencyData.name||'Agence';
+    document.getElementById('b2b-agency-email').textContent = user.email;
+    document.getElementById('b2b-today').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    if (_agencyData.status==='suspended') document.getElementById('b2b-suspended-banner').style.display='block';
+    document.getElementById('nav-login-btn').style.display  = 'none';
+    document.getElementById('user-badge').style.display     = 'flex';
+    document.getElementById('nav-dash-btn').style.display   = 'none';
+    document.getElementById('nav-admin-btn').style.display  = 'none';
+    document.getElementById('user-avatar').textContent      = initials;
+    document.getElementById('user-name-nav').textContent    = _agencyData.name||'Agence';
+    loadB2BOverview();
+    return true;
+  } catch(e) { console.error('[B2B] loadB2BPortal:', e); return false; }
+}
+
+async function loadB2BOverview() {
+  if (!_agencyData) return;
+  try {
+    var snap = await db.collection('applications').where('agencyId','==',_agencyData.id).get();
+    _b2bApps = [];
+    snap.forEach(function(d){ _b2bApps.push(Object.assign({id:d.id},d.data())); });
+    _b2bApps.sort(function(a,b){ return (b.createdAt&&b.createdAt.seconds||0)-(a.createdAt&&a.createdAt.seconds||0); });
+    var totalComm = _b2bApps.reduce(function(s,a){ return s+(a.agencyCommission||0); },0);
+    var setEl = function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+    setEl('b2b-total',     _b2bApps.length);
+    setEl('b2b-pending',   _b2bApps.filter(function(a){ return ['pending','processing','docs-ready','appointment'].includes(a.status); }).length);
+    setEl('b2b-approved',  _b2bApps.filter(function(a){ return a.status==='approved'; }).length);
+    setEl('b2b-commission-total', totalComm.toLocaleString());
+    renderB2BAppsTable('b2b-recent-table', _b2bApps.slice(0,5));
+  } catch(e) { console.error('[B2B] loadB2BOverview:', e); }
+}
+
+async function loadB2BApplications() {
+  await loadB2BOverview();
+  renderB2BAppsTable('b2b-all-apps-table', _b2bApps);
+}
+
+function renderB2BAppsTable(containerId, apps) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  if (!apps.length) { el.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Aucun dossier.</div>'; return; }
+  var sc={pending:'status-pending',processing:'status-processing',approved:'status-approved',rejected:'status-rejected','docs-ready':'status-docs',appointment:'status-appointment',submitted:'status-submitted'};
+  el.innerHTML = '<table><thead><tr><th>Reference</th><th>Client</th><th>Destination</th><th>Date</th><th>Statut</th><th>Total</th><th>Commission</th></tr></thead><tbody>'
+    + apps.map(function(a){
+        return '<tr><td><strong>'+(a.ref||'—')+'</strong></td>'
+          +'<td>'+(a.firstName||'')+' '+(a.lastName||'')+'</td>'
+          +'<td>'+((a.destination||'—').split(' ')[0])+'</td>'
+          +'<td style="font-size:12px">'+(a.createdAt&&a.createdAt.toDate ? a.createdAt.toDate().toLocaleDateString('fr-FR') : '—')+'</td>'
+          +'<td><span class="status-badge '+(sc[a.status]||'status-pending')+'">'+(a.status||'pending')+'</span></td>'
+          +'<td style="font-weight:600">'+(a.total||0).toLocaleString()+' MAD</td>'
+          +'<td style="color:#1B7A4A;font-weight:700">'+(a.agencyCommission||0).toLocaleString()+' MAD</td>'
+          +'</tr>';
+      }).join('')
+    +'</tbody></table>';
+}
+
+async function loadB2BCommissions() {
+  await loadB2BOverview();
+  var total = _b2bApps.reduce(function(s,a){ return s+(a.agencyCommission||0); },0);
+  var paid  = _b2bApps.filter(function(a){ return a.commissionPaid; }).reduce(function(s,a){ return s+(a.agencyCommission||0); },0);
+  var setEl = function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('b2b-comm-total',   total.toLocaleString()+' MAD');
+  setEl('b2b-comm-pending', (total-paid).toLocaleString()+' MAD');
+  setEl('b2b-comm-paid',    paid.toLocaleString()+' MAD');
+  var el = document.getElementById('b2b-commissions-table');
+  if (!el) return;
+  if (!_b2bApps.length) { el.innerHTML='<div style="text-align:center;color:var(--muted);padding:24px">Aucune commission.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Reference</th><th>Client</th><th>Service</th><th>Total client</th><th>Commission</th><th>Statut versement</th></tr></thead><tbody>'
+    + _b2bApps.map(function(a){
+        return '<tr><td><strong>'+(a.ref||'—')+'</strong></td>'
+          +'<td>'+(a.firstName||'')+' '+(a.lastName||'')+'</td>'
+          +'<td style="font-size:12px">'+(a.package||'—')+'</td>'
+          +'<td>'+(a.total||0).toLocaleString()+' MAD</td>'
+          +'<td style="color:#1B7A4A;font-weight:700">'+(a.agencyCommission||0).toLocaleString()+' MAD</td>'
+          +'<td><span style="background:'+(a.commissionPaid?'#D1FAE5':'#FEF3C7')+';color:'+(a.commissionPaid?'#065f46':'#92400E')+';border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700">'+(a.commissionPaid?'✅ Verse':'⏳ En attente')+'</span></td>'
+          +'</tr>';
+      }).join('')+'</tbody></table>';
+}
+
+function renderB2BPrices() {
+  var el = document.getElementById('b2b-prices-grid');
+  if (!el) return;
+  var visible = _servicesCache.filter(function(s){ return s.visible; });
+  el.innerHTML = visible.map(function(s){
+    return '<div class="service-card"><div class="service-icon">'+(s.icon||'📋')+'</div>'
+      +'<h3>'+s.name+'</h3><p>'+(s.desc||'')+'</p>'
+      +'<div class="service-price">'+(s.price||0).toLocaleString()+' MAD</div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderB2BCityPrices() {
+  var el = document.getElementById('b2b-city-prices-grid');
+  if (!el) return;
+  var keys = Object.keys(_cityPricesCache);
+  if (!keys.length) { el.innerHTML='<p style="color:var(--muted)">Aucun tarif ville configure.</p>'; return; }
+  el.innerHTML = keys.map(function(cid){
+    var c = _cityPricesCache[cid];
+    return '<div style="margin-bottom:20px;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px 20px">'
+      +'<h4 style="font-size:14px;font-weight:700;margin-bottom:12px">'+(c.name||cid)+'</h4>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:8px">'
+      + Object.entries(c.cities||{}).map(function(e){
+          return '<div style="background:var(--cream);border-radius:8px;padding:6px 12px;font-size:12px">'
+            +'<strong>'+e[0]+'</strong> : <span style="color:var(--gold);font-weight:700">'+(e[1]||0).toLocaleString()+' MAD</span></div>';
+        }).join('')
+      +'</div></div>';
+  }).join('');
+}
+
+function renderB2BNewAppPackages() {
+  var sel = document.getElementById('b2b-package');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Choisir un service...</option>'
+    + _servicesCache.filter(function(s){ return s.visible; }).map(function(s){
+        return '<option value="'+s.id+'" data-price="'+s.price+'" data-commission="'+s.commission+'">'
+          +s.icon+' '+s.name+' — '+(s.price||0).toLocaleString()+' MAD</option>';
+      }).join('');
+  var dest = document.getElementById('b2b-dest');
+  if (dest) {
+    dest.innerHTML = '<option value="">Selectionner...</option>'
+      + Object.keys(_cityPricesCache).map(function(cid){
+          return '<option value="'+cid+'">'+(_cityPricesCache[cid].name||cid)+'</option>';
+        }).join('');
+    dest.onchange = function(){ updateB2BCityDropdown(dest.value); };
+  }
+  sel.onchange = function() {
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.dataset.price) { document.getElementById('b2b-price-display').textContent='—'; document.getElementById('b2b-commission-display').textContent='—'; return; }
+    var price = parseFloat(opt.dataset.price)||0;
+    var commPct = parseFloat(opt.dataset.commission)||(_agencyData&&_agencyData.commission||10);
+    var comm = Math.round(price*commPct/100);
+    document.getElementById('b2b-price-display').textContent = price.toLocaleString()+' MAD';
+    document.getElementById('b2b-commission-display').textContent = comm.toLocaleString()+' MAD ('+commPct+'%)';
+  };
+}
+
+function updateB2BCityDropdown(countryId) {
+  var row = document.getElementById('b2b-city-pricing-row');
+  var citySelect = document.getElementById('b2b-city');
+  if (!countryId || !_cityPricesCache[countryId]) { if(row) row.style.display='none'; return; }
+  var cities = _cityPricesCache[countryId].cities||{};
+  citySelect.innerHTML = '<option value="">Selectionner la ville...</option>'
+    + Object.entries(cities).map(function(e){
+        return '<option value="'+e[0]+'" data-price="'+e[1]+'">'+e[0]+' — '+(e[1]||0).toLocaleString()+' MAD</option>';
+      }).join('');
+  if (row) row.style.display = 'block';
+}
+
+window.updateB2BCityPrice = function() {
+  var sel = document.getElementById('b2b-city');
+  var opt = sel.options[sel.selectedIndex];
+  var display = document.getElementById('b2b-city-price-display');
+  var val = document.getElementById('b2b-city-price-val');
+  if (opt && opt.dataset.price) {
+    if (display) display.style.display='block';
+    if (val) val.textContent = parseFloat(opt.dataset.price).toLocaleString();
+  } else {
+    if (display) display.style.display='none';
   }
 };
+
+window.submitB2BApplication = async function() {
+  if (!_agencyData) { showNotif('⚠️','Erreur: donnees agence introuvables'); return; }
+  if (_agencyData.status==='suspended') { showNotif('🚫','Compte suspendu'); return; }
+  var fname = document.getElementById('b2b-fname').value.trim();
+  var lname = document.getElementById('b2b-lname').value.trim();
+  var phone = document.getElementById('b2b-phone').value.trim();
+  var destEl = document.getElementById('b2b-dest');
+  var destText = destEl.options[destEl.selectedIndex] ? destEl.options[destEl.selectedIndex].text : '';
+  var pkgSel = document.getElementById('b2b-package');
+  var pkgOpt = pkgSel.options[pkgSel.selectedIndex];
+  if (!fname) { showNotif('⚠️','Prenom client requis'); return; }
+  if (!phone) { showNotif('⚠️','Telephone requis'); return; }
+  if (!destEl.value) { showNotif('⚠️','Destination requise'); return; }
+  if (!pkgSel.value) { showNotif('⚠️','Selectionnez un service'); return; }
+  var price = parseFloat(pkgOpt.dataset.price)||0;
+  var commPct = parseFloat(pkgOpt.dataset.commission)||(_agencyData.commission||10);
+  var cityEl = document.getElementById('b2b-city');
+  var cityOpt = cityEl.options[cityEl.selectedIndex];
+  var cityPrice = (cityOpt && cityOpt.dataset.price) ? parseFloat(cityOpt.dataset.price) : 0;
+  var finalTotal = price + (cityPrice>0 ? cityPrice : 0);
+  var finalComm = Math.round(finalTotal*commPct/100);
+  var ref = 'EVP-'+new Date().getFullYear()+'-'+Math.floor(1000+Math.random()*9000);
+  var data = {
+    ref:ref, firstName:fname, lastName:lname,
+    email:document.getElementById('b2b-email').value.trim(),
+    phone:phone, destination:destText,
+    visaType:document.getElementById('b2b-visa-type').value,
+    travelDate:document.getElementById('b2b-travel-date').value,
+    passport:document.getElementById('b2b-passport').value.trim(),
+    notes:document.getElementById('b2b-notes').value.trim(),
+    package:pkgOpt.text.split(' — ')[0], total:finalTotal,
+    city:cityOpt?cityOpt.value:'', cityRdvPrice:cityPrice,
+    agencyId:_agencyData.id, agencyName:_agencyData.name,
+    agencyCommission:finalComm, agencyCommissionPct:commPct,
+    source:'b2b', status:'pending',
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try {
+    await db.collection('applications').add(data);
+    showNotif('✅','Dossier soumis — Ref: '+ref);
+    ['b2b-fname','b2b-lname','b2b-email','b2b-phone','b2b-passport','b2b-notes'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('b2b-dest').value='';
+    document.getElementById('b2b-package').value='';
+    document.getElementById('b2b-city-pricing-row').style.display='none';
+    showB2BTab('overview');
+  } catch(e) { showNotif('⚠️','Erreur: '+e.message); }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  ENHANCED RECEIPT PDF
+// ══════════════════════════════════════════════════════════════════
 
 window.closeReceipt = function() {
   var modal = document.getElementById('receipt-modal');
@@ -4180,6 +4657,10 @@ window.deleteAgency = function(i) {
   if (full)  document.querySelectorAll('#opt-full .price').forEach(function(e){e.textContent=full+' MAD';});
 })();
 
+
+// ── Startup ──
+startServicesListener();
+startCityPricesListener();
 </script>
 <!-- ═══════════════════════════════════════════ -->
 <!--  RECEIPT MODAL                              -->
@@ -4300,6 +4781,46 @@ window.deleteAgency = function(i) {
 
 
 
+
+<!-- ADD SERVICE MODAL -->
+<div id="add-service-modal" class="b2b-modal-backdrop">
+  <div class="b2b-modal" style="max-width:560px">
+    <div class="b2b-modal-head">
+      <div style="color:#fff;font-size:15px;font-weight:700" id="service-modal-title">Nouveau service</div>
+      <button onclick="document.getElementById('add-service-modal').classList.remove('open')" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px">✕</button>
+    </div>
+    <div class="b2b-modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="company-field-group" style="grid-column:1/-1"><label>Nom du service *</label><input type="text" id="svc-name" placeholder="Ex: Appointment Only"></div>
+        <div class="company-field-group" style="grid-column:1/-1"><label>Description</label><input type="text" id="svc-desc" placeholder="Description courte..."></div>
+        <div class="company-field-group"><label>Icône (emoji)</label><input type="text" id="svc-icon" placeholder="📅" style="font-size:20px;text-align:center"></div>
+        <div class="company-field-group"><label>Catégorie</label>
+          <select id="svc-category" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+            <option value="package">Package principal</option>
+            <option value="addon">Service additionnel</option>
+            <option value="rdv">Rendez-vous</option>
+          </select>
+        </div>
+        <div class="company-field-group"><label>Prix affiché client (MAD) *</label><input type="number" id="svc-price" placeholder="500" min="0"></div>
+        <div class="company-field-group"><label>🔒 Coût interne (MAD)</label><input type="number" id="svc-cost" placeholder="150" min="0"></div>
+        <div class="company-field-group"><label>🔒 Commission agences (%)</label><input type="number" id="svc-commission" placeholder="10" min="0" max="100" value="10"></div>
+        <div class="company-field-group"><label>Visible clients</label>
+          <select id="svc-visible" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+            <option value="true">✅ Oui — affiché</option>
+            <option value="false">🙈 Non — masqué</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:#FEF3C7;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin:12px 0">
+        🔒 <strong>Coût interne et commission</strong> : visibles uniquement dans votre panneau admin.
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button onclick="saveService()" class="btn-gold" style="flex:1;padding:11px;border-radius:8px;font-size:13px">💾 Enregistrer</button>
+        <button onclick="document.getElementById('add-service-modal').classList.remove('open')" style="flex:1;background:var(--cream2);color:var(--navy);border:1px solid var(--border);border-radius:8px;padding:11px;font-family:inherit;font-size:13px;cursor:pointer">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ADD AD MODAL -->
 <div id="add-ad-modal" class="b2b-modal-backdrop">
