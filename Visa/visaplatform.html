@@ -1478,6 +1478,7 @@ firebase.auth().onAuthStateChanged(function(){}, function(e){
 // ══════════════════════════════════════════
 const ADMIN_EMAIL = 'user@admin.com';
 let isAdmin = false;
+var _agencyData = null;       // set when a B2B agency logs in
 let allApplications = [];
 let allUsers = [];
 let currentDrawerApp = null;
@@ -1728,18 +1729,41 @@ window.doLogin = async function() {
       showNotif('🔐', 'Signed in as Admin');
       setTimeout(() => showPage('admin'), 300);
     } else {
-      // Check if this user is a B2B agency
+      // Check if this user is a B2B agency — check BEFORE navigating
       showNotif('✅', 'Connexion réussie…');
       try {
         var agSnap = await db.collection('agencies').where('email','==',email).get();
         if (!agSnap.empty) {
-          // B2B agency — portal will open via onAuthStateChanged → loadB2BPortal
-          // No need to do anything else; the auth listener handles it
+          // B2B agency — load portal directly here
+          var agDoc = agSnap.docs[0];
+          _agencyData = Object.assign({id: agDoc.id}, agDoc.data());
+          // Switch to B2B page
+          document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+          document.getElementById('page-b2b').classList.add('active');
+          var initials = (_agencyData.name||'AG').slice(0,2).toUpperCase();
+          document.getElementById('b2b-avatar').textContent      = initials;
+          document.getElementById('b2b-agency-name').textContent = _agencyData.name||'Agence';
+          document.getElementById('b2b-agency-email').textContent= email;
+          document.getElementById('b2b-today').textContent       = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+          document.getElementById('nav-login-btn').style.display  = 'none';
+          document.getElementById('user-badge').style.display     = 'flex';
+          document.getElementById('nav-dash-btn').style.display   = 'none';
+          document.getElementById('nav-admin-btn').style.display  = 'none';
+          document.getElementById('user-avatar').textContent      = initials;
+          document.getElementById('user-name-nav').textContent    = _agencyData.name||'Agence';
+          if (_agencyData.status === 'suspended') {
+            var banner = document.getElementById('b2b-suspended-banner');
+            if (banner) banner.style.display = 'block';
+          }
+          window.scrollTo(0,0);
+          loadB2BOverview();
+          showNotif('🤝', 'Bienvenue, '+(_agencyData.name||'Agence')+'!');
         } else {
-          setTimeout(() => showPage('dashboard'), 300);
+          setTimeout(function(){ showPage('dashboard'); }, 300);
         }
       } catch(e) {
-        setTimeout(() => showPage('dashboard'), 300);
+        console.error('[LOGIN] B2B check error:', e);
+        setTimeout(function(){ showPage('dashboard'); }, 300);
       }
     }
   } catch(e) {
@@ -1985,7 +2009,7 @@ window.submitApplication = async function() {
       var nm=document.getElementById('name-'+k); if(nm){nm.style.display='none';nm.textContent='';}
     });
     currentStep=1; nextStep(0);
-    // Show receipt modal immediately
+    // Show receipt modal — always, even if email/WA had issues
     window.showReceipt({
       ref: ref,
       firstName: fn,
@@ -2002,8 +2026,22 @@ window.submitApplication = async function() {
       total: data.total
     });
   } catch(e) {
-    showNotif('⚠️','Error: '+e.message);
-    console.error(e);
+    console.error('[SUBMIT] Error:', e);
+    // Still show receipt — the application may have been saved
+    showNotif('⚠️','Note: '+e.message);
+    try {
+      window.showReceipt({
+        ref: ref||('EVP-'+Date.now()),
+        firstName: fn, lastName: ln, email: email,
+        phone: document.getElementById('phone').value||'',
+        nationality: document.getElementById('nationality').value||'',
+        destination: document.getElementById('dest-country').value||'',
+        visaType: document.getElementById('visa-type').value||'',
+        package: pkgName||'', travelDate: document.getElementById('travel-date').value||'',
+        numApplicants: document.getElementById('num-applicants').value||'1',
+        addons: [], total: pkgPrice+addonTotal
+      });
+    } catch(e2) { console.error('[RECEIPT] showReceipt error:', e2); }
   }
 };
 
@@ -2784,7 +2822,7 @@ function friendlyError(code) {
 // ══════════════════════════════════════════════════════════════════
 var _servicesCache = [];
 var _cityPricesCache = {};
-var _agencyData = null;
+// _agencyData declared at top of script
 var _b2bApps = [];
 
 function startServicesListener() {
