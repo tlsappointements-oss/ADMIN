@@ -230,6 +230,8 @@ tr:hover td{background:var(--cream)}
 /* ADMIN PANEL */
 #page-admin{display:none}
 #page-admin.active{display:block}
+#page-b2b{display:none}
+#page-b2b.active{display:block}
 .admin-layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 64px)}
 .admin-sidebar{background:#0D1B2A;padding:20px 14px;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto}
 .admin-brand{display:flex;align-items:center;gap:8px;padding:10px 10px 20px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:16px}
@@ -784,6 +786,146 @@ tr:hover td{background:var(--cream)}
         <h2 style="font-family:'DM Serif Display',serif;margin-bottom:20px">All Applications</h2>
         <div class="table-card"><div id="all-apps-table"><div style="padding:32px;text-align:center;color:var(--muted);font-size:14px">No applications found.</div></div></div>
       </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- B2B AGENCY PORTAL -->
+<div id="page-b2b" class="page">
+  <div class="dash-layout">
+    <div class="dash-sidebar">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="b2b-avatar">AG</div>
+        <div class="sidebar-user-info">
+          <h4 id="b2b-agency-name">Agence</h4>
+          <p id="b2b-agency-email" style="font-size:11px;color:var(--muted)"></p>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li><a onclick="showB2BTab('overview')" class="active">🏠 Vue d'ensemble</a></li>
+        <li><a onclick="showB2BTab('applications')">📋 Mes Dossiers</a></li>
+        <li><a onclick="showB2BTab('commissions')">💰 Mes Commissions</a></li>
+        <li><a onclick="showB2BTab('newapp')">➕ Nouveau Dossier</a></li>
+        <li><a onclick="showB2BTab('prices')">🏷️ Tarifs</a></li>
+        <li><a onclick="doLogOut()">🚪 Déconnexion</a></li>
+      </ul>
+    </div>
+    <div class="dash-main">
+      <p id="b2b-today" style="color:var(--muted);font-size:13px;margin-bottom:20px"></p>
+
+      <!-- SUSPENDED BANNER -->
+      <div id="b2b-suspended-banner" style="display:none;background:#FEE2E2;border:1px solid #FECACA;border-radius:12px;padding:16px 20px;margin-bottom:20px;color:#991b1b;font-size:14px">
+        🚫 <strong>Compte suspendu.</strong> Contactez EuroVisa Pro pour plus d'informations.
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div id="b2btab-overview" class="b2btab">
+        <div class="dash-greeting"><h2 style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--navy)">Portail Partenaire 🤝</h2></div>
+        <div class="dash-cards">
+          <div class="dash-card"><div class="dash-card-icon">📋</div><div class="dash-card-num" id="b2b-total">0</div><div class="dash-card-lbl">Total Dossiers</div></div>
+          <div class="dash-card"><div class="dash-card-icon">⏳</div><div class="dash-card-num" id="b2b-pending">0</div><div class="dash-card-lbl">En cours</div></div>
+          <div class="dash-card"><div class="dash-card-icon">✅</div><div class="dash-card-num" id="b2b-approved">0</div><div class="dash-card-lbl">Approuvés</div></div>
+          <div class="dash-card"><div class="dash-card-icon">💰</div><div class="dash-card-num" id="b2b-commission-total">0</div><div class="dash-card-lbl">Commission MAD</div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><h3>Dossiers récents</h3><button class="btn-gold" style="font-size:12px;padding:7px 14px" onclick="showB2BTab('newapp')">+ Nouveau</button></div>
+          <div id="b2b-recent-table"><div style="padding:24px;text-align:center;color:var(--muted);font-size:14px">Aucun dossier pour le moment.</div></div>
+        </div>
+      </div>
+
+      <!-- APPLICATIONS TAB -->
+      <div id="b2btab-applications" class="b2btab" style="display:none">
+        <h2 style="font-family:'DM Serif Display',serif;margin-bottom:20px">Tous mes dossiers</h2>
+        <div class="table-card"><div id="b2b-all-apps-table"><div style="padding:24px;text-align:center;color:var(--muted)">Aucun dossier.</div></div></div>
+      </div>
+
+      <!-- COMMISSIONS TAB -->
+      <div id="b2btab-commissions" class="b2btab" style="display:none">
+        <h2 style="font-family:'DM Serif Display',serif;margin-bottom:20px">💰 Mes Commissions</h2>
+        <div class="table-card" style="padding:20px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:20px">
+            <div class="dash-card"><div class="dash-card-icon">💰</div><div class="dash-card-num" id="b2b-comm-total">0 MAD</div><div class="dash-card-lbl">Total gagné</div></div>
+            <div class="dash-card"><div class="dash-card-icon">⏳</div><div class="dash-card-num" id="b2b-comm-pending">0 MAD</div><div class="dash-card-lbl">En attente</div></div>
+            <div class="dash-card"><div class="dash-card-icon">✅</div><div class="dash-card-num" id="b2b-comm-paid">0 MAD</div><div class="dash-card-lbl">Versé</div></div>
+          </div>
+          <div id="b2b-commissions-table"><div style="text-align:center;color:var(--muted);padding:24px">Aucune commission.</div></div>
+        </div>
+      </div>
+
+      <!-- NEW APPLICATION TAB -->
+      <div id="b2btab-newapp" class="b2btab" style="display:none">
+        <h2 style="font-family:'DM Serif Display',serif;margin-bottom:4px">Nouveau dossier client</h2>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Soumis au nom de votre agence.</p>
+        <div class="form-card" style="max-width:760px">
+          <div class="form-body">
+            <div class="form-row">
+              <div class="form-group"><label>Pays de destination *</label>
+                <select id="b2b-dest" onchange="updateB2BCityDropdown(this.value)" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+                  <option value="">Sélectionner...</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Type de visa *</label>
+                <select id="b2b-visa-type" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+                  <option value="">Sélectionner...</option>
+                  <option>Tourist / Leisure (Type C)</option>
+                  <option>Business (Type C)</option>
+                  <option>Family Visit (Type C)</option>
+                  <option>Student (Type C)</option>
+                  <option>Medical Treatment (Type C)</option>
+                  <option>Transit (Type A/B)</option>
+                  <option>Long Stay / National Visa (Type D)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Prénom client *</label><input type="text" id="b2b-fname" placeholder="Prénom"></div>
+              <div class="form-group"><label>Nom client *</label><input type="text" id="b2b-lname" placeholder="Nom"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Email client</label><input type="email" id="b2b-email" placeholder="client@email.com"></div>
+              <div class="form-group"><label>Téléphone *</label><input type="tel" id="b2b-phone" placeholder="+212 6..."></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Date de voyage</label><input type="date" id="b2b-travel-date"></div>
+              <div class="form-group"><label>Passeport</label><input type="text" id="b2b-passport" placeholder="AB123456"></div>
+            </div>
+            <div class="form-group" style="margin-bottom:16px"><label>Service / Package *</label>
+              <select id="b2b-package" onchange="updateB2BPriceDisplay()" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+                <option value="">Choisir un service...</option>
+              </select>
+            </div>
+            <div id="b2b-city-pricing-row" style="display:none;margin-bottom:16px">
+              <div class="form-group"><label>🏙️ Ville de rendez-vous</label>
+                <select id="b2b-city" onchange="updateB2BCityPrice()" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+                  <option value="">Sélectionner la ville...</option>
+                </select>
+              </div>
+              <div id="b2b-city-price-display" style="display:none;margin-top:8px;padding:10px 14px;background:var(--cream);border-radius:8px;font-size:13px">
+                Prix RDV dans cette ville : <strong id="b2b-city-price-val">—</strong> MAD
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom:16px"><label>Notes</label>
+              <textarea id="b2b-notes" rows="3" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%;resize:vertical" placeholder="Informations complémentaires..."></textarea>
+            </div>
+            <div style="background:var(--cream);border-radius:10px;padding:14px 18px;margin-bottom:16px">
+              <div style="display:flex;justify-content:space-between;font-size:13px"><span>Tarif client :</span><span id="b2b-price-display" style="font-weight:700;color:var(--gold)">—</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span style="color:var(--muted)">Votre commission :</span><span id="b2b-commission-display" style="font-weight:700;color:#1B7A4A">—</span></div>
+            </div>
+            <button class="btn-gold" onclick="submitB2BApplication()" style="padding:12px 28px;font-size:14px;border-radius:8px">✅ Soumettre le dossier</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRICES TAB -->
+      <div id="b2btab-prices" class="b2btab" style="display:none">
+        <h2 style="font-family:'DM Serif Display',serif;margin-bottom:4px">Tarifs &amp; Services</h2>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Tarifs actuels applicables à vos clients.</p>
+        <div id="b2b-prices-grid" class="services-grid" style="margin-bottom:32px"></div>
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:16px">🏙️ Tarifs RDV par ville</h3>
+        <div id="b2b-city-prices-grid"></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1799,8 +1941,15 @@ window.doRegister = async function() {
 window.doLogOut = async function() {
   await auth.signOut();
   isAdmin = false;
+  _agencyData = null;
+  // Hide B2B page, restore nav
+  document.getElementById('page-b2b').classList.remove('active');
+  document.getElementById('nav-login-btn').style.display  = 'inline-block';
+  document.getElementById('user-badge').style.display     = 'none';
+  document.getElementById('nav-dash-btn').style.display   = 'none';
+  document.getElementById('nav-admin-btn').style.display  = 'none';
   showPage('home');
-  showNotif('👋','Signed out successfully');
+  showNotif('👋', 'Déconnecté avec succès');
 };
 
 // ══════════════════════════════════════════
@@ -3265,6 +3414,23 @@ function updateB2BCityDropdown(countryId) {
       }).join('');
   if (row) row.style.display = 'block';
 }
+
+window.updateB2BPriceDisplay = function() {
+  var sel = document.getElementById('b2b-package');
+  var opt = sel ? sel.options[sel.selectedIndex] : null;
+  var priceEl = document.getElementById('b2b-price-display');
+  var commEl  = document.getElementById('b2b-commission-display');
+  if (!opt || !opt.dataset.price) {
+    if (priceEl) priceEl.textContent = '—';
+    if (commEl)  commEl.textContent  = '—';
+    return;
+  }
+  var price   = parseFloat(opt.dataset.price) || 0;
+  var commPct = parseFloat(opt.dataset.commission) || (_agencyData && _agencyData.commission) || 10;
+  var comm    = Math.round(price * commPct / 100);
+  if (priceEl) priceEl.textContent = price.toLocaleString() + ' MAD';
+  if (commEl)  commEl.textContent  = comm.toLocaleString() + ' MAD (' + commPct + '%)';
+};
 
 window.updateB2BCityPrice = function() {
   var sel = document.getElementById('b2b-city');
