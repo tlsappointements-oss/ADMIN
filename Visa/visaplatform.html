@@ -1728,8 +1728,19 @@ window.doLogin = async function() {
       showNotif('🔐', 'Signed in as Admin');
       setTimeout(() => showPage('admin'), 300);
     } else {
-      showNotif('✅', 'Signed in successfully!');
-      setTimeout(() => showPage('dashboard'), 300);
+      // Check if this user is a B2B agency
+      showNotif('✅', 'Connexion réussie…');
+      try {
+        var agSnap = await db.collection('agencies').where('email','==',email).get();
+        if (!agSnap.empty) {
+          // B2B agency — portal will open via onAuthStateChanged → loadB2BPortal
+          // No need to do anything else; the auth listener handles it
+        } else {
+          setTimeout(() => showPage('dashboard'), 300);
+        }
+      } catch(e) {
+        setTimeout(() => showPage('dashboard'), 300);
+      }
     }
   } catch(e) {
     console.error('[AUTH] Login error code:', e.code, '| message:', e.message);
@@ -3282,10 +3293,7 @@ window.submitB2BApplication = async function() {
 //  ENHANCED RECEIPT PDF
 // ══════════════════════════════════════════════════════════════════
 
-window.closeReceipt = function() {
-  var modal = document.getElementById('receipt-modal');
-  if (modal) { modal.style.display = 'none'; document.body.style.overflow = ''; }
-};
+
 
 window.downloadReceiptPDF = function() {
   if (!_receiptData) return;
@@ -4254,36 +4262,70 @@ window.addEventListener('DOMContentLoaded', function() {
 // ══════════════════════════════════════════
 //  RECEIPT — show country flag banner
 // ══════════════════════════════════════════
-var _origShowReceipt = window.showReceipt;
+// ── Complete showReceipt — fills modal + stores data for PDF ──
+var _receiptData = null;
+
 window.showReceipt = function(data) {
-  _origShowReceipt(data);
-  // Inject company info from localStorage
-  var coName   = localStorage.getItem('co_name')    || 'EuroVisa Pro';
-  var coPhone  = localStorage.getItem('co_phone')   || '+212 682 652 382';
-  var coEmail  = localStorage.getItem('co_email')   || 'tls.appointements@gmail.com';
-  var coTag    = localStorage.getItem('co_tagline') || 'Services Visa Schengen · Casablanca, Maroc';
-  var coHours  = localStorage.getItem('co_hours')   || 'Lun – Sam  8h – 20h';
-  var s = function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
-  s('rcpt-co-tagline',  coTag);
-  s('rcpt-co-phone',    coPhone);
-  s('rcpt-co-email',    coEmail);
-  s('rcpt-support-phone', coPhone);
-  s('rcpt-support-hours', 'WhatsApp · ' + coHours);
-  s('rcpt-support-email', coEmail);
-  // Date display
-  s('receipt-date-display', new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}));
-  // Country flag banner
-  var dest = data.destination || '';
-  var c = COUNTRIES.find(x => dest.includes(x.name));
-  var banner = document.getElementById('receipt-country-banner');
-  if (c && banner) {
-    banner.style.display = 'flex';
-    s('receipt-country-flag', c.flag);
-    s('receipt-country-name', c.name);
-    s('receipt-country-provider', 'Centre: ' + c.provider + ' · Frais consulaires: ' + c.visaFee);
-  } else if (banner) {
-    banner.style.display = 'none';
+  _receiptData = data;
+  window._lastRef = data.ref;
+
+  var now = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
+          + ' ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+
+  var destClean = (data.destination||'').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
+
+  var s = function(id,val) { var el=document.getElementById(id); if(el) el.textContent=(val||'—'); };
+  s('receipt-ref',        data.ref);
+  s('receipt-name',       (data.firstName||'') + ' ' + (data.lastName||''));
+  s('receipt-email',      data.email);
+  s('receipt-phone',      data.phone);
+  s('receipt-nationality',data.nationality);
+  s('receipt-destination',destClean || data.destination);
+  s('receipt-visatype',   data.visaType);
+  s('receipt-package',    data.package);
+  s('receipt-date-travel',data.travelDate || 'A preciser');
+  s('receipt-travelers',  data.numApplicants || '1');
+  s('receipt-total',      (data.total||0).toLocaleString() + ' MAD');
+  s('receipt-date',       now);
+  s('receipt-email-footer', data.email);
+
+  // Add-ons
+  var addonsRow = document.getElementById('receipt-addons-row');
+  var addonsEl  = document.getElementById('receipt-addons');
+  if (data.addons && data.addons.length && addonsEl) {
+    addonsEl.textContent = data.addons.join(', ');
+    if (addonsRow) addonsRow.style.display = 'block';
+  } else {
+    if (addonsRow) addonsRow.style.display = 'none';
   }
+
+  // Signature & stamp
+  var agentName  = localStorage.getItem('eurovisa_agent_name') || '';
+  var agentSig   = localStorage.getItem('eurovisa_signature')  || '';
+  var agentStamp = localStorage.getItem('eurovisa_stamp')      || '';
+  var sigSection = document.getElementById('receipt-sig-section');
+  if (sigSection) {
+    if (agentName || agentSig || agentStamp) {
+      sigSection.style.display = 'block';
+      var nameEl = document.getElementById('receipt-agent-name');
+      if (nameEl) nameEl.textContent = agentName || 'EuroVisa Pro';
+      var sigImg = document.getElementById('receipt-agent-sig');
+      if (sigImg) { sigImg.src = agentSig; sigImg.style.display = agentSig ? 'block' : 'none'; }
+      var stmpImg = document.getElementById('receipt-company-stamp');
+      if (stmpImg) { stmpImg.src = agentStamp; stmpImg.style.display = agentStamp ? 'block' : 'none'; }
+    } else {
+      sigSection.style.display = 'none';
+    }
+  }
+
+  // Show modal
+  var modal = document.getElementById('receipt-modal');
+  if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+};
+
+window.closeReceipt = function() {
+  var modal = document.getElementById('receipt-modal');
+  if (modal) { modal.style.display = 'none'; document.body.style.overflow = ''; }
 };
 
 // ══════════════════════════════════════════
@@ -4305,7 +4347,7 @@ window.showAdminTab = function(tab) {
   if (tab === 'company')      { loadCompanySettings(); }
   if (tab === 'prices')       { loadPrices(); updateProfitSummary(); }
   if (tab === 'ads')          { renderAds(); }
-  if (tab === 'b2b')          { renderAgencies(); updateB2BStats(); }
+  if (tab === 'b2b')          { loadAgenciesFromFirestore(); }
 };
 
 // ══════════════════════════════════════════
@@ -4512,7 +4554,7 @@ window.deleteAd = function(i) {
 // ══════════════════════════════════════════
 //  B2B AGENCIES
 // ══════════════════════════════════════════
-var _agencies = JSON.parse(localStorage.getItem('evp_agencies') || '[]');
+var _agencies = []; // loaded from Firestore via loadAgenciesFromFirestore()
 var _editingAgencyIdx = -1;
 
 window.renderAgencies = function() {
@@ -4596,47 +4638,113 @@ window.editAgency = function(i) {
   document.getElementById('add-agency-modal').classList.add('open');
 };
 
-window.saveAgency = function() {
-  var name = document.getElementById('agency-name').value.trim();
-  if (!name) { showNotif('⚠️',"Nom de l'agence requis"); return; }
-  var agency = {
+window.saveAgency = async function() {
+  var name   = document.getElementById('agency-name').value.trim();
+  var email  = document.getElementById('agency-email').value.trim();
+  var pwdEl  = document.getElementById('agency-pwd');
+  var pwd    = pwdEl ? pwdEl.value : '';
+  var isNew  = (_editingAgencyIdx < 0);
+
+  if (!name)  { showNotif('⚠️',"Nom de l'agence requis"); return; }
+  if (!email) { showNotif('⚠️',"Email requis"); return; }
+  if (isNew && pwd.length < 6) { showNotif('⚠️',"Mot de passe : minimum 6 caractères"); return; }
+
+  var agencyData = {
     name:       name,
-    email:      document.getElementById('agency-email').value.trim(),
+    email:      email,
     phone:      document.getElementById('agency-phone').value.trim(),
     city:       document.getElementById('agency-city').value.trim(),
     commission: parseInt(document.getElementById('agency-commission').value) || 10,
     status:     document.getElementById('agency-status').value,
-    access_clients:     document.getElementById('agency-access-clients').checked,
-    access_commissions: document.getElementById('agency-access-commissions').checked,
-    access_status:      document.getElementById('agency-access-status').checked,
-    clients:    _editingAgencyIdx >= 0 ? (_agencies[_editingAgencyIdx].clients||0) : 0,
-    revenue:    _editingAgencyIdx >= 0 ? (_agencies[_editingAgencyIdx].revenue||0) : 0,
-    commission_paid: _editingAgencyIdx >= 0 ? (_agencies[_editingAgencyIdx].commission_paid||0) : 0
+    access: {
+      clients:     document.getElementById('agency-access-clients').checked,
+      commissions: document.getElementById('agency-access-commissions').checked,
+      status:      document.getElementById('agency-access-status').checked,
+    },
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  if (_editingAgencyIdx >= 0) { _agencies[_editingAgencyIdx] = agency; } else { _agencies.push(agency); }
-  localStorage.setItem('evp_agencies', JSON.stringify(_agencies));
-  document.getElementById('add-agency-modal').classList.remove('open');
-  renderAgencies();
-  updateB2BStats();
-  showNotif('✅', 'Agence enregistrée');
+
+  try {
+    if (isNew) {
+      // 1. Create Firebase Auth account for the agency
+      showNotif('⏳', 'Création du compte agence...');
+      // We use a secondary approach: use REST API to create user without signing out admin
+      var apiKey = 'AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs';
+      var resp = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + apiKey, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: pwd, returnSecureToken: false })
+      });
+      var result = await resp.json();
+      if (result.error) {
+        var msg = result.error.message || 'Erreur création compte';
+        if (msg.includes('EMAIL_EXISTS')) msg = 'Cet email est déjà utilisé.';
+        if (msg.includes('WEAK_PASSWORD')) msg = 'Mot de passe trop faible (min. 6 caractères).';
+        showNotif('⚠️', msg);
+        return;
+      }
+      // 2. Save to Firestore agencies collection
+      agencyData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      agencyData.clients   = 0;
+      agencyData.revenue   = 0;
+      agencyData.commission_paid = 0;
+      await db.collection('agencies').add(agencyData);
+      showNotif('✅', 'Agence créée ! Email: ' + email);
+    } else {
+      // Edit existing — update Firestore doc
+      var docId = _agencies[_editingAgencyIdx] && _agencies[_editingAgencyIdx]._id;
+      if (docId) {
+        await db.collection('agencies').doc(docId).update(agencyData);
+        showNotif('✅', 'Agence mise à jour');
+      } else {
+        // Fallback: find by email
+        var snap = await db.collection('agencies').where('email','==',email).get();
+        if (!snap.empty) await snap.docs[0].ref.update(agencyData);
+        showNotif('✅', 'Agence mise à jour');
+      }
+    }
+
+    // Reload agencies from Firestore
+    document.getElementById('add-agency-modal').classList.remove('open');
+    if (pwdEl) pwdEl.value = '';
+    await loadAgenciesFromFirestore();
+  } catch(e) {
+    console.error('[saveAgency]', e);
+    showNotif('⚠️', 'Erreur: ' + e.message);
+  }
 };
 
-window.toggleAgencyStatus = function(i) {
+async function loadAgenciesFromFirestore() {
+  try {
+    var snap = await db.collection('agencies').get();
+    _agencies = [];
+    snap.forEach(function(d) { _agencies.push(Object.assign({ _id: d.id }, d.data())); });
+    _agencies.sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+    renderAgencies();
+    updateB2BStats();
+  } catch(e) { console.error('[loadAgencies]', e); }
+}
+
+window.toggleAgencyStatus = async function(i) {
   var a = _agencies[i];
-  a.status = (a.status === 'active') ? 'suspended' : 'active';
-  localStorage.setItem('evp_agencies', JSON.stringify(_agencies));
-  renderAgencies();
-  updateB2BStats();
-  showNotif(a.status === 'active' ? '✅' : '🚫', a.name + ' — statut mis à jour');
+  var newStatus = (a.status === 'active') ? 'suspended' : 'active';
+  try {
+    if (a._id) await db.collection('agencies').doc(a._id).update({ status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    a.status = newStatus;
+    renderAgencies(); updateB2BStats();
+    showNotif(newStatus === 'active' ? '✅' : '🚫', a.name + ' — statut mis à jour');
+  } catch(e) { showNotif('⚠️', e.message); }
 };
 
-window.deleteAgency = function(i) {
-  if (!confirm("Supprimer l'agence " + _agencies[i].name + " ?")) return;
-  _agencies.splice(i, 1);
-  localStorage.setItem('evp_agencies', JSON.stringify(_agencies));
-  renderAgencies();
-  updateB2BStats();
-  showNotif('🗑', 'Agence supprimée');
+window.deleteAgency = async function(i) {
+  var a = _agencies[i];
+  if (!confirm("Supprimer l'agence " + a.name + " ?")) return;
+  try {
+    if (a._id) await db.collection('agencies').doc(a._id).delete();
+    _agencies.splice(i, 1);
+    renderAgencies(); updateB2BStats();
+    showNotif('🗑', 'Agence supprimée');
+  } catch(e) { showNotif('⚠️', e.message); }
 };
 
 // Load prices on page init
@@ -4860,6 +4968,7 @@ startCityPricesListener();
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div class="company-field-group" style="grid-column:1/-1"><label>Nom de l'agence *</label><input type="text" id="agency-name" placeholder="Ex: Voyage Express Maroc"></div>
         <div class="company-field-group"><label>Email d'accès *</label><input type="email" id="agency-email" placeholder="contact@agence.ma"></div>
+        <div class="company-field-group"><label>🔑 Mot de passe *</label><input type="password" id="agency-pwd" placeholder="Min. 6 caractères" autocomplete="new-password"></div>
         <div class="company-field-group"><label>Téléphone</label><input type="text" id="agency-phone" placeholder="+212 6XX XXX XXX"></div>
         <div class="company-field-group"><label>Ville</label><input type="text" id="agency-city" placeholder="Casablanca"></div>
         <div class="company-field-group"><label>Commission (%)</label><input type="number" id="agency-commission" placeholder="10" min="0" max="50" value="10"></div>
