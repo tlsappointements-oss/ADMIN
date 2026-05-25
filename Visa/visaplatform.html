@@ -1621,6 +1621,7 @@ firebase.auth().onAuthStateChanged(function(){}, function(e){
 const ADMIN_EMAIL = 'user@admin.com';
 let isAdmin = false;
 var _agencyData = null;       // set when a B2B agency logs in
+var _settingsCache = {};      // real-time Firestore settings cache
 let allApplications = [];
 let allUsers = [];
 let currentDrawerApp = null;
@@ -2888,13 +2889,22 @@ window.testGasEmail = async function() {
 };
 window.saveSmtpConfig = function() { showNotif('✅','Configuration active.'); };
 
-window.saveUltraConfig = function() {
-  var instanceId = document.getElementById('ultramsg-instance')?.value.trim();
-  var token      = document.getElementById('ultramsg-token')?.value.trim();
+window.saveUltraConfig = async function() {
+  var instanceId = document.getElementById('ultramsg-instance') ? document.getElementById('ultramsg-instance').value.trim() : '';
+  var token      = document.getElementById('ultramsg-token')    ? document.getElementById('ultramsg-token').value.trim()    : '';
   if (!instanceId || !token) { showNotif('⚠️','Entrez Instance ID et Token'); return; }
-  localStorage.setItem('ultramsg-config', JSON.stringify({instanceId:instanceId, token:token}));
-  showNotif('✅','WhatsApp UltraMsg configuré et actif!');
+  try {
+    await db.collection('settings').doc('whatsapp').set({instanceId:instanceId, token:token, updatedAt:firebase.firestore.FieldValue.serverTimestamp()}, {merge:true});
+    localStorage.setItem('ultramsg-config', JSON.stringify({instanceId:instanceId, token:token}));
+    showNotif('✅','WhatsApp UltraMsg synchronisé !');
+  } catch(e) { showNotif('⚠️','Erreur: '+e.message); }
 };
+
+function applyWhatsappSettings() {
+  var w = _settingsCache.whatsapp || {};
+  if (w.instanceId) { var el=document.getElementById('ultramsg-instance'); if(el) el.value=w.instanceId; localStorage.setItem('ultramsg-config', JSON.stringify({instanceId:w.instanceId, token:w.token||''})); }
+  if (w.token)      { var el2=document.getElementById('ultramsg-token');    if(el2) el2.value=w.token; }
+}
 
 
 function loadSmtpConfig() {
@@ -3191,7 +3201,7 @@ function renderServicesAdmin() {
 // ══════════════════════════════════════════════════════════════════
 //  CITY PRICES ADMIN
 // ══════════════════════════════════════════════════════════════════
-var CITIES_LIST = ['Casablanca','Rabat','Marrakech','Fes','Tanger','Tetouan','Agadir','Oujda','Meknes','Laayoune'];
+var CITIES_LIST = ['Casablanca','Rabat','Marrakech','Fès','Tanger','Tétouan','Agadir','Oujda','Meknès','Laâyoune','Nador','Al Hoceima','Beni Mellal','Kénitra','Settat','Mohammedia','El Jadida','Essaouira','Ouarzazate','Dakhla'];
 
 function renderCityPricesAdmin() {
   var el = document.getElementById('city-prices-editor');
@@ -3233,7 +3243,7 @@ window.saveCityPrices = async function() {
   try {
     var batch = db.batch();
     Object.keys(updates).forEach(function(cid) {
-      batch.update(db.collection('city_prices').doc(cid), {cities:updates[cid], updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      batch.set(db.collection('city_prices').doc(cid), {cities:updates[cid], updatedAt:firebase.firestore.FieldValue.serverTimestamp()}, {merge:true});
     });
     await batch.commit();
     showNotif('✅','Prix par ville enregistres en temps reel !');
@@ -3579,13 +3589,14 @@ window.downloadReceiptPDF = function() {
         + '<li>Depot du dossier et suivi jusqu\'a la decision</li>'
       + '</ol></div>'
     + '</div>'
-    + '<div class="foot"><span>EuroVisa Pro &middot; Casablanca, Maroc</span><span>tls.appointements@gmail.com &middot; +212 682 652 382</span></div>'
+    + '<div class="foot"><span>'+((_settingsCache.company&&_settingsCache.company.name)||'EuroVisa Pro')+' &middot; '+((_settingsCache.company&&_settingsCache.company.address)||'Casablanca, Maroc')+'</span><span>'+((_settingsCache.company&&_settingsCache.company.email)||'tls.appointements@gmail.com')+' &middot; '+((_settingsCache.company&&_settingsCache.company.phone)||'+212 682 652 382')+'</span></div>'
     + '</div>';
 
-  // ── Inject signature & stamp if available ──
-  var agentName  = localStorage.getItem('eurovisa_agent_name')  || '';
-  var agentSig   = localStorage.getItem('eurovisa_signature')   || '';
-  var agentStamp = localStorage.getItem('eurovisa_stamp')       || '';
+  // ── Inject signature & stamp — read from Firestore cache (synced everywhere) ──
+  var _sigData   = (_settingsCache && _settingsCache.signature) || {};
+  var agentName  = _sigData.name  || localStorage.getItem('eurovisa_agent_name')  || '';
+  var agentSig   = _sigData.sig   || localStorage.getItem('eurovisa_signature')   || '';
+  var agentStamp = _sigData.stamp || localStorage.getItem('eurovisa_stamp')       || '';
   if (agentName || agentSig || agentStamp) {
     var sigHtml = '<div style="border-top:1.5px solid #EAEAE6;margin:12px 20px 0;padding:10px 0 4px;display:flex;justify-content:space-between;align-items:flex-end;min-height:68px">'
       + '<div>'
@@ -3888,39 +3899,50 @@ window.generateAutoStamp = function() {
   showNotif('✅', 'Cachet automatique généré !');
 };
 
-window.saveSignatureSettings = function() {
+window.saveSignatureSettings = async function() {
   var name = (document.getElementById('sig-agent-name') || {}).value || '';
 
-  // Signature: from canvas if drawn, else keep existing saved value
   var sig = '';
   if (_sigCanvas && _sigHasMark) {
     sig = _sigCanvas.toDataURL('image/png');
   } else {
-    sig = localStorage.getItem('eurovisa_signature') || '';
+    sig = (_settingsCache.signature && _settingsCache.signature.sig) || localStorage.getItem('eurovisa_signature') || '';
   }
 
-  // Stamp: read from preview img safely
   var si     = document.getElementById('stamp-preview-img');
   var rawSrc = si ? si.getAttribute('src') : '';
   var stamp  = (si && si.style.display !== 'none' && rawSrc &&
                 (rawSrc.startsWith('data:') || rawSrc.startsWith('blob:')))
-               ? rawSrc : '';
+               ? rawSrc : ((_settingsCache.signature && _settingsCache.signature.stamp) || localStorage.getItem('eurovisa_stamp') || '');
 
-  // Persist
-  if (name)  localStorage.setItem('eurovisa_agent_name', name);
-  else       localStorage.removeItem('eurovisa_agent_name');
-  if (sig)   localStorage.setItem('eurovisa_signature', sig);
-  else       localStorage.removeItem('eurovisa_signature');
-  if (stamp) localStorage.setItem('eurovisa_stamp', stamp);
-  else       localStorage.removeItem('eurovisa_stamp');
+  var data = { name: name, sig: sig, stamp: stamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 
-  // Update chips
-  _sigStatusChip(!!sig);
-  var sc = document.getElementById('stamp-status-chip');
-  if (sc) sc.style.display = stamp ? 'block' : 'none';
+  try {
+    await db.collection('settings').doc('signature').set(data, {merge:true});
+    // Keep localStorage in sync for same-device receipt rendering
+    if (name)  localStorage.setItem('eurovisa_agent_name', name);
+    if (sig)   localStorage.setItem('eurovisa_signature',  sig);
+    if (stamp) localStorage.setItem('eurovisa_stamp',      stamp);
 
-  showNotif('✅', 'Signature et cachet enregistrés !');
+    _sigStatusChip(!!sig);
+    var sc = document.getElementById('stamp-status-chip');
+    if (sc) sc.style.display = stamp ? 'block' : 'none';
+
+    showNotif('✅', 'Signature et cachet synchronisés sur tout le site !');
+  } catch(e) { showNotif('⚠️','Erreur: '+e.message); }
 };
+
+// Apply signature from Firestore cache to localStorage + UI
+function applySignatureSettings() {
+  var s = _settingsCache.signature || {};
+  if (s.name)  { localStorage.setItem('eurovisa_agent_name', s.name); var el=document.getElementById('sig-agent-name'); if(el) el.value=s.name; }
+  if (s.sig)   { localStorage.setItem('eurovisa_signature',  s.sig);  _sigStatusChip && _sigStatusChip(true); }
+  if (s.stamp) { localStorage.setItem('eurovisa_stamp',      s.stamp);
+    var si=document.getElementById('stamp-preview-img');
+    if (si) { si.src=s.stamp; si.style.display='block'; }
+    var sc=document.getElementById('stamp-status-chip'); if(sc) sc.style.display='block';
+  }
+}
 
 window.saveLocalAdminPwd = function() {
   var el  = document.getElementById('local-admin-pwd-input');
@@ -4504,9 +4526,10 @@ window.showReceipt = function(data) {
   }
 
   // Signature & stamp
-  var agentName  = localStorage.getItem('eurovisa_agent_name') || '';
-  var agentSig   = localStorage.getItem('eurovisa_signature')  || '';
-  var agentStamp = localStorage.getItem('eurovisa_stamp')      || '';
+  var _sig       = (_settingsCache && _settingsCache.signature) || {};
+  var agentName  = _sig.name  || localStorage.getItem('eurovisa_agent_name') || '';
+  var agentSig   = _sig.sig   || localStorage.getItem('eurovisa_signature')  || '';
+  var agentStamp = _sig.stamp || localStorage.getItem('eurovisa_stamp')      || '';
   var sigSection = document.getElementById('receipt-sig-section');
   if (sigSection) {
     if (agentName || agentSig || agentStamp) {
@@ -4552,72 +4575,114 @@ window.showAdminTab = function(tab) {
   if (tab === 'prices')       { loadPrices(); updateProfitSummary(); }
   if (tab === 'ads')          { renderAds(); }
   if (tab === 'b2b')          { loadAgenciesFromFirestore(); }
+  if (tab === 'services-mgmt'){ renderServicesAdmin(); }
+  if (tab === 'city-prices')  { renderCityPricesAdmin(); }
 };
 
 // ══════════════════════════════════════════
-//  COMPANY SETTINGS
+//  SETTINGS — ALL IN FIRESTORE (real-time sync everywhere)
+//  Docs: settings/company, settings/prices, settings/signature
 // ══════════════════════════════════════════
-var CO_FIELDS = [
-  ['co-name','co_name'],['co-address','co_address'],['co-phone','co_phone'],
-  ['co-email','co_email'],['co-website','co_website'],['co-tagline','co_tagline'],
-  ['co-sender-email','co_sender_email'],['co-sender-name','co_sender_name'],
-  ['co-cc-email','co_cc_email'],['co-reply-to','co_reply_to'],
-  ['co-hours','co_hours'],['co-timezone','co_timezone']
-];
+// _settingsCache declared at top
 
-window.loadCompanySettings = function() {
-  CO_FIELDS.forEach(function(pair) {
-    var el = document.getElementById(pair[0]);
-    var saved = localStorage.getItem(pair[1]);
-    if (el && saved) el.value = saved;
+// ── Listen to ALL settings in real-time ──
+function startSettingsListener() {
+  db.collection('settings').onSnapshot(function(snap) {
+    snap.forEach(function(d) { _settingsCache[d.id] = d.data(); });
+    applyCompanySettings();
+    applyPriceSettings();
+    applySignatureSettings();
+    applyWhatsappSettings();
+  }, function(e){ console.warn('[settings]', e); });
+}
+
+// ── Apply company settings to UI everywhere ──
+function applyCompanySettings() {
+  var c = _settingsCache.company || {};
+  var ids = ['co-name','co-address','co-phone','co-email','co-website','co-tagline','co-sender-email','co-sender-name','co-cc-email','co-reply-to','co-hours','co-timezone'];
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    var key = id.replace(/-/g,'_').replace(/^co_/,'');
+    if (el && c[key] !== undefined) el.value = c[key];
   });
-};
+  // Update receipt footer, contact page, nav etc.
+  if (c.name)    document.querySelectorAll('.co-name-live').forEach(function(e){e.textContent=c.name;});
+  if (c.phone)   document.querySelectorAll('.co-phone-live').forEach(function(e){e.textContent=c.phone;});
+  if (c.email)   document.querySelectorAll('.co-email-live').forEach(function(e){e.textContent=c.email;});
+  if (c.hours)   document.querySelectorAll('.co-hours-live').forEach(function(e){e.textContent=c.hours;});
+  if (c.tagline) document.querySelectorAll('.co-tagline-live').forEach(function(e){e.textContent=c.tagline;});
+}
 
-window.saveCompanySettings = function() {
-  CO_FIELDS.forEach(function(pair) {
-    var el = document.getElementById(pair[0]);
-    if (el) localStorage.setItem(pair[1], el.value.trim());
+window.loadCompanySettings = function() { applyCompanySettings(); };
+
+window.saveCompanySettings = async function() {
+  var ids = ['co-name','co-address','co-phone','co-email','co-website','co-tagline','co-sender-email','co-sender-name','co-cc-email','co-reply-to','co-hours','co-timezone'];
+  var data = { updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { var key = id.replace(/-/g,'_').replace(/^co_/,''); data[key] = el.value.trim(); }
   });
-  var msg = document.getElementById('company-save-msg');
-  if (msg) { msg.style.cssText = 'display:block;background:#F0FDF4;border:1px solid #BBF7D0;color:#166534;padding:12px 16px;border-radius:9px;font-size:13px;margin-top:16px'; msg.textContent = '✅ Paramètres enregistrés avec succès !'; setTimeout(function(){msg.style.display='none';}, 3500); }
-  showNotif('✅', 'Informations société mises à jour');
+  try {
+    await db.collection('settings').doc('company').set(data, {merge:true});
+    var msg = document.getElementById('company-save-msg');
+    if (msg) { msg.style.cssText='display:block;background:#F0FDF4;border:1px solid #BBF7D0;color:#166534;padding:12px 16px;border-radius:9px;font-size:13px;margin-top:16px'; msg.textContent='✅ Enregistré et synchronisé en temps réel sur tout le site !'; setTimeout(function(){msg.style.display='none';},3500); }
+    showNotif('✅','Paramètres société synchronisés !');
+  } catch(e) { showNotif('⚠️','Erreur: '+e.message); }
 };
 
 // ══════════════════════════════════════════
-//  PRICES
+//  PRICES — Firestore real-time
 // ══════════════════════════════════════════
 var PRICE_FIELDS = [
-  ['price-appt','p_appt','500'],['price-docs','p_docs','1700'],['price-full','p_full','2800'],
-  ['price-flight','p_flight','200'],['price-hotel','p_hotel','200'],
-  ['price-insurance','p_insurance','350'],['price-casestudy','p_casestudy','800'],
-  ['price-bank','p_bank','300'],
-  ['cost-appt','c_appt','150'],['cost-docs','c_docs','400'],['cost-full','c_full','900']
+  ['price-appt','appt','500'],['price-docs','docs','1700'],['price-full','full','2800'],
+  ['price-flight','flight','200'],['price-hotel','hotel','200'],
+  ['price-insurance','insurance','350'],['price-casestudy','casestudy','800'],
+  ['price-bank','bank','300'],
+  ['cost-appt','cost_appt','150'],['cost-docs','cost_docs','400'],['cost-full','cost_full','900']
 ];
 
-window.loadPrices = function() {
+function applyPriceSettings() {
+  var p = _settingsCache.prices || {};
   PRICE_FIELDS.forEach(function(t) {
     var el = document.getElementById(t[0]);
-    var saved = localStorage.getItem(t[1]);
-    if (el) el.value = saved || t[2];
-  });
-};
-
-window.savePrices = function() {
-  PRICE_FIELDS.forEach(function(t) {
-    var el = document.getElementById(t[0]);
-    if (el) localStorage.setItem(t[1], el.value);
+    if (el && p[t[1]] !== undefined) el.value = p[t[1]];
+    else if (el && !el.value) el.value = t[2];
   });
   updateProfitSummary();
-  // Update live prices on site
-  var appt = localStorage.getItem('p_appt') || '500';
-  var docs  = localStorage.getItem('p_docs') || '1700';
-  var full  = localStorage.getItem('p_full') || '2800';
-  document.querySelectorAll('#opt-appt .price').forEach(function(e){e.textContent=appt+' MAD';});
-  document.querySelectorAll('#opt-docs .price').forEach(function(e){e.textContent=docs+' MAD';});
-  document.querySelectorAll('#opt-full .price').forEach(function(e){e.textContent=full+' MAD';});
-  var msg = document.getElementById('prices-save-msg');
-  if (msg) { msg.style.cssText = 'display:block;background:#F0FDF4;border:1px solid #BBF7D0;color:#166534;padding:12px 16px;border-radius:9px;font-size:13px;margin-top:16px'; msg.textContent = '✅ Prix enregistrés et mis à jour sur le site !'; setTimeout(function(){msg.style.display='none';}, 3500); }
-  showNotif('💰', 'Prix mis à jour');
+  // push live to booking cards
+  var vals = {};
+  PRICE_FIELDS.forEach(function(t){ var el=document.getElementById(t[0]); if(el) vals[t[1]]=el.value; });
+  if (vals.appt) document.querySelectorAll('#opt-appt .price,#opt-appt-price').forEach(function(e){e.textContent=(vals.appt|0).toLocaleString()+' MAD';});
+  if (vals.docs)  document.querySelectorAll('#opt-docs .price,#opt-docs-price').forEach(function(e){e.textContent=(vals.docs|0).toLocaleString()+' MAD';});
+  if (vals.full)  document.querySelectorAll('#opt-full .price,#opt-full-price').forEach(function(e){e.textContent=(vals.full|0).toLocaleString()+' MAD';});
+}
+
+window.loadPrices = function() { applyPriceSettings(); };
+
+window.savePrices = async function() {
+  var data = { updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+  PRICE_FIELDS.forEach(function(t) {
+    var el = document.getElementById(t[0]);
+    if (el) data[t[1]] = parseFloat(el.value) || 0;
+  });
+  try {
+    await db.collection('settings').doc('prices').set(data, {merge:true});
+    // Also sync services collection for B2B real-time
+    var svcMap = {appt:'Appointment Only', docs:'Appointment + Documents', full:'Full Package',
+                  flight:'Reservation de vol', hotel:"Reservation d'hotel",
+                  insurance:'Assurance voyage', casestudy:'Etude de cas', bank:'Releves bancaires'};
+    var batch = db.batch();
+    _servicesCache.forEach(function(s) {
+      var key = Object.keys(svcMap).find(function(k){ return svcMap[k]===s.name; });
+      if (key && data[key]!==undefined) {
+        batch.update(db.collection('services').doc(s.id), {price:data[key], updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      }
+    });
+    await batch.commit();
+    var msg = document.getElementById('prices-save-msg');
+    if (msg) { msg.style.cssText='display:block;background:#F0FDF4;border:1px solid #BBF7D0;color:#166534;padding:12px 16px;border-radius:9px;font-size:13px;margin-top:16px'; msg.textContent='✅ Prix synchronisés en temps réel sur tout le site !'; setTimeout(function(){msg.style.display='none';},3500); }
+    showNotif('💰','Prix synchronisés en temps réel !');
+  } catch(e) { showNotif('⚠️','Erreur: '+e.message); }
 };
 
 window.updateProfitSummary = function() {
@@ -4657,8 +4722,8 @@ window.printFlyer = function() {
   var sub   = (document.getElementById('flyer-sub')||{}).value || '';
   var price = (document.getElementById('flyer-price')||{}).value || '';
   var body  = (document.getElementById('flyer-body')||{}).value || '';
-  var coPhone = localStorage.getItem('co_phone') || '+212 682 652 382';
-  var coEmail = localStorage.getItem('co_email') || 'tls.appointements@gmail.com';
+  var coPhone = ((_settingsCache.company&&_settingsCache.company.phone) || localStorage.getItem('co_phone') || '+212 682 652 382');
+  var coEmail = ((_settingsCache.company&&_settingsCache.company.email) || localStorage.getItem('co_email') || 'tls.appointements@gmail.com');
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Flyer EuroVisa Pro</title>' +
     '<style>@page{size:A4;margin:14mm}body{margin:0;font-family:Arial,sans-serif;background:#fff}' +
     '.wrap{max-width:180mm;margin:0 auto}.hdr{background:#0B1D35;padding:18px 22px;border-radius:8px 8px 0 0}' +
@@ -4971,6 +5036,7 @@ window.deleteAgency = async function(i) {
 
 
 // ── Startup ──
+startSettingsListener();
 startServicesListener();
 startCityPricesListener();
 </script>
