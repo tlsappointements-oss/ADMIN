@@ -2999,9 +2999,31 @@ function startCityPricesListener() {
   db.collection('city_prices').onSnapshot(function(snap) {
     _cityPricesCache = {};
     snap.forEach(function(d) { _cityPricesCache[d.id] = d.data(); });
+    // If Firestore is empty, seed then re-render
+    if (!Object.keys(_cityPricesCache).length) {
+      seedDefaultCityPrices().then(function() {
+        // snapshot will fire again after seed
+      }).catch(console.warn);
+      return;
+    }
     renderCityPricesAdmin();
     renderB2BCityPrices();
-  }, function(e) { console.warn('[RT] CityPrices:', e); });
+    renderB2BNewAppPackages(); // re-populate destination dropdown
+  }, function(e) {
+    console.warn('[RT] CityPrices error (trying direct get):', e);
+    // Fallback: direct get instead of onSnapshot (handles auth issues)
+    db.collection('city_prices').get().then(function(snap) {
+      _cityPricesCache = {};
+      snap.forEach(function(d) { _cityPricesCache[d.id] = d.data(); });
+      if (!Object.keys(_cityPricesCache).length) {
+        seedDefaultCityPrices().then(startCityPricesListener).catch(console.warn);
+      } else {
+        renderCityPricesAdmin();
+        renderB2BCityPrices();
+        renderB2BNewAppPackages();
+      }
+    }).catch(console.warn);
+  });
 }
 
 async function seedDefaultServices() {
@@ -3026,20 +3048,25 @@ async function seedDefaultServices() {
   console.log('[SEED] Services seeded');
 }
 
-async function seedDefaultCityPrices() {
-  var snap = await db.collection('city_prices').limit(1).get();
-  if (!snap.empty) return;
+async function seedDefaultCityPrices(force) {
+  if (!force) {
+    var snap = await db.collection('city_prices').limit(1).get();
+    if (!snap.empty) return;
+  }
   var countries = [
-    {id:'france',  name:'France',      cities:{Casablanca:600,Rabat:550,Marrakech:500,Fes:480,Tanger:450,Tetouan:400,Agadir:480,Oujda:430,Meknes:460,Laayoune:400}},
-    {id:'spain',   name:'Espagne',     cities:{Casablanca:550,Rabat:500,Marrakech:450,Fes:430,Tanger:350,Tetouan:300,Agadir:420,Oujda:380,Meknes:400,Laayoune:360}},
-    {id:'germany', name:'Allemagne',   cities:{Casablanca:600,Rabat:560,Marrakech:520,Fes:500,Tanger:470,Tetouan:450,Agadir:490,Oujda:460,Meknes:480,Laayoune:420}},
-    {id:'italy',   name:'Italie',      cities:{Casablanca:580,Rabat:540,Marrakech:500,Fes:480,Tanger:460,Tetouan:430,Agadir:470,Oujda:450,Meknes:460,Laayoune:410}},
-    {id:'belgium', name:'Belgique',    cities:{Casablanca:580,Rabat:540,Marrakech:500,Fes:480,Tanger:460,Tetouan:430,Agadir:470,Oujda:440,Meknes:460,Laayoune:410}},
-    {id:'netherlands',name:'Pays-Bas', cities:{Casablanca:600,Rabat:560,Marrakech:520,Fes:500,Tanger:470,Tetouan:450,Agadir:490,Oujda:455,Meknes:475,Laayoune:420}},
-    {id:'portugal',name:'Portugal',    cities:{Casablanca:560,Rabat:520,Marrakech:480,Fes:460,Tanger:420,Tetouan:390,Agadir:450,Oujda:430,Meknes:445,Laayoune:395}},
-    {id:'austria', name:'Autriche',    cities:{Casablanca:590,Rabat:550,Marrakech:510,Fes:490,Tanger:465,Tetouan:440,Agadir:480,Oujda:455,Meknes:470,Laayoune:415}},
-    {id:'switzerland',name:'Suisse',   cities:{Casablanca:650,Rabat:610,Marrakech:570,Fes:550,Tanger:520,Tetouan:490,Agadir:540,Oujda:510,Meknes:530,Laayoune:470}},
-    {id:'greece',  name:'Grece',       cities:{Casablanca:560,Rabat:520,Marrakech:480,Fes:460,Tanger:430,Tetouan:400,Agadir:450,Oujda:430,Meknes:445,Laayoune:400}},
+    {id:'france', name:'France 🇫🇷', cities:{'Casablanca':600,'Rabat':550,'Marrakech':500,'Fès':480,'Tanger':450,'Tétouan':400,'Agadir':480,'Oujda':430,'Meknès':460,'Laâyoune':400,'Nador':420,'Al Hoceima':410,'Beni Mellal':440,'Kénitra':530,'Settat':510,'Mohammedia':560,'El Jadida':490,'Essaouira':470,'Ouarzazate':450,'Dakhla':380}},
+    {id:'spain',  name:'Espagne 🇪🇸', cities:{'Casablanca':550,'Rabat':500,'Marrakech':450,'Fès':430,'Tanger':350,'Tétouan':300,'Agadir':420,'Oujda':380,'Meknès':400,'Laâyoune':360,'Nador':320,'Al Hoceima':310,'Beni Mellal':390,'Kénitra':480,'Settat':460,'Mohammedia':510,'El Jadida':440,'Essaouira':420,'Ouarzazate':400,'Dakhla':340}},
+    {id:'germany',name:'Allemagne 🇩🇪', cities:{'Casablanca':620,'Rabat':580,'Marrakech':540,'Fès':520,'Tanger':490,'Tétouan':460,'Agadir':510,'Oujda':480,'Meknès':500,'Laâyoune':440,'Nador':450,'Al Hoceima':440,'Beni Mellal':470,'Kénitra':560,'Settat':540,'Mohammedia':590,'El Jadida':520,'Essaouira':500,'Ouarzazate':480,'Dakhla':420}},
+    {id:'italy',  name:'Italie 🇮🇹',  cities:{'Casablanca':590,'Rabat':550,'Marrakech':510,'Fès':490,'Tanger':470,'Tétouan':440,'Agadir':480,'Oujda':460,'Meknès':470,'Laâyoune':420,'Nador':430,'Al Hoceima':420,'Beni Mellal':450,'Kénitra':540,'Settat':520,'Mohammedia':570,'El Jadida':500,'Essaouira':480,'Ouarzazate':460,'Dakhla':400}},
+    {id:'belgium',name:'Belgique 🇧🇪', cities:{'Casablanca':590,'Rabat':550,'Marrakech':510,'Fès':490,'Tanger':460,'Tétouan':430,'Agadir':480,'Oujda':450,'Meknès':470,'Laâyoune':420,'Nador':430,'Al Hoceima':420,'Beni Mellal':450,'Kénitra':540,'Settat':520,'Mohammedia':570,'El Jadida':500,'Essaouira':480,'Ouarzazate':460,'Dakhla':400}},
+    {id:'netherlands',name:'Pays-Bas 🇳🇱', cities:{'Casablanca':610,'Rabat':570,'Marrakech':530,'Fès':510,'Tanger':480,'Tétouan':450,'Agadir':500,'Oujda':465,'Meknès':485,'Laâyoune':430,'Nador':440,'Al Hoceima':430,'Beni Mellal':460,'Kénitra':550,'Settat':530,'Mohammedia':580,'El Jadida':510,'Essaouira':490,'Ouarzazate':470,'Dakhla':410}},
+    {id:'portugal',name:'Portugal 🇵🇹', cities:{'Casablanca':570,'Rabat':530,'Marrakech':490,'Fès':470,'Tanger':430,'Tétouan':400,'Agadir':460,'Oujda':440,'Meknès':455,'Laâyoune':405,'Nador':410,'Al Hoceima':400,'Beni Mellal':435,'Kénitra':520,'Settat':500,'Mohammedia':555,'El Jadida':485,'Essaouira':465,'Ouarzazate':445,'Dakhla':390}},
+    {id:'austria', name:'Autriche 🇦🇹', cities:{'Casablanca':600,'Rabat':560,'Marrakech':520,'Fès':500,'Tanger':475,'Tétouan':450,'Agadir':490,'Oujda':465,'Meknès':480,'Laâyoune':425,'Nador':435,'Al Hoceima':425,'Beni Mellal':455,'Kénitra':545,'Settat':525,'Mohammedia':575,'El Jadida':505,'Essaouira':485,'Ouarzazate':465,'Dakhla':405}},
+    {id:'switzerland',name:'Suisse 🇨🇭', cities:{'Casablanca':660,'Rabat':620,'Marrakech':580,'Fès':560,'Tanger':530,'Tétouan':500,'Agadir':550,'Oujda':520,'Meknès':540,'Laâyoune':480,'Nador':490,'Al Hoceima':480,'Beni Mellal':510,'Kénitra':600,'Settat':580,'Mohammedia':630,'El Jadida':560,'Essaouira':540,'Ouarzazate':520,'Dakhla':460}},
+    {id:'greece',  name:'Grèce 🇬🇷',  cities:{'Casablanca':570,'Rabat':530,'Marrakech':490,'Fès':470,'Tanger':440,'Tétouan':410,'Agadir':460,'Oujda':440,'Meknès':455,'Laâyoune':410,'Nador':415,'Al Hoceima':405,'Beni Mellal':440,'Kénitra':525,'Settat':505,'Mohammedia':560,'El Jadida':490,'Essaouira':470,'Ouarzazate':450,'Dakhla':395}},
+    {id:'sweden',  name:'Suède 🇸🇪',  cities:{'Casablanca':620,'Rabat':580,'Marrakech':540,'Fès':520,'Tanger':490,'Tétouan':460,'Agadir':510,'Oujda':480,'Meknès':500,'Laâyoune':445,'Nador':450,'Al Hoceima':440,'Beni Mellal':475,'Kénitra':565,'Settat':545,'Mohammedia':595,'El Jadida':525,'Essaouira':505,'Ouarzazate':485,'Dakhla':425}},
+    {id:'denmark', name:'Danemark 🇩🇰', cities:{'Casablanca':620,'Rabat':580,'Marrakech':540,'Fès':520,'Tanger':490,'Tétouan':460,'Agadir':510,'Oujda':480,'Meknès':500,'Laâyoune':445,'Nador':450,'Al Hoceima':440,'Beni Mellal':475,'Kénitra':565,'Settat':545,'Mohammedia':595,'El Jadida':525,'Essaouira':505,'Ouarzazate':485,'Dakhla':425}},
+    {id:'norway',  name:'Norvège 🇳🇴', cities:{'Casablanca':630,'Rabat':590,'Marrakech':550,'Fès':530,'Tanger':500,'Tétouan':470,'Agadir':520,'Oujda':490,'Meknès':510,'Laâyoune':455,'Nador':460,'Al Hoceima':450,'Beni Mellal':485,'Kénitra':575,'Settat':555,'Mohammedia':605,'El Jadida':535,'Essaouira':515,'Ouarzazate':495,'Dakhla':435}},
   ];
   var batch = db.batch();
   countries.forEach(function(c) {
@@ -5039,6 +5066,16 @@ window.deleteAgency = async function(i) {
 startSettingsListener();
 startServicesListener();
 startCityPricesListener();
+// Seed if empty, re-seed if city keys are unaccented
+db.collection('city_prices').limit(1).get().then(function(snap) {
+  if (snap.empty) { seedDefaultCityPrices(false).catch(console.warn); return; }
+  var cities = snap.docs[0].data().cities || {};
+  if (Object.keys(cities).some(function(k){ return k==='Fes'||k==='Tetouan'||k==='Meknes'; })) {
+    console.log('[RESEED] Re-seeding city prices with correct accented names...');
+    seedDefaultCityPrices(true).catch(console.warn);
+  }
+}).catch(console.warn);
+db.collection('services').limit(1).get().then(function(snap){ if(snap.empty) seedDefaultServices().catch(console.warn); }).catch(console.warn);
 </script>
 <!-- ═══════════════════════════════════════════ -->
 <!--  RECEIPT MODAL                              -->
