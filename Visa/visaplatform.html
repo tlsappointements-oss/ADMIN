@@ -856,9 +856,81 @@ tr:hover td{background:var(--cream)}
       <!-- NEW APPLICATION TAB -->
       <div id="b2btab-newapp" class="b2btab" style="display:none">
         <h2 style="font-family:'DM Serif Display',serif;margin-bottom:4px">Nouveau dossier client</h2>
-        <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Soumis au nom de votre agence.</p>
-        <div class="form-card" style="max-width:760px">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Soumis au nom de votre agence · même processus que le formulaire client.</p>
+        <div class="form-card" style="max-width:820px">
           <div class="form-body">
+
+            <!-- SECTION: Infos client -->
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)">👤 Informations du client</div>
+            <div class="form-row">
+              <div class="form-group"><label>Prénom *</label><input type="text" id="b2b-fname" placeholder="Prénom"></div>
+              <div class="form-group"><label>Nom *</label><input type="text" id="b2b-lname" placeholder="Nom de famille"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Email</label><input type="email" id="b2b-email" placeholder="client@email.com"></div>
+              <div class="form-group"><label>Téléphone *</label><input type="tel" id="b2b-phone" placeholder="+212 6..."></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>N° Passeport *</label><input type="text" id="b2b-passport" placeholder="AB123456"></div>
+              <div class="form-group"><label>CIN (optionnel)</label><input type="text" id="b2b-cin" placeholder="AB123456"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Nationalité</label><input type="text" id="b2b-nationality" placeholder="Marocaine"></div>
+              <div class="form-group"><label>Date de naissance</label><input type="date" id="b2b-dob"></div>
+            </div>
+
+            <!-- SECTION: Documents photo -->
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)">📷 Photo & Documents</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:16px">
+
+              <!-- Passport photo -->
+              <div>
+                <label style="font-size:12px;font-weight:600;margin-bottom:8px;display:block">Photo passeport *</label>
+                <div id="b2b-photo-drop" onclick="document.getElementById('b2b-photo-input').click()"
+                  style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:border-color .2s">
+                  <img id="b2b-photo-preview" src="" style="display:none;width:64px;height:80px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">
+                  <div id="b2b-photo-icon">📷</div>
+                  <div style="font-size:11px;color:var(--muted)" id="b2b-photo-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG · Max 2MB</span></div>
+                </div>
+                <input type="file" id="b2b-photo-input" accept="image/*" style="display:none" onchange="handleB2BFile(this,'photo')">
+              </div>
+
+              <!-- Passport scan -->
+              <div>
+                <label style="font-size:12px;font-weight:600;margin-bottom:8px;display:block">Scan passeport *</label>
+                <div id="b2b-passport-drop" onclick="document.getElementById('b2b-passport-scan-input').click()"
+                  style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+                  <div id="b2b-passport-scan-icon">🛂</div>
+                  <div style="font-size:11px;color:var(--muted)" id="b2b-passport-scan-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG/PDF · Max 5MB</span></div>
+                </div>
+                <input type="file" id="b2b-passport-scan-input" accept="image/*,.pdf" style="display:none" onchange="handleB2BFile(this,'passportScan')">
+              </div>
+
+              <!-- CIN scan -->
+              <div>
+                <label style="font-size:12px;font-weight:600;margin-bottom:8px;display:block">CIN (recto/verso)</label>
+                <div id="b2b-cin-drop" onclick="document.getElementById('b2b-cin-input').click()"
+                  style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+                  <div id="b2b-cin-icon">🪪</div>
+                  <div style="font-size:11px;color:var(--muted)" id="b2b-cin-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG · Max 2MB</span></div>
+                </div>
+                <input type="file" id="b2b-cin-input" accept="image/*" style="display:none" onchange="handleB2BFile(this,'cin')">
+              </div>
+
+              <!-- Extra docs -->
+              <div>
+                <label style="font-size:12px;font-weight:600;margin-bottom:8px;display:block">Docs supplémentaires</label>
+                <div id="b2b-extra-drop" onclick="document.getElementById('b2b-extra-input').click()"
+                  style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+                  <div id="b2b-extra-icon">📎</div>
+                  <div style="font-size:11px;color:var(--muted)" id="b2b-extra-label">Cliquer pour choisir<br><span style="font-size:10px">Plusieurs fichiers OK</span></div>
+                </div>
+                <input type="file" id="b2b-extra-input" accept="image/*,.pdf" multiple style="display:none" onchange="handleB2BFile(this,'extra')">
+              </div>
+            </div>
+
+            <!-- SECTION: Visa details -->
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)">🌍 Détails du visa</div>
             <div class="form-row">
               <div class="form-group"><label>Pays de destination *</label>
                 <select id="b2b-dest" onchange="updateB2BCityDropdown(this.value)" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
@@ -879,23 +951,31 @@ tr:hover td{background:var(--cream)}
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>Prénom client *</label><input type="text" id="b2b-fname" placeholder="Prénom"></div>
-              <div class="form-group"><label>Nom client *</label><input type="text" id="b2b-lname" placeholder="Nom"></div>
+              <div class="form-group"><label>Date de voyage prévue</label><input type="date" id="b2b-travel-date"></div>
+              <div class="form-group"><label>Nombre de voyageurs</label>
+                <select id="b2b-num-applicants" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+                  <option value="1">1 personne</option>
+                  <option value="2">2 personnes</option>
+                  <option value="3">3 personnes</option>
+                  <option value="4">4 personnes</option>
+                  <option value="5+">5+ personnes</option>
+                </select>
+              </div>
             </div>
-            <div class="form-row">
-              <div class="form-group"><label>Email client</label><input type="email" id="b2b-email" placeholder="client@email.com"></div>
-              <div class="form-group"><label>Téléphone *</label><input type="tel" id="b2b-phone" placeholder="+212 6..."></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>Date de voyage</label><input type="date" id="b2b-travel-date"></div>
-              <div class="form-group"><label>Passeport</label><input type="text" id="b2b-passport" placeholder="AB123456"></div>
-            </div>
-            <div class="form-group" style="margin-bottom:16px"><label>Service / Package *</label>
+
+            <!-- SECTION: Service -->
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)">📦 Service & Tarif</div>
+            <div class="form-group" style="margin-bottom:14px"><label>Package / Service *</label>
               <select id="b2b-package" onchange="updateB2BPriceDisplay()" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
                 <option value="">Choisir un service...</option>
               </select>
             </div>
-            <div id="b2b-city-pricing-row" style="display:none;margin-bottom:16px">
+
+            <!-- Add-ons -->
+            <div id="b2b-addons-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+
+            <!-- City RDV -->
+            <div id="b2b-city-pricing-row" style="display:none;margin-bottom:14px">
               <div class="form-group"><label>🏙️ Ville de rendez-vous</label>
                 <select id="b2b-city" onchange="updateB2BCityPrice()" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
                   <option value="">Sélectionner la ville...</option>
@@ -905,14 +985,23 @@ tr:hover td{background:var(--cream)}
                 Prix RDV dans cette ville : <strong id="b2b-city-price-val">—</strong> MAD
               </div>
             </div>
-            <div class="form-group" style="margin-bottom:16px"><label>Notes</label>
-              <textarea id="b2b-notes" rows="3" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%;resize:vertical" placeholder="Informations complémentaires..."></textarea>
+
+            <div class="form-group" style="margin-bottom:16px"><label>Notes internes</label>
+              <textarea id="b2b-notes" rows="2" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%;resize:vertical" placeholder="Remarques, cas particulier..."></textarea>
             </div>
-            <div style="background:var(--cream);border-radius:10px;padding:14px 18px;margin-bottom:16px">
-              <div style="display:flex;justify-content:space-between;font-size:13px"><span>Tarif client :</span><span id="b2b-price-display" style="font-weight:700;color:var(--gold)">—</span></div>
-              <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span style="color:var(--muted)">Votre commission :</span><span id="b2b-commission-display" style="font-weight:700;color:#1B7A4A">—</span></div>
+
+            <!-- Price summary -->
+            <div style="background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:20px">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px">Résumé financier</div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>Service sélectionné :</span><span id="b2b-price-display" style="font-weight:700;color:var(--gold)">—</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>Add-ons :</span><span id="b2b-addons-total-display" style="font-weight:600">0 MAD</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>RDV ville :</span><span id="b2b-rdv-price-display" style="font-weight:600">—</span></div>
+              <div style="border-top:1px solid var(--border);margin:8px 0"></div>
+              <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700"><span>Total client :</span><span style="color:var(--navy)" id="b2b-total-display">—</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:6px;color:#1B7A4A"><span>Votre commission :</span><span id="b2b-commission-display" style="font-weight:700">—</span></div>
             </div>
-            <button class="btn-gold" onclick="submitB2BApplication()" style="padding:12px 28px;font-size:14px;border-radius:8px">✅ Soumettre le dossier</button>
+
+            <button class="btn-gold" onclick="submitB2BApplication()" style="padding:13px 32px;font-size:14px;border-radius:8px">✅ Soumettre le dossier</button>
           </div>
         </div>
       </div>
@@ -1276,8 +1365,23 @@ tr:hover td{background:var(--cream)}
             </div>
           </div>
           <div id="b2b-agencies-list" style="padding:20px;display:flex;flex-direction:column;gap:10px">
-            <!-- populated by JS -->
-            <div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Aucune agence enregistrée. Cliquez sur <strong>+ Ajouter une agence</strong> pour commencer.</div>
+            <div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Aucune agence enregistrée.</div>
+          </div>
+        </div>
+
+        <!-- Per-agency client detail panel -->
+        <div id="admin-agency-detail-panel" style="display:none;margin-top:20px">
+          <div class="admin-card">
+            <div class="admin-card-head" style="display:flex;justify-content:space-between;align-items:center">
+              <h3 id="agency-detail-title">Clients de l'agence</h3>
+              <button onclick="document.getElementById('admin-agency-detail-panel').style.display='none'" style="background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer">✕ Fermer</button>
+            </div>
+            <div style="padding:16px 20px">
+              <!-- Agency profit summary -->
+              <div id="agency-detail-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px"></div>
+              <!-- Clients table -->
+              <div id="agency-detail-table"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -3536,117 +3640,6 @@ window.submitB2BApplication = async function() {
 
 
 
-window.downloadReceiptPDF = function() {
-  if (!_receiptData) return;
-  var d = _receiptData;
-  var now = (document.getElementById('receipt-date') || {}).textContent || new Date().toLocaleDateString('fr-FR');
-  var destClean = (d.destination || '\u2014').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g, '').replace(/\p{Emoji}/gu,'').trim();
-  var addonsLine = (d.addons && d.addons.length) ? d.addons.join(', ') : '';
-
-  var css = [
-    '@page{size:A4 portrait;margin:12mm}',
-    'html,body{margin:0;padding:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#1A1A2E}',
-    '.page{max-width:186mm;margin:0 auto}',
-    '.hdr{background:#0B1D35;border-radius:8px 8px 0 0;padding:16px 20px 13px}',
-    '.brand{font-family:Georgia,serif;color:#E8B04A;font-size:19px}',
-    '.hdr-sub{color:rgba(255,255,255,.38);font-size:9px;margin-top:1px}',
-    '.badge{background:#1B7A4A;color:#fff;font-size:7.5px;font-weight:700;padding:3px 9px;border-radius:12px;letter-spacing:.1em;text-transform:uppercase}',
-    '.ref-bar{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:8px 12px;margin-top:10px;display:flex;justify-content:space-between;align-items:center}',
-    '.ref-lbl{font-size:7px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.14em;margin-bottom:2px}',
-    '.ref-val{font-family:Georgia,serif;font-size:16px;color:#E8B04A;letter-spacing:.04em}',
-    '.body{padding:14px 20px}',
-    '.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px}',
-    '.col-hd{font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9CA3AF;border-bottom:1px solid #EAEAE6;padding-bottom:4px;margin-bottom:6px}',
-    'table.info td{vertical-align:top;padding:2px 0}',
-    '.lbl{font-size:8.5px;color:#9CA3AF;width:36%}',
-    '.val{font-size:10px;color:#0B1D35;font-weight:500}',
-    '.bold{font-weight:700}',
-    '.addons{background:#F7F4EE;border-radius:5px;padding:5px 8px;margin-bottom:9px;font-size:9px;color:#0B1D35}',
-    '.total{background:#0B1D35;border-radius:7px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}',
-    '.tot-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em}',
-    '.tot-val{font-size:17px;font-weight:700;color:#E8B04A}',
-    '.supp{background:#FEF3C7;border:1px solid #FCD34D;border-radius:6px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}',
-    '.supp-num{font-size:13px;font-weight:700;color:#78350F}',
-    '.steps{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;padding:9px 12px;margin-bottom:12px}',
-    '.steps-lbl{font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#166534;margin-bottom:5px}',
-    '.steps ol{margin:0;padding-left:14px;font-size:9px;color:#166534;line-height:1.9}',
-    '.foot{display:flex;justify-content:space-between;padding:7px 20px;background:#F0EDE6;border-radius:0 0 8px 8px;font-size:8px;color:#9CA3AF}'
-  ].join('');
-
-  var body = '<div class="page">'
-    + '<div class="hdr">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center">'
-        + '<div><div class="brand">EuroVisa Pro</div><div class="hdr-sub">Services Visa Schengen &middot; Casablanca, Maroc</div></div>'
-        + '<div style="text-align:right"><div class="badge">Recu confirme</div><div style="color:rgba(255,255,255,.3);font-size:8px;margin-top:4px">' + now + '</div></div>'
-      + '</div>'
-      + '<div class="ref-bar">'
-        + '<div><div class="ref-lbl">Numero de reference</div><div class="ref-val">' + d.ref + '</div></div>'
-        + '<div style="text-align:right"><div class="ref-lbl">Statut</div><div style="font-size:9.5px;font-weight:600;color:#F59E0B">En attente de confirmation</div></div>'
-      + '</div>'
-    + '</div>'
-    + '<div class="body">'
-      + '<div class="two">'
-        + '<div><div class="col-hd">Demandeur</div>'
-          + '<table class="info" style="width:100%;border-collapse:collapse">'
-            + '<tr><td class="lbl">Nom</td><td class="val bold">' + d.firstName + ' ' + (d.lastName||'') + '</td></tr>'
-            + '<tr><td class="lbl">Email</td><td class="val" style="word-break:break-all;font-size:9px">' + (d.email||'&mdash;') + '</td></tr>'
-            + '<tr><td class="lbl">Tel.</td><td class="val bold">' + (d.phone||'&mdash;') + '</td></tr>'
-            + '<tr><td class="lbl">Nationalite</td><td class="val">' + (d.nationality||'&mdash;') + '</td></tr>'
-          + '</table></div>'
-        + '<div><div class="col-hd">Details visa</div>'
-          + '<table class="info" style="width:100%;border-collapse:collapse">'
-            + '<tr><td class="lbl">Destination</td><td class="val bold">' + destClean + '</td></tr>'
-            + '<tr><td class="lbl">Type</td><td class="val">' + (d.visaType||'&mdash;') + '</td></tr>'
-            + '<tr><td class="lbl">Package</td><td class="val bold">' + (d.package||'&mdash;') + '</td></tr>'
-            + '<tr><td class="lbl">Date voyage</td><td class="val">' + (d.travelDate||'A preciser') + '</td></tr>'
-            + '<tr><td class="lbl">Voyageurs</td><td class="val">' + (d.numApplicants||'1') + '</td></tr>'
-          + '</table></div>'
-      + '</div>'
-      + (addonsLine ? '<div class="addons"><span style="font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9CA3AF">Services additionnels : </span>' + addonsLine + '</div>' : '')
-      + '<div class="total"><span class="tot-lbl">Montant total</span><span class="tot-val">' + (d.total||0) + ' MAD</span></div>'
-      + '<div class="supp">'
-        + '<div><div style="font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#92400E;margin-bottom:2px">Support client</div><div class="supp-num">+212 682 652 382</div></div>'
-        + '<div style="font-size:8.5px;color:#92400E">WhatsApp &middot; Lun&ndash;Sam 8h&ndash;20h</div>'
-      + '</div>'
-      + '<div class="steps"><div class="steps-lbl">Prochaines etapes</div><ol>'
-        + '<li>Notre equipe vous contacte dans les <strong>2 heures</strong></li>'
-        + '<li>Confirmation du dossier et instructions de paiement</li>'
-        + '<li>Preparation des documents par nos experts</li>'
-        + '<li>Prise de rendez-vous au centre de visa</li>'
-        + '<li>Depot du dossier et suivi jusqu\'a la decision</li>'
-      + '</ol></div>'
-    + '</div>'
-    + '<div class="foot"><span>'+((_settingsCache.company&&_settingsCache.company.name)||'EuroVisa Pro')+' &middot; '+((_settingsCache.company&&_settingsCache.company.address)||'Casablanca, Maroc')+'</span><span>'+((_settingsCache.company&&_settingsCache.company.email)||'tls.appointements@gmail.com')+' &middot; '+((_settingsCache.company&&_settingsCache.company.phone)||'+212 682 652 382')+'</span></div>'
-    + '</div>';
-
-  // ── Inject signature & stamp — read from Firestore cache (synced everywhere) ──
-  var _sigData   = (_settingsCache && _settingsCache.signature) || {};
-  var agentName  = _sigData.name  || localStorage.getItem('eurovisa_agent_name')  || '';
-  var agentSig   = _sigData.sig   || localStorage.getItem('eurovisa_signature')   || '';
-  var agentStamp = _sigData.stamp || localStorage.getItem('eurovisa_stamp')       || '';
-  if (agentName || agentSig || agentStamp) {
-    var sigHtml = '<div style="border-top:1.5px solid #EAEAE6;margin:12px 20px 0;padding:10px 0 4px;display:flex;justify-content:space-between;align-items:flex-end;min-height:68px">'
-      + '<div>'
-        + '<div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9CA3AF;margin-bottom:3px">Agent responsable</div>'
-        + '<div style="font-size:10px;font-weight:700;color:#0B1D35;margin-bottom:4px">' + (agentName||'EuroVisa Pro') + '</div>'
-        + (agentSig ? '<img src="'+agentSig+'" style="max-height:38px;max-width:120px" alt="Signature">' : '')
-      + '</div>'
-      + '<div style="text-align:center">'
-        + '<div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9CA3AF;margin-bottom:3px">Cachet officiel</div>'
-        + (agentStamp ? '<img src="'+agentStamp+'" style="max-height:68px;max-width:76px;opacity:.9" alt="Cachet">' : '')
-      + '</div>'
-    + '</div>';
-    // Insert before the footer
-    body = body.replace('<div class="foot">', sigHtml + '<div class="foot">');
-  }
-
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recu ' + d.ref + '</title><style>' + css + '</style></head><body>' + body + '<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()};}<\/script></body></html>';
-
-  var win = window.open('', '_blank');
-  if (win) { win.document.write(html); win.document.close(); }
-  else { alert('Veuillez autoriser les popups pour imprimer le recu.'); }
-}
-
 
 // ══════════════════════════════════════════
 //  SIGNATURES & CACHET  (full rewrite)
@@ -5060,6 +5053,537 @@ window.deleteAgency = async function(i) {
   if (docs)  document.querySelectorAll('#opt-docs .price').forEach(function(e){e.textContent=docs+' MAD';});
   if (full)  document.querySelectorAll('#opt-full .price').forEach(function(e){e.textContent=full+' MAD';});
 })();
+
+
+// ══════════════════════════════════════════════════════════════════
+//  B2B FILE UPLOAD HANDLER
+// ══════════════════════════════════════════════════════════════════
+var _b2bFiles = { photo: null, passportScan: null, cin: null, extra: [] };
+
+window.handleB2BFile = function(input, type) {
+  var files = input.files;
+  if (!files || !files.length) return;
+
+  if (type === 'extra') {
+    _b2bFiles.extra = Array.from(files);
+    var el = document.getElementById('b2b-extra-label');
+    if (el) el.innerHTML = files.length + ' fichier(s) sélectionné(s)';
+    var icon = document.getElementById('b2b-extra-icon');
+    if (icon) icon.textContent = '✅';
+    return;
+  }
+
+  var file = files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _b2bFiles[type] = e.target.result;
+    if (type === 'photo') {
+      var prev = document.getElementById('b2b-photo-preview');
+      var icon = document.getElementById('b2b-photo-icon');
+      var lbl  = document.getElementById('b2b-photo-label');
+      if (prev) { prev.src = e.target.result; prev.style.display = 'block'; }
+      if (icon) icon.style.display = 'none';
+      if (lbl)  lbl.innerHTML = '<span style="color:#1B7A4A;font-weight:600">✅ ' + file.name + '</span>';
+    } else {
+      var iconId = type === 'passportScan' ? 'b2b-passport-scan-icon' : 'b2b-cin-icon';
+      var lblId  = type === 'passportScan' ? 'b2b-passport-scan-label' : 'b2b-cin-label';
+      var icon2 = document.getElementById(iconId);
+      var lbl2  = document.getElementById(lblId);
+      if (icon2) icon2.textContent = '✅';
+      if (lbl2)  lbl2.innerHTML = '<span style="color:#1B7A4A;font-weight:600">' + file.name + '</span>';
+    }
+  };
+  reader.readAsDataURL(file);
+};
+
+// ── B2B add-ons rendering ──
+window.renderB2BAddons = function() {
+  var addons = _servicesCache.filter(function(s){ return s.category==='addon' && s.visible; });
+  var el = document.getElementById('b2b-addons-list');
+  if (!el || !addons.length) return;
+  el.innerHTML = '<div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px">Add-ons disponibles :</div>'
+    + addons.map(function(s) {
+        return '<label style="display:flex;align-items:center;gap:10px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer">'
+          + '<input type="checkbox" data-price="'+s.price+'" data-name="'+s.name+'" onchange="recalcB2BTotal()" style="width:16px;height:16px">'
+          + '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+s.icon+' '+s.name+'</div><div style="font-size:11px;color:var(--muted)">'+s.desc+'</div></div>'
+          + '<div style="font-size:13px;font-weight:700;color:var(--gold)">'+s.price.toLocaleString()+' MAD</div>'
+          + '</label>';
+      }).join('');
+};
+
+window.recalcB2BTotal = function() {
+  var pkgSel = document.getElementById('b2b-package');
+  var pkgOpt = pkgSel ? pkgSel.options[pkgSel.selectedIndex] : null;
+  var pkgPrice = pkgOpt && pkgOpt.dataset.price ? parseFloat(pkgOpt.dataset.price) : 0;
+
+  var addonTotal = 0;
+  document.querySelectorAll('#b2b-addons-list input[type=checkbox]:checked').forEach(function(cb) {
+    addonTotal += parseFloat(cb.dataset.price) || 0;
+  });
+
+  var cityEl  = document.getElementById('b2b-city');
+  var cityOpt = cityEl ? cityEl.options[cityEl.selectedIndex] : null;
+  var cityPrice = cityOpt && cityOpt.dataset.price ? parseFloat(cityOpt.dataset.price) : 0;
+
+  var commPct = pkgOpt && pkgOpt.dataset.commission ? parseFloat(pkgOpt.dataset.commission) : (_agencyData && _agencyData.commission) || 10;
+  var total = pkgPrice + addonTotal + cityPrice;
+  var comm  = Math.round(total * commPct / 100);
+
+  var set = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  set('b2b-price-display',         pkgPrice > 0 ? pkgPrice.toLocaleString()+' MAD' : '—');
+  set('b2b-addons-total-display',  addonTotal > 0 ? addonTotal.toLocaleString()+' MAD' : '0 MAD');
+  set('b2b-rdv-price-display',     cityPrice > 0 ? cityPrice.toLocaleString()+' MAD' : '—');
+  set('b2b-total-display',         total > 0 ? total.toLocaleString()+' MAD' : '—');
+  set('b2b-commission-display',    total > 0 ? comm.toLocaleString()+' MAD ('+commPct+'%)' : '—');
+};
+
+window.updateB2BPriceDisplay = function() { recalcB2BTotal(); };
+
+// ── Override renderB2BNewAppPackages to also render add-ons ──
+var _origRenderB2BPkgs = window.renderB2BNewAppPackages;
+window.renderB2BNewAppPackages = function() {
+  if (typeof _origRenderB2BPkgs === 'function') _origRenderB2BPkgs();
+  renderB2BAddons();
+};
+
+// ── Updated submitB2BApplication with file data ──
+window.submitB2BApplication = async function() {
+  if (!_agencyData) { showNotif('⚠️','Erreur agence introuvable'); return; }
+  if (_agencyData.status === 'suspended') { showNotif('🚫','Compte suspendu'); return; }
+
+  var fname   = document.getElementById('b2b-fname').value.trim();
+  var lname   = document.getElementById('b2b-lname').value.trim();
+  var phone   = document.getElementById('b2b-phone').value.trim();
+  var passport= document.getElementById('b2b-passport').value.trim();
+  var destEl  = document.getElementById('b2b-dest');
+  var destText= destEl.options[destEl.selectedIndex] ? destEl.options[destEl.selectedIndex].text : '';
+  var pkgSel  = document.getElementById('b2b-package');
+  var pkgOpt  = pkgSel.options[pkgSel.selectedIndex];
+
+  if (!fname)    { showNotif('⚠️','Prénom requis'); return; }
+  if (!phone)    { showNotif('⚠️','Téléphone requis'); return; }
+  if (!destEl.value) { showNotif('⚠️','Destination requise'); return; }
+  if (!pkgSel.value) { showNotif('⚠️','Sélectionnez un service'); return; }
+  if (!passport) { showNotif('⚠️','N° de passeport requis'); return; }
+
+  var pkgPrice = parseFloat(pkgOpt.dataset.price) || 0;
+  var commPct  = parseFloat(pkgOpt.dataset.commission) || (_agencyData.commission || 10);
+
+  var addonTotal = 0;
+  var addonNames = [];
+  document.querySelectorAll('#b2b-addons-list input[type=checkbox]:checked').forEach(function(cb) {
+    addonTotal += parseFloat(cb.dataset.price) || 0;
+    addonNames.push(cb.dataset.name);
+  });
+
+  var cityEl    = document.getElementById('b2b-city');
+  var cityOpt   = cityEl.options[cityEl.selectedIndex];
+  var cityName  = cityOpt && cityOpt.value ? cityOpt.value : '';
+  var cityPrice = cityOpt && cityOpt.dataset.price ? parseFloat(cityOpt.dataset.price) : 0;
+
+  var total = pkgPrice + addonTotal + cityPrice;
+  var comm  = Math.round(total * commPct / 100);
+  var ref   = 'EVP-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+
+  var data = {
+    ref: ref,
+    firstName: fname, lastName: lname,
+    email:      document.getElementById('b2b-email').value.trim(),
+    phone:      phone,
+    passport:   passport,
+    cin:        document.getElementById('b2b-cin') ? document.getElementById('b2b-cin').value.trim() : '',
+    nationality:document.getElementById('b2b-nationality') ? document.getElementById('b2b-nationality').value.trim() : '',
+    dob:        document.getElementById('b2b-dob') ? document.getElementById('b2b-dob').value : '',
+    destination: destText,
+    visaType:   document.getElementById('b2b-visa-type').value,
+    travelDate: document.getElementById('b2b-travel-date').value,
+    numApplicants: document.getElementById('b2b-num-applicants') ? document.getElementById('b2b-num-applicants').value : '1',
+    notes:      document.getElementById('b2b-notes').value.trim(),
+    package:    pkgOpt.text.split(' — ')[0],
+    addons:     addonNames,
+    total:      total,
+    city:       cityName,
+    cityRdvPrice: cityPrice,
+    agencyId:   _agencyData.id,
+    agencyName: _agencyData.name,
+    agencyEmail:_agencyData.email || '',
+    agencyCommission:    comm,
+    agencyCommissionPct: commPct,
+    // Photo & docs as base64
+    applicantPhoto: _b2bFiles.photo   || '',
+    passportScan:   _b2bFiles.passportScan || '',
+    cinScan:        _b2bFiles.cin     || '',
+    source: 'b2b',
+    status: 'pending',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    showNotif('⏳','Soumission en cours...');
+    await db.collection('applications').add(data);
+    showNotif('✅','Dossier soumis — Réf: ' + ref);
+
+    // Reset form
+    ['b2b-fname','b2b-lname','b2b-email','b2b-phone','b2b-passport','b2b-cin','b2b-nationality','b2b-notes'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.value='';
+    });
+    document.getElementById('b2b-dest').value    = '';
+    document.getElementById('b2b-package').value = '';
+    document.getElementById('b2b-city-pricing-row').style.display = 'none';
+    _b2bFiles = { photo:null, passportScan:null, cin:null, extra:[] };
+    // Reset file UI
+    ['b2b-photo-preview','b2b-photo-icon','b2b-photo-label','b2b-passport-scan-icon','b2b-passport-scan-label','b2b-cin-icon','b2b-cin-label','b2b-extra-icon','b2b-extra-label'].forEach(function(id){
+      var el=document.getElementById(id); if(!el) return;
+      if(id==='b2b-photo-preview'){ el.style.display='none'; el.src=''; }
+      else if(id==='b2b-photo-icon') el.textContent='📷';
+      else if(id==='b2b-photo-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG · Max 2MB</span>';
+      else if(id==='b2b-passport-scan-icon') el.textContent='🛂';
+      else if(id==='b2b-passport-scan-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG/PDF · Max 5MB</span>';
+      else if(id==='b2b-cin-icon') el.textContent='🪪';
+      else if(id==='b2b-cin-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG · Max 2MB</span>';
+      else if(id==='b2b-extra-icon') el.textContent='📎';
+      else if(id==='b2b-extra-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">Plusieurs fichiers OK</span>';
+    });
+    document.querySelectorAll('#b2b-addons-list input[type=checkbox]').forEach(function(cb){ cb.checked=false; });
+    recalcB2BTotal();
+    showB2BTab('overview');
+  } catch(e) {
+    console.error('[B2B submit]', e);
+    showNotif('⚠️','Erreur: ' + e.message);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  ADMIN — PER-AGENCY CLIENT DETAIL VIEW
+// ══════════════════════════════════════════════════════════════════
+window.viewAgencyClients = async function(agencyId, agencyName) {
+  var panel = document.getElementById('admin-agency-detail-panel');
+  var title = document.getElementById('agency-detail-title');
+  var stats = document.getElementById('agency-detail-stats');
+  var table = document.getElementById('agency-detail-table');
+  if (!panel) return;
+
+  if (title) title.textContent = '📋 Clients de : ' + agencyName;
+  if (stats) stats.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted)">Chargement...</div>';
+  if (table) table.innerHTML = '';
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try {
+    var snap = await db.collection('applications').where('agencyId','==',agencyId).get();
+    var apps = [];
+    snap.forEach(function(d){ apps.push(Object.assign({id:d.id}, d.data())); });
+    apps.sort(function(a,b){ return (b.createdAt&&b.createdAt.seconds||0)-(a.createdAt&&a.createdAt.seconds||0); });
+
+    var totalRevenue  = apps.reduce(function(s,a){ return s+(a.total||0); }, 0);
+    var totalComm     = apps.reduce(function(s,a){ return s+(a.agencyCommission||0); }, 0);
+    var totalProfit   = totalRevenue - totalComm;
+    var approved      = apps.filter(function(a){ return a.status==='approved'; }).length;
+
+    // Stats cards
+    if (stats) {
+      stats.innerHTML = [
+        {icon:'📋', num:apps.length,                       lbl:'Total dossiers'},
+        {icon:'✅', num:approved,                          lbl:'Approuvés'},
+        {icon:'💰', num:totalRevenue.toLocaleString()+' MAD', lbl:'CA total'},
+        {icon:'🤝', num:totalComm.toLocaleString()+' MAD',    lbl:'Commission agence'},
+        {icon:'📈', num:totalProfit.toLocaleString()+' MAD',  lbl:'🔒 Votre bénéfice'},
+      ].map(function(s) {
+        return '<div class="dash-card"><div class="dash-card-icon">'+s.icon+'</div>'
+          +'<div class="dash-card-num" style="font-size:16px">'+s.num+'</div>'
+          +'<div class="dash-card-lbl">'+s.lbl+'</div></div>';
+      }).join('');
+    }
+
+    // Clients table
+    if (!apps.length) {
+      if (table) table.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Aucun dossier pour cette agence.</div>';
+      return;
+    }
+    var sc = {pending:'status-pending',processing:'status-processing',approved:'status-approved',rejected:'status-rejected','docs-ready':'status-docs',appointment:'status-appointment',submitted:'status-submitted'};
+    if (table) table.innerHTML = '<div style="overflow-x:auto"><table>'
+      +'<thead><tr><th>Réf</th><th>Client</th><th>Destination</th><th>Service</th><th>Date</th><th>Statut</th><th>Total</th><th>Commission</th><th>🔒 Bénéfice</th></tr></thead><tbody>'
+      + apps.map(function(a) {
+          var profit = (a.total||0) - (a.agencyCommission||0);
+          return '<tr>'
+            +'<td><strong style="color:var(--gold)">'+a.ref+'</strong></td>'
+            +'<td>'+(a.firstName||'')+' '+(a.lastName||'')
+              +(a.applicantPhoto?'<br><img src="'+a.applicantPhoto+'" style="width:28px;height:35px;object-fit:cover;border-radius:3px;margin-top:3px;border:1px solid var(--border)">'  :'')+'</td>'
+            +'<td>'+(a.destination||'—').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').trim()+'</td>'
+            +'<td style="font-size:12px">'+(a.package||'—')+'</td>'
+            +'<td style="font-size:11px">'+(a.createdAt&&a.createdAt.toDate?a.createdAt.toDate().toLocaleDateString('fr-FR'):'—')+'</td>'
+            +'<td><span class="status-badge '+(sc[a.status]||'status-pending')+'">'+(a.status||'pending')+'</span></td>'
+            +'<td style="font-weight:700">'+(a.total||0).toLocaleString()+' MAD</td>'
+            +'<td style="color:#1B7A4A;font-weight:700">'+(a.agencyCommission||0).toLocaleString()+' MAD</td>'
+            +'<td style="color:#0369a1;font-weight:700">'+profit.toLocaleString()+' MAD</td>'
+            +'</tr>';
+        }).join('')
+      +'</tbody></table></div>';
+  } catch(e) {
+    if (table) table.innerHTML = '<div style="padding:20px;color:red">Erreur: '+e.message+'</div>';
+    console.error('[viewAgencyClients]', e);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  RECEIPT PDF — same design as appointment letter (QR + security)
+// ══════════════════════════════════════════════════════════════════
+async function generateSecurityToken(data) {
+  var SALT = 'EUROVISA_SECURE_2026_XK9';
+  var payload = [
+    data.ref || '',
+    (data.firstName||'') + (data.lastName||''),
+    data.total || '0',
+    data.phone || '',
+    data.destination || '',
+    SALT
+  ].join('|').toUpperCase();
+  var encoder = new TextEncoder();
+  var buf = await crypto.subtle.digest('SHA-256', encoder.encode(payload));
+  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('').toUpperCase().slice(0,32);
+}
+
+window.downloadReceiptPDF = async function() {
+  if (!_receiptData) return;
+  var d = _receiptData;
+
+  var _co       = (_settingsCache && _settingsCache.company) || {};
+  var coName    = _co.name    || 'EuroVisa Pro';
+  var coAddress = _co.address || 'Casablanca, Maroc';
+  var coPhone   = _co.phone   || '+212 682 652 382';
+  var coEmail   = _co.email   || 'tls.appointements@gmail.com';
+  var coTagline = _co.tagline || 'Services Visa Schengen · Casablanca, Maroc';
+
+  var _sig      = (_settingsCache && _settingsCache.signature) || {};
+  var agentName = _sig.name  || localStorage.getItem('eurovisa_agent_name') || '';
+  var agentSig  = _sig.sig   || localStorage.getItem('eurovisa_signature')  || '';
+  var agentStamp= _sig.stamp || localStorage.getItem('eurovisa_stamp')      || '';
+
+  var now = new Date().toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'})
+          + ' à ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  var destClean = (d.destination||'').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
+  var addonsLine = (d.addons && d.addons.length) ? d.addons.join(', ') : '';
+
+  // Security token
+  var secToken = await generateSecurityToken(d);
+  var tokenFormatted = secToken.match(/.{1,4}/g).join('-');
+  var qrPayload = JSON.stringify({ ref: d.ref, tok: secToken, total: d.total, dest: destClean });
+
+  var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">'
+    +'<title>Reçu '+d.ref+' — '+coName+'</title>'
+    +'<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>'
+    +'<style>'
+    +'*{margin:0;padding:0;box-sizing:border-box}'
+    +'html,body{background:#ccc;font-family:Arial,Helvetica,sans-serif;color:#0a1628;font-size:11px}'
+    +'.page{width:210mm;min-height:297mm;margin:20px auto;background:#fff;box-shadow:0 8px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden;position:relative}'
+    +'.top-stripe{height:8px;background:linear-gradient(90deg,#0B1D35 0%,#1a3a6b 40%,#c9973a 60%,#E8B04A 100%);flex-shrink:0}'
+    +'.letterhead{padding:18px 36px 14px;border-bottom:2px solid #0B1D35;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}'
+    +'.lh-org{font-size:17px;font-weight:900;color:#0B1D35;letter-spacing:1.5px;text-transform:uppercase}'
+    +'.lh-sub{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-top:3px}'
+    +'.lh-addr{font-size:9px;color:#666;margin-top:6px;line-height:1.7}'
+    +'.lh-right{text-align:right}'
+    +'.lh-doc-label{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:3px}'
+    +'.lh-ref{font-size:16px;font-weight:900;color:#c9973a}'
+    +'.lh-date{font-size:9px;color:#888;margin-top:3px}'
+    +'.lh-status{display:inline-block;background:#0B1D35;color:#c9973a;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:5px 12px;border-radius:4px;margin-top:6px}'
+    +'.body{padding:16px 36px;flex:1;display:flex;flex-direction:column}'
+    +'.doc-title{font-size:13px;font-weight:900;color:#0B1D35;text-align:center;letter-spacing:3px;text-transform:uppercase;margin-bottom:3px}'
+    +'.doc-subtitle{font-size:8px;text-align:center;color:#888;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #e0e0e0}'
+    +'.body-text{font-size:10px;line-height:1.65;color:#333;margin-bottom:10px}'
+    +'.total-box{background:#0B1D35;border-radius:7px;padding:12px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}'
+    +'.total-label{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.45)}'
+    +'.total-amt{font-size:22px;font-weight:900;color:#c9973a}'
+    +'.section-heading{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0B1D35;background:#f0f2f7;padding:5px 10px;border-left:3px solid #0B1D35;margin-bottom:0}'
+    +'.info-table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:9.5px}'
+    +'.info-table tr{border-bottom:1px solid #f0f0f0}'
+    +'.info-table td{padding:4px 10px;vertical-align:middle}'
+    +'.info-table td:first-child{font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;width:38%;background:#fafafa;font-size:8.5px}'
+    +'.info-table td:last-child{color:#0B1D35;font-weight:500}'
+    +'.svc-table{width:100%;border-collapse:collapse;margin-bottom:10px}'
+    +'.svc-table th{background:#f0f2f7;font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6B7280;padding:7px 10px;text-align:left}'
+    +'.svc-table td{padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:9.5px}'
+    +'.steps-box{background:#fffbf3;border:1.5px solid #c9973a;border-radius:6px;padding:9px 13px;margin-bottom:10px}'
+    +'.steps-title{font-size:7.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0B1D35;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(201,151,58,.3)}'
+    +'.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}'
+    +'.step-item{font-size:9px;color:#555;padding:2px 0 2px 11px;position:relative;line-height:1.45}'
+    +'.step-item::before{content:"▸";position:absolute;left:0;color:#c9973a;font-size:8px}'
+    +'.security-block{border:1.5px solid #1a3a6b;border-radius:6px;overflow:hidden;margin-bottom:10px;display:flex;background:#fff}'
+    +'.security-qr{padding:10px 12px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-right:1.5px solid #1a3a6b;flex-shrink:0}'
+    +'.security-qr-label{font-size:6.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#1a3a6b;text-align:center}'
+    +'.security-right{flex:1;display:flex;flex-direction:column;justify-content:center;padding:10px 14px;gap:6px;position:relative;overflow:hidden}'
+    +'.security-right::before{content:"";position:absolute;inset:0;opacity:.04;background-image:repeating-linear-gradient(45deg,#0B1D35 0px,#0B1D35 1px,transparent 1px,transparent 8px),repeating-linear-gradient(-45deg,#c9973a 0px,#c9973a 1px,transparent 1px,transparent 8px);pointer-events:none}'
+    +'.security-badge{background:#0B1D35;color:#c9973a;font-size:7px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:3px;flex-shrink:0}'
+    +'.security-title{font-size:8.5px;font-weight:700;color:#0B1D35;letter-spacing:.5px;text-transform:uppercase}'
+    +'.token-label{font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#888;flex-shrink:0}'
+    +'.token-value{font-family:"Courier New",monospace;font-size:9px;font-weight:700;color:#0B1D35;letter-spacing:2px;background:#f0f2f7;padding:3px 8px;border-radius:3px;border:1px solid #d0d4e0}'
+    +'.security-meta{font-size:7.5px;color:#888;line-height:1.5}'
+    +'.sig-row{display:flex;justify-content:space-between;align-items:flex-end;padding-top:8px;border-top:1px solid #e0e0e0;margin-top:auto}'
+    +'.sig-block{font-size:8.5px;color:#aaa}'
+    +'.sig-line{border-bottom:1px solid #0B1D35;width:120px;margin-bottom:3px}'
+    +'.footer{padding:10px 36px;border-top:2px solid #0B1D35;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}'
+    +'.footer-l{font-size:9px;color:#aaa}'
+    +'.footer-l strong{color:#0B1D35;font-size:10px}'
+    +'.footer-c{text-align:center;font-size:7.5px;color:#aaa;letter-spacing:1px;text-transform:uppercase}'
+    +'.footer-r{font-size:9px;color:#aaa;text-align:right}'
+    +'.bottom-stripe{height:5px;background:linear-gradient(90deg,#c9973a 0%,#0B1D35 100%);flex-shrink:0}'
+    +'.no-print-bar{position:fixed;top:0;left:0;right:0;background:#0B1D35;color:#c9973a;padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:16px;z-index:9999;font-family:Arial,sans-serif;font-size:13px;font-weight:600}'
+    +'.no-print-bar button{padding:7px 22px;background:#c9973a;color:#0B1D35;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}'
+    +'body{padding-top:48px}'
+    +'@page{size:A4 portrait;margin:0}'
+    +'@media print{html,body{background:#fff!important;padding:0!important}.no-print-bar{display:none!important}.page{margin:0;box-shadow:none;width:210mm}}'
+    +'</style></head><body>'
+    +'<div class="no-print-bar">'
+    +'  <span>Reçu de paiement — '+d.ref+'</span>'
+    +'  <button onclick="window.print()">🖨️ Imprimer / Sauvegarder PDF</button>'
+    +'  <button onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff">✕ Fermer</button>'
+    +'</div>'
+    +'<div class="page">'
+    +'<div class="top-stripe"></div>'
+    +'<div class="letterhead">'
+    +'  <div>'
+    +'    <div class="lh-org">'+coName+'</div>'
+    +'    <div class="lh-sub">'+coTagline+'</div>'
+    +'    <div class="lh-addr">'+coAddress+'<br>'+coPhone+' · '+coEmail+'</div>'
+    +'  </div>'
+    +'  <div class="lh-right">'
+    +'    <div class="lh-doc-label">Référence de paiement</div>'
+    +'    <div class="lh-ref">'+d.ref+'</div>'
+    +'    <div class="lh-date">Émis le : '+now+'</div>'
+    +'    <div class="lh-status">✓ REÇU CONFIRMÉ</div>'
+    +'  </div>'
+    +'</div>'
+    +'<div class="body">'
+    +'  <div class="doc-title">Reçu de Paiement</div>'
+    +'  <div class="doc-subtitle">Document officiel · Confirmation de règlement</div>'
+    +'  <p class="body-text">Ce document confirme la réception du paiement de <strong>'+d.firstName+' '+d.lastName+'</strong> pour les services de traitement de visa ci-dessous. Conservez ce reçu comme preuve de paiement.</p>'
+
+    // Total box
+    +'  <div class="total-box">'
+    +'    <span class="total-label">Montant total réglé</span>'
+    +'    <span class="total-amt">'+(d.total||0).toLocaleString()+' MAD</span>'
+    +'  </div>'
+
+    // Two columns: client info + visa details
+    +'  <div style="display:flex;gap:14px;margin-bottom:10px">'
+    +'    <div style="flex:1">'
+    +'      <div class="section-heading">Informations client</div>'
+    +'      <table class="info-table">'
+    +'        <tr><td>Nom complet</td><td><strong>'+d.firstName+' '+(d.lastName||'')+'</strong></td></tr>'
+    +'        <tr><td>Email</td><td>'+(d.email||'—')+'</td></tr>'
+    +'        <tr><td>Téléphone</td><td>'+(d.phone||'—')+'</td></tr>'
+    +'        <tr><td>Nationalité</td><td>'+(d.nationality||'—')+'</td></tr>'
+    +(d.passport ? '        <tr><td>Passeport</td><td>'+d.passport+'</td></tr>' : '')
+    +'      </table>'
+    +'    </div>'
+    +'    <div style="flex:1">'
+    +'      <div class="section-heading">Détails du visa</div>'
+    +'      <table class="info-table">'
+    +'        <tr><td>Destination</td><td><strong>'+destClean+'</strong></td></tr>'
+    +'        <tr><td>Type de visa</td><td>'+(d.visaType||'—')+'</td></tr>'
+    +'        <tr><td>Date de voyage</td><td>'+(d.travelDate||'À préciser')+'</td></tr>'
+    +'        <tr><td>Voyageurs</td><td>'+(d.numApplicants||'1')+'</td></tr>'
+    +(d.city ? '        <tr><td>Ville RDV</td><td>'+d.city+'</td></tr>' : '')
+    +'      </table>'
+    +'    </div>'
+    +(d.applicantPhoto ? '    <div style="flex-shrink:0"><div style="width:80px;height:100px;border:2px solid #0B1D35;border-radius:4px;overflow:hidden"><img src="'+d.applicantPhoto+'" style="width:100%;height:100%;object-fit:cover"></div><div style="font-size:7px;color:#888;text-align:center;margin-top:4px;text-transform:uppercase;letter-spacing:1px">Photo</div></div>' : '')
+    +'  </div>'
+
+    // Services table
+    +'  <div class="section-heading">Services commandés</div>'
+    +'  <table class="svc-table">'
+    +'    <thead><tr><th>Service</th><th style="text-align:right">Montant</th></tr></thead>'
+    +'    <tbody>'
+    +'      <tr><td style="font-weight:700">'+d.package+'</td><td style="text-align:right;font-weight:700">'+(d.total||0).toLocaleString()+' MAD</td></tr>'
+    + (addonsLine ? addonsLine.split(', ').map(function(a){ return '<tr><td style="padding-left:18px;color:#6B7280">+ '+a.trim()+'</td><td style="text-align:right;color:#9CA3AF;font-size:9px">inclus</td></tr>'; }).join('') : '')
+    +'    </tbody>'
+    +'  </table>'
+
+    // Next steps
+    +'  <div class="steps-box">'
+    +'    <div class="steps-title">Prochaines étapes</div>'
+    +'    <div class="steps-grid">'
+    +'      <div class="step-item">Notre équipe vous contacte dans les <strong>2 heures</strong></div>'
+    +'      <div class="step-item">Vérification et validation des documents</div>'
+    +'      <div class="step-item">Confirmation du rendez-vous au centre de visa</div>'
+    +'      <div class="step-item">Dépôt du dossier et suivi jusqu\'à la décision</div>'
+    +'    </div>'
+    +'  </div>'
+
+    // Security block with QR
+    +'  <div class="security-block">'
+    +'    <div class="security-qr"><div id="qr-render" style="width:72px;height:72px;background:#fff"></div><div class="security-qr-label">Scanner<br>pour vérifier</div></div>'
+    +'    <div class="security-right">'
+    +'      <div style="display:flex;align-items:center;gap:8px"><div class="security-badge">🔒 SÉCURISÉ</div><div class="security-title">Jeton de sécurité — SHA-256</div></div>'
+    +'      <div style="display:flex;align-items:center;gap:8px"><span class="token-label">Token :</span><span class="token-value">'+tokenFormatted+'</span></div>'
+    +'      <div class="security-meta"><strong>Intégrité du document :</strong> Ce jeton est lié cryptographiquement aux données du client.<br>Toute modification de ce document invalide le jeton. Vérifiable dans le panneau admin.</div>'
+    +'    </div>'
+    +'  </div>'
+
+    // Signature row
+    +'  <div class="sig-row">'
+    +'    <div class="sig-block">'
+    +(agentSig ? '<img src="'+agentSig+'" style="height:38px;max-width:130px;margin-bottom:3px"><br>' : '<div class="sig-line"></div>')
+    +'      <div style="font-size:8.5px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">'+(agentName||'Agent responsable')+'</div>'
+    +'      <div>'+coName+' · Centre de traitement</div>'
+    +'    </div>'
+    +'    <div style="text-align:center;font-size:8.5px;color:#aaa">'
+    +'      <div>Document généré automatiquement · Valide sans signature manuscrite</div>'
+    +'      <div>Émis le : '+now+'</div>'
+    +'    </div>'
+    +'    <div class="sig-block" style="text-align:right">'
+    +(agentStamp ? '<img src="'+agentStamp+'" style="height:60px;max-width:70px;opacity:.9"><br>' : '<div class="sig-line" style="margin-left:auto"></div>')
+    +'      <div style="font-size:8.5px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">Cachet officiel</div>'
+    +'      <div>Autorité de traitement</div>'
+    +'    </div>'
+    +'  </div>'
+
+    +'</div>' // end .body
+    +'<div class="footer">'
+    +'  <div class="footer-l"><strong>'+d.ref+'</strong><br>'+d.firstName+' '+(d.lastName||'')+'</div>'
+    +'  <div class="footer-c">'+coName+' · Centre agréé de traitement des visas<br>Confidentiel — Réservé au destinataire</div>'
+    +'  <div class="footer-r">'+destClean+' — Demande de visa<br>Page 1 sur 1</div>'
+    +'</div>'
+    +'<div class="bottom-stripe"></div>'
+    +'</div>' // end .page
+
+    +'<script>'
+    +'window.addEventListener("load",function(){'
+    +'  var qrData='+JSON.stringify(qrPayload)+';'
+    +'  var el=document.getElementById("qr-render");'
+    +'  if(el&&window.QRCode){new QRCode(el,{text:qrData,width:72,height:72,colorDark:"#0B1D35",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H});}'
+    +'});'
+    +'<\/script>'
+    +'</body></html>';
+
+  var blob = new Blob([html], {type:'text/html'});
+  var url  = URL.createObjectURL(blob);
+  var win  = window.open(url, '_blank');
+  if (win) setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  else alert('Veuillez autoriser les popups pour voir votre reçu.');
+};
+
+// ── Make renderAgencies show "Voir clients" button ──
+var _origRenderAgencies = window.renderAgencies;
+window.renderAgencies = function() {
+  if (typeof _origRenderAgencies === 'function') _origRenderAgencies();
+  // Inject "Voir clients" button into each agency row after render
+  setTimeout(function() {
+    _agencies.forEach(function(a, i) {
+      var row = document.getElementById('agency-row-' + i);
+      if (!row) return;
+      var actionsEl = row.querySelector('.agency-actions-extra');
+      if (actionsEl) return; // already added
+      var btnContainer = row.querySelector('.agency-actions');
+      if (!btnContainer) return;
+      var btn = document.createElement('button');
+      btn.className = 'agency-actions-extra';
+      btn.onclick = function(){ viewAgencyClients(a._id || a.id, a.name); };
+      btn.style.cssText = 'background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;margin-left:4px';
+      btn.textContent = '👥 Voir clients';
+      btnContainer.appendChild(btn);
+    });
+  }, 100);
+};
 
 
 // ── Startup ──
