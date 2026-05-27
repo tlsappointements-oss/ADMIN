@@ -3390,11 +3390,16 @@ window.showB2BTab = function(tab) {
   document.querySelectorAll('.b2btab').forEach(function(t){ t.style.display='none'; });
   var el = document.getElementById('b2btab-'+tab);
   if (el) el.style.display = 'block';
+  // Update sidebar active state
+  document.querySelectorAll('#page-b2b .sidebar-menu a').forEach(function(a){ a.classList.remove('active'); });
+  var tabMap = {overview:0,applications:1,commissions:2,newapp:3,prices:4};
+  var links = document.querySelectorAll('#page-b2b .sidebar-menu a');
+  if (tabMap[tab] !== undefined && links[tabMap[tab]]) links[tabMap[tab]].classList.add('active');
   if (tab==='overview')     loadB2BOverview();
   if (tab==='applications') loadB2BApplications();
   if (tab==='commissions')  loadB2BCommissions();
   if (tab==='prices')       { renderB2BPrices(); renderB2BCityPrices(); }
-  if (tab==='newapp')       renderB2BNewAppPackages();
+  if (tab==='newapp')       { renderB2BNewAppPackages(); renderB2BAddons(); }
 };
 
 async function loadB2BPortal(user) {
@@ -3584,54 +3589,7 @@ window.updateB2BCityPrice = function() {
   } else {
     if (display) display.style.display='none';
   }
-};
-
-window.submitB2BApplication = async function() {
-  if (!_agencyData) { showNotif('⚠️','Erreur: donnees agence introuvables'); return; }
-  if (_agencyData.status==='suspended') { showNotif('🚫','Compte suspendu'); return; }
-  var fname = document.getElementById('b2b-fname').value.trim();
-  var lname = document.getElementById('b2b-lname').value.trim();
-  var phone = document.getElementById('b2b-phone').value.trim();
-  var destEl = document.getElementById('b2b-dest');
-  var destText = destEl.options[destEl.selectedIndex] ? destEl.options[destEl.selectedIndex].text : '';
-  var pkgSel = document.getElementById('b2b-package');
-  var pkgOpt = pkgSel.options[pkgSel.selectedIndex];
-  if (!fname) { showNotif('⚠️','Prenom client requis'); return; }
-  if (!phone) { showNotif('⚠️','Telephone requis'); return; }
-  if (!destEl.value) { showNotif('⚠️','Destination requise'); return; }
-  if (!pkgSel.value) { showNotif('⚠️','Selectionnez un service'); return; }
-  var price = parseFloat(pkgOpt.dataset.price)||0;
-  var commPct = parseFloat(pkgOpt.dataset.commission)||(_agencyData.commission||10);
-  var cityEl = document.getElementById('b2b-city');
-  var cityOpt = cityEl.options[cityEl.selectedIndex];
-  var cityPrice = (cityOpt && cityOpt.dataset.price) ? parseFloat(cityOpt.dataset.price) : 0;
-  var finalTotal = price + (cityPrice>0 ? cityPrice : 0);
-  var finalComm = Math.round(finalTotal*commPct/100);
-  var ref = 'EVP-'+new Date().getFullYear()+'-'+Math.floor(1000+Math.random()*9000);
-  var data = {
-    ref:ref, firstName:fname, lastName:lname,
-    email:document.getElementById('b2b-email').value.trim(),
-    phone:phone, destination:destText,
-    visaType:document.getElementById('b2b-visa-type').value,
-    travelDate:document.getElementById('b2b-travel-date').value,
-    passport:document.getElementById('b2b-passport').value.trim(),
-    notes:document.getElementById('b2b-notes').value.trim(),
-    package:pkgOpt.text.split(' — ')[0], total:finalTotal,
-    city:cityOpt?cityOpt.value:'', cityRdvPrice:cityPrice,
-    agencyId:_agencyData.id, agencyName:_agencyData.name,
-    agencyCommission:finalComm, agencyCommissionPct:commPct,
-    source:'b2b', status:'pending',
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()
-  };
-  try {
-    await db.collection('applications').add(data);
-    showNotif('✅','Dossier soumis — Ref: '+ref);
-    ['b2b-fname','b2b-lname','b2b-email','b2b-phone','b2b-passport','b2b-notes'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
-    document.getElementById('b2b-dest').value='';
-    document.getElementById('b2b-package').value='';
-    document.getElementById('b2b-city-pricing-row').style.display='none';
-    showB2BTab('overview');
-  } catch(e) { showNotif('⚠️','Erreur: '+e.message); }
+  recalcB2BTotal();
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -4512,6 +4470,7 @@ window.addEventListener('DOMContentLoaded', function() {
 var _receiptData = null;
 
 window.showReceipt = function(data) {
+  // Enrich with any extra fields from the application if we have a ref
   _receiptData = data;
   window._lastRef = data.ref;
 
@@ -4852,36 +4811,42 @@ window.renderAgencies = function() {
   var q      = (document.getElementById('b2b-search')||{}).value || '';
   var status = (document.getElementById('b2b-filter-status')||{}).value || '';
   var filtered = _agencies.filter(function(a) {
-    return (!q || a.name.toLowerCase().includes(q.toLowerCase()) || (a.email||'').toLowerCase().includes(q.toLowerCase())) &&
+    return (!q || (a.name||'').toLowerCase().includes(q.toLowerCase()) || (a.email||'').toLowerCase().includes(q.toLowerCase())) &&
            (!status || a.status === status);
   });
   if (!filtered.length) {
     el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Aucune agence trouvée.</div>';
     return;
   }
-  el.innerHTML = filtered.map(function(a, i) {
+  el.innerHTML = filtered.map(function(a) {
+    var realIdx = _agencies.indexOf(a);
+    var agId    = a._id || a.id || '';
     var statusBadge = a.status === 'active'
       ? '<span class="b2b-badge active">✅ Actif</span>'
       : a.status === 'suspended'
       ? '<span class="b2b-badge suspended">🚫 Suspendu</span>'
       : '<span class="b2b-badge pending">⏳ En attente</span>';
-    var realIdx = _agencies.indexOf(a);
-    return '<div class="b2b-agency-card">' +
-      '<div class="b2b-avatar">' + (a.name||'?')[0].toUpperCase() + '</div>' +
-      '<div style="flex:1;min-width:0">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">' +
-          '<div style="font-size:14px;font-weight:700;color:var(--navy)">' + a.name + '</div>' +
-          statusBadge +
-        '</div>' +
-        '<div style="font-size:12px;color:var(--muted)">' + (a.email||'—') + ' · ' + (a.city||'') + ' · ☎ ' + (a.phone||'—') + '</div>' +
-        '<div style="font-size:11px;color:var(--muted);margin-top:3px">Commission: <strong style="color:var(--navy)">' + (a.commission||10) + '%</strong> · Clients: <strong style="color:var(--navy)">' + (a.clients||0) + '</strong> · CA généré: <strong style="color:var(--navy)">' + (a.revenue||0) + ' MAD</strong></div>' +
-      '</div>' +
-      '<div style="display:flex;gap:6px;flex-shrink:0">' +
-        '<button onclick="editAgency('+realIdx+')" style="background:var(--cream);border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:11px;cursor:pointer;font-family:inherit">✏️</button>' +
-        '<button onclick="toggleAgencyStatus('+realIdx+')" style="background:' + (a.status==='active'?'#FEE2E2':'#D1FAE5') + ';border:1px solid ' + (a.status==='active'?'#FECACA':'#BBF7D0') + ';border-radius:7px;padding:6px 10px;font-size:11px;cursor:pointer">' + (a.status==='active'?'🚫':'✅') + '</button>' +
-        '<button onclick="deleteAgency('+realIdx+')" style="background:#FEE2E2;border:1px solid #FECACA;border-radius:7px;padding:6px 10px;font-size:11px;cursor:pointer;color:#991b1b">🗑</button>' +
-      '</div>' +
-    '</div>';
+    return '<div class="b2b-agency-card" id="agency-row-'+realIdx+'">'
+      + '<div class="b2b-avatar">'+(a.name||'?')[0].toUpperCase()+'</div>'
+      + '<div style="flex:1;min-width:0">'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">'
+          + '<div style="font-size:14px;font-weight:700;color:var(--navy)">'+a.name+'</div>'
+          + statusBadge
+        + '</div>'
+        + '<div style="font-size:12px;color:var(--muted)">'+(a.email||'—')+' · '+(a.city||'')+' · ☎ '+(a.phone||'—')+'</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:3px">'
+          + 'Commission: <strong style="color:var(--navy)">'+(a.commission||10)+'%</strong>'
+          + ' · Clients: <strong style="color:var(--navy)">'+(a.clients||0)+'</strong>'
+          + ' · CA: <strong style="color:var(--navy)">'+(a.revenue||0)+' MAD</strong>'
+        + '</div>'
+      + '</div>'
+      + '<div class="agency-actions" style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">'
+        + '<button data-agency-id="'+agId+'" data-agency-name="'+a.name+'" onclick="viewAgencyClients(this.dataset.agencyId,this.dataset.agencyName)" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;color:#1D4ED8;font-weight:600">👥 Clients</button>'
+        + '<button onclick="editAgency('+realIdx+')" style="background:var(--cream);border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:11px;cursor:pointer">✏️ Modifier</button>'
+        + '<button onclick="toggleAgencyStatus('+realIdx+')" style="background:'+(a.status==='active'?'#FEE2E2':'#D1FAE5')+';border:1px solid '+(a.status==='active'?'#FECACA':'#BBF7D0')+';border-radius:7px;padding:6px 10px;font-size:11px;cursor:pointer">'+(a.status==='active'?'🚫 Suspendre':'✅ Activer')+'</button>'
+        + '<button onclick="deleteAgency('+realIdx+')" style="background:#FEE2E2;border:1px solid #FECACA;border-radius:7px;padding:6px 10px;font-size:11px;cursor:pointer;color:#991b1b">🗑</button>'
+      + '</div>'
+    + '</div>';
   }).join('');
 };
 
@@ -5319,6 +5284,17 @@ window.viewAgencyClients = async function(agencyId, agencyName) {
             +'</tr>';
         }).join('')
       +'</tbody></table></div>';
+    // Update agency stats in Firestore (clients count + total revenue)
+    if (agencyId && apps.length) {
+      db.collection('agencies').doc(agencyId).update({
+        clients: apps.length,
+        revenue: totalRevenue,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function(e){ console.warn('[agency stats update]', e); });
+      // Also update in local cache
+      var cached = _agencies.find(function(a){ return (a._id||a.id) === agencyId; });
+      if (cached) { cached.clients = apps.length; cached.revenue = totalRevenue; }
+    }
   } catch(e) {
     if (table) table.innerHTML = '<div style="padding:20px;color:red">Erreur: '+e.message+'</div>';
     console.error('[viewAgencyClients]', e);
@@ -5562,28 +5538,7 @@ window.downloadReceiptPDF = async function() {
   else alert('Veuillez autoriser les popups pour voir votre reçu.');
 };
 
-// ── Make renderAgencies show "Voir clients" button ──
-var _origRenderAgencies = window.renderAgencies;
-window.renderAgencies = function() {
-  if (typeof _origRenderAgencies === 'function') _origRenderAgencies();
-  // Inject "Voir clients" button into each agency row after render
-  setTimeout(function() {
-    _agencies.forEach(function(a, i) {
-      var row = document.getElementById('agency-row-' + i);
-      if (!row) return;
-      var actionsEl = row.querySelector('.agency-actions-extra');
-      if (actionsEl) return; // already added
-      var btnContainer = row.querySelector('.agency-actions');
-      if (!btnContainer) return;
-      var btn = document.createElement('button');
-      btn.className = 'agency-actions-extra';
-      btn.onclick = function(){ viewAgencyClients(a._id || a.id, a.name); };
-      btn.style.cssText = 'background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;margin-left:4px';
-      btn.textContent = '👥 Voir clients';
-      btnContainer.appendChild(btn);
-    });
-  }, 100);
-};
+// renderAgencies now has Voir clients built-in (see renderAgencies function)
 
 
 // ── Startup ──
