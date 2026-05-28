@@ -457,6 +457,9 @@ tr:hover td{background:var(--cream)}
     <button class="nav-btn" onclick="showPage('track')">Track</button>
     <button class="nav-btn" onclick="showPage('booking')" style="color:var(--gold2)">Book Now</button>
     <div id="user-badge">
+      <button id="notif-bell-btn" onclick="openNotifications()" style="position:relative;background:none;border:none;cursor:pointer;font-size:18px;padding:4px 6px;line-height:1;color:rgba(255,255,255,.7)" title="Notifications">
+        🔔<span id="notif-bell-count" style="display:none;position:absolute;top:0;right:0;background:#EF4444;color:#fff;font-size:8px;font-weight:700;border-radius:50%;width:14px;height:14px;align-items:center;justify-content:center;line-height:14px">0</span>
+      </button>
       <div id="user-avatar">?</div>
       <span id="user-name-nav"></span>
       <button class="nav-btn" onclick="doLogOut()" style="font-size:12px;padding:5px 10px">Sign out</button>
@@ -1604,22 +1607,56 @@ tr:hover td{background:var(--cream)}
     <div class="drawer-section"><h4>📋 Application Info</h4><div class="detail-grid" id="drawer-appinfo"></div></div>
     <div class="drawer-section"><h4>🧾 Services</h4><div id="drawer-services"></div></div>
     <div class="drawer-section">
-      <h4>🔄 Update Status</h4>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <select id="drawer-status-sel" style="border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;flex:1">
-          <option value="pending">Pending</option><option value="processing">Processing</option><option value="docs-ready">Docs Ready</option><option value="appointment">Appointment Booked</option><option value="submitted">Submitted</option><option value="approved">Approved</option><option value="rejected">Rejected</option>
-        </select>
-        <div style="position:relative;display:inline-flex">
-          <button class="btn-sm btn-sm-gold" onclick="updateAppStatus('both')" style="border-radius:7px 0 0 7px;border-right:1px solid rgba(0,0,0,.15)">📧📱 Update</button>
+      <h4>🔄 Mettre à jour le statut</h4>
+      <select id="drawer-status-sel" style="border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;width:100%;margin-bottom:10px">
+        <option value="pending">⏳ En attente</option>
+        <option value="processing">⚙️ En traitement</option>
+        <option value="docs-ready">📄 Documents prêts</option>
+        <option value="appointment">🗓 Rendez-vous confirmé</option>
+        <option value="submitted">📬 Dossier soumis</option>
+        <option value="approved">✅ Visa approuvé</option>
+        <option value="rejected">❌ Demande refusée</option>
+      </select>
+
+      <textarea id="drawer-admin-note" placeholder="Message / note pour le client (visible dans son espace et dans l'email)…" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;min-height:80px;resize:vertical;background:var(--cream);margin-bottom:10px"></textarea>
+
+      <!-- Attachments for this update -->
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;font-weight:600;color:var(--navy);display:block;margin-bottom:6px">📎 Pièces jointes (optionnel — envoyées dans l'email)</label>
+        <div id="drawer-attach-drop" onclick="document.getElementById('drawer-attach-input').click()"
+          style="border:2px dashed var(--border);border-radius:8px;padding:12px 16px;background:var(--cream);cursor:pointer;text-align:center;font-size:12px;color:var(--muted);transition:border-color .2s">
+          <span id="drawer-attach-label">📎 Cliquer pour joindre des fichiers (PDF, images · plusieurs OK)</span>
+        </div>
+        <input type="file" id="drawer-attach-input" multiple accept="image/*,.pdf,.doc,.docx" style="display:none" onchange="handleDrawerAttachments(this)">
+        <div id="drawer-attach-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+      </div>
+
+      <!-- Require docs upload toggle -->
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:10px 12px;background:var(--cream);border-radius:8px;border:1px solid var(--border);margin-bottom:12px">
+        <input type="checkbox" id="drawer-require-docs" style="width:16px;height:16px">
+        <div>
+          <div style="font-weight:600;color:var(--navy)">📤 Demander des documents supplémentaires</div>
+          <div style="font-size:11px;color:var(--muted)">Le client verra un bouton pour uploader des fichiers sur cette étape</div>
+        </div>
+      </label>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="position:relative;display:inline-flex;flex:1">
+          <button class="btn-sm btn-sm-gold" onclick="updateAppStatus('both')" style="border-radius:7px 0 0 7px;border-right:1px solid rgba(0,0,0,.15);flex:1;justify-content:center">📧 📱 Mettre à jour</button>
           <button class="btn-sm btn-sm-gold" onclick="toggleNotifMenu(this)" style="border-radius:0 7px 7px 0;padding:7px 8px;font-size:10px">▼</button>
-          <div id="notif-menu" style="display:none;position:absolute;top:100%;right:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:190px;z-index:10;margin-top:4px;overflow:hidden">
+          <div id="notif-menu" style="display:none;position:absolute;top:100%;right:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:200px;z-index:10;margin-top:4px;overflow:hidden">
             <button onclick="updateAppStatus('both');toggleNotifMenu()" style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-family:inherit;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)">📧 + 📱 Email &amp; WhatsApp</button>
-            <button onclick="updateAppStatus('email');toggleNotifMenu()" style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-family:inherit;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)">📧 Email only</button>
-            <button onclick="updateAppStatus('none');toggleNotifMenu()" style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-family:inherit;font-size:13px;cursor:pointer;color:var(--muted)">🔇 Update silently</button>
+            <button onclick="updateAppStatus('email');toggleNotifMenu()" style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-family:inherit;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)">📧 Email seulement</button>
+            <button onclick="updateAppStatus('none');toggleNotifMenu()" style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-family:inherit;font-size:13px;cursor:pointer;color:var(--muted)">🔇 Silencieusement</button>
           </div>
         </div>
       </div>
-      <textarea id="drawer-admin-note" placeholder="Admin note (visible to client on status update)…" style="width:100%;margin-top:10px;border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;min-height:70px;resize:vertical;background:var(--cream)"></textarea>
+
+      <!-- Status history -->
+      <div style="margin-top:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px">Historique des mises à jour</div>
+        <div id="drawer-status-history" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto"></div>
+      </div>
     </div>
     <div class="drawer-section">
       <h4>🗓 Appointment</h4>
@@ -1649,6 +1686,7 @@ tr:hover td{background:var(--cream)}
     <div class="drawer-section" id="drawer-docs-section" style="display:none">
       <h4>📎 Documents téléchargés</h4>
       <div id="drawer-docs-list" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px"></div>
+      <div id="drawer-step-docs-list" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px"></div>
     </div>
     <!-- INLINE EDIT -->
     <div class="drawer-section">
@@ -1665,6 +1703,42 @@ tr:hover td{background:var(--cream)}
         <button class="btn-sm btn-sm-red" onclick="deleteApplication()">🗑️ Supprimer cette demande</button>
       </div>
     </div>
+  </div>
+</div>
+
+
+<!-- NOTIFICATION DRAWER -->
+<div id="notif-drawer" style="display:none;position:fixed;top:60px;right:16px;width:340px;max-height:480px;background:var(--white);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,.18);z-index:9000;overflow:hidden;flex-direction:column">
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:14px;font-weight:700;color:var(--navy)">🔔 Notifications</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="markAllNotifsRead()" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer">Tout lire</button>
+      <button onclick="closeNotifications()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted)">✕</button>
+    </div>
+  </div>
+  <div id="notif-list" style="overflow-y:auto;flex:1;max-height:400px;padding:8px 0">
+    <div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Aucune notification.</div>
+  </div>
+</div>
+
+<!-- CLIENT STEP UPLOAD MODAL -->
+<div id="client-upload-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9500;align-items:center;justify-content:center">
+  <div style="background:var(--white);border-radius:16px;padding:28px;max-width:480px;width:92%;max-height:90vh;overflow-y:auto;position:relative">
+    <button onclick="closeClientUploadModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+    <h3 id="client-upload-modal-title" style="font-family:'DM Serif Display',serif;font-size:20px;color:var(--navy);margin-bottom:6px">Documents requis</h3>
+    <p id="client-upload-modal-note" style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6"></p>
+    <div id="client-upload-attachments" style="margin-bottom:16px"></div>
+    <div id="client-upload-drop" onclick="document.getElementById('client-upload-file').click()"
+      style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:var(--cream);margin-bottom:14px">
+      <div style="font-size:28px;margin-bottom:6px">📤</div>
+      <div style="font-size:13px;font-weight:600;color:var(--navy)">Cliquez pour choisir vos fichiers</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">PDF, images · Plusieurs fichiers acceptés</div>
+    </div>
+    <input type="file" id="client-upload-file" multiple accept="image/*,.pdf,.doc,.docx" style="display:none" onchange="handleClientStepUpload(this)">
+    <div id="client-upload-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+    <button onclick="submitClientStepDocs()" class="btn-gold" style="width:100%;padding:12px;font-size:14px;border-radius:8px">✅ Envoyer les documents</button>
+    <input type="hidden" id="client-upload-app-id">
+    <input type="hidden" id="client-upload-status-key">
   </div>
 </div>
 
@@ -2808,39 +2882,7 @@ window.toggleNotifMenu = function(btn) {
   }
 };
 
-window.updateAppStatus = async function(notifMode) {
-  if (!currentDrawerApp) return;
-  const mode      = notifMode || 'both';
-  const newStatus = document.getElementById('drawer-status-sel').value;
-  const note      = document.getElementById('drawer-admin-note').value;
-  const statusLabels = {
-    pending:'En attente', processing:'En traitement',
-    'docs-ready':'Documents prêts', appointment:'Rendez-vous confirmé',
-    submitted:'Dossier soumis', approved:'Visa approuvé ✅', rejected:'Demande refusée'
-  };
-  try {
-    await db.collection('applications').doc(currentDrawerApp.id).update({status:newStatus, adminNote:note});
-    const idx = allApplications.findIndex(a=>a.id===currentDrawerApp.id);
-    if (idx>-1) { allApplications[idx].status=newStatus; allApplications[idx].adminNote=note; }
-    currentDrawerApp.status=newStatus; currentDrawerApp.adminNote=note;
-    updateAdminStats();
-    const modeLabels = {both:'📧 + 📱 sent', email:'📧 email sent', none:'silent update'};
-    showNotif('✅', `Status → "${newStatus}" · ${modeLabels[mode]||''}`);
-    if (mode === 'both' || mode === 'email') {
-      await sendEmail('status', currentDrawerApp.email,
-        `${currentDrawerApp.firstName} ${currentDrawerApp.lastName||''}`,
-        { ref:currentDrawerApp.ref, firstName:currentDrawerApp.firstName,
-          destination:currentDrawerApp.destination,
-          status:statusLabels[newStatus]||newStatus, adminNote:note||'' });
-    }
-    if (mode === 'both') {
-      var waStatusMsg = buildWAStatus(currentDrawerApp.firstName+' '+(currentDrawerApp.lastName||''), {
-        ref:currentDrawerApp.ref, destination:currentDrawerApp.destination,
-        status:statusLabels[newStatus]||newStatus, adminNote:note||''});
-      sendWhatsApp(currentDrawerApp.phone, waStatusMsg);
-    }
-  } catch(e) { showNotif('⚠️','Update failed: '+e.message); }
-};
+// updateAppStatus replaced by patch4.js
 
 window.saveAppointment = async function() {
   if (!currentDrawerApp) return;
@@ -5810,6 +5852,579 @@ window.showAdminTab = function(tab) {
   if (typeof _origShowAdminTabVerify === 'function') _origShowAdminTabVerify(tab);
   if (tab === 'verify') loadAllReceipts();
 };
+
+
+// ══════════════════════════════════════════════════════════════════
+//  DRAWER ATTACHMENTS
+// ══════════════════════════════════════════════════════════════════
+var _drawerAttachments = []; // [{name, data, type}]
+
+window.handleDrawerAttachments = function(input) {
+  var files = Array.from(input.files);
+  var list  = document.getElementById('drawer-attach-list');
+  var label = document.getElementById('drawer-attach-label');
+  var promises = files.map(function(file) {
+    return new Promise(function(resolve) {
+      if (file.size > 8*1024*1024) { showNotif('⚠️', file.name + ' trop grand (max 8MB)'); resolve(null); return; }
+      var r = new FileReader();
+      r.onload = function(e) { resolve({ name: file.name, data: e.target.result, type: file.type }); };
+      r.onerror = function() { resolve(null); };
+      r.readAsDataURL(file);
+    });
+  });
+  Promise.all(promises).then(function(results) {
+    results.filter(Boolean).forEach(function(f) { _drawerAttachments.push(f); });
+    if (label) label.textContent = _drawerAttachments.length + ' fichier(s) joint(s)';
+    if (list) {
+      list.innerHTML = _drawerAttachments.map(function(f, i) {
+        var isImg = f.type.startsWith('image/');
+        return '<div style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px">'
+          + (isImg ? '<img src="'+f.data+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">' : '<span>📄</span>')
+          + '<span style="flex:1;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.name+'</span>'
+          + '<button onclick="_drawerAttachments.splice('+i+',1);handleDrawerAttachments({files:[]})" style="background:none;border:none;cursor:pointer;color:#991b1b;font-size:12px">✕</button>'
+          + '</div>';
+      }).join('');
+    }
+  });
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  UPDATE STATUS — saves history entry, sends email, writes notification
+// ══════════════════════════════════════════════════════════════════
+var _statusLabels = {
+  pending:'⏳ En attente', processing:'⚙️ En traitement',
+  'docs-ready':'📄 Documents prêts', appointment:'🗓 Rendez-vous confirmé',
+  submitted:'📬 Dossier soumis', approved:'✅ Visa approuvé', rejected:'❌ Demande refusée'
+};
+
+window.updateAppStatus = async function(notifMode) {
+  if (!currentDrawerApp) return;
+  var mode       = notifMode || 'both';
+  var newStatus  = document.getElementById('drawer-status-sel').value;
+  var note       = (document.getElementById('drawer-admin-note').value || '').trim();
+  var requireDoc = document.getElementById('drawer-require-docs').checked;
+  var appId      = currentDrawerApp.id;
+  var now        = firebase.firestore.FieldValue.serverTimestamp();
+
+  // Build history entry
+  var historyEntry = {
+    status:    newStatus,
+    label:     _statusLabels[newStatus] || newStatus,
+    note:      note,
+    requireDocs: requireDoc,
+    attachments: _drawerAttachments.map(function(f){ return {name:f.name, data:f.data, type:f.type}; }),
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'admin'
+  };
+
+  try {
+    // Update Firestore — status + append to statusHistory array
+    await db.collection('applications').doc(appId).update({
+      status:        newStatus,
+      adminNote:     note,
+      requireDocs:   requireDoc,
+      statusHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry),
+      lastUpdatedAt: now
+    });
+
+    // Update local cache
+    var idx = allApplications.findIndex(function(a){ return a.id === appId; });
+    if (idx > -1) {
+      allApplications[idx].status      = newStatus;
+      allApplications[idx].adminNote   = note;
+      allApplications[idx].requireDocs = requireDoc;
+      if (!allApplications[idx].statusHistory) allApplications[idx].statusHistory = [];
+      allApplications[idx].statusHistory.push(historyEntry);
+    }
+    currentDrawerApp.status = newStatus;
+    currentDrawerApp.adminNote = note;
+
+    // Write Firestore notification for client
+    var clientUid = currentDrawerApp.userId;
+    if (clientUid && clientUid !== 'guest') {
+      await db.collection('notifications').add({
+        uid:       clientUid,
+        appId:     appId,
+        ref:       currentDrawerApp.ref,
+        status:    newStatus,
+        statusLabel: _statusLabels[newStatus] || newStatus,
+        note:      note,
+        requireDocs: requireDoc,
+        read:      false,
+        createdAt: now
+      });
+    }
+
+    updateAdminStats();
+    renderDrawerStatusHistory(currentDrawerApp);
+
+    // Reset attachments
+    _drawerAttachments = [];
+    var lbl = document.getElementById('drawer-attach-label');
+    var lst = document.getElementById('drawer-attach-list');
+    if (lbl) lbl.textContent = '📎 Cliquer pour joindre des fichiers';
+    if (lst) lst.innerHTML = '';
+    document.getElementById('drawer-require-docs').checked = false;
+    document.getElementById('drawer-admin-note').value = '';
+
+    showNotif('✅', 'Statut mis à jour → ' + (_statusLabels[newStatus] || newStatus));
+
+    // Send email
+    if (mode === 'both' || mode === 'email') {
+      var attachHtml = historyEntry.attachments.length
+        ? '<br><br><strong>Pièces jointes :</strong><br>'
+          + historyEntry.attachments.map(function(f){
+              return '<a href="'+f.data+'" download="'+f.name+'" style="color:#c9973a">📎 '+f.name+'</a>';
+            }).join('<br>')
+        : '';
+      var requireHtml = requireDoc
+        ? '<br><br><div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:12px 16px;margin-top:8px"><strong>📤 Action requise :</strong> Notre équipe vous demande de télécharger des documents supplémentaires. Connectez-vous à votre espace client pour procéder.</div>'
+        : '';
+      await sendEmail('status', currentDrawerApp.email,
+        currentDrawerApp.firstName + ' ' + (currentDrawerApp.lastName||''),
+        { ref: currentDrawerApp.ref, firstName: currentDrawerApp.firstName,
+          destination: currentDrawerApp.destination,
+          status: _statusLabels[newStatus]||newStatus,
+          adminNote: note + attachHtml + requireHtml });
+    }
+
+    if (mode === 'both') {
+      var waMsg = buildWAStatus(
+        currentDrawerApp.firstName+' '+(currentDrawerApp.lastName||''),
+        { ref: currentDrawerApp.ref, destination: currentDrawerApp.destination,
+          status: _statusLabels[newStatus]||newStatus,
+          adminNote: note + (requireDoc ? '\n\n📤 Documents requis — connectez-vous à votre espace.' : '') });
+      sendWhatsApp(currentDrawerApp.phone, waMsg);
+    }
+  } catch(e) {
+    console.error('[updateAppStatus]', e);
+    showNotif('⚠️', 'Erreur: ' + e.message);
+  }
+};
+
+// ── Render status history in drawer ──
+function renderDrawerStatusHistory(a) {
+  var el = document.getElementById('drawer-status-history');
+  if (!el) return;
+  var history = (a.statusHistory || []).slice().reverse();
+  if (!history.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px">Aucune mise à jour.</div>'; return; }
+  el.innerHTML = history.map(function(h) {
+    var date = h.updatedAt ? new Date(h.updatedAt).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    return '<div style="background:var(--cream);border-radius:8px;padding:10px 12px;border:1px solid var(--border)">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+      + '<span style="font-size:12px;font-weight:700;color:var(--navy)">' + (h.label||h.status) + '</span>'
+      + '<span style="font-size:10px;color:var(--muted)">' + date + '</span>'
+      + '</div>'
+      + (h.note ? '<div style="font-size:12px;color:#555;line-height:1.5;margin-bottom:4px">' + h.note + '</div>' : '')
+      + (h.requireDocs ? '<div style="font-size:11px;color:#92400E;background:#FEF3C7;border-radius:4px;padding:2px 7px;display:inline-block;margin-bottom:4px">📤 Documents requis</div>' : '')
+      + (h.attachments && h.attachments.length ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">'
+          + h.attachments.map(function(f){
+              return '<a href="'+f.data+'" download="'+f.name+'" style="font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;padding:2px 7px;color:var(--navy);text-decoration:none">📎 '+f.name+'</a>';
+            }).join('')
+          + '</div>'
+        : '')
+      + '</div>';
+  }).join('');
+}
+
+// ── openDrawer — extend to load history + fix docs download ──
+var _origOpenDrawer = window.openDrawer;
+window.openDrawer = function(id) {
+  _origOpenDrawer(id);
+  // Reset attachments
+  _drawerAttachments = [];
+  var lbl = document.getElementById('drawer-attach-label');
+  var lst = document.getElementById('drawer-attach-list');
+  if (lbl) lbl.textContent = '📎 Cliquer pour joindre des fichiers';
+  if (lst) lst.innerHTML = '';
+  var rdEl = document.getElementById('drawer-require-docs');
+  if (rdEl) rdEl.checked = false;
+
+  // Render status history
+  renderDrawerStatusHistory(currentDrawerApp);
+
+  // Fix documents section — show ALL docs with proper download
+  var a = currentDrawerApp;
+  var docsSection  = document.getElementById('drawer-docs-section');
+  var docsList     = document.getElementById('drawer-docs-list');
+  var stepDocsList = document.getElementById('drawer-step-docs-list');
+
+  // Initial docs (passport, cni, selfie, applicantPhoto, passportScan, cinScan, B2B docs)
+  var mainDocs = [];
+  var docSources = {
+    passport:     { label:'🛂 Passeport',      val: (a.documents&&a.documents.passport) || a.passportScan || '' },
+    cni:          { label:'🪪 CIN',             val: (a.documents&&a.documents.cni)      || a.cinScan      || '' },
+    selfie:       { label:'🤳 Photo',           val: (a.documents&&a.documents.selfie)   || a.applicantPhoto || '' },
+  };
+  Object.entries(docSources).forEach(function(e) {
+    if (e[1].val) mainDocs.push({ label: e[1].label, data: e[1].val, name: e[0] });
+  });
+
+  // Collect step-uploaded docs from statusHistory
+  var stepDocs = [];
+  if (a.statusHistory) {
+    a.statusHistory.forEach(function(h) {
+      if (h.clientDocs && h.clientDocs.length) {
+        h.clientDocs.forEach(function(f) {
+          stepDocs.push({ label: '📤 ' + f.name, data: f.data, name: f.name, status: h.label || h.status, date: h.clientDocsUploadedAt });
+        });
+      }
+    });
+  }
+  // Also check top-level clientDocs
+  if (a.clientDocs && a.clientDocs.length) {
+    a.clientDocs.forEach(function(f) {
+      stepDocs.push({ label: '📤 ' + f.name, data: f.data, name: f.name });
+    });
+  }
+
+  var hasAny = mainDocs.length || stepDocs.length;
+  if (docsSection) docsSection.style.display = hasAny ? 'block' : 'none';
+
+  function docCard(d) {
+    var isImg = d.data && (d.data.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)/i.test(d.name||''));
+    return '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;width:120px;flex-shrink:0;background:var(--white)">'
+      + (isImg
+          ? '<img src="'+d.data+'" alt="'+d.label+'" style="width:120px;height:80px;object-fit:cover;display:block">'
+          : '<div style="width:120px;height:80px;display:flex;align-items:center;justify-content:center;background:var(--cream);font-size:28px">📄</div>')
+      + '<div style="padding:4px 6px">'
+      + '<div style="font-size:10px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + d.label + '</div>'
+      + (d.status ? '<div style="font-size:9px;color:var(--muted)">'+d.status+'</div>' : '')
+      + '</div>'
+      + '<a href="'+d.data+'" download="'+(d.name||'document')+'" style="display:block;text-align:center;font-size:10px;background:#0B1D35;color:#c9973a;padding:4px 0;text-decoration:none;font-weight:600">⬇ Télécharger</a>'
+      + '</div>';
+  }
+
+  if (docsList)     docsList.innerHTML     = mainDocs.map(docCard).join('');
+  if (stepDocsList) stepDocsList.innerHTML = stepDocs.length
+    ? '<div style="font-size:11px;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Documents soumis par le client</div>'
+      + stepDocs.map(docCard).join('')
+    : '';
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  NOTIFICATIONS — Firestore listener for client
+// ══════════════════════════════════════════════════════════════════
+var _notifListener = null;
+var _notifs = [];
+
+function startNotifListener(uid) {
+  if (_notifListener) _notifListener();
+  _notifListener = db.collection('notifications')
+    .where('uid','==',uid)
+    .orderBy('createdAt','desc')
+    .limit(30)
+    .onSnapshot(function(snap) {
+      _notifs = [];
+      snap.forEach(function(d){ _notifs.push(Object.assign({id:d.id}, d.data())); });
+      updateNotifBell();
+      renderNotifList();
+    }, function(e){ console.warn('[notif listener]', e); });
+}
+
+function updateNotifBell() {
+  var unread = _notifs.filter(function(n){ return !n.read; }).length;
+  var btn   = document.getElementById('notif-bell-btn');
+  var count = document.getElementById('notif-bell-count');
+  if (!btn || !count) return;
+  if (unread > 0) {
+    count.style.display = 'flex';
+    count.textContent = unread > 9 ? '9+' : unread;
+  } else {
+    count.style.display = 'none';
+  }
+}
+
+function renderNotifList() {
+  var el = document.getElementById('notif-list');
+  if (!el) return;
+  if (!_notifs.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Aucune notification.</div>';
+    return;
+  }
+  el.innerHTML = _notifs.map(function(n) {
+    var date = n.createdAt && n.createdAt.toDate ? n.createdAt.toDate().toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+    return '<div onclick="goToAppFromNotif(\''+n.appId+'\',\''+n.ref+'\')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;background:'+(n.read?'transparent':'#FFF9EC')+';transition:background .15s">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
+      + '<div style="flex:1">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:2px">'+(n.statusLabel||n.status||'Mise à jour')+'</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-bottom:2px">Dossier '+n.ref+'</div>'
+      + (n.note ? '<div style="font-size:12px;color:#555;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px">'+n.note+'</div>' : '')
+      + (n.requireDocs ? '<div style="font-size:11px;color:#92400E;margin-top:2px">📤 Documents requis</div>' : '')
+      + '</div>'
+      + '<div style="font-size:10px;color:var(--muted);flex-shrink:0;text-align:right">'+date+(n.read?'':'\n<div style="width:7px;height:7px;background:#EF4444;border-radius:50%;margin:3px 0 0 auto"></div>')+'</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+window.openNotifications = function() {
+  var drawer = document.getElementById('notif-drawer');
+  if (!drawer) return;
+  var isOpen = drawer.style.display === 'flex';
+  drawer.style.display = isOpen ? 'none' : 'flex';
+};
+
+window.closeNotifications = function() {
+  var drawer = document.getElementById('notif-drawer');
+  if (drawer) drawer.style.display = 'none';
+};
+
+window.markAllNotifsRead = async function() {
+  var batch = db.batch();
+  _notifs.filter(function(n){ return !n.read; }).forEach(function(n) {
+    batch.update(db.collection('notifications').doc(n.id), {read:true});
+  });
+  try { await batch.commit(); } catch(e){ console.warn('[markRead]',e); }
+};
+
+window.goToAppFromNotif = async function(appId, ref) {
+  closeNotifications();
+  // Mark this notif read
+  var notif = _notifs.find(function(n){ return n.appId===appId; });
+  if (notif && !notif.read) {
+    db.collection('notifications').doc(notif.id).update({read:true}).catch(console.warn);
+  }
+  // Navigate to track page with this ref
+  showPage('track');
+  var inp = document.getElementById('track-ref');
+  if (inp) { inp.value = ref || ''; }
+  if (typeof trackApplication === 'function') trackApplication();
+};
+
+// Hook into auth state to start listener
+var _origOnAuthForNotif = auth.onAuthStateChanged.bind(auth);
+auth.onAuthStateChanged(function(user) {
+  if (user && !isAdmin) {
+    startNotifListener(user.uid);
+  } else {
+    if (_notifListener) { _notifListener(); _notifListener = null; }
+    _notifs = [];
+    updateNotifBell();
+  }
+});
+
+// Close notif drawer on outside click
+document.addEventListener('click', function(e) {
+  var drawer = document.getElementById('notif-drawer');
+  var btn    = document.getElementById('notif-bell-btn');
+  if (drawer && drawer.style.display==='flex' && !drawer.contains(e.target) && btn && !btn.contains(e.target)) {
+    drawer.style.display = 'none';
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  TRACKING PAGE — show status history + note + attachments + upload
+// ══════════════════════════════════════════════════════════════════
+var _origTrackApplication = window.trackApplication;
+window.trackApplication = async function() {
+  if (typeof _origTrackApplication === 'function') await _origTrackApplication();
+  // After the original renders, patch in status history detail
+  setTimeout(enrichTrackPage, 400);
+};
+
+function enrichTrackPage() {
+  var result = document.getElementById('track-result');
+  if (!result || result.style.display === 'none') return;
+
+  // Find tracked app from allApplications or from track-ref-display
+  var refEl = document.getElementById('track-ref-display');
+  var ref   = refEl ? refEl.textContent.trim() : '';
+  var app   = allApplications.find(function(a){ return a.ref === ref; });
+  if (!app) return;
+
+  // Build status detail panel
+  var existing = document.getElementById('track-status-detail');
+  if (existing) existing.remove();
+
+  var history = app.statusHistory || [];
+
+  // Find the current status entry (last one with current status, or most recent)
+  var currentEntry = null;
+  for (var i = history.length - 1; i >= 0; i--) {
+    if (history[i].status === app.status) { currentEntry = history[i]; break; }
+  }
+  if (!currentEntry && history.length) currentEntry = history[history.length-1];
+
+  var panel = document.createElement('div');
+  panel.id = 'track-status-detail';
+  panel.style.cssText = 'margin-bottom:20px';
+
+  var html = '';
+
+  // Current status note + attachments
+  if (currentEntry && (currentEntry.note || (currentEntry.attachments && currentEntry.attachments.length) || currentEntry.requireDocs)) {
+    html += '<div style="background:var(--white);border:1.5px solid var(--gold);border-radius:14px;padding:20px 22px;margin-bottom:14px">'
+      + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#92400E;margin-bottom:8px">📌 Message de notre équipe · ' + (currentEntry.label||currentEntry.status) + '</div>';
+
+    if (currentEntry.note) {
+      html += '<div style="font-size:14px;color:#78350F;line-height:1.7;margin-bottom:10px">' + currentEntry.note + '</div>';
+    }
+
+    if (currentEntry.attachments && currentEntry.attachments.length) {
+      html += '<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:6px">📎 Pièces jointes</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:8px">'
+        + currentEntry.attachments.map(function(f) {
+            var isImg = f.type && f.type.startsWith('image/');
+            return '<a href="'+f.data+'" download="'+f.name+'" style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-decoration:none;color:var(--navy);font-size:12px">'
+              + (isImg ? '<img src="'+f.data+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">' : '<span>📄</span>')
+              + f.name + ' <span style="color:var(--gold);font-weight:700">⬇</span></a>';
+          }).join('')
+        + '</div></div>';
+    }
+
+    if (currentEntry.requireDocs) {
+      html += '<div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:14px 16px">'
+        + '<div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:8px">📤 Documents supplémentaires requis</div>'
+        + '<div style="font-size:13px;color:#78350F;margin-bottom:12px">Notre équipe a besoin de documents supplémentaires de votre part pour continuer le traitement de votre dossier.</div>'
+        + '<button onclick="openClientUploadModal(\''+app.id+'\',\''+app.status+'\',\''+encodeURIComponent(currentEntry.note||'')+'\','+JSON.stringify(currentEntry.attachments||[]).replace(/'/g,"\\'")+')" class="btn-gold" style="font-size:13px;padding:9px 20px;border-radius:8px">📤 Télécharger mes documents</button>'
+        + '</div>';
+    }
+
+    html += '</div>';
+  }
+
+  // Full history timeline (clickable)
+  if (history.length > 1) {
+    html += '<div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:14px">'
+      + '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:14px">Historique des mises à jour</div>'
+      + '<div style="display:flex;flex-direction:column;gap:10px">'
+      + history.slice().reverse().map(function(h, i) {
+          var date = h.updatedAt ? new Date(h.updatedAt).toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+          var hasContent = h.note || (h.attachments&&h.attachments.length) || h.requireDocs;
+          return '<div style="display:flex;gap:12px;align-items:flex-start">'
+            + '<div style="width:10px;height:10px;border-radius:50%;background:'+(i===0?'var(--gold)':'var(--border)')+';flex-shrink:0;margin-top:4px"></div>'
+            + '<div style="flex:1">'
+            + '<div style="font-size:13px;font-weight:600;color:var(--navy)">' + (h.label||h.status) + '</div>'
+            + '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">' + date + '</div>'
+            + (hasContent ? '<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'" style="font-size:11px;color:var(--gold);cursor:pointer;font-weight:600">Voir le message ▸</div>'
+              + '<div style="display:none;margin-top:8px;background:var(--cream);border-radius:8px;padding:10px 12px;font-size:12px">'
+              + (h.note ? '<p style="color:#555;line-height:1.6;margin-bottom:6px">'+h.note+'</p>' : '')
+              + (h.requireDocs ? '<div style="color:#92400E;font-size:11px;margin-bottom:6px">📤 Documents requis</div>' : '')
+              + (h.attachments&&h.attachments.length ? h.attachments.map(function(f){
+                  return '<a href="'+f.data+'" download="'+f.name+'" style="display:inline-flex;align-items:center;gap:5px;background:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 9px;margin:2px;font-size:11px;text-decoration:none;color:var(--navy)">📎 '+f.name+' ⬇</a>';
+                }).join('') : '')
+              + '</div>'
+              : '')
+            + '</div></div>';
+        }).join('')
+      + '</div></div>';
+  }
+
+  panel.innerHTML = html;
+
+  // Insert before the timeline section
+  var timeline = result.querySelector('.timeline');
+  if (timeline && timeline.parentNode) {
+    timeline.parentNode.insertBefore(panel, timeline.parentNode);
+  } else {
+    var adminNote = document.getElementById('track-admin-note');
+    if (adminNote && adminNote.parentNode) adminNote.parentNode.insertBefore(panel, adminNote);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  CLIENT STEP UPLOAD MODAL
+// ══════════════════════════════════════════════════════════════════
+var _clientStepFiles = [];
+
+window.openClientUploadModal = function(appId, statusKey, noteEncoded, attachments) {
+  document.getElementById('client-upload-app-id').value    = appId;
+  document.getElementById('client-upload-status-key').value= statusKey;
+  var note = decodeURIComponent(noteEncoded || '');
+  document.getElementById('client-upload-modal-title').textContent = '📤 Documents requis';
+  document.getElementById('client-upload-modal-note').textContent  = note || 'Notre équipe a besoin de documents supplémentaires.';
+  _clientStepFiles = [];
+  document.getElementById('client-upload-preview').innerHTML = '';
+  var modal = document.getElementById('client-upload-modal');
+  if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+};
+
+window.closeClientUploadModal = function() {
+  var modal = document.getElementById('client-upload-modal');
+  if (modal) { modal.style.display = 'none'; document.body.style.overflow = ''; }
+};
+
+window.handleClientStepUpload = function(input) {
+  var files = Array.from(input.files);
+  var preview = document.getElementById('client-upload-preview');
+  var promises = files.map(function(f) {
+    return new Promise(function(resolve) {
+      if (f.size > 8*1024*1024) { showNotif('⚠️', f.name + ' trop grand'); resolve(null); return; }
+      var r = new FileReader();
+      r.onload = function(e){ resolve({name:f.name, data:e.target.result, type:f.type}); };
+      r.onerror = function(){ resolve(null); };
+      r.readAsDataURL(f);
+    });
+  });
+  Promise.all(promises).then(function(results) {
+    results.filter(Boolean).forEach(function(f){ _clientStepFiles.push(f); });
+    if (preview) {
+      preview.innerHTML = _clientStepFiles.map(function(f,i){
+        var isImg = f.type.startsWith('image/');
+        return '<div style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px">'
+          + (isImg ? '<img src="'+f.data+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px">' : '<span>📄</span>')
+          + '<span style="flex:1">'+f.name+'</span>'
+          + '<button onclick="_clientStepFiles.splice('+i+',1);handleClientStepUpload({files:[]})" style="background:none;border:none;cursor:pointer;color:#991b1b">✕</button>'
+          + '</div>';
+      }).join('');
+    }
+  });
+};
+
+window.submitClientStepDocs = async function() {
+  var appId     = document.getElementById('client-upload-app-id').value;
+  var statusKey = document.getElementById('client-upload-status-key').value;
+  if (!appId) { showNotif('⚠️','Erreur: dossier introuvable'); return; }
+  if (!_clientStepFiles.length) { showNotif('⚠️','Veuillez sélectionner au moins un fichier'); return; }
+
+  showNotif('⏳','Envoi en cours...');
+  try {
+    var entry = {
+      status:   statusKey,
+      clientDocs: _clientStepFiles.map(function(f){ return {name:f.name, data:f.data, type:f.type}; }),
+      clientDocsUploadedAt: new Date().toISOString(),
+      requireDocs: false // mark as fulfilled
+    };
+
+    await db.collection('applications').doc(appId).update({
+      clientDocs:  firebase.firestore.FieldValue.arrayUnion(..._clientStepFiles.map(function(f){return {name:f.name,data:f.data,type:f.type};})),
+      requireDocs: false,
+      statusHistory: firebase.firestore.FieldValue.arrayUnion(entry),
+      lastClientDocsAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    showNotif('✅','Documents envoyés avec succès !');
+    closeClientUploadModal();
+    _clientStepFiles = [];
+    // Notify admin
+    await db.collection('adminNotifications').add({
+      appId: appId, type:'client_docs_uploaded',
+      message: 'Le client a téléchargé des documents supplémentaires.',
+      read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // Re-enrich track page
+    setTimeout(enrichTrackPage, 500);
+  } catch(e) {
+    console.error('[submitClientStepDocs]', e);
+    showNotif('⚠️','Erreur: '+e.message);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  ADMIN — show badge when client uploads docs
+// ══════════════════════════════════════════════════════════════════
+function startAdminClientDocsListener() {
+  db.collection('adminNotifications')
+    .where('type','==','client_docs_uploaded')
+    .where('read','==',false)
+    .onSnapshot(function(snap) {
+      var count = snap.size;
+      var badge = document.getElementById('admin-client-docs-badge');
+      if (badge) { badge.textContent = count; badge.style.display = count ? 'inline-flex' : 'none'; }
+      if (count > 0) showNotif('📤', count + ' client(s) ont téléchargé des documents');
+    }, function(e){ console.warn('[adminClientDocs]',e); });
+}
 
 // ── Startup ──
 startSettingsListener();
