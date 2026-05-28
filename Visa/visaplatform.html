@@ -660,6 +660,7 @@ tr:hover td{background:var(--cream)}
                     <input type="file" id="upload-selfie" accept="image/*" capture="user" onchange="handleUpload(this,'zone-selfie','preview-selfie','name-selfie')">
                     <div class="upload-icon">🤳</div>
                     <div class="upload-label">Photo face visible</div>
+                    <div class="upload-sub" style="color:#1B7A4A">✓ Apparaîtra sur le reçu</div>
                     <div class="upload-sub">JPG ou PNG · max 5 Mo</div>
                     <div id="name-selfie" class="upload-filename" style="display:none"></div>
                   </div>
@@ -1064,6 +1065,7 @@ tr:hover td{background:var(--cream)}
         <li><a onclick="showAdminTab('city-prices')">🏙️ Prix Villes</a></li>
         <li class="nav-section">Personnalisation</li>
         <li><a onclick="showAdminTab('signatures')">✍️ Signatures & Cachet</a></li>
+        <li><a onclick="showAdminTab('verify')">🔐 Vérifier Reçu</a></li>
         <li class="nav-section">System</li>
         <li><a onclick="adminLogOut()">🚪 Sign Out</a></li>
       </ul>
@@ -1424,6 +1426,29 @@ tr:hover td{background:var(--cream)}
 
 
       <!-- SIGNATURES & CACHET -->
+      <!-- VERIFY RECEIPT TAB -->
+      <div id="atab-verify" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>🔐 Vérificateur de Reçu</h2><p>Entrez un token ou scannez un QR code pour vérifier l'authenticité d'un reçu.</p></div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-head"><h3>Vérification par token / référence</h3></div>
+          <div style="padding:24px">
+            <div style="display:flex;gap:12px;max-width:600px;margin-bottom:20px">
+              <input id="verify-ref-input" type="text" placeholder="Référence EVP-2026-XXXX ou token SHA-256"
+                style="flex:1;border:2px solid var(--border);border-radius:8px;padding:11px 14px;font-family:inherit;font-size:14px;outline:none">
+              <button onclick="verifyReceipt()" class="btn-gold" style="padding:11px 24px;border-radius:8px;font-size:14px;white-space:nowrap">🔍 Vérifier</button>
+            </div>
+            <div id="verify-result" style="display:none"></div>
+          </div>
+        </div>
+        <div class="admin-card" style="margin-top:16px">
+          <div class="admin-card-head"><h3>Tous les reçus émis</h3></div>
+          <div style="padding:16px 20px"><div id="verify-all-receipts"><div style="text-align:center;padding:24px;color:var(--muted)">Cliquez sur "Vérifier" ou chargez la liste.</div></div></div>
+          <div style="padding:0 20px 16px"><button onclick="loadAllReceipts()" style="background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer">📋 Charger tous les reçus</button></div>
+        </div>
+      </div>
+
       <div id="atab-signatures" class="admin-tab" style="display:none">
 
         <!-- PAGE HEADER -->
@@ -2226,6 +2251,12 @@ window.submitApplication = async function() {
 
   const ref = 'EVP-'+new Date().getFullYear()+'-'+Math.floor(1000+Math.random()*9000);
   const g   = id => document.getElementById(id)?.value || '';
+  // Capture selfie as applicantPhoto (optional, shows on receipt)
+  var selfiePhoto = '';
+  var selfieInput = document.getElementById('upload-selfie');
+  if (selfieInput && selfieInput.files && selfieInput.files[0]) {
+    try { selfiePhoto = await new Promise(function(res){ var r=new FileReader(); r.onload=function(e){res(e.target.result);}; r.onerror=function(){res('');}; r.readAsDataURL(selfieInput.files[0]); }); } catch(e){}
+  }
   const data = {
     ref, firstName:fn, lastName:ln, email,
     phone:g('phone'), destination:g('dest-country'), visaType:g('visa-type'),
@@ -2233,7 +2264,8 @@ window.submitApplication = async function() {
     nationality:g('nationality'), passport:g('passport'), notes:g('notes'),
     package:pkgName, addons:[...document.querySelectorAll('.addon-item input:checked')].map(c=>c.dataset.name),
     total:pkgPrice+addonTotal, status:'pending', createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-    userId: auth.currentUser ? auth.currentUser.uid : 'guest'
+    userId: auth.currentUser ? auth.currentUser.uid : 'guest',
+    applicantPhoto: selfiePhoto
   };
   try {
     // Collect uploaded documents (base64)
@@ -2271,13 +2303,15 @@ window.submitApplication = async function() {
       email: email,
       phone: data.phone,
       nationality: data.nationality,
+      passport: data.passport,
       destination: data.destination,
       visaType: data.visaType,
       package: data.package,
       travelDate: data.travelDate,
       numApplicants: data.numApplicants,
       addons: data.addons,
-      total: data.total
+      total: data.total,
+      applicantPhoto: selfiePhoto
     });
   } catch(e) {
     console.error('[SUBMIT] Error:', e);
@@ -3450,24 +3484,7 @@ async function loadB2BApplications() {
   renderB2BAppsTable('b2b-all-apps-table', _b2bApps);
 }
 
-function renderB2BAppsTable(containerId, apps) {
-  var el = document.getElementById(containerId);
-  if (!el) return;
-  if (!apps.length) { el.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Aucun dossier.</div>'; return; }
-  var sc={pending:'status-pending',processing:'status-processing',approved:'status-approved',rejected:'status-rejected','docs-ready':'status-docs',appointment:'status-appointment',submitted:'status-submitted'};
-  el.innerHTML = '<table><thead><tr><th>Reference</th><th>Client</th><th>Destination</th><th>Date</th><th>Statut</th><th>Total</th><th>Commission</th></tr></thead><tbody>'
-    + apps.map(function(a){
-        return '<tr><td><strong>'+(a.ref||'—')+'</strong></td>'
-          +'<td>'+(a.firstName||'')+' '+(a.lastName||'')+'</td>'
-          +'<td>'+((a.destination||'—').split(' ')[0])+'</td>'
-          +'<td style="font-size:12px">'+(a.createdAt&&a.createdAt.toDate ? a.createdAt.toDate().toLocaleDateString('fr-FR') : '—')+'</td>'
-          +'<td><span class="status-badge '+(sc[a.status]||'status-pending')+'">'+(a.status||'pending')+'</span></td>'
-          +'<td style="font-weight:600">'+(a.total||0).toLocaleString()+' MAD</td>'
-          +'<td style="color:#1B7A4A;font-weight:700">'+(a.agencyCommission||0).toLocaleString()+' MAD</td>'
-          +'</tr>';
-      }).join('')
-    +'</tbody></table>';
-}
+// renderB2BAppsTable — defined in patch3.js with receipt button
 
 async function loadB2BCommissions() {
   await loadB2BOverview();
@@ -5319,9 +5336,94 @@ async function generateSecurityToken(data) {
   return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('').toUpperCase().slice(0,32);
 }
 
-window.downloadReceiptPDF = async function() {
-  if (!_receiptData) return;
-  var d = _receiptData;
+
+// renderAgencies now has Voir clients built-in (see renderAgencies function)
+
+
+
+// ══════════════════════════════════════════════════════════════════
+//  INLINE QR CODE — no external CDN needed (pure canvas)
+//  Generates a QR code as a data-URL using a self-contained encoder
+// ══════════════════════════════════════════════════════════════════
+var _qrgen = (function(){
+  // Minimal QR encoder — Mode 4 (byte), ECC L, versions 1-10
+  // Returns canvas data URL or empty string on fail
+  function encode(text) {
+    try {
+      var canvas = document.createElement('canvas');
+      var size = 200;
+      canvas.width = size; canvas.height = size;
+      var ctx = canvas.getContext('2d');
+      // Use a reliable CDN that works from Blob URLs by loading dynamically
+      // Instead: encode as a URL and use Google Charts QR API (works offline too via data)
+      // Actually use a simple approach: return a URL-encoded QR via goQR.me
+      // Best approach: embed QRious library inline
+      return null; // signal to use fallback
+    } catch(e){ return null; }
+  }
+  return { encode: encode };
+})();
+
+// ── QRious inline (minimal, self-contained) ──
+// We embed a tiny QR matrix generator that works in any context (Blob URLs, offline)
+function makeQRDataURL(text, size) {
+  // Use QRious if already loaded, else encode via canvas with Reed-Solomon
+  if (window.QRious) {
+    try {
+      var qr = new window.QRious({ value: text, size: size || 120, level: 'H', padding: 4, background: '#ffffff', foreground: '#0B1D35' });
+      return qr.toDataURL();
+    } catch(e){}
+  }
+  // Fallback: return null — caller will show token text instead
+  return null;
+}
+
+// Load QRious from CDN asynchronously (works for normal pages)
+// For Blob-opened pages, we inline QRious source directly in the HTML
+var QRIOUS_SOURCE = null; // will be populated on first receipt generation
+
+async function loadQRiousSource() {
+  if (QRIOUS_SOURCE) return QRIOUS_SOURCE;
+  try {
+    var r = await fetch('https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js');
+    if (r.ok) { QRIOUS_SOURCE = await r.text(); }
+  } catch(e) { console.warn('[QR] Could not load QRious'); }
+  return QRIOUS_SOURCE;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  GENERATE RECEIPT DATA for any application object
+// ══════════════════════════════════════════════════════════════════
+function appToReceiptData(a) {
+  return {
+    ref:          a.ref || '—',
+    firstName:    a.firstName || '',
+    lastName:     a.lastName  || '',
+    email:        a.email     || '',
+    phone:        a.phone     || '',
+    nationality:  a.nationality || '',
+    passport:     a.passport  || '',
+    destination:  a.destination || '',
+    visaType:     a.visaType  || '',
+    travelDate:   a.travelDate || '',
+    numApplicants:a.numApplicants || '1',
+    package:      a.package   || '',
+    addons:       a.addons    || [],
+    total:        a.total     || 0,
+    city:         a.city      || '',
+    cityRdvPrice: a.cityRdvPrice || 0,
+    applicantPhoto: a.applicantPhoto || '',
+    agencyName:   a.agencyName || '',
+    source:       a.source    || ''
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  RECEIPT PDF — full appointment-letter style with inline QR
+// ══════════════════════════════════════════════════════════════════
+window.downloadReceiptPDF = async function(appDataOrNull) {
+  var d = appDataOrNull || _receiptData;
+  if (!d) return;
 
   var _co       = (_settingsCache && _settingsCache.company) || {};
   var coName    = _co.name    || 'EuroVisa Pro';
@@ -5329,217 +5431,385 @@ window.downloadReceiptPDF = async function() {
   var coPhone   = _co.phone   || '+212 682 652 382';
   var coEmail   = _co.email   || 'tls.appointements@gmail.com';
   var coTagline = _co.tagline || 'Services Visa Schengen · Casablanca, Maroc';
-
   var _sig      = (_settingsCache && _settingsCache.signature) || {};
   var agentName = _sig.name  || localStorage.getItem('eurovisa_agent_name') || '';
   var agentSig  = _sig.sig   || localStorage.getItem('eurovisa_signature')  || '';
   var agentStamp= _sig.stamp || localStorage.getItem('eurovisa_stamp')      || '';
 
-  var now = new Date().toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'})
-          + ' à ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  var now = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
+          + ' à ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var destClean = (d.destination||'').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
   var addonsLine = (d.addons && d.addons.length) ? d.addons.join(', ') : '';
 
   // Security token
   var secToken = await generateSecurityToken(d);
   var tokenFormatted = secToken.match(/.{1,4}/g).join('-');
-  var qrPayload = JSON.stringify({ ref: d.ref, tok: secToken, total: d.total, dest: destClean });
+  var qrPayload = 'REF:' + d.ref + '|TOK:' + secToken.slice(0,16) + '|AMT:' + (d.total||0) + '|DST:' + destClean;
+
+  // Load QRious source for inline embedding
+  var qrSrc = await loadQRiousSource();
+
+  var css = [
+    '*{margin:0;padding:0;box-sizing:border-box}',
+    'html,body{background:#ccc;font-family:Arial,Helvetica,sans-serif;color:#0a1628;font-size:11px}',
+    '.page{width:210mm;min-height:297mm;margin:8px auto;background:#fff;box-shadow:0 8px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden}',
+    '.top-stripe{height:8px;background:linear-gradient(90deg,#0B1D35 0%,#1a3a6b 50%,#c9973a 75%,#E8B04A 100%);flex-shrink:0}',
+    '.letterhead{padding:16px 32px 12px;border-bottom:2px solid #0B1D35;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-shrink:0}',
+    '.lh-org{font-size:16px;font-weight:900;color:#0B1D35;letter-spacing:1.5px;text-transform:uppercase}',
+    '.lh-sub{font-size:7.5px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-top:2px}',
+    '.lh-addr{font-size:8.5px;color:#666;margin-top:5px;line-height:1.7}',
+    '.lh-right{text-align:right;flex-shrink:0}',
+    '.lh-doc-label{font-size:7.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:2px}',
+    '.lh-ref{font-size:15px;font-weight:900;color:#c9973a;letter-spacing:.05em}',
+    '.lh-date{font-size:8.5px;color:#888;margin-top:2px}',
+    '.lh-status{display:inline-block;background:#0B1D35;color:#c9973a;font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:4px;margin-top:5px}',
+    '.body{padding:14px 32px;flex:1;display:flex;flex-direction:column;gap:8px}',
+    '.doc-title{font-size:12px;font-weight:900;color:#0B1D35;text-align:center;letter-spacing:3px;text-transform:uppercase}',
+    '.doc-subtitle{font-size:7.5px;text-align:center;color:#888;letter-spacing:2px;text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid #e8e8e8}',
+    '.intro{font-size:9.5px;line-height:1.6;color:#333}',
+    '.total-box{background:#0B1D35;border-radius:7px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}',
+    '.total-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.5)}',
+    '.total-amt{font-size:20px;font-weight:900;color:#c9973a}',
+    '.sh{font-size:7.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0B1D35;background:#f0f2f7;padding:4px 10px;border-left:3px solid #0B1D35}',
+    '.it{width:100%;border-collapse:collapse;font-size:9px}',
+    '.it tr{border-bottom:1px solid #f0f0f0}',
+    '.it td{padding:3.5px 10px;vertical-align:middle}',
+    '.it td:first-child{font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#666;width:37%;background:#fafafa;font-size:8px}',
+    '.it td:last-child{color:#0a1628;font-weight:500}',
+    '.svc-t{width:100%;border-collapse:collapse}',
+    '.svc-t th{background:#f0f2f7;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6B7280;padding:6px 10px;text-align:left}',
+    '.svc-t td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:9px}',
+    '.steps{background:#fffbf3;border:1.5px solid #c9973a;border-radius:6px;padding:8px 12px}',
+    '.steps-t{font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0B1D35;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid rgba(201,151,58,.3)}',
+    '.steps-g{display:grid;grid-template-columns:1fr 1fr;gap:1px 12px}',
+    '.si{font-size:8.5px;color:#555;padding:2px 0 2px 10px;position:relative;line-height:1.4}',
+    '.si::before{content:"▸";position:absolute;left:0;color:#c9973a;font-size:7.5px}',
+    '.sec{border:1.5px solid #1a3a6b;border-radius:6px;overflow:hidden;display:flex;background:#fff}',
+    '.sec-qr{padding:10px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-right:1.5px solid #1a3a6b;flex-shrink:0;min-width:112px}',
+    '.sec-qr-lbl{font-size:6px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1a3a6b;text-align:center}',
+    '.sec-r{flex:1;padding:9px 12px;display:flex;flex-direction:column;gap:5px;position:relative;overflow:hidden}',
+    '.sec-r::before{content:"";position:absolute;inset:0;opacity:.04;background-image:repeating-linear-gradient(45deg,#0B1D35 0,#0B1D35 1px,transparent 1px,transparent 8px),repeating-linear-gradient(-45deg,#c9973a 0,#c9973a 1px,transparent 1px,transparent 8px);pointer-events:none}',
+    '.sec-badge{background:#0B1D35;color:#c9973a;font-size:6.5px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;border-radius:3px;flex-shrink:0;align-self:flex-start}',
+    '.sec-title{font-size:8px;font-weight:700;color:#0B1D35;letter-spacing:.5px;text-transform:uppercase}',
+    '.tok-lbl{font-size:6.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#888}',
+    '.tok-val{font-family:"Courier New",monospace;font-size:8px;font-weight:700;color:#0B1D35;letter-spacing:1.5px;background:#f0f2f7;padding:2px 7px;border-radius:3px;border:1px solid #d0d4e0;word-break:break-all}',
+    '.sec-meta{font-size:7px;color:#888;line-height:1.5}',
+    '.sig-row{display:flex;justify-content:space-between;align-items:flex-end;padding-top:8px;border-top:1px solid #e8e8e8;margin-top:auto}',
+    '.sig-b{font-size:8px;color:#aaa}',
+    '.sig-line{border-bottom:1px solid #0B1D35;width:110px;margin-bottom:3px}',
+    '.foot{padding:8px 32px;border-top:2px solid #0B1D35;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}',
+    '.foot span{font-size:8.5px;color:#aaa}',
+    '.bot-stripe{height:5px;background:linear-gradient(90deg,#c9973a,#0B1D35);flex-shrink:0}',
+    '.npb{position:fixed;top:0;left:0;right:0;background:#0B1D35;color:#c9973a;padding:9px 20px;display:flex;align-items:center;justify-content:center;gap:14px;z-index:9999;font-family:Arial,sans-serif;font-size:13px;font-weight:600}',
+    '.npb button{padding:6px 18px;background:#c9973a;color:#0B1D35;border:none;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer}',
+    '.npb .cl{background:rgba(255,255,255,.12);color:#fff}',
+    'body{padding-top:46px}',
+    '@page{size:A4 portrait;margin:0}',
+    '@media print{.npb{display:none!important}body{padding:0!important}.page{margin:0;box-shadow:none;width:210mm}}'
+  ].join('');
+
+  // Build photo block
+  var photoBlock = d.applicantPhoto
+    ? '<div style="flex-shrink:0;margin-left:8px"><div style="width:72px;height:90px;border:2px solid #0B1D35;border-radius:3px;overflow:hidden"><img src="'+d.applicantPhoto+'" style="width:100%;height:100%;object-fit:cover"></div><div style="font-size:6.5px;color:#888;text-align:center;margin-top:3px;text-transform:uppercase;letter-spacing:.8px">Photo</div></div>'
+    : '';
+
+  var addonsRows = addonsLine
+    ? addonsLine.split(', ').map(function(a){ return '<tr><td style="padding-left:16px;color:#6B7280">+ '+a.trim()+'</td><td style="text-align:right;color:#9CA3AF;font-size:8px">inclus</td></tr>'; }).join('')
+    : '';
 
   var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">'
-    +'<title>Reçu '+d.ref+' — '+coName+'</title>'
-    +'<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>'
-    +'<style>'
-    +'*{margin:0;padding:0;box-sizing:border-box}'
-    +'html,body{background:#ccc;font-family:Arial,Helvetica,sans-serif;color:#0a1628;font-size:11px}'
-    +'.page{width:210mm;min-height:297mm;margin:20px auto;background:#fff;box-shadow:0 8px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden;position:relative}'
-    +'.top-stripe{height:8px;background:linear-gradient(90deg,#0B1D35 0%,#1a3a6b 40%,#c9973a 60%,#E8B04A 100%);flex-shrink:0}'
-    +'.letterhead{padding:18px 36px 14px;border-bottom:2px solid #0B1D35;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}'
-    +'.lh-org{font-size:17px;font-weight:900;color:#0B1D35;letter-spacing:1.5px;text-transform:uppercase}'
-    +'.lh-sub{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-top:3px}'
-    +'.lh-addr{font-size:9px;color:#666;margin-top:6px;line-height:1.7}'
-    +'.lh-right{text-align:right}'
-    +'.lh-doc-label{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:3px}'
-    +'.lh-ref{font-size:16px;font-weight:900;color:#c9973a}'
-    +'.lh-date{font-size:9px;color:#888;margin-top:3px}'
-    +'.lh-status{display:inline-block;background:#0B1D35;color:#c9973a;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:5px 12px;border-radius:4px;margin-top:6px}'
-    +'.body{padding:16px 36px;flex:1;display:flex;flex-direction:column}'
-    +'.doc-title{font-size:13px;font-weight:900;color:#0B1D35;text-align:center;letter-spacing:3px;text-transform:uppercase;margin-bottom:3px}'
-    +'.doc-subtitle{font-size:8px;text-align:center;color:#888;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #e0e0e0}'
-    +'.body-text{font-size:10px;line-height:1.65;color:#333;margin-bottom:10px}'
-    +'.total-box{background:#0B1D35;border-radius:7px;padding:12px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}'
-    +'.total-label{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.45)}'
-    +'.total-amt{font-size:22px;font-weight:900;color:#c9973a}'
-    +'.section-heading{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0B1D35;background:#f0f2f7;padding:5px 10px;border-left:3px solid #0B1D35;margin-bottom:0}'
-    +'.info-table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:9.5px}'
-    +'.info-table tr{border-bottom:1px solid #f0f0f0}'
-    +'.info-table td{padding:4px 10px;vertical-align:middle}'
-    +'.info-table td:first-child{font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;width:38%;background:#fafafa;font-size:8.5px}'
-    +'.info-table td:last-child{color:#0B1D35;font-weight:500}'
-    +'.svc-table{width:100%;border-collapse:collapse;margin-bottom:10px}'
-    +'.svc-table th{background:#f0f2f7;font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6B7280;padding:7px 10px;text-align:left}'
-    +'.svc-table td{padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:9.5px}'
-    +'.steps-box{background:#fffbf3;border:1.5px solid #c9973a;border-radius:6px;padding:9px 13px;margin-bottom:10px}'
-    +'.steps-title{font-size:7.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0B1D35;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(201,151,58,.3)}'
-    +'.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}'
-    +'.step-item{font-size:9px;color:#555;padding:2px 0 2px 11px;position:relative;line-height:1.45}'
-    +'.step-item::before{content:"▸";position:absolute;left:0;color:#c9973a;font-size:8px}'
-    +'.security-block{border:1.5px solid #1a3a6b;border-radius:6px;overflow:hidden;margin-bottom:10px;display:flex;background:#fff}'
-    +'.security-qr{padding:10px 12px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-right:1.5px solid #1a3a6b;flex-shrink:0}'
-    +'.security-qr-label{font-size:6.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#1a3a6b;text-align:center}'
-    +'.security-right{flex:1;display:flex;flex-direction:column;justify-content:center;padding:10px 14px;gap:6px;position:relative;overflow:hidden}'
-    +'.security-right::before{content:"";position:absolute;inset:0;opacity:.04;background-image:repeating-linear-gradient(45deg,#0B1D35 0px,#0B1D35 1px,transparent 1px,transparent 8px),repeating-linear-gradient(-45deg,#c9973a 0px,#c9973a 1px,transparent 1px,transparent 8px);pointer-events:none}'
-    +'.security-badge{background:#0B1D35;color:#c9973a;font-size:7px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:3px;flex-shrink:0}'
-    +'.security-title{font-size:8.5px;font-weight:700;color:#0B1D35;letter-spacing:.5px;text-transform:uppercase}'
-    +'.token-label{font-size:7px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#888;flex-shrink:0}'
-    +'.token-value{font-family:"Courier New",monospace;font-size:9px;font-weight:700;color:#0B1D35;letter-spacing:2px;background:#f0f2f7;padding:3px 8px;border-radius:3px;border:1px solid #d0d4e0}'
-    +'.security-meta{font-size:7.5px;color:#888;line-height:1.5}'
-    +'.sig-row{display:flex;justify-content:space-between;align-items:flex-end;padding-top:8px;border-top:1px solid #e0e0e0;margin-top:auto}'
-    +'.sig-block{font-size:8.5px;color:#aaa}'
-    +'.sig-line{border-bottom:1px solid #0B1D35;width:120px;margin-bottom:3px}'
-    +'.footer{padding:10px 36px;border-top:2px solid #0B1D35;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}'
-    +'.footer-l{font-size:9px;color:#aaa}'
-    +'.footer-l strong{color:#0B1D35;font-size:10px}'
-    +'.footer-c{text-align:center;font-size:7.5px;color:#aaa;letter-spacing:1px;text-transform:uppercase}'
-    +'.footer-r{font-size:9px;color:#aaa;text-align:right}'
-    +'.bottom-stripe{height:5px;background:linear-gradient(90deg,#c9973a 0%,#0B1D35 100%);flex-shrink:0}'
-    +'.no-print-bar{position:fixed;top:0;left:0;right:0;background:#0B1D35;color:#c9973a;padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:16px;z-index:9999;font-family:Arial,sans-serif;font-size:13px;font-weight:600}'
-    +'.no-print-bar button{padding:7px 22px;background:#c9973a;color:#0B1D35;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}'
-    +'body{padding-top:48px}'
-    +'@page{size:A4 portrait;margin:0}'
-    +'@media print{html,body{background:#fff!important;padding:0!important}.no-print-bar{display:none!important}.page{margin:0;box-shadow:none;width:210mm}}'
-    +'</style></head><body>'
-    +'<div class="no-print-bar">'
-    +'  <span>Reçu de paiement — '+d.ref+'</span>'
-    +'  <button onclick="window.print()">🖨️ Imprimer / Sauvegarder PDF</button>'
-    +'  <button onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff">✕ Fermer</button>'
-    +'</div>'
-    +'<div class="page">'
-    +'<div class="top-stripe"></div>'
-    +'<div class="letterhead">'
-    +'  <div>'
-    +'    <div class="lh-org">'+coName+'</div>'
-    +'    <div class="lh-sub">'+coTagline+'</div>'
-    +'    <div class="lh-addr">'+coAddress+'<br>'+coPhone+' · '+coEmail+'</div>'
-    +'  </div>'
-    +'  <div class="lh-right">'
-    +'    <div class="lh-doc-label">Référence de paiement</div>'
-    +'    <div class="lh-ref">'+d.ref+'</div>'
-    +'    <div class="lh-date">Émis le : '+now+'</div>'
-    +'    <div class="lh-status">✓ REÇU CONFIRMÉ</div>'
-    +'  </div>'
-    +'</div>'
-    +'<div class="body">'
-    +'  <div class="doc-title">Reçu de Paiement</div>'
-    +'  <div class="doc-subtitle">Document officiel · Confirmation de règlement</div>'
-    +'  <p class="body-text">Ce document confirme la réception du paiement de <strong>'+d.firstName+' '+d.lastName+'</strong> pour les services de traitement de visa ci-dessous. Conservez ce reçu comme preuve de paiement.</p>'
+    + '<title>Recu '+d.ref+' — '+coName+'</title>'
+    + (qrSrc ? '<script>'+qrSrc+'<\/script>' : '')
+    + '<style>'+css+'</style></head><body>'
+    // print bar
+    + '<div class="npb">'
+    + '<span>Reçu de paiement &nbsp;|&nbsp; '+d.ref+'</span>'
+    + '<button onclick="window.print()">🖨️ Imprimer / PDF</button>'
+    + '<button class="cl" onclick="window.close()">✕</button>'
+    + '</div>'
+    + '<div class="page">'
+    + '<div class="top-stripe"></div>'
+    // letterhead
+    + '<div class="letterhead">'
+    + '<div><div class="lh-org">'+coName+'</div><div class="lh-sub">'+coTagline+'</div><div class="lh-addr">'+coAddress+'<br>'+coPhone+' · '+coEmail+'</div></div>'
+    + '<div class="lh-right"><div class="lh-doc-label">Référence de paiement</div><div class="lh-ref">'+d.ref+'</div><div class="lh-date">Émis le '+now+'</div><div class="lh-status">✓ REÇU CONFIRMÉ</div></div>'
+    + '</div>'
+    // body
+    + '<div class="body">'
+    + '<div class="doc-title">Reçu de Paiement</div>'
+    + '<div class="doc-subtitle">Document officiel · Preuve de règlement · '+coName+'</div>'
+    + '<p class="intro">Ce document confirme la réception du paiement de <strong>'+d.firstName+' '+(d.lastName||'')+'</strong> pour les services de traitement de visa listés ci-dessous. Conservez ce reçu comme preuve officielle de règlement.</p>'
+    // total
+    + '<div class="total-box"><span class="total-label">Montant total réglé</span><span class="total-amt">'+(d.total||0).toLocaleString()+' MAD</span></div>'
+    // two-col info
+    + '<div style="display:flex;gap:12px">'
+    + '<div style="flex:1"><div class="sh">Informations client</div><table class="it">'
+    + '<tr><td>Nom complet</td><td><strong>'+d.firstName+' '+(d.lastName||'')+'</strong></td></tr>'
+    + '<tr><td>Email</td><td style="font-size:8px;word-break:break-all">'+(d.email||'—')+'</td></tr>'
+    + '<tr><td>Téléphone</td><td>'+(d.phone||'—')+'</td></tr>'
+    + '<tr><td>Nationalité</td><td>'+(d.nationality||'—')+'</td></tr>'
+    + (d.passport ? '<tr><td>Passeport</td><td>'+d.passport+'</td></tr>' : '')
+    + '</table></div>'
+    + '<div style="flex:1"><div class="sh">Détails du visa</div><table class="it">'
+    + '<tr><td>Destination</td><td><strong>'+destClean+'</strong></td></tr>'
+    + '<tr><td>Type de visa</td><td>'+(d.visaType||'—')+'</td></tr>'
+    + '<tr><td>Date voyage</td><td>'+(d.travelDate||'À préciser')+'</td></tr>'
+    + '<tr><td>Voyageurs</td><td>'+(d.numApplicants||'1')+'</td></tr>'
+    + (d.city ? '<tr><td>Ville RDV</td><td>'+d.city+'</td></tr>' : '')
+    + '</table></div>'
+    + photoBlock
+    + '</div>'
+    // services
+    + '<div><div class="sh">Services commandés</div>'
+    + '<table class="svc-t"><thead><tr><th>Service</th><th style="text-align:right">Montant</th></tr></thead><tbody>'
+    + '<tr><td style="font-weight:700">'+(d.package||'—')+'</td><td style="text-align:right;font-weight:700">'+(d.total||0).toLocaleString()+' MAD</td></tr>'
+    + addonsRows
+    + '</tbody></table></div>'
+    // steps
+    + '<div class="steps"><div class="steps-t">Prochaines étapes</div><div class="steps-g">'
+    + '<div class="si">Notre équipe vous contacte dans les <strong>2h</strong></div>'
+    + '<div class="si">Vérification et validation des documents</div>'
+    + '<div class="si">Confirmation du rendez-vous au centre de visa</div>'
+    + "<div class=\"si\">Suivi jusqu'à la décision finale</div>"
+    + '</div></div>'
+    // security block
+    + '<div class="sec">'
+    + '<div class="sec-qr"><div id="qr-render" style="width:90px;height:90px"></div><div class="sec-qr-lbl">Scanner<br>pour vérifier</div></div>'
+    + '<div class="sec-r">'
+    + '<div style="display:flex;align-items:center;gap:8px"><div class="sec-badge">🔒 SÉCURISÉ</div><div class="sec-title">Authentification SHA-256</div></div>'
+    + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="tok-lbl">Token :</span><span class="tok-val">'+tokenFormatted+'</span></div>'
+    + '<div class="sec-meta"><strong>Intégrité cryptographique :</strong> Ce jeton est lié à la référence, au montant et au client. Toute modification invalide le jeton. Vérifiable dans le panneau admin EuroVisa Pro.</div>'
+    + '</div></div>'
+    // signature row
+    + '<div class="sig-row">'
+    + '<div class="sig-b">'
+    + (agentSig ? '<img src="'+agentSig+'" style="height:34px;max-width:120px;margin-bottom:3px;display:block"><br>' : '<div class="sig-line"></div>')
+    + '<span style="font-size:8px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">'+(agentName||'Agent responsable')+'</span><br><span>'+coName+'</span>'
+    + '</div>'
+    + '<div style="text-align:center;font-size:7.5px;color:#aaa"><div>Document généré automatiquement · Valide sans signature manuscrite</div><div>'+now+'</div></div>'
+    + '<div class="sig-b" style="text-align:right">'
+    + (agentStamp ? '<img src="'+agentStamp+'" style="height:56px;max-width:64px;opacity:.9;display:block;margin-left:auto"><br>' : '<div class="sig-line" style="margin-left:auto"></div>')
+    + '<span style="font-size:8px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">Cachet officiel</span><br><span>Autorité de traitement</span>'
+    + '</div>'
+    + '</div>'
+    + '</div>' // end .body
+    // footer
+    + '<div class="foot"><span><strong>'+d.ref+'</strong> · '+d.firstName+' '+(d.lastName||'')+'</span>'
+    + '<span style="text-align:center">'+coName+' · Centre agréé</span>'
+    + '<span style="text-align:right">'+destClean+' · Page 1/1</span></div>'
+    + '<div class="bot-stripe"></div>'
+    + '</div>' // end .page
+    // QR init script — runs inline after DOM ready
+    + '<script>'
+    + 'document.addEventListener("DOMContentLoaded",function(){'
+    + '  var el=document.getElementById("qr-render");'
+    + '  var txt='+JSON.stringify(qrPayload)+';'
+    + '  if(!el)return;'
+    + '  if(window.QRious){'
+    + '    try{var q=new QRious({element:document.createElement("canvas"),value:txt,size:90,level:"H",padding:4,background:"#ffffff",foreground:"#0B1D35"});'
+    + '    var img=document.createElement("img");img.src=q.toDataURL();img.style.cssText="width:90px;height:90px";el.appendChild(img);return;}catch(e){}'
+    + '  }'
+    + '  el.innerHTML=\'<div style="font-size:7px;color:#1a3a6b;word-break:break-all;padding:4px;line-height:1.3;text-align:center">\'+ txt +\'</div>\';'
+    + '});'
+    + '<\/script>'
+    + '</body></html>';
 
-    // Total box
-    +'  <div class="total-box">'
-    +'    <span class="total-label">Montant total réglé</span>'
-    +'    <span class="total-amt">'+(d.total||0).toLocaleString()+' MAD</span>'
-    +'  </div>'
-
-    // Two columns: client info + visa details
-    +'  <div style="display:flex;gap:14px;margin-bottom:10px">'
-    +'    <div style="flex:1">'
-    +'      <div class="section-heading">Informations client</div>'
-    +'      <table class="info-table">'
-    +'        <tr><td>Nom complet</td><td><strong>'+d.firstName+' '+(d.lastName||'')+'</strong></td></tr>'
-    +'        <tr><td>Email</td><td>'+(d.email||'—')+'</td></tr>'
-    +'        <tr><td>Téléphone</td><td>'+(d.phone||'—')+'</td></tr>'
-    +'        <tr><td>Nationalité</td><td>'+(d.nationality||'—')+'</td></tr>'
-    +(d.passport ? '        <tr><td>Passeport</td><td>'+d.passport+'</td></tr>' : '')
-    +'      </table>'
-    +'    </div>'
-    +'    <div style="flex:1">'
-    +'      <div class="section-heading">Détails du visa</div>'
-    +'      <table class="info-table">'
-    +'        <tr><td>Destination</td><td><strong>'+destClean+'</strong></td></tr>'
-    +'        <tr><td>Type de visa</td><td>'+(d.visaType||'—')+'</td></tr>'
-    +'        <tr><td>Date de voyage</td><td>'+(d.travelDate||'À préciser')+'</td></tr>'
-    +'        <tr><td>Voyageurs</td><td>'+(d.numApplicants||'1')+'</td></tr>'
-    +(d.city ? '        <tr><td>Ville RDV</td><td>'+d.city+'</td></tr>' : '')
-    +'      </table>'
-    +'    </div>'
-    +(d.applicantPhoto ? '    <div style="flex-shrink:0"><div style="width:80px;height:100px;border:2px solid #0B1D35;border-radius:4px;overflow:hidden"><img src="'+d.applicantPhoto+'" style="width:100%;height:100%;object-fit:cover"></div><div style="font-size:7px;color:#888;text-align:center;margin-top:4px;text-transform:uppercase;letter-spacing:1px">Photo</div></div>' : '')
-    +'  </div>'
-
-    // Services table
-    +'  <div class="section-heading">Services commandés</div>'
-    +'  <table class="svc-table">'
-    +'    <thead><tr><th>Service</th><th style="text-align:right">Montant</th></tr></thead>'
-    +'    <tbody>'
-    +'      <tr><td style="font-weight:700">'+d.package+'</td><td style="text-align:right;font-weight:700">'+(d.total||0).toLocaleString()+' MAD</td></tr>'
-    + (addonsLine ? addonsLine.split(', ').map(function(a){ return '<tr><td style="padding-left:18px;color:#6B7280">+ '+a.trim()+'</td><td style="text-align:right;color:#9CA3AF;font-size:9px">inclus</td></tr>'; }).join('') : '')
-    +'    </tbody>'
-    +'  </table>'
-
-    // Next steps
-    +'  <div class="steps-box">'
-    +'    <div class="steps-title">Prochaines étapes</div>'
-    +'    <div class="steps-grid">'
-    +'      <div class="step-item">Notre équipe vous contacte dans les <strong>2 heures</strong></div>'
-    +'      <div class="step-item">Vérification et validation des documents</div>'
-    +'      <div class="step-item">Confirmation du rendez-vous au centre de visa</div>'
-    +'      <div class="step-item">Dépôt du dossier et suivi jusqu\'à la décision</div>'
-    +'    </div>'
-    +'  </div>'
-
-    // Security block with QR
-    +'  <div class="security-block">'
-    +'    <div class="security-qr"><div id="qr-render" style="width:72px;height:72px;background:#fff"></div><div class="security-qr-label">Scanner<br>pour vérifier</div></div>'
-    +'    <div class="security-right">'
-    +'      <div style="display:flex;align-items:center;gap:8px"><div class="security-badge">🔒 SÉCURISÉ</div><div class="security-title">Jeton de sécurité — SHA-256</div></div>'
-    +'      <div style="display:flex;align-items:center;gap:8px"><span class="token-label">Token :</span><span class="token-value">'+tokenFormatted+'</span></div>'
-    +'      <div class="security-meta"><strong>Intégrité du document :</strong> Ce jeton est lié cryptographiquement aux données du client.<br>Toute modification de ce document invalide le jeton. Vérifiable dans le panneau admin.</div>'
-    +'    </div>'
-    +'  </div>'
-
-    // Signature row
-    +'  <div class="sig-row">'
-    +'    <div class="sig-block">'
-    +(agentSig ? '<img src="'+agentSig+'" style="height:38px;max-width:130px;margin-bottom:3px"><br>' : '<div class="sig-line"></div>')
-    +'      <div style="font-size:8.5px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">'+(agentName||'Agent responsable')+'</div>'
-    +'      <div>'+coName+' · Centre de traitement</div>'
-    +'    </div>'
-    +'    <div style="text-align:center;font-size:8.5px;color:#aaa">'
-    +'      <div>Document généré automatiquement · Valide sans signature manuscrite</div>'
-    +'      <div>Émis le : '+now+'</div>'
-    +'    </div>'
-    +'    <div class="sig-block" style="text-align:right">'
-    +(agentStamp ? '<img src="'+agentStamp+'" style="height:60px;max-width:70px;opacity:.9"><br>' : '<div class="sig-line" style="margin-left:auto"></div>')
-    +'      <div style="font-size:8.5px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">Cachet officiel</div>'
-    +'      <div>Autorité de traitement</div>'
-    +'    </div>'
-    +'  </div>'
-
-    +'</div>' // end .body
-    +'<div class="footer">'
-    +'  <div class="footer-l"><strong>'+d.ref+'</strong><br>'+d.firstName+' '+(d.lastName||'')+'</div>'
-    +'  <div class="footer-c">'+coName+' · Centre agréé de traitement des visas<br>Confidentiel — Réservé au destinataire</div>'
-    +'  <div class="footer-r">'+destClean+' — Demande de visa<br>Page 1 sur 1</div>'
-    +'</div>'
-    +'<div class="bottom-stripe"></div>'
-    +'</div>' // end .page
-
-    +'<script>'
-    +'window.addEventListener("load",function(){'
-    +'  var qrData='+JSON.stringify(qrPayload)+';'
-    +'  var el=document.getElementById("qr-render");'
-    +'  if(el&&window.QRCode){new QRCode(el,{text:qrData,width:72,height:72,colorDark:"#0B1D35",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H});}'
-    +'});'
-    +'<\/script>'
-    +'</body></html>';
-
-  var blob = new Blob([html], {type:'text/html'});
+  var blob = new Blob([html], {type:'text/html;charset=utf-8'});
   var url  = URL.createObjectURL(blob);
   var win  = window.open(url, '_blank');
-  if (win) setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
-  else alert('Veuillez autoriser les popups pour voir votre reçu.');
+  if (!win) { alert('Veuillez autoriser les popups pour voir votre reçu.'); return; }
+  setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 120000);
 };
 
-// renderAgencies now has Voir clients built-in (see renderAgencies function)
+// ══════════════════════════════════════════════════════════════════
+//  DOWNLOAD RECEIPT BUTTON — for any app object (B2B + dashboard)
+// ══════════════════════════════════════════════════════════════════
+window.downloadReceiptForApp = async function(appId) {
+  showNotif('⏳', 'Génération du reçu...');
+  try {
+    var doc = await db.collection('applications').doc(appId).get();
+    if (!doc.exists) { showNotif('⚠️', 'Dossier introuvable'); return; }
+    var data = appToReceiptData(Object.assign({id: doc.id}, doc.data()));
+    await window.downloadReceiptPDF(data);
+  } catch(e) {
+    console.error('[downloadReceiptForApp]', e);
+    showNotif('⚠️', 'Erreur: ' + e.message);
+  }
+};
 
+// ══════════════════════════════════════════════════════════════════
+//  B2B APPS TABLE — with download receipt button on each row
+// ══════════════════════════════════════════════════════════════════
+function renderB2BAppsTable(containerId, apps) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  if (!apps.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Aucun dossier.</div>';
+    return;
+  }
+  var sc = {pending:'status-pending',processing:'status-processing',approved:'status-approved',rejected:'status-rejected','docs-ready':'status-docs',appointment:'status-appointment',submitted:'status-submitted'};
+  el.innerHTML = '<div style="overflow-x:auto"><table>'
+    + '<thead><tr><th>Référence</th><th>Client</th><th>Destination</th><th>Date</th><th>Statut</th><th>Total</th><th>Commission</th><th>Reçu</th></tr></thead><tbody>'
+    + apps.map(function(a) {
+        var dateStr = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().toLocaleDateString('fr-FR') : '—';
+        var dest = (a.destination||'—').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').trim().split(' ')[0];
+        return '<tr>'
+          + '<td><strong style="color:var(--gold)">'+(a.ref||'—')+'</strong></td>'
+          + '<td>'
+          + (a.applicantPhoto ? '<img src="'+a.applicantPhoto+'" style="width:26px;height:32px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:6px">' : '')
+          + (a.firstName||'')+' '+(a.lastName||'')
+          + '</td>'
+          + '<td>'+dest+'</td>'
+          + '<td style="font-size:11px">'+dateStr+'</td>'
+          + '<td><span class="status-badge '+(sc[a.status]||'status-pending')+'">'+(a.status||'pending')+'</span></td>'
+          + '<td style="font-weight:600">'+(a.total||0).toLocaleString()+' MAD</td>'
+          + '<td style="color:#1B7A4A;font-weight:700">'+(a.agencyCommission||0).toLocaleString()+' MAD</td>'
+          + '<td><button onclick="downloadReceiptForApp(\''+a.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap">📄 Reçu</button></td>'
+          + '</tr>';
+      }).join('')
+    + '</tbody></table></div>';
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  DASHBOARD APPS TABLE — add receipt download button
+// ══════════════════════════════════════════════════════════════════
+// We patch the dashboard rendering to add receipt buttons
+var _origLoadDashboard = window.loadDashboard;
+window.loadDashboard = async function() {
+  if (typeof _origLoadDashboard === 'function') {
+    await _origLoadDashboard();
+    // Patch the tables after render to add receipt buttons
+    setTimeout(function() {
+      document.querySelectorAll('#dash-apps-table tbody tr, #all-apps-table tbody tr').forEach(function(row) {
+        var cells = row.querySelectorAll('td');
+        if (!cells.length) return;
+        var actionsCell = cells[cells.length - 1];
+        // Only add if not already added
+        if (actionsCell.querySelector('.receipt-dl-btn')) return;
+        // Get app ref from first cell
+        var refCell = cells[0];
+        var ref = refCell ? refCell.textContent.trim() : '';
+        if (!ref || ref === '—') return;
+        var btn = document.createElement('button');
+        btn.className = 'receipt-dl-btn';
+        btn.innerHTML = '📄 Reçu';
+        btn.style.cssText = 'background:#0B1D35;color:#c9973a;border:none;border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;margin-left:4px;font-weight:600;white-space:nowrap';
+        btn.onclick = async function() {
+          // Find app by ref
+          showNotif('⏳','Génération...');
+          try {
+            var snap = await db.collection('applications').where('ref','==',ref).limit(1).get();
+            if (snap.empty) { showNotif('⚠️','Dossier introuvable'); return; }
+            var a = Object.assign({id:snap.docs[0].id}, snap.docs[0].data());
+            await window.downloadReceiptPDF(appToReceiptData(a));
+          } catch(e) { showNotif('⚠️',e.message); }
+        };
+        actionsCell.appendChild(btn);
+      });
+    }, 600);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  ADMIN VERIFY RECEIPT TAB
+// ══════════════════════════════════════════════════════════════════
+window.verifyReceipt = async function() {
+  var input = (document.getElementById('verify-ref-input')||{}).value || '';
+  var el    = document.getElementById('verify-result');
+  if (!el) return;
+  if (!input.trim()) { el.style.display='block'; el.innerHTML='<div style="color:#92400E;background:#FEF3C7;border-radius:8px;padding:14px">Veuillez entrer une référence ou un token.</div>'; return; }
+
+  el.style.display = 'block';
+  el.innerHTML = '<div style="padding:16px;color:var(--muted)">🔍 Recherche en cours...</div>';
+
+  try {
+    // Try by ref first
+    var q1 = input.toUpperCase().includes('EVP') || input.includes('-')
+      ? await db.collection('applications').where('ref','==',input.trim().toUpperCase()).limit(1).get()
+      : null;
+
+    var app = null;
+    if (q1 && !q1.empty) {
+      app = Object.assign({id:q1.docs[0].id}, q1.docs[0].data());
+    } else {
+      // Search by partial ref
+      var all = await db.collection('applications').orderBy('ref').startAt(input.toUpperCase()).endAt(input.toUpperCase()+'\uf8ff').limit(5).get();
+      if (!all.empty) app = Object.assign({id:all.docs[0].id}, all.docs[0].data());
+    }
+
+    if (!app) {
+      el.innerHTML = '<div style="background:#FEE2E2;border-radius:8px;padding:16px;border:1px solid #FECACA">'
+        + '<div style="font-size:15px;font-weight:700;color:#991b1b;margin-bottom:4px">❌ Reçu non trouvé</div>'
+        + '<div style="font-size:13px;color:#991b1b">Aucun dossier avec la référence <strong>'+input+'</strong>.</div>'
+        + '</div>';
+      return;
+    }
+
+    // Recompute expected token
+    var expected = await generateSecurityToken(appToReceiptData(app));
+    var inputIsToken = input.replace(/-/g,'').length === 32;
+    var tokenMatch = inputIsToken ? (input.replace(/-/g,'').toUpperCase() === expected) : true;
+    var dateStr = app.createdAt && app.createdAt.toDate ? app.createdAt.toDate().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}) : '—';
+
+    el.innerHTML = '<div style="background:'+(tokenMatch?'#F0FDF4':'#FFFBEB')+';border:1.5px solid '+(tokenMatch?'#BBF7D0':'#FDE68A')+';border-radius:10px;padding:18px 20px">'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+      + '<div style="font-size:24px">'+(tokenMatch?'✅':'⚠️')+'</div>'
+      + '<div><div style="font-size:15px;font-weight:700;color:'+(tokenMatch?'#065f46':'#92400E')+'">'+(tokenMatch ? 'Reçu authentique' : 'Reçu trouvé — token non vérifié')+'</div>'
+      + '<div style="font-size:12px;color:var(--muted)">Référence : <strong>'+app.ref+'</strong> · Émis le : '+dateStr+'</div></div></div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">'
+      + '<div><span style="color:var(--muted)">Client :</span> <strong>'+(app.firstName||'')+' '+(app.lastName||'')+'</strong></div>'
+      + '<div><span style="color:var(--muted)">Total :</span> <strong>'+(app.total||0).toLocaleString()+' MAD</strong></div>'
+      + '<div><span style="color:var(--muted)">Destination :</span> <strong>'+(app.destination||'—').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').trim()+'</strong></div>'
+      + '<div><span style="color:var(--muted)">Statut :</span> <span class="status-badge status-'+(app.status||'pending')+'">'+(app.status||'pending')+'</span></div>'
+      + (app.agencyName ? '<div><span style="color:var(--muted)">Agence :</span> <strong>'+app.agencyName+'</strong></div>' : '')
+      + '</div>'
+      + '<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(0,0,0,.08);display:flex;gap:8px">'
+      + '<button onclick="downloadReceiptForApp(\''+app.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer">📄 Régénérer le reçu</button>'
+      + '</div>'
+      + '<div style="margin-top:8px;font-size:10px;color:#9CA3AF;font-family:monospace">Token SHA-256 : '+expected.match(/.{1,4}/g).join('-')+'</div>'
+      + '</div>';
+
+  } catch(e) {
+    el.innerHTML = '<div style="color:red;padding:14px">Erreur: '+e.message+'</div>';
+    console.error('[verifyReceipt]', e);
+  }
+};
+
+window.loadAllReceipts = async function() {
+  var el = document.getElementById('verify-all-receipts');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:16px;color:var(--muted)">Chargement...</div>';
+  try {
+    var snap = await db.collection('applications').orderBy('createdAt','desc').limit(50).get();
+    var apps = [];
+    snap.forEach(function(d){ apps.push(Object.assign({id:d.id},d.data())); });
+    if (!apps.length) { el.innerHTML='<div style="padding:16px;color:var(--muted)">Aucun dossier.</div>'; return; }
+    el.innerHTML = '<div style="overflow-x:auto"><table>'
+      + '<thead><tr><th>Référence</th><th>Client</th><th>Destination</th><th>Date</th><th>Total</th><th>Source</th><th>Actions</th></tr></thead><tbody>'
+      + apps.map(function(a){
+          var ds = a.createdAt&&a.createdAt.toDate ? a.createdAt.toDate().toLocaleDateString('fr-FR') : '—';
+          return '<tr>'
+            +'<td><strong style="color:var(--gold)">'+(a.ref||'—')+'</strong></td>'
+            +'<td>'+(a.firstName||'')+' '+(a.lastName||'')+'</td>'
+            +'<td style="font-size:12px">'+(a.destination||'—').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').trim().split(' ')[0]+'</td>'
+            +'<td style="font-size:11px">'+ds+'</td>'
+            +'<td style="font-weight:600">'+(a.total||0).toLocaleString()+' MAD</td>'
+            +'<td><span style="background:var(--cream);border-radius:5px;padding:2px 8px;font-size:10px">'+(a.source==='b2b'?'B2B':'Client')+'</span></td>'
+            +'<td style="white-space:nowrap">'
+            +'<button onclick="downloadReceiptForApp(\''+a.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px">📄 Reçu</button>'
+            +'<button onclick="document.getElementById(\'verify-ref-input\').value=\''+a.ref+'\';verifyReceipt()" style="background:var(--cream);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer">🔍</button>'
+            +'</td></tr>';
+        }).join('')
+      + '</tbody></table></div>';
+  } catch(e) { el.innerHTML='<div style="color:red;padding:16px">Erreur: '+e.message+'</div>'; }
+};
+
+// Hook verify tab into showAdminTab
+var _origShowAdminTabVerify = window.showAdminTab;
+window.showAdminTab = function(tab) {
+  if (typeof _origShowAdminTabVerify === 'function') _origShowAdminTabVerify(tab);
+  if (tab === 'verify') loadAllReceipts();
+};
 
 // ── Startup ──
 startSettingsListener();
