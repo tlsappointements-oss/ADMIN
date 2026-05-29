@@ -530,10 +530,10 @@ tr:hover td{background:var(--cream)}
     <div class="section-title">Our Services & Pricing</div>
     <div class="section-sub">Transparent pricing with no hidden fees</div>
     <div class="services-grid">
-      <div class="service-card"><div class="service-icon">📅</div><h3>Appointment Only</h3><p>We monitor and book your appointment at the visa application centre.</p><div class="service-price">500 MAD</div></div>
-      <div class="service-card"><div class="service-icon">📋</div><h3>Documents Package</h3><p>Complete document preparation: cover letter, itinerary, financial letters, all formatted correctly.</p><div class="service-price">1,200 MAD</div></div>
-      <div class="service-card"><div class="service-icon">🔍</div><h3>Case Study</h3><p>In-depth analysis of your profile with recommendations to maximise approval chances.</p><div class="service-price">800 MAD</div></div>
-      <div class="service-card"><div class="service-icon">⭐</div><h3>Full Package <span class="badge badge-popular">Best Value</span></h3><p>Everything: appointment + documents + case study + hotel + flight + insurance.</p><div class="service-price">2,800 MAD</div></div>
+      <!-- Dynamic services from Firestore -->
+      <div id="home-services-grid" style="display:contents">
+        <div class="service-card" style="opacity:.5"><div class="service-icon">⏳</div><h3>Chargement...</h3><p>Nos services arrivent.</p><div class="service-price">—</div></div>
+      </div>
       <div class="service-card"><div class="service-icon">✈️</div><h3>Flight Reservation</h3><p>Official dummy ticket / flight itinerary reservation valid for visa purposes.</p><div class="service-price">200 MAD</div></div>
       <div class="service-card"><div class="service-icon">🏨</div><h3>Hotel Reservation</h3><p>Booking confirmation for the entire duration of your stay.</p><div class="service-price">200 MAD</div></div>
     </div>
@@ -584,22 +584,15 @@ tr:hover td{background:var(--cream)}
             <div class="form-row full"><div class="form-group"><label>Number of Applicants</label><select id="num-applicants"><option>1 person</option><option>2 persons</option><option>3 persons</option><option>4 persons</option><option>Family (5+)</option></select></div></div>
             <div class="form-actions"><span></span><button class="btn-gold" onclick="nextStep(1)">Continue →</button></div>
           </div>
-          <!-- Step 2 -->
+          <!-- Step 2 — packages & addons populated from Firestore in real-time -->
           <div class="step-content" id="step-2">
             <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Choose the package that suits your needs.</p>
-            <div class="options-grid">
-              <label class="option-card" id="opt-appt" onclick="selectPackage('appt')"><input type="radio" name="pkg" value="appt"><h4>Appointment Only</h4><p>We book your slot. You prepare your own documents.</p><div class="price">500 MAD</div></label>
-              <label class="option-card" id="opt-docs" onclick="selectPackage('docs')"><input type="radio" name="pkg" value="docs"><h4>Appointment + Documents</h4><p>Booking + full document file preparation.</p><div class="price">1,700 MAD</div></label>
-              <label class="option-card" id="opt-full" onclick="selectPackage('full')"><input type="radio" name="pkg" value="full"><h4>Full Package ⭐</h4><p>Appointment, documents, case study, hotel & flight proofs, insurance.</p><div class="price">2,800 MAD</div></label>
-              <label class="option-card" id="opt-custom" onclick="selectPackage('custom')"><input type="radio" name="pkg" value="custom"><h4>Custom</h4><p>Pick exactly the services you need below.</p><div class="price">From 200 MAD</div></label>
+            <div class="options-grid" id="booking-packages-grid">
+              <div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;grid-column:1/-1">Chargement des services...</div>
             </div>
             <p style="font-size:13px;font-weight:600;margin-bottom:10px">Add-on Services</p>
-            <div class="add-ons-list">
-              <label class="addon-item" onclick="toggleAddon(this)"><input type="checkbox" value="200" data-name="Flight Reservation"><div class="addon-info"><h5>✈️ Flight Reservation</h5><p>Official itinerary for visa purposes</p></div><div class="addon-price">200 MAD</div></label>
-              <label class="addon-item" onclick="toggleAddon(this)"><input type="checkbox" value="200" data-name="Hotel Reservation"><div class="addon-info"><h5>🏨 Hotel Reservation</h5><p>Accommodation proof letter</p></div><div class="addon-price">200 MAD</div></label>
-              <label class="addon-item" onclick="toggleAddon(this)"><input type="checkbox" value="350" data-name="Travel Insurance"><div class="addon-info"><h5>🛡️ Travel Insurance</h5><p>Schengen-compliant, min. €30,000 coverage</p></div><div class="addon-price">350 MAD</div></label>
-              <label class="addon-item" onclick="toggleAddon(this)"><input type="checkbox" value="800" data-name="Case Study"><div class="addon-info"><h5>🔍 Case Study & Consultation</h5><p>Profile analysis to maximise approval chances</p></div><div class="addon-price">800 MAD</div></label>
-              <label class="addon-item" onclick="toggleAddon(this)"><input type="checkbox" value="300" data-name="Bank Statement Presentation"><div class="addon-info"><h5>🏦 Bank Statement Presentation</h5><p>Guide and formatting for financial documents</p></div><div class="addon-price">300 MAD</div></label>
+            <div class="add-ons-list" id="booking-addons-list">
+              <div style="padding:12px;text-align:center;color:var(--muted);font-size:13px">Chargement...</div>
             </div>
             <div class="price-summary">
               <div class="price-row"><span>Base package</span><span id="price-pkg">—</span></div>
@@ -3526,7 +3519,7 @@ async function loadB2BApplications() {
   renderB2BAppsTable('b2b-all-apps-table', _b2bApps);
 }
 
-// renderB2BAppsTable — defined in patch3.js with receipt button
+// renderB2BAppsTable replaced by patch5.js
 
 async function loadB2BCommissions() {
   await loadB2BOverview();
@@ -6425,6 +6418,434 @@ function startAdminClientDocsListener() {
       if (count > 0) showNotif('📤', count + ' client(s) ont téléchargé des documents');
     }, function(e){ console.warn('[adminClientDocs]',e); });
 }
+
+
+// ══════════════════════════════════════════════════════════════════
+//  REWRITE renderBookingServices — targets the new dynamic containers
+//  AND the home page services grid
+// ══════════════════════════════════════════════════════════════════
+function renderBookingServices() {
+  var packages = _servicesCache.filter(function(s){ return s.category==='package' && s.visible; });
+  var addons   = _servicesCache.filter(function(s){ return s.category==='addon'   && s.visible; });
+
+  // ── Booking Step 2: packages ──
+  var pkgGrid = document.getElementById('booking-packages-grid') || document.querySelector('.options-grid');
+  if (pkgGrid) {
+    if (!packages.length) {
+      pkgGrid.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;grid-column:1/-1">Aucun service disponible.</div>';
+    } else {
+      pkgGrid.innerHTML = packages.map(function(s) {
+        return '<label class="option-card" id="opt-'+s.id+'" onclick="selectServicePackage(\''+s.id+'\','+s.price+',\''+s.name.replace(/'/g,"\\'")+'\')">'
+          + '<input type="radio" name="pkg" value="'+s.id+'">'
+          + '<h4>'+s.icon+' '+s.name+'</h4>'
+          + '<p>'+(s.desc||'')+'</p>'
+          + '<div class="price">'+(s.price||0).toLocaleString()+' MAD</div>'
+          + '</label>';
+      }).join('');
+    }
+  }
+
+  // ── Booking Step 2: add-ons ──
+  var addonsEl = document.getElementById('booking-addons-list') || document.querySelector('.add-ons-list');
+  if (addonsEl) {
+    if (!addons.length) {
+      addonsEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:13px">Aucun add-on disponible.</div>';
+    } else {
+      addonsEl.innerHTML = addons.map(function(s) {
+        return '<label class="addon-item" onclick="toggleAddon(this)">'
+          + '<input type="checkbox" value="'+s.price+'" data-name="'+s.name.replace(/"/g,'&quot;')+'">'
+          + '<div class="addon-info"><h5>'+s.icon+' '+s.name+'</h5><p>'+(s.desc||'')+'</p></div>'
+          + '<div class="addon-price">'+(s.price||0).toLocaleString()+' MAD</div>'
+          + '</label>';
+      }).join('');
+    }
+  }
+
+  // ── Home page services grid ──
+  var homeGrid = document.getElementById('home-services-grid');
+  if (homeGrid) {
+    var visible = _servicesCache.filter(function(s){ return s.visible && s.category==='package'; }).slice(0,4);
+    homeGrid.innerHTML = visible.map(function(s) {
+      return '<div class="service-card" onclick="showPage(\'booking\')">'
+        + '<div class="service-icon">'+s.icon+'</div>'
+        + '<h3>'+s.name+'</h3>'
+        + '<p>'+(s.desc||'')+'</p>'
+        + '<div class="service-price">'+(s.price||0).toLocaleString()+' MAD</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  // ── Admin prices tab: update price fields ──
+  applyPriceSettings();
+}
+
+// Keep legacy selectPackage working via wrapper
+window.selectPackage = function(key) {
+  // Map old keys to services by name keywords
+  var keyMap = { appt:'Appointment Only', docs:'Appointment + Documents', full:'Full Package', custom:null };
+  var targetName = keyMap[key];
+  if (!targetName) { pkgPrice=0; pkgName='Custom'; calcTotal(); return; }
+  var svc = _servicesCache.find(function(s){ return s.name === targetName; });
+  if (svc) { selectServicePackage(svc.id, svc.price, svc.name); }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  STATUS UPDATE — attachments stored in Firestore, shown on website
+//  Email sends links (no binary attachment — GAS doesn't support it)
+// ══════════════════════════════════════════════════════════════════
+
+// Override updateAppStatus to store attachments in Firestore properly
+// and build email with embedded preview images + download text
+var _origUpdateStatus = window.updateAppStatus;
+window.updateAppStatus = async function(notifMode) {
+  if (!currentDrawerApp) return;
+  var mode       = notifMode || 'both';
+  var newStatus  = document.getElementById('drawer-status-sel').value;
+  var note       = (document.getElementById('drawer-admin-note').value || '').trim();
+  var requireDoc = document.getElementById('drawer-require-docs').checked;
+  var appId      = currentDrawerApp.id;
+
+  var historyEntry = {
+    status:      newStatus,
+    label:       _statusLabels[newStatus] || newStatus,
+    note:        note,
+    requireDocs: requireDoc,
+    attachments: _drawerAttachments.map(function(f){ return {name:f.name, data:f.data, type:f.type}; }),
+    updatedAt:   new Date().toISOString(),
+    updatedBy:   'admin'
+  };
+
+  try {
+    await db.collection('applications').doc(appId).update({
+      status:        newStatus,
+      adminNote:     note,
+      requireDocs:   requireDoc,
+      statusHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry),
+      lastUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Update local cache
+    var idx = allApplications.findIndex(function(a){ return a.id===appId; });
+    if (idx > -1) {
+      allApplications[idx].status = newStatus;
+      allApplications[idx].adminNote = note;
+      allApplications[idx].requireDocs = requireDoc;
+      if (!allApplications[idx].statusHistory) allApplications[idx].statusHistory = [];
+      allApplications[idx].statusHistory.push(historyEntry);
+      currentDrawerApp = allApplications[idx];
+    }
+    currentDrawerApp.status = newStatus;
+    currentDrawerApp.adminNote = note;
+
+    // Write client notification
+    var clientUid = currentDrawerApp.userId;
+    if (clientUid && clientUid !== 'guest') {
+      await db.collection('notifications').add({
+        uid: clientUid, appId: appId, ref: currentDrawerApp.ref,
+        status: newStatus, statusLabel: _statusLabels[newStatus]||newStatus,
+        note: note, requireDocs: requireDoc, read: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    updateAdminStats();
+    renderDrawerStatusHistory(currentDrawerApp);
+
+    // Reset UI
+    _drawerAttachments = [];
+    var lbl = document.getElementById('drawer-attach-label');
+    var lst = document.getElementById('drawer-attach-list');
+    if (lbl) lbl.textContent = '📎 Cliquer pour joindre des fichiers';
+    if (lst) lst.innerHTML = '';
+    document.getElementById('drawer-require-docs').checked = false;
+    document.getElementById('drawer-admin-note').value = '';
+
+    showNotif('✅', 'Statut → ' + (_statusLabels[newStatus]||newStatus));
+
+    // ── Email with attachment previews embedded in HTML body ──
+    if (mode === 'both' || mode === 'email') {
+      var attachSection = '';
+      if (historyEntry.attachments.length) {
+        attachSection = '<div style="margin-top:20px;padding:16px;background:#F9F7F3;border-radius:8px;border:1px solid #E8E4DC">'
+          + '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:10px">📎 Pièces jointes</div>'
+          + historyEntry.attachments.map(function(f) {
+              var isImg = f.type && f.type.startsWith('image/');
+              return '<div style="margin-bottom:8px;display:flex;align-items:center;gap:10px">'
+                + (isImg ? '<img src="'+f.data+'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #ddd">' : '<span style="font-size:24px">📄</span>')
+                + '<span style="font-size:13px;color:#0B1D35;font-weight:600">'+f.name+'</span>'
+                + '</div>';
+            }).join('')
+          + '<p style="font-size:12px;color:#888;margin-top:8px">Connectez-vous à votre espace client pour télécharger ces fichiers.</p>'
+          + '</div>';
+      }
+      var requireSection = requireDoc
+        ? '<div style="margin-top:16px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:14px 16px">'
+          + '<strong style="color:#92400E">📤 Action requise :</strong> <span style="color:#78350F">Notre équipe vous demande de télécharger des documents supplémentaires. Connectez-vous à votre espace client pour procéder.</span>'
+          + '</div>'
+        : '';
+
+      await sendEmail('status', currentDrawerApp.email,
+        currentDrawerApp.firstName + ' ' + (currentDrawerApp.lastName||''),
+        { ref: currentDrawerApp.ref, firstName: currentDrawerApp.firstName,
+          destination: currentDrawerApp.destination,
+          status: _statusLabels[newStatus]||newStatus,
+          adminNote: note + attachSection + requireSection });
+    }
+
+    if (mode === 'both') {
+      var waMsg = buildWAStatus(
+        currentDrawerApp.firstName+' '+(currentDrawerApp.lastName||''),
+        { ref: currentDrawerApp.ref, destination: currentDrawerApp.destination,
+          status: _statusLabels[newStatus]||newStatus,
+          adminNote: note + (historyEntry.attachments.length ? '\n📎 '+historyEntry.attachments.length+' pièce(s) jointe(s) — voir espace client' : '')
+                         + (requireDoc ? '\n📤 Documents requis — connectez-vous à votre espace.' : '') });
+      sendWhatsApp(currentDrawerApp.phone, waMsg);
+    }
+
+  } catch(e) {
+    console.error('[updateAppStatus]', e);
+    showNotif('⚠️', 'Erreur: ' + e.message);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  B2B APPS TABLE — show attachments + upload button per row
+// ══════════════════════════════════════════════════════════════════
+function renderB2BAppsTable(containerId, apps) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  if (!apps.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Aucun dossier.</div>';
+    return;
+  }
+  var sc = {pending:'status-pending',processing:'status-processing',approved:'status-approved',
+            rejected:'status-rejected','docs-ready':'status-docs',
+            appointment:'status-appointment',submitted:'status-submitted'};
+
+  el.innerHTML = '<div style="overflow-x:auto"><table>'
+    + '<thead><tr><th>Référence</th><th>Client</th><th>Destination</th><th>Date</th><th>Statut</th><th>Total</th><th>Commission</th><th>Actions</th></tr></thead><tbody>'
+    + apps.map(function(a) {
+        var dateStr = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().toLocaleDateString('fr-FR') : '—';
+        var dest = (a.destination||'—').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').trim().split(' ')[0];
+
+        // Find latest status note + attachments
+        var latestEntry = null;
+        if (a.statusHistory && a.statusHistory.length) {
+          latestEntry = a.statusHistory[a.statusHistory.length-1];
+        }
+        var hasNote    = latestEntry && latestEntry.note;
+        var hasAttach  = latestEntry && latestEntry.attachments && latestEntry.attachments.length;
+        var requireDoc = a.requireDocs;
+
+        return '<tr>'
+          + '<td><strong style="color:var(--gold)">'+(a.ref||'—')+'</strong></td>'
+          + '<td>'+(a.applicantPhoto ? '<img src="'+a.applicantPhoto+'" style="width:26px;height:32px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:6px">' : '')
+          + (a.firstName||'')+' '+(a.lastName||'')+'</td>'
+          + '<td>'+dest+'</td>'
+          + '<td style="font-size:11px">'+dateStr+'</td>'
+          + '<td><span class="status-badge '+(sc[a.status]||'status-pending')+'">'+(a.status||'pending')+'</span></td>'
+          + '<td style="font-weight:600">'+(a.total||0).toLocaleString()+' MAD</td>'
+          + '<td style="color:#1B7A4A;font-weight:700">'+(a.agencyCommission||0).toLocaleString()+' MAD</td>'
+          + '<td style="white-space:nowrap;display:flex;flex-direction:column;gap:4px;padding:8px">'
+            // Receipt button
+            + '<button onclick="downloadReceiptForApp(\''+a.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600">📄 Reçu</button>'
+            // Message + attachments button
+            + (hasNote || hasAttach ? '<button onclick="showB2BStatusDetail(\''+a.id+'\')" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;color:#1D4ED8">💬 Message'+(hasAttach?' ('+latestEntry.attachments.length+' PJ)':'')+'</button>' : '')
+            // Upload docs button
+            + (requireDoc ? '<button onclick="openClientUploadModal(\''+a.id+'\',\''+a.status+'\',\''+encodeURIComponent((latestEntry&&latestEntry.note)||'')+'\',\'\')" style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;color:#92400E;font-weight:600">📤 Docs requis</button>' : '')
+          + '</td>'
+          + '</tr>';
+      }).join('')
+    + '</tbody></table></div>';
+}
+
+// ── Show B2B status note + attachments in a modal ──
+var _b2bDetailModal = null;
+window.showB2BStatusDetail = async function(appId) {
+  try {
+    var doc = await db.collection('applications').doc(appId).get();
+    if (!doc.exists) return;
+    var a = doc.data();
+    var history = a.statusHistory || [];
+    var entry = history.length ? history[history.length-1] : null;
+    if (!entry) return;
+
+    // Create or reuse modal
+    var modal = document.getElementById('b2b-status-detail-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'b2b-status-detail-modal';
+      modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9800;align-items:center;justify-content:center';
+      document.body.appendChild(modal);
+    }
+
+    var attachHtml = '';
+    if (entry.attachments && entry.attachments.length) {
+      attachHtml = '<div style="margin-top:14px"><div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">📎 Pièces jointes</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:8px">'
+        + entry.attachments.map(function(f) {
+            var isImg = f.type && f.type.startsWith('image/');
+            return '<a href="'+f.data+'" download="'+f.name+'" style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-decoration:none;color:var(--navy)">'
+              + (isImg ? '<img src="'+f.data+'" style="width:40px;height:40px;object-fit:cover;border-radius:4px">' : '<span style="font-size:20px">📄</span>')
+              + '<div><div style="font-size:12px;font-weight:600">'+f.name+'</div><div style="font-size:10px;color:var(--gold)">⬇ Télécharger</div></div>'
+              + '</a>';
+          }).join('')
+        + '</div></div>';
+    }
+
+    var requireHtml = entry.requireDocs
+      ? '<div style="margin-top:14px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:12px 14px">'
+        + '<div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:6px">📤 Documents requis</div>'
+        + '<button onclick="document.getElementById(\'b2b-status-detail-modal\').remove();openClientUploadModal(\''+appId+'\',\''+a.status+'\',\''+encodeURIComponent(entry.note||'')+'\',\'\')" class="btn-gold" style="font-size:12px;padding:7px 16px;border-radius:6px">📤 Télécharger mes documents</button>'
+        + '</div>'
+      : '';
+
+    modal.innerHTML = '<div style="background:var(--white);border-radius:14px;padding:24px;max-width:500px;width:92%;max-height:80vh;overflow-y:auto;position:relative">'
+      + '<button onclick="this.closest(\'#b2b-status-detail-modal\').remove()" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>'
+      + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">Message de l\'équipe</div>'
+      + '<div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:12px">'+(entry.label||entry.status)+'</div>'
+      + (entry.note ? '<div style="font-size:14px;color:#555;line-height:1.7;background:var(--cream);border-radius:8px;padding:12px 14px">'+entry.note+'</div>' : '')
+      + attachHtml + requireHtml
+      + '</div>';
+    modal.style.display = 'flex';
+  } catch(e) { console.error(e); showNotif('⚠️', e.message); }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  TRACKING PAGE — show attachments for each status step
+//  and require-docs upload button
+// ══════════════════════════════════════════════════════════════════
+function enrichTrackPage() {
+  var result = document.getElementById('track-result');
+  if (!result || result.style.display === 'none') return;
+
+  var refEl = document.getElementById('track-ref-display');
+  var ref   = refEl ? refEl.textContent.trim() : '';
+  var app   = allApplications.find(function(a){ return a.ref === ref; });
+
+  // If not in allApplications, try fetching it
+  if (!app) {
+    var trackRef = document.getElementById('track-ref');
+    var r = trackRef ? trackRef.value.trim().toUpperCase() : '';
+    if (!r) return;
+    db.collection('applications').where('ref','==',r).limit(1).get().then(function(snap) {
+      if (!snap.empty) {
+        var d = Object.assign({id:snap.docs[0].id}, snap.docs[0].data());
+        allApplications.push(d);
+        _renderTrackDetail(d);
+      }
+    }).catch(console.warn);
+    return;
+  }
+  _renderTrackDetail(app);
+}
+
+function _renderTrackDetail(app) {
+  var existing = document.getElementById('track-status-detail');
+  if (existing) existing.remove();
+
+  var history  = app.statusHistory || [];
+  var currentEntry = null;
+  for (var i = history.length-1; i >= 0; i--) {
+    if (history[i].status === app.status) { currentEntry = history[i]; break; }
+  }
+  if (!currentEntry && history.length) currentEntry = history[history.length-1];
+
+  var panel = document.createElement('div');
+  panel.id  = 'track-status-detail';
+  panel.style.cssText = 'margin-bottom:20px';
+
+  var html = '';
+
+  // Current status message card
+  if (currentEntry && (currentEntry.note || (currentEntry.attachments&&currentEntry.attachments.length) || currentEntry.requireDocs)) {
+    html += '<div style="background:var(--white);border:1.5px solid var(--gold);border-radius:14px;padding:20px 22px;margin-bottom:14px">'
+      + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#92400E;margin-bottom:8px">📌 Message de notre équipe · '+(currentEntry.label||currentEntry.status)+'</div>';
+
+    if (currentEntry.note) {
+      html += '<div style="font-size:14px;color:#78350F;line-height:1.7;margin-bottom:12px">'+currentEntry.note+'</div>';
+    }
+
+    // Attachments with download
+    if (currentEntry.attachments && currentEntry.attachments.length) {
+      html += '<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">📎 Pièces jointes ('+currentEntry.attachments.length+')</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:8px">'
+        + currentEntry.attachments.map(function(f) {
+            var isImg = f.type && f.type.startsWith('image/');
+            return '<a href="'+f.data+'" download="'+f.name+'" style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-decoration:none;color:var(--navy);transition:.15s">'
+              + (isImg ? '<img src="'+f.data+'" style="width:36px;height:36px;object-fit:cover;border-radius:4px">' : '<span style="font-size:22px">📄</span>')
+              + '<div><div style="font-size:13px;font-weight:600">'+f.name+'</div><div style="font-size:11px;color:var(--gold);font-weight:600">⬇ Télécharger</div></div>'
+              + '</a>';
+          }).join('')
+        + '</div></div>';
+    }
+
+    // Require docs CTA
+    if (currentEntry.requireDocs) {
+      html += '<div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:14px 16px">'
+        + '<div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:6px">📤 Documents supplémentaires requis</div>'
+        + '<div style="font-size:13px;color:#78350F;margin-bottom:10px">Notre équipe a besoin de documents supplémentaires pour continuer le traitement de votre dossier.</div>'
+        + '<button onclick="openClientUploadModal(\''+app.id+'\',\''+app.status+'\',\''+encodeURIComponent(currentEntry.note||'')+'\',\'\')" class="btn-gold" style="font-size:13px;padding:9px 20px;border-radius:8px">📤 Télécharger mes documents</button>'
+        + '</div>';
+    }
+
+    html += '</div>';
+  }
+
+  // Full history (collapsible)
+  if (history.length > 0) {
+    html += '<div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:14px">'
+      + '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:14px">Historique des mises à jour</div>'
+      + '<div style="display:flex;flex-direction:column;gap:10px">'
+      + history.slice().reverse().map(function(h, i) {
+          var date = h.updatedAt ? new Date(h.updatedAt).toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+          var hasContent = h.note || (h.attachments&&h.attachments.length) || h.requireDocs;
+          var attachCount = h.attachments ? h.attachments.length : 0;
+          return '<div style="display:flex;gap:12px">'
+            + '<div style="width:10px;height:10px;border-radius:50%;background:'+(i===0?'var(--gold)':'#D1D5DB')+';flex-shrink:0;margin-top:5px"></div>'
+            + '<div style="flex:1">'
+            + '<div style="font-size:13px;font-weight:600;color:var(--navy)">'+(h.label||h.status)+'</div>'
+            + '<div style="font-size:11px;color:var(--muted);margin-bottom:3px">'+date+'</div>'
+            + (hasContent
+                ? '<details style="margin-top:2px"><summary style="font-size:11px;color:var(--gold);cursor:pointer;font-weight:600;list-style:none">Voir le message'+(attachCount?' · '+attachCount+' pièce(s) jointe(s)':'')+(h.requireDocs?' · 📤 Docs requis':'')+'</summary>'
+                  + '<div style="margin-top:8px;background:var(--cream);border-radius:8px;padding:10px 12px">'
+                  + (h.note ? '<p style="font-size:13px;color:#555;line-height:1.6;margin-bottom:8px">'+h.note+'</p>' : '')
+                  + (h.attachments&&h.attachments.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+                      + h.attachments.map(function(f){
+                          var isImg=f.type&&f.type.startsWith('image/');
+                          return '<a href="'+f.data+'" download="'+f.name+'" style="display:flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--border);border-radius:6px;padding:5px 10px;text-decoration:none;color:var(--navy);font-size:11px">'
+                            +(isImg?'<img src="'+f.data+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">':'<span>📄</span>')
+                            +f.name+' <span style="color:var(--gold)">⬇</span></a>';
+                        }).join('')
+                      + '</div>' : '')
+                  + (h.requireDocs ? '<button onclick="openClientUploadModal(\''+app.id+'\',\''+h.status+'\',\''+encodeURIComponent(h.note||'')+'\',\'\')" style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;color:#92400E;font-weight:600">📤 Télécharger mes documents</button>' : '')
+                  + '</div></details>'
+                : '')
+            + '</div></div>';
+        }).join('')
+      + '</div></div>';
+  }
+
+  panel.innerHTML = html;
+
+  // Insert before the progress timeline section
+  var progressSection = result.querySelector('.timeline');
+  var insertTarget = progressSection ? progressSection.closest('div[style*="border-radius:16px"]') : null;
+  if (insertTarget && insertTarget.parentNode) {
+    insertTarget.parentNode.insertBefore(panel, insertTarget);
+  } else {
+    var adminNote = document.getElementById('track-admin-note');
+    if (adminNote) adminNote.parentNode.insertBefore(panel, adminNote.nextSibling);
+    else result.insertBefore(panel, result.firstChild.nextSibling);
+  }
+}
+
+// Patch trackApplication to call enrichTrackPage
+var _origTrackApp = window.trackApplication;
+window.trackApplication = async function() {
+  if (typeof _origTrackApp === 'function') await _origTrackApp();
+  setTimeout(enrichTrackPage, 500);
+};
 
 // ── Startup ──
 startSettingsListener();
