@@ -898,7 +898,7 @@ tr:hover td{background:var(--cream)}
                 <div id="b2b-passport-drop" onclick="document.getElementById('b2b-passport-scan-input').click()"
                   style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
                   <div id="b2b-passport-scan-icon">🛂</div>
-                  <div style="font-size:11px;color:var(--muted)" id="b2b-passport-scan-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG/PDF · Max 5MB</span></div>
+                  <div style="font-size:11px;color:var(--muted)" id="b2b-passport-scan-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG/PDF · Max 20MB</span></div>
                 </div>
                 <input type="file" id="b2b-passport-scan-input" accept="image/*,.pdf" style="display:none" onchange="handleB2BFile(this,'passportScan')">
               </div>
@@ -909,7 +909,7 @@ tr:hover td{background:var(--cream)}
                 <div id="b2b-cin-drop" onclick="document.getElementById('b2b-cin-input').click()"
                   style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
                   <div id="b2b-cin-icon">🪪</div>
-                  <div style="font-size:11px;color:var(--muted)" id="b2b-cin-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG · Max 2MB</span></div>
+                  <div style="font-size:11px;color:var(--muted)" id="b2b-cin-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG · Max 20MB</span></div>
                 </div>
                 <input type="file" id="b2b-cin-input" accept="image/*" style="display:none" onchange="handleB2BFile(this,'cin')">
               </div>
@@ -2681,7 +2681,7 @@ window.handleUpload = function(input, zoneId, previewId, nameId) {
   if (!file) return;
   var zone = document.getElementById(zoneId);
   var nameEl = document.getElementById(nameId);
-  if (file.size > 5 * 1024 * 1024) { showNotif('⚠️','Fichier trop volumineux (max 5 Mo)'); input.value=''; return; }
+  if (file.size > 20 * 1024 * 1024) { showNotif('⚠️','Fichier trop volumineux (max 20 Mo)'); input.value=''; return; }
   if (zone) zone.classList.add('has-file');
   if (nameEl) { nameEl.textContent = '✅ ' + file.name; nameEl.style.display = 'block'; }
   // Show image preview if image
@@ -2712,7 +2712,7 @@ async function getUploadedDocsBase64() {
     var el = document.getElementById(u.id);
     if (el && el.files && el.files[0]) {
       var f = el.files[0];
-      if (f.size > 5*1024*1024) continue;
+      if (f.size > 20*1024*1024) continue;
       docs[u.key] = await new Promise(function(res) {
         var r = new FileReader();
         r.onload = function(e) { res(e.target.result); };
@@ -5082,6 +5082,9 @@ window.handleB2BFile = function(input, type) {
   if (!files || !files.length) return;
 
   if (type === 'extra') {
+    // Check each file size
+    var oversized = Array.from(files).filter(function(f){ return f.size > 20*1024*1024; });
+    if (oversized.length) { showNotif('⚠️', oversized[0].name + ' dépasse 20 Mo'); return; }
     _b2bFiles.extra = Array.from(files);
     var el = document.getElementById('b2b-extra-label');
     if (el) el.innerHTML = files.length + ' fichier(s) sélectionné(s)';
@@ -5091,6 +5094,7 @@ window.handleB2BFile = function(input, type) {
   }
 
   var file = files[0];
+  if (file.size > 20*1024*1024) { showNotif('⚠️', file.name + ' dépasse 20 Mo'); return; }
   var reader = new FileReader();
   reader.onload = function(e) {
     _b2bFiles[type] = e.target.result;
@@ -5858,7 +5862,7 @@ window.handleDrawerAttachments = function(input) {
   var label = document.getElementById('drawer-attach-label');
   var promises = files.map(function(file) {
     return new Promise(function(resolve) {
-      if (file.size > 8*1024*1024) { showNotif('⚠️', file.name + ' trop grand (max 8MB)'); resolve(null); return; }
+      if (file.size > 20*1024*1024) { showNotif('⚠️', file.name + ' trop grand (max 20MB)'); resolve(null); return; }
       var r = new FileReader();
       r.onload = function(e) { resolve({ name: file.name, data: e.target.result, type: file.type }); };
       r.onerror = function() { resolve(null); };
@@ -6358,7 +6362,7 @@ window.handleClientStepUpload = function(input) {
   var preview = document.getElementById('client-upload-preview');
   var promises = files.map(function(f) {
     return new Promise(function(resolve) {
-      if (f.size > 8*1024*1024) { showNotif('⚠️', f.name + ' trop grand'); resolve(null); return; }
+      if (f.size > 20*1024*1024) { showNotif('⚠️', f.name + ' trop grand (max 20 Mo)'); resolve(null); return; }
       var r = new FileReader();
       r.onload = function(e){ resolve({name:f.name, data:e.target.result, type:f.type}); };
       r.onerror = function(){ resolve(null); };
