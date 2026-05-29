@@ -6213,18 +6213,33 @@ var _origTrackApplication = window.trackApplication;
 window.trackApplication = async function() {
   if (typeof _origTrackApplication === 'function') await _origTrackApplication();
   // After the original renders, patch in status history detail
-  setTimeout(enrichTrackPage, 400);
+  // Use async enrichment so we can fetch from Firestore for non-admin users
+  setTimeout(function() { enrichTrackPageAsync(); }, 400);
 };
 
-function enrichTrackPage() {
+async function enrichTrackPageAsync() {
   var result = document.getElementById('track-result');
   if (!result || result.style.display === 'none') return;
 
-  // Find tracked app from allApplications or from track-ref-display
   var refEl = document.getElementById('track-ref-display');
   var ref   = refEl ? refEl.textContent.trim() : '';
-  var app   = allApplications.find(function(a){ return a.ref === ref; });
+  if (!ref) return;
+
+  // Try allApplications first (admin fast-path), else fetch directly from Firestore
+  var app = allApplications.find(function(a){ return a.ref === ref; });
+  if (!app) {
+    try {
+      var snap = await db.collection('applications').where('ref','==',ref).limit(1).get();
+      if (!snap.empty) {
+        app = Object.assign({ id: snap.docs[0].id }, snap.docs[0].data());
+      }
+    } catch(e) { console.warn('[enrichTrack] Firestore fetch error:', e); }
+  }
   if (!app) return;
+  enrichTrackPage(app);
+}
+
+function enrichTrackPage(app) {
 
   // Build status detail panel
   var existing = document.getElementById('track-status-detail');
