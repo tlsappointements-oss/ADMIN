@@ -1790,6 +1790,7 @@ tr:hover td{background:var(--cream)}
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <script>
 firebase.initializeApp({
   apiKey:            "AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",
@@ -1801,6 +1802,7 @@ firebase.initializeApp({
 });
 const auth = firebase.auth();
 const db   = firebase.firestore();
+const storage = firebase.storage();
 
 // ── Constants (must be at top — used by loadSmtpConfig on init) ──
 const YOUR_EMAIL = 'tls.appointements@gmail.com';
@@ -6063,7 +6065,7 @@ window.openDrawer = function(id) {
     a.statusHistory.forEach(function(h) {
       if (h.clientDocs && h.clientDocs.length) {
         h.clientDocs.forEach(function(f) {
-          stepDocs.push({ label: '📤 ' + f.name, data: f.data, name: f.name, status: h.label || h.status, date: h.clientDocsUploadedAt });
+          stepDocs.push({ label: '📤 ' + f.name, url: f.url, data: f.data, type: f.type, name: f.name, status: h.label || h.status, date: h.clientDocsUploadedAt });
         });
       }
     });
@@ -6071,7 +6073,7 @@ window.openDrawer = function(id) {
   // Also check top-level clientDocs
   if (a.clientDocs && a.clientDocs.length) {
     a.clientDocs.forEach(function(f) {
-      stepDocs.push({ label: '📤 ' + f.name, data: f.data, name: f.name });
+      stepDocs.push({ label: '📤 ' + f.name, url: f.url, data: f.data, type: f.type, name: f.name });
     });
   }
 
@@ -6079,16 +6081,18 @@ window.openDrawer = function(id) {
   if (docsSection) docsSection.style.display = hasAny ? 'block' : 'none';
 
   function docCard(d) {
-    var isImg = d.data && (d.data.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)/i.test(d.name||''));
+    var src = d.url || d.data || '';
+    var isImg = (d.url) ? /\.(jpg|jpeg|png|gif|webp)/i.test(d.name||'') || (d.type&&d.type.startsWith('image/'))
+                        : src && (src.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)/i.test(d.name||''));
     return '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;width:120px;flex-shrink:0;background:var(--white)">'
       + (isImg
-          ? '<img src="'+d.data+'" alt="'+d.label+'" style="width:120px;height:80px;object-fit:cover;display:block">'
+          ? '<img src="'+src+'" alt="'+d.label+'" style="width:120px;height:80px;object-fit:cover;display:block">'
           : '<div style="width:120px;height:80px;display:flex;align-items:center;justify-content:center;background:var(--cream);font-size:28px">📄</div>')
       + '<div style="padding:4px 6px">'
       + '<div style="font-size:10px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + d.label + '</div>'
       + (d.status ? '<div style="font-size:9px;color:var(--muted)">'+d.status+'</div>' : '')
       + '</div>'
-      + '<a href="'+d.data+'" download="'+(d.name||'document')+'" style="display:block;text-align:center;font-size:10px;background:#0B1D35;color:#c9973a;padding:4px 0;text-decoration:none;font-weight:600">⬇ Télécharger</a>'
+      + '<a href="'+src+'" target="_blank" download="'+(d.name||'document')+'" style="display:block;text-align:center;font-size:10px;background:#0B1D35;color:#c9973a;padding:4px 0;text-decoration:none;font-weight:600">⬇ Télécharger</a>'
       + '</div>';
   }
 
@@ -6277,9 +6281,10 @@ function enrichTrackPage(app) {
       html += '<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:6px">📎 Pièces jointes</div>'
         + '<div style="display:flex;flex-wrap:wrap;gap:8px">'
         + currentEntry.attachments.map(function(f) {
+            var src = f.url || f.data || '';
             var isImg = f.type && f.type.startsWith('image/');
-            return '<a href="'+f.data+'" download="'+f.name+'" style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-decoration:none;color:var(--navy);font-size:12px">'
-              + (isImg ? '<img src="'+f.data+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">' : '<span>📄</span>')
+            return '<a href="'+src+'" target="_blank" download="'+f.name+'" style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-decoration:none;color:var(--navy);font-size:12px">'
+              + (isImg ? '<img src="'+src+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">' : '<span>📄</span>')
               + f.name + ' <span style="color:var(--gold);font-weight:700">⬇</span></a>';
           }).join('')
         + '</div></div>';
@@ -6313,8 +6318,9 @@ function enrichTrackPage(app) {
               + '<div style="display:none;margin-top:8px;background:var(--cream);border-radius:8px;padding:10px 12px;font-size:12px">'
               + (h.note ? '<p style="color:#555;line-height:1.6;margin-bottom:6px">'+h.note+'</p>' : '')
               + (h.requireDocs ? '<div style="color:#92400E;font-size:11px;margin-bottom:6px">📤 Documents requis</div>' : '')
-              + (h.attachments&&h.attachments.length ? h.attachments.map(function(f){
-                  return '<a href="'+f.data+'" download="'+f.name+'" style="display:inline-flex;align-items:center;gap:5px;background:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 9px;margin:2px;font-size:11px;text-decoration:none;color:var(--navy)">📎 '+f.name+' ⬇</a>';
+        + (h.attachments&&h.attachments.length ? h.attachments.map(function(f){
+                  var src = f.url || f.data || '';
+                  return '<a href="'+src+'" target="_blank" download="'+f.name+'" style="display:inline-flex;align-items:center;gap:5px;background:var(--white);border:1px solid var(--border);border-radius:5px;padding:3px 9px;margin:2px;font-size:11px;text-decoration:none;color:var(--navy)">📎 '+f.name+' ⬇</a>';
                 }).join('') : '')
               + '</div>'
               : '')
@@ -6360,28 +6366,21 @@ window.closeClientUploadModal = function() {
 window.handleClientStepUpload = function(input) {
   var files = Array.from(input.files);
   var preview = document.getElementById('client-upload-preview');
-  var promises = files.map(function(f) {
-    return new Promise(function(resolve) {
-      if (f.size > 20*1024*1024) { showNotif('⚠️', f.name + ' trop grand (max 20 Mo)'); resolve(null); return; }
-      var r = new FileReader();
-      r.onload = function(e){ resolve({name:f.name, data:e.target.result, type:f.type}); };
-      r.onerror = function(){ resolve(null); };
-      r.readAsDataURL(f);
-    });
+  files.forEach(function(f) {
+    if (f.size > 20*1024*1024) { showNotif('⚠️', f.name + ' trop grand (max 20 Mo)'); return; }
+    _clientStepFiles.push(f); // store the raw File object
   });
-  Promise.all(promises).then(function(results) {
-    results.filter(Boolean).forEach(function(f){ _clientStepFiles.push(f); });
-    if (preview) {
-      preview.innerHTML = _clientStepFiles.map(function(f,i){
-        var isImg = f.type.startsWith('image/');
-        return '<div style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px">'
-          + (isImg ? '<img src="'+f.data+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px">' : '<span>📄</span>')
-          + '<span style="flex:1">'+f.name+'</span>'
-          + '<button onclick="_clientStepFiles.splice('+i+',1);handleClientStepUpload({files:[]})" style="background:none;border:none;cursor:pointer;color:#991b1b">✕</button>'
-          + '</div>';
-      }).join('');
-    }
-  });
+  if (preview) {
+    preview.innerHTML = _clientStepFiles.map(function(f, i) {
+      var isImg = f.type && f.type.startsWith('image/');
+      var previewSrc = isImg ? URL.createObjectURL(f) : null;
+      return '<div style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px">'
+        + (previewSrc ? '<img src="'+previewSrc+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px">' : '<span>📄</span>')
+        + '<span style="flex:1">' + f.name + '</span>'
+        + '<button onclick="_clientStepFiles.splice('+i+',1);document.getElementById(\'client-upload-preview\').innerHTML=\'\';window.handleClientStepUpload({files:[]})" style="background:none;border:none;cursor:pointer;color:#991b1b">✕</button>'
+        + '</div>';
+    }).join('');
+  }
 };
 
 window.submitClientStepDocs = async function() {
@@ -6390,18 +6389,30 @@ window.submitClientStepDocs = async function() {
   if (!appId) { showNotif('⚠️','Erreur: dossier introuvable'); return; }
   if (!_clientStepFiles.length) { showNotif('⚠️','Veuillez sélectionner au moins un fichier'); return; }
 
+  var btn = document.querySelector('#client-upload-modal .btn-gold');
+  if (btn) { btn.textContent = '⏳ Envoi en cours...'; btn.disabled = true; }
   showNotif('⏳','Envoi en cours...');
+
   try {
+    // Upload each file to Firebase Storage, collect {name, url, type}
+    var uploaded = await Promise.all(_clientStepFiles.map(async function(file) {
+      var path = 'client_docs/' + appId + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      var ref = storage.ref(path);
+      var snap = await ref.put(file);
+      var url = await snap.ref.getDownloadURL();
+      return { name: file.name, url: url, type: file.type, path: path };
+    }));
+
     var entry = {
       status:   statusKey,
-      clientDocs: _clientStepFiles.map(function(f){ return {name:f.name, data:f.data, type:f.type}; }),
+      clientDocs: uploaded,
       clientDocsUploadedAt: new Date().toISOString(),
-      requireDocs: false // mark as fulfilled
+      requireDocs: false
     };
 
     await db.collection('applications').doc(appId).update({
-      clientDocs:  firebase.firestore.FieldValue.arrayUnion(..._clientStepFiles.map(function(f){return {name:f.name,data:f.data,type:f.type};})),
-      requireDocs: false,
+      clientDocs:    firebase.firestore.FieldValue.arrayUnion(...uploaded),
+      requireDocs:   false,
       statusHistory: firebase.firestore.FieldValue.arrayUnion(entry),
       lastClientDocsAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -6409,17 +6420,19 @@ window.submitClientStepDocs = async function() {
     showNotif('✅','Documents envoyés avec succès !');
     closeClientUploadModal();
     _clientStepFiles = [];
-    // Notify admin
+
     await db.collection('adminNotifications').add({
-      appId: appId, type:'client_docs_uploaded',
+      appId: appId, type: 'client_docs_uploaded',
       message: 'Le client a téléchargé des documents supplémentaires.',
       read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    // Re-enrich track page
-    setTimeout(enrichTrackPage, 500);
+
+    setTimeout(function() { enrichTrackPageAsync(); }, 500);
   } catch(e) {
     console.error('[submitClientStepDocs]', e);
-    showNotif('⚠️','Erreur: '+e.message);
+    showNotif('⚠️','Erreur: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = '✅ Envoyer les documents'; btn.disabled = false; }
   }
 };
 
