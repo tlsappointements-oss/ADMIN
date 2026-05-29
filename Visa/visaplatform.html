@@ -887,7 +887,7 @@ tr:hover td{background:var(--cream)}
                   style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:border-color .2s">
                   <img id="b2b-photo-preview" src="" style="display:none;width:64px;height:80px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">
                   <div id="b2b-photo-icon">📷</div>
-                  <div style="font-size:11px;color:var(--muted)" id="b2b-photo-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG · Max 2MB</span></div>
+                  <div style="font-size:11px;color:var(--muted)" id="b2b-photo-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG</span></div>
                 </div>
                 <input type="file" id="b2b-photo-input" accept="image/*" style="display:none" onchange="handleB2BFile(this,'photo')">
               </div>
@@ -898,7 +898,7 @@ tr:hover td{background:var(--cream)}
                 <div id="b2b-passport-drop" onclick="document.getElementById('b2b-passport-scan-input').click()"
                   style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
                   <div id="b2b-passport-scan-icon">🛂</div>
-                  <div style="font-size:11px;color:var(--muted)" id="b2b-passport-scan-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG/PDF · Max 20MB</span></div>
+                  <div style="font-size:11px;color:var(--muted)" id="b2b-passport-scan-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG/PDF</span></div>
                 </div>
                 <input type="file" id="b2b-passport-scan-input" accept="image/*,.pdf" style="display:none" onchange="handleB2BFile(this,'passportScan')">
               </div>
@@ -909,7 +909,7 @@ tr:hover td{background:var(--cream)}
                 <div id="b2b-cin-drop" onclick="document.getElementById('b2b-cin-input').click()"
                   style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
                   <div id="b2b-cin-icon">🪪</div>
-                  <div style="font-size:11px;color:var(--muted)" id="b2b-cin-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG · Max 20MB</span></div>
+                  <div style="font-size:11px;color:var(--muted)" id="b2b-cin-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG</span></div>
                 </div>
                 <input type="file" id="b2b-cin-input" accept="image/*" style="display:none" onchange="handleB2BFile(this,'cin')">
               </div>
@@ -2324,7 +2324,16 @@ window.submitApplication = async function() {
   var selfiePhoto = '';
   var selfieInput = document.getElementById('upload-selfie');
   if (selfieInput && selfieInput.files && selfieInput.files[0]) {
-    try { selfiePhoto = await new Promise(function(res){ var r=new FileReader(); r.onload=function(e){res(e.target.result);}; r.onerror=function(){res('');}; r.readAsDataURL(selfieInput.files[0]); }); } catch(e){}
+    try {
+      var sf = selfieInput.files[0];
+      var sfPath = 'client_docs/selfie/' + Date.now() + '_' + sf.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      var sfRef = storage.ref(sfPath);
+      var sfSnap = await sfRef.put(sf);
+      selfiePhoto = await sfSnap.ref.getDownloadURL();
+    } catch(e) {
+      // Fallback to base64 for preview on receipt only
+      try { selfiePhoto = await new Promise(function(res){ var r=new FileReader(); r.onload=function(e){res(e.target.result);}; r.onerror=function(){res('');}; r.readAsDataURL(selfieInput.files[0]); }); } catch(e2){}
+    }
   }
   const data = {
     ref, firstName:fn, lastName:ln, email,
@@ -2683,7 +2692,6 @@ window.handleUpload = function(input, zoneId, previewId, nameId) {
   if (!file) return;
   var zone = document.getElementById(zoneId);
   var nameEl = document.getElementById(nameId);
-  if (file.size > 20 * 1024 * 1024) { showNotif('⚠️','Fichier trop volumineux (max 20 Mo)'); input.value=''; return; }
   if (zone) zone.classList.add('has-file');
   if (nameEl) { nameEl.textContent = '✅ ' + file.name; nameEl.style.display = 'block'; }
   // Show image preview if image
@@ -2706,7 +2714,7 @@ window.handleUpload = function(input, zoneId, previewId, nameId) {
   }
 };
 
-// Convert upload files to base64 for Firestore storage
+// Upload booking documents (passport, CIN, selfie) to Firebase Storage and return download URLs
 async function getUploadedDocsBase64() {
   var docs = {};
   var uploads = [{id:'upload-passport',key:'passport'},{id:'upload-cni',key:'cni'},{id:'upload-selfie',key:'selfie'}];
@@ -2714,12 +2722,14 @@ async function getUploadedDocsBase64() {
     var el = document.getElementById(u.id);
     if (el && el.files && el.files[0]) {
       var f = el.files[0];
-      if (f.size > 20*1024*1024) continue;
-      docs[u.key] = await new Promise(function(res) {
-        var r = new FileReader();
-        r.onload = function(e) { res(e.target.result); };
-        r.readAsDataURL(f);
-      });
+      try {
+        var path = 'client_docs/booking/' + Date.now() + '_' + u.key + '_' + f.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        var ref = storage.ref(path);
+        var snap = await ref.put(f);
+        docs[u.key] = await snap.ref.getDownloadURL();
+      } catch(e) {
+        console.warn('[upload ' + u.key + ']', e);
+      }
     }
   }
   return docs;
@@ -5077,16 +5087,23 @@ window.deleteAgency = async function(i) {
 // ══════════════════════════════════════════════════════════════════
 //  B2B FILE UPLOAD HANDLER
 // ══════════════════════════════════════════════════════════════════
+// _b2bFiles stores Storage download URLs (not base64) for photo/passportScan/cin,
+// and raw File objects for extra (uploaded at submit time).
 var _b2bFiles = { photo: null, passportScan: null, cin: null, extra: [] };
+
+// Helper: upload a File to Firebase Storage and return its download URL
+async function _uploadB2BFileToStorage(file, folder) {
+  var path = folder + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  var ref = storage.ref(path);
+  var snap = await ref.put(file);
+  return await snap.ref.getDownloadURL();
+}
 
 window.handleB2BFile = function(input, type) {
   var files = input.files;
   if (!files || !files.length) return;
 
   if (type === 'extra') {
-    // Check each file size
-    var oversized = Array.from(files).filter(function(f){ return f.size > 20*1024*1024; });
-    if (oversized.length) { showNotif('⚠️', oversized[0].name + ' dépasse 20 Mo'); return; }
     _b2bFiles.extra = Array.from(files);
     var el = document.getElementById('b2b-extra-label');
     if (el) el.innerHTML = files.length + ' fichier(s) sélectionné(s)';
@@ -5096,27 +5113,43 @@ window.handleB2BFile = function(input, type) {
   }
 
   var file = files[0];
-  if (file.size > 20*1024*1024) { showNotif('⚠️', file.name + ' dépasse 20 Mo'); return; }
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    _b2bFiles[type] = e.target.result;
+
+  // Show a local preview for images immediately while upload is in progress
+  if (type === 'photo' && file.type.startsWith('image/')) {
+    var objUrl = URL.createObjectURL(file);
+    var prev = document.getElementById('b2b-photo-preview');
+    var icon = document.getElementById('b2b-photo-icon');
+    var lbl  = document.getElementById('b2b-photo-label');
+    if (prev) { prev.src = objUrl; prev.style.display = 'block'; }
+    if (icon) icon.style.display = 'none';
+    if (lbl)  lbl.innerHTML = '<span style="color:#1B7A4A;font-weight:600">⏳ ' + file.name + ' (envoi...)</span>';
+  } else if (type !== 'photo') {
+    var iconId = type === 'passportScan' ? 'b2b-passport-scan-icon' : 'b2b-cin-icon';
+    var lblId  = type === 'passportScan' ? 'b2b-passport-scan-label' : 'b2b-cin-label';
+    var icon2 = document.getElementById(iconId);
+    var lbl2  = document.getElementById(lblId);
+    if (icon2) icon2.textContent = '⏳';
+    if (lbl2)  lbl2.innerHTML = '<span style="color:#1B7A4A;font-weight:600">⏳ ' + file.name + ' (envoi...)</span>';
+  }
+
+  // Upload to Firebase Storage
+  _uploadB2BFileToStorage(file, 'b2b_docs').then(function(url) {
+    _b2bFiles[type] = url;
     if (type === 'photo') {
-      var prev = document.getElementById('b2b-photo-preview');
-      var icon = document.getElementById('b2b-photo-icon');
-      var lbl  = document.getElementById('b2b-photo-label');
-      if (prev) { prev.src = e.target.result; prev.style.display = 'block'; }
-      if (icon) icon.style.display = 'none';
-      if (lbl)  lbl.innerHTML = '<span style="color:#1B7A4A;font-weight:600">✅ ' + file.name + '</span>';
+      var lbl = document.getElementById('b2b-photo-label');
+      if (lbl) lbl.innerHTML = '<span style="color:#1B7A4A;font-weight:600">✅ ' + file.name + '</span>';
     } else {
-      var iconId = type === 'passportScan' ? 'b2b-passport-scan-icon' : 'b2b-cin-icon';
-      var lblId  = type === 'passportScan' ? 'b2b-passport-scan-label' : 'b2b-cin-label';
-      var icon2 = document.getElementById(iconId);
-      var lbl2  = document.getElementById(lblId);
-      if (icon2) icon2.textContent = '✅';
-      if (lbl2)  lbl2.innerHTML = '<span style="color:#1B7A4A;font-weight:600">' + file.name + '</span>';
+      var lblId2 = type === 'passportScan' ? 'b2b-passport-scan-label' : 'b2b-cin-label';
+      var iconId2 = type === 'passportScan' ? 'b2b-passport-scan-icon' : 'b2b-cin-icon';
+      var lbl3 = document.getElementById(lblId2);
+      var icon3 = document.getElementById(iconId2);
+      if (icon3) icon3.textContent = '✅';
+      if (lbl3)  lbl3.innerHTML = '<span style="color:#1B7A4A;font-weight:600">✅ ' + file.name + '</span>';
     }
-  };
-  reader.readAsDataURL(file);
+  }).catch(function(e) {
+    showNotif('⚠️', 'Erreur envoi ' + file.name + ': ' + e.message);
+    _b2bFiles[type] = null;
+  });
 };
 
 // ── B2B add-ons rendering ──
@@ -5232,7 +5265,7 @@ window.submitB2BApplication = async function() {
     agencyEmail:_agencyData.email || '',
     agencyCommission:    comm,
     agencyCommissionPct: commPct,
-    // Photo & docs as base64
+    // Photo & docs stored as Firebase Storage URLs (not base64)
     applicantPhoto: _b2bFiles.photo   || '',
     passportScan:   _b2bFiles.passportScan || '',
     cinScan:        _b2bFiles.cin     || '',
@@ -5243,6 +5276,19 @@ window.submitB2BApplication = async function() {
 
   try {
     showNotif('⏳','Soumission en cours...');
+
+    // Upload extra files to Firebase Storage, collect URLs
+    if (_b2bFiles.extra && _b2bFiles.extra.length) {
+      var extraUploaded = await Promise.all(_b2bFiles.extra.map(async function(file) {
+        var path = 'b2b_docs/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        var refPath = storage.ref(path);
+        var snap = await refPath.put(file);
+        var url = await snap.ref.getDownloadURL();
+        return { name: file.name, url: url, type: file.type, path: path };
+      }));
+      data.extraDocs = extraUploaded;
+    }
+
     await db.collection('applications').add(data);
     showNotif('✅','Dossier soumis — Réf: ' + ref);
 
@@ -5259,11 +5305,11 @@ window.submitB2BApplication = async function() {
       var el=document.getElementById(id); if(!el) return;
       if(id==='b2b-photo-preview'){ el.style.display='none'; el.src=''; }
       else if(id==='b2b-photo-icon') el.textContent='📷';
-      else if(id==='b2b-photo-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG · Max 2MB</span>';
+      else if(id==='b2b-photo-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG</span>';
       else if(id==='b2b-passport-scan-icon') el.textContent='🛂';
-      else if(id==='b2b-passport-scan-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG/PDF · Max 5MB</span>';
+      else if(id==='b2b-passport-scan-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG/PDF</span>';
       else if(id==='b2b-cin-icon') el.textContent='🪪';
-      else if(id==='b2b-cin-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG · Max 2MB</span>';
+      else if(id==='b2b-cin-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG</span>';
       else if(id==='b2b-extra-icon') el.textContent='📎';
       else if(id==='b2b-extra-label') el.innerHTML='Cliquer pour choisir<br><span style="font-size:10px">Plusieurs fichiers OK</span>';
     });
@@ -5859,26 +5905,33 @@ window.showAdminTab = function(tab) {
 var _drawerAttachments = []; // [{name, data, type}]
 
 window.handleDrawerAttachments = function(input) {
-  var files = Array.from(input.files);
+  var files = Array.from(input.files || []);
   var list  = document.getElementById('drawer-attach-list');
   var label = document.getElementById('drawer-attach-label');
+
+  // Upload each file to Firebase Storage and store the URL
   var promises = files.map(function(file) {
     return new Promise(function(resolve) {
-      if (file.size > 20*1024*1024) { showNotif('⚠️', file.name + ' trop grand (max 20MB)'); resolve(null); return; }
-      var r = new FileReader();
-      r.onload = function(e) { resolve({ name: file.name, data: e.target.result, type: file.type }); };
-      r.onerror = function() { resolve(null); };
-      r.readAsDataURL(file);
+      var path = 'admin_attachments/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      var ref = storage.ref(path);
+      ref.put(file).then(function(snap) {
+        snap.ref.getDownloadURL().then(function(url) {
+          resolve({ name: file.name, url: url, type: file.type, path: path });
+        }).catch(function() { resolve(null); });
+      }).catch(function(e) {
+        showNotif('⚠️', file.name + ': ' + e.message); resolve(null);
+      });
     });
   });
+
   Promise.all(promises).then(function(results) {
     results.filter(Boolean).forEach(function(f) { _drawerAttachments.push(f); });
     if (label) label.textContent = _drawerAttachments.length + ' fichier(s) joint(s)';
     if (list) {
       list.innerHTML = _drawerAttachments.map(function(f, i) {
-        var isImg = f.type.startsWith('image/');
+        var isImg = f.type && f.type.startsWith('image/');
         return '<div style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px">'
-          + (isImg ? '<img src="'+f.data+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">' : '<span>📄</span>')
+          + (isImg ? '<img src="'+f.url+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">' : '<span>📄</span>')
           + '<span style="flex:1;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.name+'</span>'
           + '<button onclick="_drawerAttachments.splice('+i+',1);handleDrawerAttachments({files:[]})" style="background:none;border:none;cursor:pointer;color:#991b1b;font-size:12px">✕</button>'
           + '</div>';
@@ -5911,7 +5964,7 @@ window.updateAppStatus = async function(notifMode) {
     label:     _statusLabels[newStatus] || newStatus,
     note:      note,
     requireDocs: requireDoc,
-    attachments: _drawerAttachments.map(function(f){ return {name:f.name, data:f.data, type:f.type}; }),
+    attachments: _drawerAttachments.map(function(f){ return {name:f.name, url:f.url||'', type:f.type}; }),
     updatedAt: new Date().toISOString(),
     updatedBy: 'admin'
   };
@@ -5973,7 +6026,7 @@ window.updateAppStatus = async function(notifMode) {
       var attachHtml = historyEntry.attachments.length
         ? '<br><br><strong>Pièces jointes :</strong><br>'
           + historyEntry.attachments.map(function(f){
-              return '<a href="'+f.data+'" download="'+f.name+'" style="color:#c9973a">📎 '+f.name+'</a>';
+              return '<a href="'+(f.url||f.data||'')+'" target="_blank" style="color:#c9973a">📎 '+f.name+'</a>';
             }).join('<br>')
         : '';
       var requireHtml = requireDoc
@@ -6018,7 +6071,7 @@ function renderDrawerStatusHistory(a) {
       + (h.requireDocs ? '<div style="font-size:11px;color:#92400E;background:#FEF3C7;border-radius:4px;padding:2px 7px;display:inline-block;margin-bottom:4px">📤 Documents requis</div>' : '')
       + (h.attachments && h.attachments.length ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">'
           + h.attachments.map(function(f){
-              return '<a href="'+f.data+'" download="'+f.name+'" style="font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;padding:2px 7px;color:var(--navy);text-decoration:none">📎 '+f.name+'</a>';
+              return '<a href="'+(f.url||f.data||'')+'" target="_blank" style="font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;padding:2px 7px;color:var(--navy);text-decoration:none">📎 '+f.name+'</a>';
             }).join('')
           + '</div>'
         : '')
@@ -6367,8 +6420,7 @@ window.handleClientStepUpload = function(input) {
   var files = Array.from(input.files);
   var preview = document.getElementById('client-upload-preview');
   files.forEach(function(f) {
-    if (f.size > 20*1024*1024) { showNotif('⚠️', f.name + ' trop grand (max 20 Mo)'); return; }
-    _clientStepFiles.push(f); // store the raw File object
+    _clientStepFiles.push(f); // store the raw File object — no size limit, Firebase Storage handles it
   });
   if (preview) {
     preview.innerHTML = _clientStepFiles.map(function(f, i) {
@@ -6542,7 +6594,7 @@ window.updateAppStatus = async function(notifMode) {
     label:       _statusLabels[newStatus] || newStatus,
     note:        note,
     requireDocs: requireDoc,
-    attachments: _drawerAttachments.map(function(f){ return {name:f.name, data:f.data, type:f.type}; }),
+    attachments: _drawerAttachments.map(function(f){ return {name:f.name, url:f.url||'', type:f.type}; }),
     updatedAt:   new Date().toISOString(),
     updatedBy:   'admin'
   };
@@ -6603,7 +6655,7 @@ window.updateAppStatus = async function(notifMode) {
           + historyEntry.attachments.map(function(f) {
               var isImg = f.type && f.type.startsWith('image/');
               return '<div style="margin-bottom:8px;display:flex;align-items:center;gap:10px">'
-                + (isImg ? '<img src="'+f.data+'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #ddd">' : '<span style="font-size:24px">📄</span>')
+                + (isImg ? '<img src="'+(f.url||f.data||'')+'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #ddd">' : '<span style="font-size:24px">📄</span>')
                 + '<span style="font-size:13px;color:#0B1D35;font-weight:600">'+f.name+'</span>'
                 + '</div>';
             }).join('')
@@ -6717,8 +6769,8 @@ window.showB2BStatusDetail = async function(appId) {
         + '<div style="display:flex;flex-wrap:wrap;gap:8px">'
         + entry.attachments.map(function(f) {
             var isImg = f.type && f.type.startsWith('image/');
-            return '<a href="'+f.data+'" download="'+f.name+'" style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-decoration:none;color:var(--navy)">'
-              + (isImg ? '<img src="'+f.data+'" style="width:40px;height:40px;object-fit:cover;border-radius:4px">' : '<span style="font-size:20px">📄</span>')
+            return '<a href="'+(f.url||f.data||'')+'" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-decoration:none;color:var(--navy)">'
+              + (isImg ? '<img src="'+(f.url||f.data||'')+'" style="width:40px;height:40px;object-fit:cover;border-radius:4px">' : '<span style="font-size:20px">📄</span>')
               + '<div><div style="font-size:12px;font-weight:600">'+f.name+'</div><div style="font-size:10px;color:var(--gold)">⬇ Télécharger</div></div>'
               + '</a>';
           }).join('')
@@ -6804,8 +6856,8 @@ function _renderTrackDetail(app) {
         + '<div style="display:flex;flex-wrap:wrap;gap:8px">'
         + currentEntry.attachments.map(function(f) {
             var isImg = f.type && f.type.startsWith('image/');
-            return '<a href="'+f.data+'" download="'+f.name+'" style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-decoration:none;color:var(--navy);transition:.15s">'
-              + (isImg ? '<img src="'+f.data+'" style="width:36px;height:36px;object-fit:cover;border-radius:4px">' : '<span style="font-size:22px">📄</span>')
+            return '<a href="'+(f.url||f.data||'')+'" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-decoration:none;color:var(--navy);transition:.15s">'
+              + (isImg ? '<img src="'+(f.url||f.data||'')+'" style="width:36px;height:36px;object-fit:cover;border-radius:4px">' : '<span style="font-size:22px">📄</span>')
               + '<div><div style="font-size:13px;font-weight:600">'+f.name+'</div><div style="font-size:11px;color:var(--gold);font-weight:600">⬇ Télécharger</div></div>'
               + '</a>';
           }).join('')
@@ -6845,8 +6897,8 @@ function _renderTrackDetail(app) {
                   + (h.attachments&&h.attachments.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
                       + h.attachments.map(function(f){
                           var isImg=f.type&&f.type.startsWith('image/');
-                          return '<a href="'+f.data+'" download="'+f.name+'" style="display:flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--border);border-radius:6px;padding:5px 10px;text-decoration:none;color:var(--navy);font-size:11px">'
-                            +(isImg?'<img src="'+f.data+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">':'<span>📄</span>')
+                          return '<a href="'+(f.url||f.data||'')+'" target="_blank" style="display:flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--border);border-radius:6px;padding:5px 10px;text-decoration:none;color:var(--navy);font-size:11px">'
+                            +(isImg?'<img src="'+(f.url||f.data||'')+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">':'<span>📄</span>')
                             +f.name+' <span style="color:var(--gold)">⬇</span></a>';
                         }).join('')
                       + '</div>' : '')
