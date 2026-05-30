@@ -6095,66 +6095,93 @@ window.openDrawer = function(id) {
   // Render status history
   renderDrawerStatusHistory(currentDrawerApp);
 
-  // Fix documents section — show ALL docs with proper download
-  var a = currentDrawerApp;
+  // Load + render all documents (including from clientUploads collection)
+  _renderDrawerDocs(currentDrawerApp, id);
+};
+
+// Shared docCard renderer
+function _docCard(d) {
+  var src = d.url || d.data || '';
+  var isImg = src
+    ? (/\.(jpg|jpeg|png|gif|webp)/i.test(d.name||'') || (d.type&&d.type.startsWith('image/')) || src.startsWith('data:image'))
+    : false;
+  return '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;width:120px;flex-shrink:0;background:var(--white)">'
+    + (isImg
+        ? '<img src="'+src+'" alt="'+d.label+'" style="width:120px;height:80px;object-fit:cover;display:block" onerror="this.style.display=\'none\'">'
+        : '<div style="width:120px;height:80px;display:flex;align-items:center;justify-content:center;background:var(--cream);font-size:28px">📄</div>')
+    + '<div style="padding:4px 6px">'
+    + '<div style="font-size:10px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + d.label + '</div>'
+    + (d.status ? '<div style="font-size:9px;color:var(--muted)">'+d.status+'</div>' : '')
+    + '</div>'
+    + '<a href="'+src+'" target="_blank" style="display:block;text-align:center;font-size:10px;background:#0B1D35;color:#c9973a;padding:4px 0;text-decoration:none;font-weight:600">⬇ Télécharger</a>'
+    + '</div>';
+}
+
+function _renderDrawerDocs(a, appId) {
   var docsSection  = document.getElementById('drawer-docs-section');
   var docsList     = document.getElementById('drawer-docs-list');
   var stepDocsList = document.getElementById('drawer-step-docs-list');
 
-  // Initial docs (passport, cni, selfie, applicantPhoto, passportScan, cinScan, B2B docs)
+  // Initial docs (passport, cni, selfie, applicantPhoto, passportScan, cinScan)
   var mainDocs = [];
   var docSources = {
-    passport:     { label:'🛂 Passeport',      val: (a.documents&&a.documents.passport) || a.passportScan || '' },
-    cni:          { label:'🪪 CIN',             val: (a.documents&&a.documents.cni)      || a.cinScan      || '' },
-    selfie:       { label:'🤳 Photo',           val: (a.documents&&a.documents.selfie)   || a.applicantPhoto || '' },
+    passport: { label:'🛂 Passeport', val: (a.documents&&a.documents.passport) || a.passportScan || '' },
+    cni:      { label:'🪪 CIN',        val: (a.documents&&a.documents.cni)      || a.cinScan      || '' },
+    selfie:   { label:'🤳 Photo',      val: (a.documents&&a.documents.selfie)   || a.applicantPhoto || '' },
   };
   Object.entries(docSources).forEach(function(e) {
-    if (e[1].val) mainDocs.push({ label: e[1].label, data: e[1].val, name: e[0] });
+    if (e[1].val) mainDocs.push({ label: e[1].label, url: e[1].val, name: e[0] });
   });
 
-  // Collect step-uploaded docs from statusHistory
+  // Collect step-uploaded docs from statusHistory (old path — keep backward compat)
   var stepDocs = [];
   if (a.statusHistory) {
     a.statusHistory.forEach(function(h) {
       if (h.clientDocs && h.clientDocs.length) {
         h.clientDocs.forEach(function(f) {
-          stepDocs.push({ label: '📤 ' + f.name, url: f.url, data: f.data, type: f.type, name: f.name, status: h.label || h.status, date: h.clientDocsUploadedAt });
+          stepDocs.push({ label: '📤 '+f.name, url: f.url||f.data||'', type: f.type, name: f.name, status: h.label||h.status });
         });
       }
     });
   }
-  // Also check top-level clientDocs
   if (a.clientDocs && a.clientDocs.length) {
     a.clientDocs.forEach(function(f) {
-      stepDocs.push({ label: '📤 ' + f.name, url: f.url, data: f.data, type: f.type, name: f.name });
+      stepDocs.push({ label: '📤 '+f.name, url: f.url||f.data||'', type: f.type, name: f.name });
     });
   }
 
-  var hasAny = mainDocs.length || stepDocs.length;
-  if (docsSection) docsSection.style.display = hasAny ? 'block' : 'none';
-
-  function docCard(d) {
-    var src = d.url || d.data || '';
-    var isImg = (d.url) ? /\.(jpg|jpeg|png|gif|webp)/i.test(d.name||'') || (d.type&&d.type.startsWith('image/'))
-                        : src && (src.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)/i.test(d.name||''));
-    return '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;width:120px;flex-shrink:0;background:var(--white)">'
-      + (isImg
-          ? '<img src="'+src+'" alt="'+d.label+'" style="width:120px;height:80px;object-fit:cover;display:block">'
-          : '<div style="width:120px;height:80px;display:flex;align-items:center;justify-content:center;background:var(--cream);font-size:28px">📄</div>')
-      + '<div style="padding:4px 6px">'
-      + '<div style="font-size:10px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + d.label + '</div>'
-      + (d.status ? '<div style="font-size:9px;color:var(--muted)">'+d.status+'</div>' : '')
-      + '</div>'
-      + '<a href="'+src+'" target="_blank" download="'+(d.name||'document')+'" style="display:block;text-align:center;font-size:10px;background:#0B1D35;color:#c9973a;padding:4px 0;text-decoration:none;font-weight:600">⬇ Télécharger</a>'
-      + '</div>';
+  // Render immediately with what we have
+  function render(extraDocs) {
+    var allStep = stepDocs.concat(extraDocs||[]);
+    var hasAny = mainDocs.length || allStep.length;
+    if (docsSection) docsSection.style.display = hasAny ? 'block' : 'none';
+    if (docsList)     docsList.innerHTML = mainDocs.map(_docCard).join('');
+    if (stepDocsList) {
+      if (allStep.length) {
+        stepDocsList.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--muted);margin:8px 0 6px;text-transform:uppercase;letter-spacing:.06em">📤 Documents soumis par le client</div>'
+          + allStep.map(_docCard).join('');
+      } else {
+        stepDocsList.innerHTML = '';
+      }
+    }
   }
 
-  if (docsList)     docsList.innerHTML     = mainDocs.map(docCard).join('');
-  if (stepDocsList) stepDocsList.innerHTML = stepDocs.length
-    ? '<div style="font-size:11px;font-weight:700;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">Documents soumis par le client</div>'
-      + stepDocs.map(docCard).join('')
-    : '';
-};
+  render(); // immediate render with cached data
+
+  // Also fetch from clientUploads collection (new path — no permission issues)
+  db.collection('clientUploads').where('appId','==',appId).get().then(function(snap) {
+    var extraDocs = [];
+    snap.forEach(function(doc) {
+      var d = doc.data();
+      if (d.files && d.files.length) {
+        d.files.forEach(function(f) {
+          extraDocs.push({ label: '📤 '+f.name, url: f.url||'', type: f.type||'', name: f.name, status: d.status||'' });
+        });
+      }
+    });
+    if (extraDocs.length) render(extraDocs);
+  }).catch(function(e) { console.warn('[clientUploads fetch]', e); });
+}
 
 // ══════════════════════════════════════════════════════════════════
 //  NOTIFICATIONS — Firestore listener for client
@@ -6446,7 +6473,14 @@ window.submitClientStepDocs = async function() {
   showNotif('⏳','Envoi en cours...');
 
   try {
-    // Upload each file to Firebase Storage, collect {name, url, type}
+    // Ensure the user is authenticated (at least anonymously) so Firebase Storage
+    // rules allow the upload. B2B/logged-in users are already authenticated.
+    // Track-page guests are not — sign them in anonymously first.
+    if (!auth.currentUser) {
+      try { await auth.signInAnonymously(); } catch(e) { console.warn('[anon auth]', e); }
+    }
+
+    // 1. Upload each file to Firebase Storage, collect {name, url, type}
     var uploaded = await Promise.all(_clientStepFiles.map(async function(file) {
       var path = 'client_docs/' + appId + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       var ref = storage.ref(path);
@@ -6455,29 +6489,26 @@ window.submitClientStepDocs = async function() {
       return { name: file.name, url: url, type: file.type, path: path };
     }));
 
-    var entry = {
-      status:   statusKey,
-      clientDocs: uploaded,
-      clientDocsUploadedAt: new Date().toISOString(),
+    // 2. Write to clientUploads collection (public create — same as applications.add())
+    //    This avoids needing update permission on the applications document.
+    await db.collection('clientUploads').add({
+      appId:     appId,
+      status:    statusKey,
+      files:     uploaded,
+      uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
       requireDocs: false
-    };
+    });
 
-    await db.collection('applications').doc(appId).update({
-      clientDocs:    firebase.firestore.FieldValue.arrayUnion(...uploaded),
-      requireDocs:   false,
-      statusHistory: firebase.firestore.FieldValue.arrayUnion(entry),
-      lastClientDocsAt: firebase.firestore.FieldValue.serverTimestamp()
+    // 3. Also write an admin notification (same collection used elsewhere — public create allowed)
+    await db.collection('adminNotifications').add({
+      appId: appId, type: 'client_docs_uploaded',
+      message: 'Le client a téléchargé ' + uploaded.length + ' document(s).',
+      read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
     showNotif('✅','Documents envoyés avec succès !');
     closeClientUploadModal();
     _clientStepFiles = [];
-
-    await db.collection('adminNotifications').add({
-      appId: appId, type: 'client_docs_uploaded',
-      message: 'Le client a téléchargé des documents supplémentaires.',
-      read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
 
     setTimeout(function() { enrichTrackPageAsync(); }, 500);
   } catch(e) {
