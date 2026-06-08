@@ -1803,6 +1803,15 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db   = firebase.firestore();
 const storage = firebase.storage();
+// ⚠️  FIREBASE STORAGE RULES required for uploads to work:
+// rules_version = '2';
+// service firebase.storage {
+//   match /b/{bucket}/o {
+//     match /{allPaths=**} {
+//       allow read, write: if true;   // or use: if request.auth != null;
+//     }
+//   }
+// }
 
 // ── Constants (must be at top — used by loadSmtpConfig on init) ──
 const YOUR_EMAIL = 'tls.appointements@gmail.com';
@@ -2715,16 +2724,28 @@ window.handleUpload = function(input, zoneId, previewId, nameId) {
 };
 
 // Upload booking documents (passport, CIN, selfie) to Firebase Storage and return download URLs
-// Convert file to base64 locally — no Firebase Storage needed
-// Works instantly, no permissions issues, no network dependency
-function _fileToBase64(file) {
-  return new Promise(function(resolve) {
-    if (!file) { resolve(''); return; }
-    var reader = new FileReader();
-    reader.onload = function(e) { resolve(e.target.result); };
-    reader.onerror = function() { resolve(''); };
-    reader.readAsDataURL(file);
-  });
+// Upload file to Firebase Storage and return download URL
+// Falls back to base64 ONLY for tiny files (<100KB) if Storage fails
+async function _uploadFileToStorage(file, folder) {
+  if (!file) return '';
+  try {
+    var path = folder + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    var ref = storage.ref(path);
+    var snap = await ref.put(file);
+    return await snap.ref.getDownloadURL();
+  } catch(e) {
+    console.warn('[Storage upload failed, using base64 fallback]', e.message);
+    // Only use base64 fallback for small files to avoid Firestore limits
+    if (file.size < 100000) {
+      return await new Promise(function(resolve) {
+        var r = new FileReader();
+        r.onload = function(ev) { resolve(ev.target.result); };
+        r.onerror = function() { resolve(''); };
+        r.readAsDataURL(file);
+      });
+    }
+    throw new Error('Fichier trop volumineux pour le fallback. Vérifiez les règles Firebase Storage.');
+  }
 }
 
 async function getUploadedDocsBase64() {
@@ -2735,10 +2756,12 @@ async function getUploadedDocsBase64() {
     if (el && el.files && el.files[0]) {
       var f = el.files[0];
       try {
-        // Convert locally to base64 — instant, no Firebase Storage permissions needed
-        docs[u.key] = await _fileToBase64(f);
+        var path = 'client_docs/booking/' + Date.now() + '_' + u.key + '_' + f.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        var ref = storage.ref(path);
+        var snap = await ref.put(f);
+        docs[u.key] = await snap.ref.getDownloadURL();
       } catch(e) {
-        console.warn('[upload ' + u.key + ']', e);
+        console.warn('[upload ' + u.key + ']', e.message);
       }
     }
   }
@@ -5120,7 +5143,7 @@ window.handleB2BFile = function(input, type) {
 
   var file = files[0];
 
-  // Immediately show the file as selected (no upload needed — base64 local conversion)
+  // Show preview and uploading state
   if (type === 'photo') {
     var prev = document.getElementById('b2b-photo-preview');
     var icon = document.getElementById('b2b-photo-icon');
@@ -5132,19 +5155,19 @@ window.handleB2BFile = function(input, type) {
     } else {
       if (icon) icon.textContent = '📄';
     }
-    if (lbl) lbl.innerHTML = '<span style="color:#1B7A4A;font-weight:600">⏳ Lecture...</span>';
+    if (lbl) lbl.innerHTML = '<span style="color:#6B7280;font-weight:600">⏫ Envoi en cours...</span>';
   } else {
     var iconId = type === 'passportScan' ? 'b2b-passport-scan-icon' : 'b2b-cin-icon';
     var lblId  = type === 'passportScan' ? 'b2b-passport-scan-label' : 'b2b-cin-label';
     var icon2 = document.getElementById(iconId);
     var lbl2  = document.getElementById(lblId);
-    if (icon2) icon2.textContent = '⏳';
-    if (lbl2)  lbl2.innerHTML = '<span style="color:#1B7A4A;font-weight:600">⏳ Lecture...</span>';
+    if (icon2) icon2.textContent = '⏫';
+    if (lbl2)  lbl2.innerHTML = '<span style="color:#6B7280;font-weight:600">⏫ Envoi en cours...</span>';
   }
 
-  // Convert to base64 locally — instant, no network, no permissions needed
-  _fileToBase64(file).then(function(base64) {
-    _b2bFiles[type] = base64;
+  // Upload to Firebase Storage, get download URL
+  _uploadFileToStorage(file, 'b2b_docs').then(function(url) {
+    _b2bFiles[type] = url;
     if (type === 'photo') {
       var lbl = document.getElementById('b2b-photo-label');
       if (lbl) lbl.innerHTML = '<span style="color:#1B7A4A;font-weight:600">✅ ' + file.name + '</span>';
@@ -5156,6 +5179,19 @@ window.handleB2BFile = function(input, type) {
       if (icon3) icon3.textContent = '✅';
       if (lbl3)  lbl3.innerHTML = '<span style="color:#1B7A4A;font-weight:600">✅ ' + file.name + '</span>';
     }
+  }).catch(function(e) {
+    var errMsg = e.message || 'Erreur';
+    showNotif('⚠️', 'Échec envoi: ' + errMsg);
+    // Reset the label so user knows it failed
+    if (type === 'photo') {
+      var lbl = document.getElementById('b2b-photo-label');
+      if (lbl) lbl.innerHTML = '<span style="color:#991b1b;font-weight:600">❌ Échec — réessayez</span>';
+    } else {
+      var lblId3 = type === 'passportScan' ? 'b2b-passport-scan-label' : 'b2b-cin-label';
+      var lbl4 = document.getElementById(lblId3);
+      if (lbl4) lbl4.innerHTML = '<span style="color:#991b1b;font-weight:600">❌ Échec — réessayez</span>';
+    }
+    _b2bFiles[type] = null;
   });
 };
 
@@ -5284,11 +5320,11 @@ window.submitB2BApplication = async function() {
   try {
     showNotif('⏳','Soumission en cours...');
 
-    // Convert extra files to base64 locally — no Firebase Storage needed
+    // Upload extra files to Firebase Storage, collect URLs
     if (_b2bFiles.extra && _b2bFiles.extra.length) {
       var extraUploaded = await Promise.all(_b2bFiles.extra.map(async function(file) {
-        var base64 = await _fileToBase64(file);
-        return { name: file.name, data: base64, type: file.type };
+        var url = await _uploadFileToStorage(file, 'b2b_docs');
+        return { name: file.name, url: url, type: file.type };
       }));
       data.extraDocs = extraUploaded;
     }
