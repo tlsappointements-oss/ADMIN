@@ -5304,6 +5304,8 @@ window.submitB2BApplication = async function() {
     }
 
     // Store all large files in clientUploads (exactly like submitClientStepDocs)
+    // Note: FieldValue.serverTimestamp() cannot coexist with array fields in the same doc —
+    // use new Date() instead (Firestore serialises it identically as a Timestamp).
     if (uploadFiles.length) {
       await db.collection('clientUploads').add({
         appId:     appId,
@@ -5312,7 +5314,7 @@ window.submitB2BApplication = async function() {
         source:    'b2b',
         status:    'initial',
         files:     uploadFiles,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        createdAt: new Date()
       });
     }
     showNotif('✅','Dossier soumis — Réf: ' + ref);
