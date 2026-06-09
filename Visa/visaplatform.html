@@ -5271,10 +5271,10 @@ window.submitB2BApplication = async function() {
     agencyEmail:_agencyData.email || '',
     agencyCommission:    comm,
     agencyCommissionPct: commPct,
-    // Photo & docs stored as base64 — same as supplementary docs (submitClientStepDocs)
-    applicantPhoto: _b2bFiles.photo   || '',
-    passportScan:   _b2bFiles.passportScan || '',
-    cinScan:        _b2bFiles.cin     || '',
+    // Large files are stored separately in clientUploads — only flags here
+    hasPassportScan:   !!_b2bFiles.passportScan,
+    hasCinScan:        !!_b2bFiles.cin,
+    hasApplicantPhoto: !!_b2bFiles.photo,
     source: 'b2b',
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -5283,17 +5283,38 @@ window.submitB2BApplication = async function() {
   try {
     showNotif('⏳','Soumission en cours...');
 
-    // Convert extra files to base64 — same as supplementary docs logic
+    // Save application doc first (no large base64 blobs — avoids Firestore 100 000-byte field limit)
+    var appDocRef = await db.collection('applications').add(data);
+    var appId = appDocRef.id;
+
+    // Build the files array for clientUploads — same pattern as supplementary docs
+    var uploadFiles = [];
+    if (_b2bFiles.photo)        uploadFiles.push({ name: 'photo',         data: _b2bFiles.photo,        type: 'image/jpeg' });
+    if (_b2bFiles.passportScan) uploadFiles.push({ name: 'passportScan',  data: _b2bFiles.passportScan, type: 'image/jpeg' });
+    if (_b2bFiles.cin)          uploadFiles.push({ name: 'cinScan',       data: _b2bFiles.cin,          type: 'image/jpeg' });
+
+    // Convert raw File objects in extra[] to base64 — same as supplementary docs logic
     if (_b2bFiles.extra && _b2bFiles.extra.length) {
-      var extraUploaded = await Promise.all(_b2bFiles.extra.map(function(file) {
+      var extraConverted = await Promise.all(_b2bFiles.extra.map(function(file) {
         return _readFileAsBase64(file).then(function(base64) {
           return { name: file.name, data: base64, type: file.type };
         });
       }));
-      data.extraDocs = extraUploaded;
+      extraConverted.forEach(function(f) { uploadFiles.push(f); });
     }
 
-    await db.collection('applications').add(data);
+    // Store all large files in clientUploads (exactly like submitClientStepDocs)
+    if (uploadFiles.length) {
+      await db.collection('clientUploads').add({
+        appId:     appId,
+        ref:       ref,
+        agencyId:  _agencyData.id,
+        source:    'b2b',
+        status:    'initial',
+        files:     uploadFiles,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
     showNotif('✅','Dossier soumis — Réf: ' + ref);
 
     // Reset form
@@ -6159,7 +6180,9 @@ window.openDrawer = function(id) {
       var d = doc.data();
       if (d.files && d.files.length) {
         d.files.forEach(function(f) {
-          extra.push({ label: '📤 '+f.name, url: f.url||'', data: f.data||'', type: f.type||'', name: f.name, status: d.status||'' });
+          var _fileLabels = { photo:'🤳 Photo', passportScan:'🛂 Passeport', cinScan:'🫥 CIN' };
+          var lbl = _fileLabels[f.name] ? _fileLabels[f.name] : '📤 '+f.name;
+          extra.push({ label: lbl, url: f.url||'', data: f.data||'', type: f.type||'', name: f.name, status: d.status||'' });
         });
       }
     });
