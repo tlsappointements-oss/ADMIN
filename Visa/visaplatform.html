@@ -5287,34 +5287,44 @@ window.submitB2BApplication = async function() {
     var appDocRef = await db.collection('applications').add(data);
     var appId = appDocRef.id;
 
-    // Build the files array for clientUploads — same pattern as supplementary docs
-    var uploadFiles = [];
-    if (_b2bFiles.photo)        uploadFiles.push({ name: 'photo',         data: _b2bFiles.photo,        type: 'image/jpeg' });
-    if (_b2bFiles.passportScan) uploadFiles.push({ name: 'passportScan',  data: _b2bFiles.passportScan, type: 'image/jpeg' });
-    if (_b2bFiles.cin)          uploadFiles.push({ name: 'cinScan',       data: _b2bFiles.cin,          type: 'image/jpeg' });
+    // Build uploadFiles — inline FileReader exactly like submitClientStepDocs (known working pattern).
+    // Pre-stored base64 strings in _b2bFiles are already data URLs; wrap them as synthetic File-like reads.
+    // Extra files are raw File objects — read them now.
+    var _rawPairs = [];
+    if (_b2bFiles.photo)        _rawPairs.push({ key: 'photo',        src: _b2bFiles.photo });
+    if (_b2bFiles.passportScan) _rawPairs.push({ key: 'passportScan', src: _b2bFiles.passportScan });
+    if (_b2bFiles.cin)          _rawPairs.push({ key: 'cinScan',      src: _b2bFiles.cin });
 
-    // Convert raw File objects in extra[] to base64 — same as supplementary docs logic
+    var uploadFiles = _rawPairs.map(function(p) {
+      return { name: p.key, data: p.src, type: '' };
+    });
+
     if (_b2bFiles.extra && _b2bFiles.extra.length) {
-      var extraConverted = await Promise.all(_b2bFiles.extra.map(function(file) {
-        return _readFileAsBase64(file).then(function(base64) {
-          return { name: file.name, data: base64, type: file.type };
+      var extraRead = await Promise.all(Array.from(_b2bFiles.extra).map(function(file) {
+        return new Promise(function(resolve) {
+          var r = new FileReader();
+          r.onload  = function(e) { resolve({ name: file.name, data: e.target.result, type: file.type }); };
+          r.onerror = function()  { resolve({ name: file.name, data: '',               type: file.type }); };
+          r.readAsDataURL(file);
         });
       }));
-      extraConverted.forEach(function(f) { uploadFiles.push(f); });
+      extraRead.forEach(function(f) { uploadFiles.push(f); });
     }
 
-    // Store all large files in clientUploads (exactly like submitClientStepDocs)
-    // Note: FieldValue.serverTimestamp() cannot coexist with array fields in the same doc —
-    // use new Date() instead (Firestore serialises it identically as a Timestamp).
+    // Sanitise: ensure every field is a plain string (Firestore rejects anything else in array items)
+    uploadFiles = uploadFiles.map(function(f) {
+      return { name: String(f.name||''), data: String(f.data||''), type: String(f.type||'') };
+    });
+
     if (uploadFiles.length) {
       await db.collection('clientUploads').add({
-        appId:     appId,
-        ref:       ref,
-        agencyId:  _agencyData.id,
-        source:    'b2b',
-        status:    'initial',
-        files:     uploadFiles,
-        createdAt: new Date()
+        appId:      appId,
+        ref:        ref,
+        agencyId:   _agencyData.id,
+        source:     'b2b',
+        status:     'initial',
+        files:      uploadFiles,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
     showNotif('✅','Dossier soumis — Réf: ' + ref);
