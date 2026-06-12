@@ -634,7 +634,7 @@ tr:hover td{background:var(--cream)}
                     <input type="file" id="upload-passport" accept="image/*,.pdf" onchange="handleUpload(this,'zone-passport','preview-passport','name-passport')">
                     <div class="upload-icon">🛂</div>
                     <div class="upload-label">Page principale</div>
-                    <div class="upload-sub">JPG, PNG ou PDF · max 5 Mo</div>
+                    <div class="upload-sub">JPG, PNG ou PDF · max 20 Mo</div>
                     <div id="name-passport" class="upload-filename" style="display:none"></div>
                   </div>
                 </div>
@@ -645,7 +645,7 @@ tr:hover td{background:var(--cream)}
                     <input type="file" id="upload-cni" accept="image/*,.pdf" onchange="handleUpload(this,'zone-cni','preview-cni','name-cni')">
                     <div class="upload-icon">🪪</div>
                     <div class="upload-label">Recto &amp; verso</div>
-                    <div class="upload-sub">JPG, PNG ou PDF · max 5 Mo</div>
+                    <div class="upload-sub">JPG, PNG ou PDF · max 20 Mo</div>
                     <div id="name-cni" class="upload-filename" style="display:none"></div>
                   </div>
                 </div>
@@ -657,7 +657,7 @@ tr:hover td{background:var(--cream)}
                     <div class="upload-icon">🤳</div>
                     <div class="upload-label">Photo face visible</div>
                     <div class="upload-sub" style="color:#1B7A4A">✓ Apparaîtra sur le reçu</div>
-                    <div class="upload-sub">JPG ou PNG · max 5 Mo</div>
+                    <div class="upload-sub">JPG ou PNG · max 20 Mo</div>
                     <div id="name-selfie" class="upload-filename" style="display:none"></div>
                   </div>
                 </div>
@@ -1513,7 +1513,7 @@ tr:hover td{background:var(--cream)}
                 <div id="stamp-drop-label" style="text-align:center;padding:16px">
                   <div style="font-size:36px;margin-bottom:8px;opacity:.3">🔵</div>
                   <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:4px">Cliquer ou glisser une image</div>
-                  <div style="font-size:11px;color:var(--muted)">PNG transparent recommandé · max 2 Mo</div>
+                  <div style="font-size:11px;color:var(--muted)">PNG transparent recommandé · max 20 Mo</div>
                 </div>
                 <img id="stamp-preview-img" src="" alt="Cachet" style="display:none;max-height:130px;max-width:130px;object-fit:contain">
               </div>
@@ -2325,15 +2325,13 @@ window.submitApplication = async function() {
   var selfieInput = document.getElementById('upload-selfie');
   if (selfieInput && selfieInput.files && selfieInput.files[0]) {
     try {
-      var sf = selfieInput.files[0];
-      var sfPath = 'client_docs/selfie/' + Date.now() + '_' + sf.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      var sfRef = storage.ref(sfPath);
-      var sfSnap = await sfRef.put(sf);
-      selfiePhoto = await sfSnap.ref.getDownloadURL();
-    } catch(e) {
-      // Fallback to base64 for preview on receipt only
-      try { selfiePhoto = await new Promise(function(res){ var r=new FileReader(); r.onload=function(e){res(e.target.result);}; r.onerror=function(){res('');}; r.readAsDataURL(selfieInput.files[0]); }); } catch(e2){}
-    }
+      selfiePhoto = await new Promise(function(res) {
+        var r = new FileReader();
+        r.onload  = function(e) { res(e.target.result); };
+        r.onerror = function()  { res(''); };
+        r.readAsDataURL(selfieInput.files[0]);
+      });
+    } catch(e2) {}
   }
   const data = {
     ref, firstName:fn, lastName:ln, email,
@@ -2346,9 +2344,23 @@ window.submitApplication = async function() {
     applicantPhoto: selfiePhoto
   };
   try {
-    // Collect uploaded documents (base64)
+    // Save application first — no large files embedded (avoids Firestore 1MB field limit)
+    var appRef = await db.collection('applications').add(data);
+    var appId  = appRef.id;
+
+    // Upload passport/CIN to clientUploads — same collection as supplementary docs
     var documents = await getUploadedDocsBase64();
-    await db.collection('applications').add({...data, documents});
+    var docFiles = [];
+    if (documents.passport) docFiles.push({ key:'passport', name:'passport', data:documents.passport, type:'image/*' });
+    if (documents.cni)      docFiles.push({ key:'cni',      name:'cin',      data:documents.cni,      type:'image/*' });
+    if (documents.selfie)   docFiles.push({ key:'selfie',   name:'selfie',   data:documents.selfie,   type:'image/*' });
+    if (docFiles.length) {
+      await db.collection('clientUploads').add({
+        appId: appId, status: 'initial_submission',
+        files: docFiles,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
     const emailResult = await sendEmail('confirmation', email, `${fn} ${ln}`,
       { ref, firstName:fn, lastName:ln, email:email, destination:data.destination,
         visaType:data.visaType, package:data.package, travelDate:data.travelDate,
@@ -3871,7 +3883,7 @@ window.loadStampImage = function(eventOrFile) {
     : (eventOrFile && eventOrFile.target && eventOrFile.target.files && eventOrFile.target.files[0]);
   if (!file || !file.type) return;
   if (!file.type.startsWith('image/')) { showNotif('⚠️', 'Format non supporté (PNG, JPG)'); return; }
-  if (file.size > 2 * 1024 * 1024) { showNotif('⚠️', 'Image trop lourde — max 2 Mo'); return; }
+  if (file.size > 20 * 1024 * 1024) { showNotif('⚠️', 'Fichier trop volumineux — max 20 Mo'); return; }
   var reader = new FileReader();
   reader.onload = function(ev) { _applyStamp(ev.target.result); };
   reader.readAsDataURL(file);
@@ -5271,10 +5283,10 @@ window.submitB2BApplication = async function() {
     agencyEmail:_agencyData.email || '',
     agencyCommission:    comm,
     agencyCommissionPct: commPct,
-    // Large files are stored separately in clientUploads — only flags here
-    hasPassportScan:   !!_b2bFiles.passportScan,
-    hasCinScan:        !!_b2bFiles.cin,
-    hasApplicantPhoto: !!_b2bFiles.photo,
+    // Photo & docs stored as base64 — same as supplementary docs (submitClientStepDocs)
+    applicantPhoto: _b2bFiles.photo   || '',
+    passportScan:   _b2bFiles.passportScan || '',
+    cinScan:        _b2bFiles.cin     || '',
     source: 'b2b',
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -5283,50 +5295,17 @@ window.submitB2BApplication = async function() {
   try {
     showNotif('⏳','Soumission en cours...');
 
-    // Save application doc first (no large base64 blobs — avoids Firestore 100 000-byte field limit)
-    var appDocRef = await db.collection('applications').add(data);
-    var appId = appDocRef.id;
-
-    // Build uploadFiles — inline FileReader exactly like submitClientStepDocs (known working pattern).
-    // Pre-stored base64 strings in _b2bFiles are already data URLs; wrap them as synthetic File-like reads.
-    // Extra files are raw File objects — read them now.
-    var _rawPairs = [];
-    if (_b2bFiles.photo)        _rawPairs.push({ key: 'photo',        src: _b2bFiles.photo });
-    if (_b2bFiles.passportScan) _rawPairs.push({ key: 'passportScan', src: _b2bFiles.passportScan });
-    if (_b2bFiles.cin)          _rawPairs.push({ key: 'cinScan',      src: _b2bFiles.cin });
-
-    var uploadFiles = _rawPairs.map(function(p) {
-      return { name: p.key, data: p.src, type: '' };
-    });
-
+    // Convert extra files to base64 — same as supplementary docs logic
     if (_b2bFiles.extra && _b2bFiles.extra.length) {
-      var extraRead = await Promise.all(Array.from(_b2bFiles.extra).map(function(file) {
-        return new Promise(function(resolve) {
-          var r = new FileReader();
-          r.onload  = function(e) { resolve({ name: file.name, data: e.target.result, type: file.type }); };
-          r.onerror = function()  { resolve({ name: file.name, data: '',               type: file.type }); };
-          r.readAsDataURL(file);
+      var extraUploaded = await Promise.all(_b2bFiles.extra.map(function(file) {
+        return _readFileAsBase64(file).then(function(base64) {
+          return { name: file.name, data: base64, type: file.type };
         });
       }));
-      extraRead.forEach(function(f) { uploadFiles.push(f); });
+      data.extraDocs = extraUploaded;
     }
 
-    // Sanitise: ensure every field is a plain string (Firestore rejects anything else in array items)
-    uploadFiles = uploadFiles.map(function(f) {
-      return { name: String(f.name||''), data: String(f.data||''), type: String(f.type||'') };
-    });
-
-    if (uploadFiles.length) {
-      await db.collection('clientUploads').add({
-        appId:      appId,
-        ref:        ref,
-        agencyId:   _agencyData.id,
-        source:     'b2b',
-        status:     'initial',
-        files:      uploadFiles,
-        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
+    await db.collection('applications').add(data);
     showNotif('✅','Dossier soumis — Réf: ' + ref);
 
     // Reset form
@@ -6192,9 +6171,7 @@ window.openDrawer = function(id) {
       var d = doc.data();
       if (d.files && d.files.length) {
         d.files.forEach(function(f) {
-          var _fileLabels = { photo:'🤳 Photo', passportScan:'🛂 Passeport', cinScan:'🫥 CIN' };
-          var lbl = _fileLabels[f.name] ? _fileLabels[f.name] : '📤 '+f.name;
-          extra.push({ label: lbl, url: f.url||'', data: f.data||'', type: f.type||'', name: f.name, status: d.status||'' });
+          extra.push({ label: '📤 '+f.name, url: f.url||'', data: f.data||'', type: f.type||'', name: f.name, status: d.status||'' });
         });
       }
     });
