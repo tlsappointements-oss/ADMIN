@@ -1403,16 +1403,18 @@ tr:hover td{background:var(--cream)}
         </div>
       </div>
 
-      <!-- CITY PRICES -->
+      <!-- CITY PRICES — now managed per service -->
       <div id="atab-city-prices" class="admin-tab" style="display:none">
         <div class="admin-topbar">
-          <div><h2>🏙️ Prix RDV par Ville</h2><p>Définissez un prix de rendez-vous différent selon la ville. Synchronisé en temps réel.</p></div>
-          <button class="btn-gold" onclick="saveCityPrices()" style="font-size:13px;padding:9px 18px;border-radius:8px">💾 Enregistrer</button>
+          <div><h2>🏙️ Prix RDV par Ville</h2><p>Les prix RDV par ville sont désormais gérés directement dans chaque package/service.</p></div>
+          <button class="btn-gold" onclick="showAdminTab('services-mgmt')" style="font-size:13px;padding:9px 18px;border-radius:8px">⚙️ Gérer les Services →</button>
         </div>
         <div class="admin-card">
-          <div class="admin-card-head"><h3>Tarifs rendez-vous par pays et par ville</h3></div>
+          <div class="admin-card-head"><h3>📍 Prix RDV par ville (vue globale)</h3></div>
           <div style="padding:20px">
-            <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Pour chaque pays, définissez le prix du rendez-vous dans chaque ville du Maroc. Ces tarifs seront affichés lors de la réservation.</p>
+            <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#1e40af">
+              💡 <strong>Nouveau :</strong> le prix du rendez-vous s'affiche directement dans le panneau <strong>Service &amp; Tarif</strong> selon la ville choisie. Pour modifier les prix par ville, éditez chaque package dans <button onclick="showAdminTab('services-mgmt')" style="background:none;border:none;color:#1e40af;font-weight:700;cursor:pointer;text-decoration:underline;font-family:inherit;font-size:13px">⚙️ Gestion des Services</button>.
+            </div>
             <div id="city-prices-editor">
               <div style="text-align:center;padding:24px;color:var(--muted)">Chargement...</div>
             </div>
@@ -3328,7 +3330,31 @@ window.openAddServiceModal = function() {
   document.getElementById('svc-commission').value = '10';
   document.getElementById('svc-category').value = 'package';
   document.getElementById('svc-visible').value = 'true';
+  buildSvcCityInputs({});
+  toggleSvcCityPrices();
   document.getElementById('add-service-modal').classList.add('open');
+};
+
+// Build city price inputs for service modal
+window.buildSvcCityInputs = function(cityPrices) {
+  var wrap = document.getElementById('svc-city-inputs');
+  if (!wrap) return;
+  wrap.innerHTML = CITIES_LIST.map(function(city) {
+    var val = (cityPrices && cityPrices[city]) ? cityPrices[city] : '';
+    return '<div style="display:flex;align-items:center;gap:6px;background:var(--cream);border-radius:8px;padding:7px 10px">'
+      + '<span style="font-size:12px;font-weight:600;color:var(--navy);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+city+'</span>'
+      + '<input type="number" class="svc-city-price-input" data-city="'+city+'" value="'+val+'" min="0" placeholder="0"'
+      + ' style="width:68px;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;font-family:inherit;text-align:right;outline:none">'
+      + '<span style="font-size:10px;color:var(--muted)">MAD</span>'
+      + '</div>';
+  }).join('');
+};
+
+window.toggleSvcCityPrices = function() {
+  var cat = document.getElementById('svc-category');
+  var sec = document.getElementById('svc-city-prices-section');
+  if (!sec || !cat) return;
+  sec.style.display = (cat.value === 'package' || cat.value === 'rdv') ? 'block' : 'none';
 };
 
 window.editService = function(id) {
@@ -3344,12 +3370,20 @@ window.editService = function(id) {
   document.getElementById('svc-commission').value = s.commission||10;
   document.getElementById('svc-category').value = s.category||'package';
   document.getElementById('svc-visible').value = s.visible ? 'true' : 'false';
+  buildSvcCityInputs(s.cityPrices || {});
+  toggleSvcCityPrices();
   document.getElementById('add-service-modal').classList.add('open');
 };
 
 window.saveService = async function() {
   var name = document.getElementById('svc-name').value.trim();
   if (!name) { showNotif('⚠️','Nom du service requis'); return; }
+  // Collect city prices from modal inputs
+  var cityPrices = {};
+  document.querySelectorAll('.svc-city-price-input').forEach(function(inp) {
+    var val = parseFloat(inp.value);
+    if (val > 0) cityPrices[inp.dataset.city] = val;
+  });
   var data = {
     name: name,
     desc: document.getElementById('svc-desc').value.trim(),
@@ -3359,6 +3393,7 @@ window.saveService = async function() {
     commission: parseFloat(document.getElementById('svc-commission').value)||10,
     category: document.getElementById('svc-category').value,
     visible: document.getElementById('svc-visible').value==='true',
+    cityPrices: cityPrices,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   try {
@@ -3403,6 +3438,7 @@ function renderServicesAdmin() {
     +'<th style="text-align:right;padding:10px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase">🔒 Cout</th>'
     +'<th style="text-align:right;padding:10px;font-size:11px;font-weight:700;color:#1B7A4A;text-transform:uppercase">🔒 Marge</th>'
     +'<th style="text-align:right;padding:10px;font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase">🔒 Commission</th>'
+    +'<th style="padding:10px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase">🏙️ Prix Villes</th>'
     +'<th style="padding:10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Visible</th>'
     +'<th style="padding:10px"></th></tr></thead><tbody>'
     + _servicesCache.map(function(s) {
@@ -3416,6 +3452,7 @@ function renderServicesAdmin() {
           +'<td style="padding:12px 10px;text-align:right;font-weight:600;color:#0369a1">'+(s.cost||0).toLocaleString()+' MAD</td>'
           +'<td style="padding:12px 10px;text-align:right"><span style="color:#1B7A4A;font-weight:700">'+margin.toLocaleString()+' MAD</span><span style="color:var(--muted);font-size:11px;margin-left:4px">('+marginPct+'%)</span></td>'
           +'<td style="padding:12px 10px;text-align:right"><span style="color:#7c3aed;font-weight:700">'+(s.commission||10)+'%</span></td>'
+          +'<td style="padding:12px 10px;text-align:center"><span style="font-size:11px;color:#0369a1">'+(s.cityPrices&&Object.keys(s.cityPrices).length?'🏙️ '+Object.keys(s.cityPrices).length+' villes':'—')+'</span></td>'
           +'<td style="padding:12px 10px"><button onclick="toggleServiceVisibility(\''+s.id+'\','+(!s.visible)+')" style="background:'+(s.visible?'#D1FAE5':'#FEE2E2')+';border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:'+(s.visible?'#065f46':'#991b1b')+'">'+(s.visible?'✅ Oui':'🙈 Non')+'</button></td>'
           +'<td style="padding:12px 10px;white-space:nowrap">'
           +'<button onclick="editService(\''+s.id+'\')" style="background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;margin-right:4px">✏️</button>'
@@ -3606,7 +3643,7 @@ function renderB2BNewAppPackages() {
   if (!sel) return;
   sel.innerHTML = '<option value="">Choisir un service...</option>'
     + _servicesCache.filter(function(s){ return s.visible; }).map(function(s){
-        return '<option value="'+s.id+'" data-price="'+s.price+'" data-commission="'+s.commission+'">'
+        return '<option value="'+s.id+'" data-svc-id="'+s.id+'" data-price="'+s.price+'" data-commission="'+s.commission+'">'
           +s.icon+' '+s.name+' — '+(s.price||0).toLocaleString()+' MAD</option>';
       }).join('');
   var dest = document.getElementById('b2b-dest');
@@ -4564,7 +4601,8 @@ window.showReceipt = function(data) {
   s('receipt-email',      data.email);
   s('receipt-phone',      data.phone);
   s('receipt-nationality',data.nationality);
-  s('receipt-destination',destClean || data.destination);
+  var destFlag = (function(){ var c = COUNTRIES.find(function(x){ return x.name===destClean||(data.destination&&data.destination.indexOf(x.name)>-1); }); return c ? c.flag+' ' : ''; })();
+  s('receipt-destination', destFlag + (destClean || data.destination));
   s('receipt-visatype',   data.visaType);
   s('receipt-package',    data.package);
   s('receipt-date-travel',data.travelDate || 'A preciser');
@@ -5189,6 +5227,7 @@ window.recalcB2BTotal = function() {
   var pkgSel = document.getElementById('b2b-package');
   var pkgOpt = pkgSel ? pkgSel.options[pkgSel.selectedIndex] : null;
   var pkgPrice = pkgOpt && pkgOpt.dataset.price ? parseFloat(pkgOpt.dataset.price) : 0;
+  var _svcForCity = pkgOpt ? _servicesCache.find(function(x){ return x.id===(pkgOpt.dataset.svcId||pkgOpt.value); }) : null;
 
   var addonTotal = 0;
   document.querySelectorAll('#b2b-addons-list input[type=checkbox]:checked').forEach(function(cb) {
@@ -5206,6 +5245,10 @@ window.recalcB2BTotal = function() {
   var set = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
   set('b2b-price-display',         pkgPrice > 0 ? pkgPrice.toLocaleString()+' MAD' : '—');
   set('b2b-addons-total-display',  addonTotal > 0 ? addonTotal.toLocaleString()+' MAD' : '0 MAD');
+  // Look up city price from selected service's cityPrices
+  if (cityName && _svcForCity && _svcForCity.cityPrices && _svcForCity.cityPrices[cityName]) {
+    cityPrice = parseFloat(_svcForCity.cityPrices[cityName]) || cityPrice;
+  }
   set('b2b-rdv-price-display',     cityPrice > 0 ? cityPrice.toLocaleString()+' MAD' : '—');
   set('b2b-total-display',         total > 0 ? total.toLocaleString()+' MAD' : '—');
   set('b2b-commission-display',    total > 0 ? comm.toLocaleString()+' MAD ('+commPct+'%)' : '—');
@@ -5283,10 +5326,8 @@ window.submitB2BApplication = async function() {
     agencyEmail:_agencyData.email || '',
     agencyCommission:    comm,
     agencyCommissionPct: commPct,
-    // Photo & docs stored as base64 — same as supplementary docs (submitClientStepDocs)
-    applicantPhoto: _b2bFiles.photo   || '',
-    passportScan:   _b2bFiles.passportScan || '',
-    cinScan:        _b2bFiles.cin     || '',
+    // Only small photo thumbnail kept in application doc; large docs go to clientUploads
+    applicantPhoto: (_b2bFiles.photo && _b2bFiles.photo.length < 200000) ? _b2bFiles.photo : '',
     source: 'b2b',
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -5295,18 +5336,32 @@ window.submitB2BApplication = async function() {
   try {
     showNotif('⏳','Soumission en cours...');
 
-    // Convert extra files to base64 — same as supplementary docs logic
-    if (_b2bFiles.extra && _b2bFiles.extra.length) {
-      var extraUploaded = await Promise.all(_b2bFiles.extra.map(function(file) {
-        return _readFileAsBase64(file).then(function(base64) {
-          return { name: file.name, data: base64, type: file.type };
-        });
-      }));
-      data.extraDocs = extraUploaded;
-    }
+    // Save application doc first (no large files here)
+    var appRef = await db.collection('applications').add(data);
+    var appId  = appRef.id;
 
-    await db.collection('applications').add(data);
-    showNotif('✅','Dossier soumis — Réf: ' + ref);
+    // Save all files to clientUploads — avoids Firestore 1MB field limit
+    var uploadFiles = [];
+    if (_b2bFiles.photo)        uploadFiles.push({ key:'photo',        name:'photo',        data:_b2bFiles.photo,        type:'image/*' });
+    if (_b2bFiles.passportScan) uploadFiles.push({ key:'passportScan', name:'passport-scan', data:_b2bFiles.passportScan, type:'image/*' });
+    if (_b2bFiles.cin)          uploadFiles.push({ key:'cin',          name:'cin-scan',      data:_b2bFiles.cin,          type:'image/*' });
+
+    // Convert extra raw File objects to base64
+    var extraConverted = await Promise.all((_b2bFiles.extra||[]).map(function(file) {
+      return _readFileAsBase64(file).then(function(b64) {
+        return { key:'extra', name:file.name, data:b64, type:file.type };
+      });
+    }));
+    uploadFiles = uploadFiles.concat(extraConverted);
+
+    if (uploadFiles.length) {
+      await db.collection('clientUploads').add({
+        appId: appId, status: 'initial_submission',
+        files: uploadFiles,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    showNotif('✅','Dossier soumis — Réf: ' + ref + ' (' + uploadFiles.length + ' fichier(s) joint(s))');
 
     // Reset form
     ['b2b-fname','b2b-lname','b2b-email','b2b-phone','b2b-passport','b2b-cin','b2b-nationality','b2b-notes'].forEach(function(id){
@@ -5654,7 +5709,7 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     + (d.passport ? '<tr><td>Passeport</td><td>'+d.passport+'</td></tr>' : '')
     + '</table></div>'
     + '<div style="flex:1"><div class="sh">Détails du visa</div><table class="it">'
-    + '<tr><td>Destination</td><td><strong>'+destClean+'</strong></td></tr>'
+    + '<tr><td>Destination</td><td><strong>'+(function(){var c=COUNTRIES.find(function(x){return x.name===destClean||(d.destination&&d.destination.indexOf(x.name)>-1);});return c?c.flag+' ':'';})()+destClean+'</strong></td></tr>'
     + '<tr><td>Type de visa</td><td>'+(d.visaType||'—')+'</td></tr>'
     + '<tr><td>Date voyage</td><td>'+(d.travelDate||'À préciser')+'</td></tr>'
     + '<tr><td>Voyageurs</td><td>'+(d.numApplicants||'1')+'</td></tr>'
@@ -7101,7 +7156,7 @@ db.collection('services').limit(1).get().then(function(snap){ if(snap.empty) see
         <div class="company-field-group" style="grid-column:1/-1"><label>Description</label><input type="text" id="svc-desc" placeholder="Description courte..."></div>
         <div class="company-field-group"><label>Icône (emoji)</label><input type="text" id="svc-icon" placeholder="📅" style="font-size:20px;text-align:center"></div>
         <div class="company-field-group"><label>Catégorie</label>
-          <select id="svc-category" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+          <select id="svc-category" onchange="toggleSvcCityPrices()" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
             <option value="package">Package principal</option>
             <option value="addon">Service additionnel</option>
             <option value="rdv">Rendez-vous</option>
@@ -7119,6 +7174,14 @@ db.collection('services').limit(1).get().then(function(snap){ if(snap.empty) see
       </div>
       <div style="background:#FEF3C7;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin:12px 0">
         🔒 <strong>Coût interne et commission</strong> : visibles uniquement dans votre panneau admin.
+      </div>
+      <!-- City RDV prices per package — only shown for package category -->
+      <div id="svc-city-prices-section" style="margin:12px 0;display:none">
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">
+          🏙️ Prix RDV par ville — <span style="font-weight:400;color:var(--muted)">Le prix du rendez-vous varie selon la ville choisie par le client. Laissez à 0 pour utiliser le prix de base.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;max-height:220px;overflow-y:auto;padding-right:4px" id="svc-city-inputs">
+        </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:6px">
         <button onclick="saveService()" class="btn-gold" style="flex:1;padding:11px;border-radius:8px;font-size:13px">💾 Enregistrer</button>
