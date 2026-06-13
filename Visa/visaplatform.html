@@ -594,8 +594,19 @@ tr:hover td{background:var(--cream)}
             <div class="add-ons-list" id="booking-addons-list">
               <div style="padding:12px;text-align:center;color:var(--muted);font-size:13px">Chargement...</div>
             </div>
+            <!-- City RDV selector — appears after package selection -->
+            <div id="booking-city-row" style="display:none;margin:16px 0;padding:14px 16px;background:var(--cream);border-radius:10px;border:1px solid var(--border)">
+              <label style="font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:8px">🏙️ Ville de rendez-vous *</label>
+              <select id="booking-city-select" onchange="updateBookingCityPrice()" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:#fff;outline:none">
+                <option value="">Sélectionner votre ville...</option>
+              </select>
+              <div id="booking-city-price-badge" style="display:none;margin-top:10px;padding:8px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;font-size:13px;color:#1e40af;font-weight:600">
+                📍 Prix RDV dans cette ville : <span id="booking-city-price-val">—</span> MAD
+              </div>
+            </div>
             <div class="price-summary">
               <div class="price-row"><span>Base package</span><span id="price-pkg">—</span></div>
+              <div class="price-row" id="price-row-rdv" style="display:none"><span>🏙️ RDV ville</span><span id="price-rdv">—</span></div>
               <div class="price-row"><span>Add-ons</span><span id="price-addons">0 MAD</span></div>
               <div class="price-row total"><span>Estimated Total</span><span id="price-total">—</span></div>
             </div>
@@ -631,7 +642,7 @@ tr:hover td{background:var(--cream)}
                 <div>
                   <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">🛂 Photo du passeport</div>
                   <div class="upload-zone" id="zone-passport">
-                    <input type="file" id="upload-passport" accept="image/*,.pdf" onchange="handleUpload(this,'zone-passport','preview-passport','name-passport')">
+                    <input type="file" id="upload-passport" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif,.pdf" onchange="handleUpload(this,'zone-passport','preview-passport','name-passport')">
                     <div class="upload-icon">🛂</div>
                     <div class="upload-label">Page principale</div>
                     <div class="upload-sub">JPG, PNG ou PDF · max 20 Mo</div>
@@ -642,7 +653,7 @@ tr:hover td{background:var(--cream)}
                 <div>
                   <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">🪪 Carte d'identité nationale</div>
                   <div class="upload-zone" id="zone-cni">
-                    <input type="file" id="upload-cni" accept="image/*,.pdf" onchange="handleUpload(this,'zone-cni','preview-cni','name-cni')">
+                    <input type="file" id="upload-cni" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif,.pdf" onchange="handleUpload(this,'zone-cni','preview-cni','name-cni')">
                     <div class="upload-icon">🪪</div>
                     <div class="upload-label">Recto &amp; verso</div>
                     <div class="upload-sub">JPG, PNG ou PDF · max 20 Mo</div>
@@ -653,7 +664,7 @@ tr:hover td{background:var(--cream)}
                 <div>
                   <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">🤳 Selfie personnel</div>
                   <div class="upload-zone" id="zone-selfie">
-                    <input type="file" id="upload-selfie" accept="image/*" capture="user" onchange="handleUpload(this,'zone-selfie','preview-selfie','name-selfie')">
+                    <input type="file" id="upload-selfie" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif" onchange="handleUpload(this,'zone-selfie','preview-selfie','name-selfie')">
                     <div class="upload-icon">🤳</div>
                     <div class="upload-label">Photo face visible</div>
                     <div class="upload-sub" style="color:#1B7A4A">✓ Apparaîtra sur le reçu</div>
@@ -889,7 +900,7 @@ tr:hover td{background:var(--cream)}
                   <div id="b2b-photo-icon">📷</div>
                   <div style="font-size:11px;color:var(--muted)" id="b2b-photo-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG</span></div>
                 </div>
-                <input type="file" id="b2b-photo-input" accept="image/*" style="display:none" onchange="handleB2BFile(this,'photo')">
+                <input type="file" id="b2b-photo-input" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif" style="display:none" onchange="handleB2BFile(this,'photo')">
               </div>
 
               <!-- Passport scan -->
@@ -900,7 +911,7 @@ tr:hover td{background:var(--cream)}
                   <div id="b2b-passport-scan-icon">🛂</div>
                   <div style="font-size:11px;color:var(--muted)" id="b2b-passport-scan-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG/PDF</span></div>
                 </div>
-                <input type="file" id="b2b-passport-scan-input" accept="image/*,.pdf" style="display:none" onchange="handleB2BFile(this,'passportScan')">
+                <input type="file" id="b2b-passport-scan-input" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif,.pdf" style="display:none" onchange="handleB2BFile(this,'passportScan')">
               </div>
 
               <!-- CIN scan -->
@@ -911,7 +922,7 @@ tr:hover td{background:var(--cream)}
                   <div id="b2b-cin-icon">🪪</div>
                   <div style="font-size:11px;color:var(--muted)" id="b2b-cin-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG</span></div>
                 </div>
-                <input type="file" id="b2b-cin-input" accept="image/*" style="display:none" onchange="handleB2BFile(this,'cin')">
+                <input type="file" id="b2b-cin-input" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif" style="display:none" onchange="handleB2BFile(this,'cin')">
               </div>
 
               <!-- Extra docs -->
@@ -922,7 +933,7 @@ tr:hover td{background:var(--cream)}
                   <div id="b2b-extra-icon">📎</div>
                   <div style="font-size:11px;color:var(--muted)" id="b2b-extra-label">Cliquer pour choisir<br><span style="font-size:10px">Plusieurs fichiers OK</span></div>
                 </div>
-                <input type="file" id="b2b-extra-input" accept="image/*,.pdf" multiple style="display:none" onchange="handleB2BFile(this,'extra')">
+                <input type="file" id="b2b-extra-input" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif,.pdf,.doc,.docx" multiple style="display:none" onchange="handleB2BFile(this,'extra')">
               </div>
             </div>
 
@@ -1496,7 +1507,7 @@ tr:hover td{background:var(--cream)}
               <div id="sig-status-chip" style="display:none;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:7px;padding:6px 11px;font-size:11px;color:#166534;font-weight:600;margin-bottom:12px">✅ Signature enregistrée</div>
               <div style="display:flex;gap:8px">
                 <button onclick="clearSignatureCanvas()" class="sig-btn-ghost">🗑 Effacer</button>
-                <label class="sig-btn-import">📁 Importer<input type="file" accept="image/*" onchange="loadSignatureImage(event)" style="display:none"></label>
+                <label class="sig-btn-import">📁 Importer<input type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/svg+xml,.png,.jpg,.jpeg,.webp,.gif,.bmp,.svg" onchange="loadSignatureImage(event)" style="display:none"></label>
               </div>
             </div>
           </div>
@@ -1519,7 +1530,7 @@ tr:hover td{background:var(--cream)}
                 </div>
                 <img id="stamp-preview-img" src="" alt="Cachet" style="display:none;max-height:130px;max-width:130px;object-fit:contain">
               </div>
-              <input type="file" id="stamp-file-input" accept="image/*" style="display:none" onchange="loadStampImage(event)">
+              <input type="file" id="stamp-file-input" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/svg+xml,.png,.jpg,.jpeg,.webp,.gif,.bmp,.svg" style="display:none" onchange="loadStampImage(event)">
               <div id="stamp-status-chip" style="display:none;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:7px;padding:6px 11px;font-size:11px;color:#166534;font-weight:600;margin-bottom:12px">✅ Cachet chargé</div>
               <div style="display:flex;gap:8px">
                 <button onclick="clearStamp()" class="sig-btn-ghost">🗑 Supprimer</button>
@@ -1622,7 +1633,7 @@ tr:hover td{background:var(--cream)}
           style="border:2px dashed var(--border);border-radius:8px;padding:12px 16px;background:var(--cream);cursor:pointer;text-align:center;font-size:12px;color:var(--muted);transition:border-color .2s">
           <span id="drawer-attach-label">📎 Cliquer pour joindre des fichiers (PDF, images · plusieurs OK)</span>
         </div>
-        <input type="file" id="drawer-attach-input" multiple accept="image/*,.pdf,.doc,.docx" style="display:none" onchange="handleDrawerAttachments(this)">
+        <input type="file" id="drawer-attach-input" multiple accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif,.pdf,.doc,.docx" style="display:none" onchange="handleDrawerAttachments(this)">
         <div id="drawer-attach-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
       </div>
 
@@ -1729,7 +1740,7 @@ tr:hover td{background:var(--cream)}
       <div style="font-size:13px;font-weight:600;color:var(--navy)">Cliquez pour choisir vos fichiers</div>
       <div style="font-size:11px;color:var(--muted);margin-top:4px">PDF, images · Plusieurs fichiers acceptés</div>
     </div>
-    <input type="file" id="client-upload-file" multiple accept="image/*,.pdf,.doc,.docx" style="display:none" onchange="handleClientStepUpload(this)">
+    <input type="file" id="client-upload-file" multiple accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif,.pdf,.doc,.docx" style="display:none" onchange="handleClientStepUpload(this)">
     <div id="client-upload-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
     <button onclick="submitClientStepDocs()" class="btn-gold" style="width:100%;padding:12px;font-size:14px;border-radius:8px">✅ Envoyer les documents</button>
     <input type="hidden" id="client-upload-app-id">
@@ -2290,8 +2301,15 @@ window.toggleAddon = function(el) {
 };
 
 function calcTotal() {
-  const t = pkgPrice + addonTotal;
-  document.getElementById('price-total').textContent = t > 0 ? t+' MAD' : '—';
+  var rdvPrice = typeof _bookingCityPrice !== 'undefined' ? _bookingCityPrice : 0;
+  var svc = _selectedSvcId ? _servicesCache.find(function(s){ return s.id===_selectedSvcId; }) : null;
+  var isRdv = svc && (svc.category==='rdv' || svc.price===0);
+  // For RDV packages: total = city price + addons (city price IS the package price)
+  var base = isRdv ? rdvPrice : pkgPrice;
+  var extra = isRdv ? 0 : rdvPrice;
+  var t = base + addonTotal + extra;
+  var el = document.getElementById('price-total');
+  if (el) el.textContent = t > 0 ? t.toLocaleString()+' MAD' : '—';
 }
 
 function buildSummary() {
@@ -3311,9 +3329,72 @@ window.selectServicePackage = function(id, price, name) {
   document.querySelectorAll('.option-card').forEach(function(c){ c.classList.remove('selected'); });
   var el = document.getElementById('opt-'+id);
   if (el) el.classList.add('selected');
-  pkgPrice = price; pkgName = name;
+  var svc = _servicesCache.find(function(s){ return s.id === id; });
+  // If rdv package (price=0 or category rdv), price comes from city — show 0 as base
+  var isRdv = svc && (svc.category === 'rdv' || svc.price === 0);
+  pkgPrice = isRdv ? 0 : price;
+  pkgName  = name;
+  _selectedSvcId = id;
   var priceEl = document.getElementById('price-pkg');
-  if (priceEl) priceEl.textContent = price > 0 ? price.toLocaleString()+' MAD' : '—';
+  if (priceEl) priceEl.textContent = isRdv ? '→ selon ville' : (price > 0 ? price.toLocaleString()+' MAD' : '—');
+  // Populate booking city dropdown from selected country
+  populateBookingCityDropdown(id);
+  calcTotal();
+};
+
+var _selectedSvcId = null;
+var _bookingCityPrice = 0;
+
+window.populateBookingCityDropdown = function(svcId) {
+  var row = document.getElementById('booking-city-row');
+  var sel = document.getElementById('booking-city-select');
+  if (!row || !sel) return;
+  // Get the currently selected country
+  var destRaw = (document.getElementById('dest-country') || {}).value || '';
+  var destName = destRaw.replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/\s*—.*/,'').trim();
+  // Find country in city prices cache
+  var countryId = Object.keys(_cityPricesCache).find(function(k){
+    return (_cityPricesCache[k].name||'').indexOf(destName) > -1 || destName.indexOf(_cityPricesCache[k].name||'') > -1;
+  });
+  // Also check service cityPrices
+  var svc = svcId ? _servicesCache.find(function(s){ return s.id===svcId; }) : null;
+  var svcCityPrices = (svc && svc.cityPrices) || {};
+  var hasCityPrices = countryId || Object.keys(svcCityPrices).length > 0;
+  if (!hasCityPrices) { row.style.display = 'none'; _bookingCityPrice = 0; return; }
+  row.style.display = 'block';
+  // Build options — prefer service cityPrices, fall back to global city_prices
+  var cities = countryId ? (_cityPricesCache[countryId].cities || {}) : {};
+  // Merge with service-level city prices
+  Object.keys(svcCityPrices).forEach(function(c){ if (svcCityPrices[c]) cities[c] = svcCityPrices[c]; });
+  sel.innerHTML = '<option value="">Sélectionner votre ville...</option>'
+    + Object.keys(cities).filter(function(c){ return cities[c] > 0; }).map(function(city) {
+        return '<option value="'+city+'" data-price="'+cities[city]+'">'+city+' — '+parseFloat(cities[city]).toLocaleString()+' MAD</option>';
+      }).join('');
+};
+
+window.updateBookingCityPrice = function() {
+  var sel = document.getElementById('booking-city-select');
+  var opt = sel ? sel.options[sel.selectedIndex] : null;
+  var badge = document.getElementById('booking-city-price-badge');
+  var badgeVal = document.getElementById('booking-city-price-val');
+  var rdvRow = document.getElementById('price-row-rdv');
+  var rdvEl  = document.getElementById('price-rdv');
+  _bookingCityPrice = opt && opt.dataset.price ? parseFloat(opt.dataset.price) : 0;
+  if (_bookingCityPrice > 0) {
+    if (badge)    { badge.style.display = 'block'; }
+    if (badgeVal) { badgeVal.textContent = _bookingCityPrice.toLocaleString(); }
+    if (rdvRow)   { rdvRow.style.display = 'flex'; }
+    if (rdvEl)    { rdvEl.textContent = _bookingCityPrice.toLocaleString() + ' MAD'; }
+    // If rdv package, update base price display too
+    var svc = _selectedSvcId ? _servicesCache.find(function(s){ return s.id===_selectedSvcId; }) : null;
+    var isRdv = svc && (svc.category==='rdv' || svc.price===0);
+    var priceEl = document.getElementById('price-pkg');
+    if (isRdv && priceEl) priceEl.textContent = _bookingCityPrice.toLocaleString() + ' MAD';
+    if (isRdv) pkgPrice = _bookingCityPrice;
+  } else {
+    if (badge)  badge.style.display = 'none';
+    if (rdvRow) rdvRow.style.display = 'none';
+  }
   calcTotal();
 };
 
@@ -3696,14 +3777,15 @@ window.updateB2BPriceDisplay = function() {
 
 window.updateB2BCityPrice = function() {
   var sel = document.getElementById('b2b-city');
-  var opt = sel.options[sel.selectedIndex];
+  var opt = sel ? sel.options[sel.selectedIndex] : null;
   var display = document.getElementById('b2b-city-price-display');
   var val = document.getElementById('b2b-city-price-val');
-  if (opt && opt.dataset.price) {
-    if (display) display.style.display='block';
-    if (val) val.textContent = parseFloat(opt.dataset.price).toLocaleString();
+  var price = opt && opt.dataset.price ? parseFloat(opt.dataset.price) : 0;
+  if (price > 0) {
+    if (display) display.style.display = 'block';
+    if (val) val.textContent = price.toLocaleString();
   } else {
-    if (display) display.style.display='none';
+    if (display) display.style.display = 'none';
   }
   recalcB2BTotal();
 };
@@ -4548,6 +4630,8 @@ window.addEventListener('DOMContentLoaded', function() {
   window.filterCFP = function(q) { buildCFPList(q); };
 
   window.selectCFP = function(el) {
+  // After selecting country, re-populate city dropdown if a package is already selected
+  setTimeout(function(){ if (_selectedSvcId) populateBookingCityDropdown(_selectedSvcId); }, 100);
     var flag = el.dataset.flag;
     var name = el.dataset.name;
     var prov = el.dataset.provider;
@@ -4601,8 +4685,12 @@ window.showReceipt = function(data) {
   s('receipt-email',      data.email);
   s('receipt-phone',      data.phone);
   s('receipt-nationality',data.nationality);
-  var destFlag = (function(){ var c = COUNTRIES.find(function(x){ return x.name===destClean||(data.destination&&data.destination.indexOf(x.name)>-1); }); return c ? c.flag+' ' : ''; })();
-  s('receipt-destination', destFlag + (destClean || data.destination));
+  var destFlag = (function(){
+    var raw = data.destination || '';
+    var c = COUNTRIES.find(function(x){ return raw.indexOf(x.name) > -1; });
+    return c ? c.flag : '';
+  })();
+  s('receipt-destination', destFlag ? destFlag + ' ' + destClean : (destClean || data.destination));
   s('receipt-visatype',   data.visaType);
   s('receipt-package',    data.package);
   s('receipt-date-travel',data.travelDate || 'A preciser');
@@ -5242,14 +5330,21 @@ window.recalcB2BTotal = function() {
   var total = pkgPrice + addonTotal + cityPrice;
   var comm  = Math.round(total * commPct / 100);
 
-  var set = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
-  set('b2b-price-display',         pkgPrice > 0 ? pkgPrice.toLocaleString()+' MAD' : '—');
-  set('b2b-addons-total-display',  addonTotal > 0 ? addonTotal.toLocaleString()+' MAD' : '0 MAD');
-  // Look up city price from selected service's cityPrices
-  if (cityName && _svcForCity && _svcForCity.cityPrices && _svcForCity.cityPrices[cityName]) {
-    cityPrice = parseFloat(_svcForCity.cityPrices[cityName]) || cityPrice;
+  // Lookup city name from city select
+  var cityName2 = cityOpt ? cityOpt.value : '';
+  // If service has per-city prices, override cityPrice with service's cityPrice for this city
+  if (cityName2 && _svcForCity && _svcForCity.cityPrices && _svcForCity.cityPrices[cityName2]) {
+    cityPrice = parseFloat(_svcForCity.cityPrices[cityName2]) || cityPrice;
   }
-  set('b2b-rdv-price-display',     cityPrice > 0 ? cityPrice.toLocaleString()+' MAD' : '—');
+  // If this is an appointment-type package (price=0 or category rdv), city price IS the package price
+  var isRdvPkg = _svcForCity && (_svcForCity.category === 'rdv' || _svcForCity.price === 0);
+  var displayPkgPrice = isRdvPkg ? cityPrice : pkgPrice;
+  total = displayPkgPrice + addonTotal + (isRdvPkg ? 0 : cityPrice);
+
+  var set = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  set('b2b-price-display',         displayPkgPrice > 0 ? displayPkgPrice.toLocaleString()+' MAD' : (cityPrice > 0 ? '→ selon ville' : '—'));
+  set('b2b-addons-total-display',  addonTotal > 0 ? addonTotal.toLocaleString()+' MAD' : '0 MAD');
+  set('b2b-rdv-price-display',     isRdvPkg ? '✓ inclus dans le package' : (cityPrice > 0 ? cityPrice.toLocaleString()+' MAD' : '—'));
   set('b2b-total-display',         total > 0 ? total.toLocaleString()+' MAD' : '—');
   set('b2b-commission-display',    total > 0 ? comm.toLocaleString()+' MAD ('+commPct+'%)' : '—');
 };
@@ -5709,7 +5804,7 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     + (d.passport ? '<tr><td>Passeport</td><td>'+d.passport+'</td></tr>' : '')
     + '</table></div>'
     + '<div style="flex:1"><div class="sh">Détails du visa</div><table class="it">'
-    + '<tr><td>Destination</td><td><strong>'+(function(){var c=COUNTRIES.find(function(x){return x.name===destClean||(d.destination&&d.destination.indexOf(x.name)>-1);});return c?c.flag+' ':'';})()+destClean+'</strong></td></tr>'
+    + '<tr><td>Destination</td><td><strong>'+(function(){ var raw=d.destination||''; var c=COUNTRIES.find(function(x){ return raw.indexOf(x.name)>-1; }); return c ? c.flag+' ' : ''; })()+destClean+'</strong></td></tr>'
     + '<tr><td>Type de visa</td><td>'+(d.visaType||'—')+'</td></tr>'
     + '<tr><td>Date voyage</td><td>'+(d.travelDate||'À préciser')+'</td></tr>'
     + '<tr><td>Voyageurs</td><td>'+(d.numApplicants||'1')+'</td></tr>'
