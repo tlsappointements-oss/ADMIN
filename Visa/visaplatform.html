@@ -2414,7 +2414,12 @@ window.submitApplication = async function() {
       phone: data.phone,
       nationality: data.nationality,
       passport: data.passport,
-      destination: data.destination,
+      destination: (function(){
+        var dv = data.destination||'';
+        var fm = COUNTRIES.find(function(x){ return dv.indexOf(x.name)>-1; });
+        if (fm && dv.indexOf(fm.flag)===-1) dv = dv + ' ' + fm.flag;
+        return dv;
+      })(),
       visaType: data.visaType,
       package: data.package,
       travelDate: data.travelDate,
@@ -2433,7 +2438,12 @@ window.submitApplication = async function() {
         firstName: fn, lastName: ln, email: email,
         phone: document.getElementById('phone').value||'',
         nationality: document.getElementById('nationality').value||'',
-        destination: document.getElementById('dest-country').value||'',
+        destination: (function(){
+      var dv = document.getElementById('dest-country').value||'';
+      var fm = COUNTRIES.find(function(x){ return dv.indexOf(x.name)>-1; });
+      if (fm && dv.indexOf(fm.flag)===-1) dv = dv + ' ' + fm.flag;
+      return dv;
+    })(),
         visaType: document.getElementById('visa-type').value||'',
         package: pkgName||'', travelDate: document.getElementById('travel-date').value||'',
         numApplicants: document.getElementById('num-applicants').value||'1',
@@ -5369,6 +5379,9 @@ window.submitB2BApplication = async function() {
   var passport= document.getElementById('b2b-passport').value.trim();
   var destEl  = document.getElementById('b2b-dest');
   var destText= destEl.options[destEl.selectedIndex] ? destEl.options[destEl.selectedIndex].text : '';
+  // Embed the flag emoji into the destination string so receipt can always resolve it
+  var _flagMatch = COUNTRIES.find(function(x){ return destText.indexOf(x.name) > -1; });
+  if (_flagMatch && destText.indexOf(_flagMatch.flag) === -1) destText = destText + ' ' + _flagMatch.flag;
   var pkgSel  = document.getElementById('b2b-package');
   var pkgOpt  = pkgSel.options[pkgSel.selectedIndex];
 
@@ -5421,8 +5434,8 @@ window.submitB2BApplication = async function() {
     agencyEmail:_agencyData.email || '',
     agencyCommission:    comm,
     agencyCommissionPct: commPct,
-    // Only small photo thumbnail kept in application doc; large docs go to clientUploads
-    applicantPhoto: (_b2bFiles.photo && _b2bFiles.photo.length < 200000) ? _b2bFiles.photo : '',
+    // Photo stored in application doc for receipt display (base64)
+    applicantPhoto: _b2bFiles.photo || '',
     source: 'b2b',
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -5457,6 +5470,33 @@ window.submitB2BApplication = async function() {
       });
     }
     showNotif('✅','Dossier soumis — Réf: ' + ref + ' (' + uploadFiles.length + ' fichier(s) joint(s))');
+
+    // Show receipt immediately after B2B submit
+    try {
+      var _b2bDestText = document.getElementById('b2b-dest').options[document.getElementById('b2b-dest').selectedIndex]
+        ? document.getElementById('b2b-dest').options[document.getElementById('b2b-dest').selectedIndex].text : '';
+      var _b2bFlagMatch = COUNTRIES.find(function(x){ return _b2bDestText.indexOf(x.name) > -1; });
+      if (_b2bFlagMatch && _b2bDestText.indexOf(_b2bFlagMatch.flag) === -1) _b2bDestText += ' ' + _b2bFlagMatch.flag;
+      window.showReceipt({
+        ref: ref,
+        firstName: document.getElementById('b2b-fname').value.trim(),
+        lastName: document.getElementById('b2b-lname').value.trim(),
+        email: document.getElementById('b2b-email').value.trim(),
+        phone: document.getElementById('b2b-phone').value.trim(),
+        nationality: document.getElementById('b2b-nationality').value.trim(),
+        passport: document.getElementById('b2b-passport').value.trim(),
+        destination: _b2bDestText,
+        visaType: (document.getElementById('b2b-package').options[document.getElementById('b2b-package').selectedIndex]||{}).text||'',
+        package: pkgName,
+        travelDate: document.getElementById('b2b-travel-date') ? document.getElementById('b2b-travel-date').value : '',
+        numApplicants: document.getElementById('b2b-num-applicants') ? document.getElementById('b2b-num-applicants').value : '1',
+        addons: addonNames,
+        total: total,
+        city: cityName,
+        cityRdvPrice: cityPrice,
+        applicantPhoto: _b2bFiles.photo || ''
+      });
+    } catch(e2) { console.warn('[B2B showReceipt]', e2); }
 
     // Reset form
     ['b2b-fname','b2b-lname','b2b-email','b2b-phone','b2b-passport','b2b-cin','b2b-nationality','b2b-notes'].forEach(function(id){
@@ -5889,7 +5929,18 @@ window.downloadReceiptForApp = async function(appId) {
   try {
     var doc = await db.collection('applications').doc(appId).get();
     if (!doc.exists) { showNotif('⚠️', 'Dossier introuvable'); return; }
-    var data = appToReceiptData(Object.assign({id: doc.id}, doc.data()));
+    var appObj = Object.assign({id: doc.id}, doc.data());
+    // Fetch photo from clientUploads if not in application doc
+    if (!appObj.applicantPhoto) {
+      var uploads = await db.collection('clientUploads')
+        .where('appId','==',appId).orderBy('uploadedAt','asc').get();
+      uploads.forEach(function(u) {
+        var files = u.data().files || [];
+        var photoFile = files.find(function(f){ return f.key === 'photo'; });
+        if (photoFile && photoFile.data) appObj.applicantPhoto = photoFile.data;
+      });
+    }
+    var data = appToReceiptData(appObj);
     await window.downloadReceiptPDF(data);
   } catch(e) {
     console.error('[downloadReceiptForApp]', e);
