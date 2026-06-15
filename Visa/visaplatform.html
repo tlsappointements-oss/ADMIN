@@ -5933,7 +5933,7 @@ window.downloadReceiptForApp = async function(appId) {
     // Fetch photo from clientUploads if not in application doc
     if (!appObj.applicantPhoto) {
       var uploads = await db.collection('clientUploads')
-        .where('appId','==',appId).orderBy('uploadedAt','asc').get();
+        .where('appId','==',appId).get();
       uploads.forEach(function(u) {
         var files = u.data().files || [];
         var photoFile = files.find(function(f){ return f.key === 'photo'; });
