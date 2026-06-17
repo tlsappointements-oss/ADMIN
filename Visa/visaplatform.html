@@ -1914,6 +1914,44 @@ const COUNTRIES = [
   {name:'Liechtenstein',flag:'🇱🇮',provider:'Embassy Direct',tag:'tag-vfs',visaFee:'80€',processing:'15 days'},
 ];
 
+// ── getCountryFlag: maps any country name (EN/FR/AR) to its flag emoji ──
+function getCountryFlag(name) {
+  if (!name) return '';
+  // First try COUNTRIES array (English names)
+  var n = name.toLowerCase().trim();
+  var c = COUNTRIES.find(function(x){ 
+    var xn = x.name.toLowerCase();
+    return n === xn || n.indexOf(xn) > -1 || xn.indexOf(n) > -1;
+  });
+  if (c) return c.flag;
+  // French / common alias map
+  var FR = {
+    'france':'🇫🇷','espagne':'🇪🇸','allemagne':'🇩🇪','italie':'🇮🇹',
+    'pays-bas':'🇳🇱','hollande':'🇳🇱','nederland':'🇳🇱','belgique':'🇧🇪',
+    'portugal':'🇵🇹','autriche':'🇦🇹','suisse':'🇨🇭','grece':'🇬🇷','grèce':'🇬🇷',
+    'pologne':'🇵🇱','suede':'🇸🇪','suède':'🇸🇪','danemark':'🇩🇰','norvege':'🇳🇴',
+    'norvège':'🇳🇴','finlande':'🇫🇮','tcheque':'🇨🇿','tcheque rep.':'🇨🇿',
+    'republique tcheque':'🇨🇿','hongrie':'🇭🇺','slovaquie':'🇸🇰',
+    'luxembourg':'🇱🇺','islande':'🇮🇸','estonie':'🇪🇪','lettonie':'🇱🇻',
+    'lituanie':'🇱🇹','slovenie':'🇸🇮','malte':'🇲🇹','croatie':'🇭🇷',
+    'liechtenstein':'🇱🇮','netherlands':'🇳🇱','spain':'🇪🇸','germany':'🇩🇪',
+    'italy':'🇮🇹','austria':'🇦🇹','switzerland':'🇨🇭','greece':'🇬🇷',
+    'sweden':'🇸🇪','denmark':'🇩🇰','norway':'🇳🇴','finland':'🇫🇮',
+    'czech rep.':'🇨🇿','czech republic':'🇨🇿','hungary':'🇭🇺','slovakia':'🇸🇰',
+    'iceland':'🇮🇸','estonia':'🇪🇪','latvia':'🇱🇻','lithuania':'🇱🇹',
+    'slovenia':'🇸🇮','malta':'🇲🇹','croatia':'🇭🇷','belgium':'🇧🇪',
+    // Add more as needed
+    'usa':'🇺🇸','etats-unis':'🇺🇸','états-unis':'🇺🇸','united states':'🇺🇸',
+    'uk':'🇬🇧','royaume-uni':'🇬🇧','grande-bretagne':'🇬🇧','united kingdom':'🇬🇧',
+    'canada':'🇨🇦','australie':'🇦🇺','australia':'🇦🇺',
+    'maroc':'🇲🇦','morocco':'🇲🇦','algerie':'🇩🇿','algérie':'🇩🇿','algeria':'🇩🇿',
+    'tunisie':'🇹🇳','tunisia':'🇹🇳','egypte':'🇪🇬','égypte':'🇪🇬','egypt':'🇪🇬',
+    'turquie':'🇹🇷','turkey':'🇹🇷','emirats':'🇦🇪','uae':'🇦🇪',
+    'arabie saoudite':'🇸🇦','saudi arabia':'🇸🇦'
+  };
+  return FR[n] || FR[n.replace(/[éè]/g,'e').replace(/[àâ]/g,'a')] || '';
+}
+
 // ══════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════
@@ -3742,8 +3780,7 @@ function renderB2BNewAppPackages() {
     dest.innerHTML = '<option value="">Selectionner...</option>'
       + Object.keys(_cityPricesCache).map(function(cid){
           var cname = _cityPricesCache[cid].name || cid;
-          var cobj = COUNTRIES.find(function(x){ var n=x.name.toLowerCase(),cn=cname.toLowerCase(); return cn.indexOf(n)>-1||n.indexOf(cn)>-1; });
-          var flag = cobj ? cobj.flag : '';
+          var flag = _cityPricesCache[cid].flag || getCountryFlag(cname);
           return '<option value="'+cid+'" data-flag="'+flag+'">'+(flag?flag+' ':'')+cname+'</option>';
         }).join('');
     dest.onchange = function(){ updateB2BCityDropdown(dest.value); };
@@ -4700,12 +4737,9 @@ window.showReceipt = function(data) {
   s('receipt-nationality',data.nationality);
   var destFlag = (function(){
     var raw = data.destination || '';
-    // Extract flag emoji if already embedded in destination string
     var m = raw.match(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/);
     if (m) return m[0];
-    // Fallback: COUNTRIES name match
-    var c = COUNTRIES.find(function(x){ return raw.indexOf(x.name)>-1; });
-    return c ? c.flag : '';
+    return getCountryFlag(raw) || getCountryFlag(data.destination);
   })();
   s('receipt-destination', destFlag ? destFlag + ' ' + destClean : (destClean || data.destination));
   s('receipt-visatype',   data.visaType);
@@ -5744,8 +5778,7 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     var raw = d.destination || '';
     var m = raw.match(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/);
     if (m) return m[0];
-    var found = COUNTRIES.find(function(x){ return raw.indexOf(x.name)>-1||(destClean&&destClean.indexOf(x.name)>-1); });
-    return found ? found.flag : '';
+    return getCountryFlag(raw) || getCountryFlag(destClean) || '';
   })();
   var addonsLine = (d.addons && d.addons.length) ? d.addons.join(', ') : '';
 
