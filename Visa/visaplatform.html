@@ -3741,7 +3741,10 @@ function renderB2BNewAppPackages() {
   if (dest) {
     dest.innerHTML = '<option value="">Selectionner...</option>'
       + Object.keys(_cityPricesCache).map(function(cid){
-          return '<option value="'+cid+'">'+(_cityPricesCache[cid].name||cid)+'</option>';
+          var cname = _cityPricesCache[cid].name || cid;
+          var cobj = COUNTRIES.find(function(x){ var n=x.name.toLowerCase(),cn=cname.toLowerCase(); return cn.indexOf(n)>-1||n.indexOf(cn)>-1; });
+          var flag = cobj ? cobj.flag : '';
+          return '<option value="'+cid+'" data-flag="'+flag+'">'+(flag?flag+' ':'')+cname+'</option>';
         }).join('');
     dest.onchange = function(){ updateB2BCityDropdown(dest.value); };
   }
@@ -4697,7 +4700,11 @@ window.showReceipt = function(data) {
   s('receipt-nationality',data.nationality);
   var destFlag = (function(){
     var raw = data.destination || '';
-    var c = COUNTRIES.find(function(x){ return raw.indexOf(x.name) > -1; });
+    // Extract flag emoji if already embedded in destination string
+    var m = raw.match(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/);
+    if (m) return m[0];
+    // Fallback: COUNTRIES name match
+    var c = COUNTRIES.find(function(x){ return raw.indexOf(x.name)>-1; });
     return c ? c.flag : '';
   })();
   s('receipt-destination', destFlag ? destFlag + ' ' + destClean : (destClean || data.destination));
@@ -5732,10 +5739,12 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
   var now = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
           + ' à ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var destClean = (d.destination||'').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
-  // Resolve flag before building HTML
+  // Extract flag from stored destination string
   var destFlagEmoji = (function(){
-    var raw = d.destination || destClean || '';
-    var found = COUNTRIES.find(function(x){ return raw.indexOf(x.name) > -1; });
+    var raw = d.destination || '';
+    var m = raw.match(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/);
+    if (m) return m[0];
+    var found = COUNTRIES.find(function(x){ return raw.indexOf(x.name)>-1||(destClean&&destClean.indexOf(x.name)>-1); });
     return found ? found.flag : '';
   })();
   var addonsLine = (d.addons && d.addons.length) ? d.addons.join(', ') : '';
@@ -5933,7 +5942,7 @@ window.downloadReceiptForApp = async function(appId) {
     // Fetch photo from clientUploads if not in application doc
     if (!appObj.applicantPhoto) {
       var uploads = await db.collection('clientUploads')
-        .where('appId','==',appId).get();
+        .where('appId','==',appId).orderBy('uploadedAt','asc').get();
       uploads.forEach(function(u) {
         var files = u.data().files || [];
         var photoFile = files.find(function(f){ return f.key === 'photo'; });
