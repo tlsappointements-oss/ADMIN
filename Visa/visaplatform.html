@@ -3780,8 +3780,12 @@ function renderB2BNewAppPackages() {
     dest.innerHTML = '<option value="">Selectionner...</option>'
       + Object.keys(_cityPricesCache).map(function(cid){
           var cname = _cityPricesCache[cid].name || cid;
-          var flag = _cityPricesCache[cid].flag || getCountryFlag(cname);
-          return '<option value="'+cid+'" data-flag="'+flag+'">'+(flag?flag+' ':'')+cname+'</option>';
+          // Flag is already embedded in cname e.g. 'France 🇫🇷' — extract it
+          var fm = cname.match(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/);
+          var flag = fm ? fm[0] : (getCountryFlag(cname) || '');
+          // Clean name = remove the flag emoji from display if already in cname
+          var cleanName = cname.replace(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/g,'').trim();
+          return '<option value="'+cid+'" data-flag="'+flag+'" data-clean="'+cleanName+'">'+(flag?flag+' ':'')+cleanName+'</option>';
         }).join('');
     dest.onchange = function(){ updateB2BCityDropdown(dest.value); };
   }
@@ -4738,8 +4742,7 @@ window.showReceipt = function(data) {
   var destFlag = (function(){
     var raw = data.destination || '';
     var m = raw.match(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/);
-    if (m) return m[0];
-    return getCountryFlag(raw) || getCountryFlag(data.destination);
+    return m ? m[0] : (getCountryFlag(raw) || '');
   })();
   s('receipt-destination', destFlag ? destFlag + ' ' + destClean : (destClean || data.destination));
   s('receipt-visatype',   data.visaType);
@@ -5419,7 +5422,13 @@ window.submitB2BApplication = async function() {
   var phone   = document.getElementById('b2b-phone').value.trim();
   var passport= document.getElementById('b2b-passport').value.trim();
   var destEl  = document.getElementById('b2b-dest');
-  var destText= destEl.options[destEl.selectedIndex] ? destEl.options[destEl.selectedIndex].text : '';
+  var destText= '';
+  if (destEl.options[destEl.selectedIndex]) {
+    var _dopt = destEl.options[destEl.selectedIndex];
+    var _dflag = _dopt.dataset.flag || '';
+    var _dclean = _dopt.dataset.clean || _dopt.text.replace(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/g,'').trim();
+    destText = _dflag ? _dflag + ' ' + _dclean : _dclean;
+  }
   // Embed the flag emoji into the destination string so receipt can always resolve it
   var _flagMatch = COUNTRIES.find(function(x){ return destText.indexOf(x.name) > -1; });
   if (_flagMatch && destText.indexOf(_flagMatch.flag) === -1) destText = destText + ' ' + _flagMatch.flag;
@@ -5514,10 +5523,10 @@ window.submitB2BApplication = async function() {
 
     // Show receipt immediately after B2B submit
     try {
-      var _b2bDestText = document.getElementById('b2b-dest').options[document.getElementById('b2b-dest').selectedIndex]
-        ? document.getElementById('b2b-dest').options[document.getElementById('b2b-dest').selectedIndex].text : '';
-      var _b2bFlagMatch = COUNTRIES.find(function(x){ return _b2bDestText.indexOf(x.name) > -1; });
-      if (_b2bFlagMatch && _b2bDestText.indexOf(_b2bFlagMatch.flag) === -1) _b2bDestText += ' ' + _b2bFlagMatch.flag;
+      var _b2bDestOpt2 = document.getElementById('b2b-dest').options[document.getElementById('b2b-dest').selectedIndex];
+      var _b2bFlag2 = _b2bDestOpt2 ? (_b2bDestOpt2.dataset.flag || '') : '';
+      var _b2bClean2 = _b2bDestOpt2 ? (_b2bDestOpt2.dataset.clean || _b2bDestOpt2.text.replace(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/g,'').trim()) : '';
+      var _b2bDestText = _b2bFlag2 ? _b2bFlag2 + ' ' + _b2bClean2 : _b2bClean2;
       window.showReceipt({
         ref: ref,
         firstName: document.getElementById('b2b-fname').value.trim(),
@@ -5773,12 +5782,11 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
   var now = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
           + ' à ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var destClean = (d.destination||'').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
-  // Extract flag from stored destination string
+  // Extract flag from stored destination (e.g. '🇫🇷 France')
   var destFlagEmoji = (function(){
-    var raw = d.destination || '';
+    var raw = d.destination || destClean || '';
     var m = raw.match(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/);
-    if (m) return m[0];
-    return getCountryFlag(raw) || getCountryFlag(destClean) || '';
+    return m ? m[0] : (getCountryFlag(raw) || getCountryFlag(destClean) || '');
   })();
   var addonsLine = (d.addons && d.addons.length) ? d.addons.join(', ') : '';
 
