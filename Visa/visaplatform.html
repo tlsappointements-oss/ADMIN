@@ -1914,6 +1914,28 @@ const COUNTRIES = [
   {name:'Liechtenstein',flag:'🇱🇮',provider:'Embassy Direct',tag:'tag-vfs',visaFee:'80€',processing:'15 days'},
 ];
 
+// ── Country code map: Firestore city_prices doc ID → ISO 2-letter code ──
+var COUNTRY_CODE_MAP = {
+  'france':'fr','spain':'es','germany':'de','italy':'it','belgium':'be',
+  'netherlands':'nl','portugal':'pt','austria':'at','switzerland':'ch',
+  'greece':'gr','sweden':'se','denmark':'dk','norway':'no','finland':'fi',
+  'poland':'pl','czech':'cz','hungary':'hu','slovakia':'sk','croatia':'hr',
+  'slovenia':'si','estonia':'ee','latvia':'lv','lithuania':'lt','malta':'mt',
+  'luxembourg':'lu','iceland':'is','liechtenstein':'li','uk':'gb',
+  'usa':'us','canada':'ca','australia':'au','morocco':'ma','maroc':'ma',
+  'algeria':'dz','algerie':'dz','tunisia':'tn','tunisie':'tn',
+  'egypt':'eg','egypte':'eg','turkey':'tr','turquie':'tr','uae':'ae',
+  'saudi':'sa','china':'cn','japan':'jp','india':'in','brasil':'br',
+  'brazil':'br','russia':'ru','southafrica':'za','southkorea':'kr'
+};
+
+// Get flag as <img> tag using flagcdn.com — works on all OS/browsers
+function getFlagImg(docId, size) {
+  size = size || '20x15';
+  var cc = COUNTRY_CODE_MAP[docId] || docId.replace(/[^a-z]/g,'').substring(0,2);
+  return cc ? '<img src="https://flagcdn.com/'+size+'/'+cc+'.png" alt="'+cc+'" style="display:inline-block;vertical-align:middle;margin-right:4px;border-radius:2px">' : '';
+}
+
 // ── getCountryFlag: maps any country name (EN/FR/AR) to its flag emoji ──
 function getCountryFlag(name) {
   if (!name) return '';
@@ -3780,12 +3802,11 @@ function renderB2BNewAppPackages() {
     dest.innerHTML = '<option value="">Selectionner...</option>'
       + Object.keys(_cityPricesCache).map(function(cid){
           var cname = _cityPricesCache[cid].name || cid;
-          // Flag is already embedded in cname e.g. 'France 🇫🇷' — extract it
-          var fm = cname.match(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/);
-          var flag = fm ? fm[0] : (getCountryFlag(cname) || '');
-          // Clean name = remove the flag emoji from display if already in cname
-          var cleanName = cname.replace(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/g,'').trim();
-          return '<option value="'+cid+'" data-flag="'+flag+'" data-clean="'+cleanName+'">'+(flag?flag+' ':'')+cleanName+'</option>';
+          // Clean name = strip emoji from stored name
+          var cleanName = cname.replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').trim();
+          // Store country code for flag image
+          var cc = COUNTRY_CODE_MAP[cid] || cid.substring(0,2);
+          return '<option value="'+cid+'" data-cc="'+cc+'" data-clean="'+cleanName+'">'+cleanName+'</option>';
         }).join('');
     dest.onchange = function(){ updateB2BCityDropdown(dest.value); };
   }
@@ -4739,12 +4760,11 @@ window.showReceipt = function(data) {
   s('receipt-email',      data.email);
   s('receipt-phone',      data.phone);
   s('receipt-nationality',data.nationality);
-  var destFlag = (function(){
-    var raw = data.destination || '';
-    var m = raw.match(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/);
-    return m ? m[0] : (getCountryFlag(raw) || '');
-  })();
-  s('receipt-destination', destFlag ? destFlag + ' ' + destClean : (destClean || data.destination));
+  // Build flag img from country code stored in destination id
+  var destCCraw = data.destinationId || data.countryId || '';
+  var destFlagHtml = destCCraw ? getFlagImg(destCCraw, '20x15') : '';
+  var destEl2 = document.getElementById('receipt-destination');
+  if (destEl2) destEl2.innerHTML = destFlagHtml + (destClean || data.destination || '');
   s('receipt-visatype',   data.visaType);
   s('receipt-package',    data.package);
   s('receipt-date-travel',data.travelDate || 'A preciser');
@@ -5470,6 +5490,7 @@ window.submitB2BApplication = async function() {
     nationality:document.getElementById('b2b-nationality') ? document.getElementById('b2b-nationality').value.trim() : '',
     dob:        document.getElementById('b2b-dob') ? document.getElementById('b2b-dob').value : '',
     destination: destText,
+    destinationId: destEl.options[destEl.selectedIndex] ? destEl.options[destEl.selectedIndex].value : '',
     visaType:   document.getElementById('b2b-visa-type').value,
     travelDate: document.getElementById('b2b-travel-date').value,
     numApplicants: document.getElementById('b2b-num-applicants') ? document.getElementById('b2b-num-applicants').value : '1',
@@ -5536,6 +5557,7 @@ window.submitB2BApplication = async function() {
         nationality: document.getElementById('b2b-nationality').value.trim(),
         passport: document.getElementById('b2b-passport').value.trim(),
         destination: _b2bDestText,
+        destinationId: _b2bDestOpt2 ? _b2bDestOpt2.value : '',
         visaType: (document.getElementById('b2b-package').options[document.getElementById('b2b-package').selectedIndex]||{}).text||'',
         package: pkgName,
         travelDate: document.getElementById('b2b-travel-date') ? document.getElementById('b2b-travel-date').value : '',
@@ -5738,6 +5760,8 @@ async function loadQRiousSource() {
 //  GENERATE RECEIPT DATA for any application object
 // ══════════════════════════════════════════════════════════════════
 function appToReceiptData(a) {
+  // Ensure destinationId is passed for flag rendering
+  // a.destinationId is the Firestore city_prices doc ID e.g. 'france','spain'
   return {
     ref:          a.ref || '—',
     firstName:    a.firstName || '',
@@ -5747,6 +5771,7 @@ function appToReceiptData(a) {
     nationality:  a.nationality || '',
     passport:     a.passport  || '',
     destination:  a.destination || '',
+    destinationId: a.destinationId || '',
     visaType:     a.visaType  || '',
     travelDate:   a.travelDate || '',
     numApplicants:a.numApplicants || '1',
@@ -5782,12 +5807,10 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
   var now = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
           + ' à ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var destClean = (d.destination||'').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
-  // Extract flag from stored destination (e.g. '🇫🇷 France')
-  var destFlagEmoji = (function(){
-    var raw = d.destination || destClean || '';
-    var m = raw.match(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/);
-    return m ? m[0] : (getCountryFlag(raw) || getCountryFlag(destClean) || '');
-  })();
+  // Flag via flagcdn.com img — reliable on all browsers/OS
+  var _destCC = d.destinationId || '';
+  var destFlagImg = _destCC ? '<img src="https://flagcdn.com/32x24/'+_destCC+'.png" alt="" style="height:18px;vertical-align:middle;margin-right:4px;border-radius:2px">' : '';
+  var destFlagEmoji = destFlagImg; // alias for compatibility
   var addonsLine = (d.addons && d.addons.length) ? d.addons.join(', ') : '';
 
   // Security token
@@ -5864,7 +5887,7 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
         : '<div style="text-align:center;padding:8px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div style="font-size:6px;color:#aaa;margin-top:3px;letter-spacing:.8px;text-transform:uppercase">Photo</div></div>')
     + '</div>'
     + '<div style="font-size:6px;color:#888;letter-spacing:.8px;text-transform:uppercase;text-align:center">Photo demandeur</div>'
-    + (destFlagEmoji ? '<div style="font-size:30px;line-height:1;margin-top:4px">'+destFlagEmoji+'</div><div style="font-size:6px;color:#888;letter-spacing:.8px;text-transform:uppercase;text-align:center">'+destClean+'</div>' : '')
+    + (destFlagImg ? '<div style="margin-top:6px;text-align:center">'+destFlagImg+'<div style="font-size:6px;color:#888;letter-spacing:.8px;text-transform:uppercase;margin-top:2px">'+destClean+'</div></div>' : '')
     + '</div>';
 
   var addonsRows = addonsLine
@@ -5905,7 +5928,7 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     + (d.passport ? '<tr><td>Passeport</td><td>'+d.passport+'</td></tr>' : '')
     + '</table></div>'
     + '<div style="flex:1"><div class="sh">Détails du visa</div><table class="it">'
-    + '<tr><td>Destination</td><td><strong>'+(destFlagEmoji ? destFlagEmoji+' ' : '')+destClean+'</strong></td></tr>'
+    + '<tr><td>Destination</td><td><strong>'+destFlagImg+destClean+'</strong></td></tr>'
     + '<tr><td>Type de visa</td><td>'+(d.visaType||'—')+'</td></tr>'
     + '<tr><td>Date voyage</td><td>'+(d.travelDate||'À préciser')+'</td></tr>'
     + '<tr><td>Voyageurs</td><td>'+(d.numApplicants||'1')+'</td></tr>'
