@@ -1914,27 +1914,16 @@ const COUNTRIES = [
   {name:'Liechtenstein',flag:'🇱🇮',provider:'Embassy Direct',tag:'tag-vfs',visaFee:'80€',processing:'15 days'},
 ];
 
-// ── Country code map: Firestore city_prices doc ID → ISO 2-letter code ──
-var COUNTRY_CODE_MAP = {
-  'france':'fr','spain':'es','germany':'de','italy':'it','belgium':'be',
-  'netherlands':'nl','portugal':'pt','austria':'at','switzerland':'ch',
-  'greece':'gr','sweden':'se','denmark':'dk','norway':'no','finland':'fi',
-  'poland':'pl','czech':'cz','hungary':'hu','slovakia':'sk','croatia':'hr',
-  'slovenia':'si','estonia':'ee','latvia':'lv','lithuania':'lt','malta':'mt',
-  'luxembourg':'lu','iceland':'is','liechtenstein':'li','uk':'gb',
-  'usa':'us','canada':'ca','australia':'au','morocco':'ma','maroc':'ma',
-  'algeria':'dz','algerie':'dz','tunisia':'tn','tunisie':'tn',
-  'egypt':'eg','egypte':'eg','turkey':'tr','turquie':'tr','uae':'ae',
-  'saudi':'sa','china':'cn','japan':'jp','india':'in','brasil':'br',
-  'brazil':'br','russia':'ru','southafrica':'za','southkorea':'kr'
-};
-
-// Get flag as <img> tag using flagcdn.com — works on all OS/browsers
-function getFlagImg(docId, size) {
-  size = size || '20x15';
-  var cc = COUNTRY_CODE_MAP[docId] || docId.replace(/[^a-z]/g,'').substring(0,2);
-  return cc ? '<img src="https://flagcdn.com/'+size+'/'+cc+'.png" alt="'+cc+'" style="display:inline-block;vertical-align:middle;margin-right:4px;border-radius:2px">' : '';
+// ── Flag image helper (same as visa-portal.html) ──
+// flagcdn.com only serves valid widths: 20, 40, 80, 160, 320, 640
+function flagImg(code, size) {
+  size = size || 'sm';
+  var w = size === 'lg' ? 80 : size === 'md' ? 40 : 20;
+  var px = w;
+  if (!code) return '';
+  return '<img src="https://flagcdn.com/w'+w+'/'+code.toLowerCase()+'.png" alt="'+code+'" style="width:'+px+'px;height:auto;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.15);vertical-align:middle;flex-shrink:0;display:inline-block">';
 }
+
 
 // ── getCountryFlag: maps any country name (EN/FR/AR) to its flag emoji ──
 function getCountryFlag(name) {
@@ -3802,10 +3791,11 @@ function renderB2BNewAppPackages() {
     dest.innerHTML = '<option value="">Selectionner...</option>'
       + Object.keys(_cityPricesCache).map(function(cid){
           var cname = _cityPricesCache[cid].name || cid;
-          // Clean name = strip emoji from stored name
-          var cleanName = cname.replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').trim();
-          // Store country code for flag image
-          var cc = COUNTRY_CODE_MAP[cid] || cid.substring(0,2);
+          // Strip emoji from stored name e.g. 'France 🇫🇷' → 'France'
+          var cleanName = cname.replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/\uFE0F/g,'').trim();
+          // Find 2-letter country code from COUNTRIES array
+          var cobj = COUNTRIES.find(function(x){ var n=x.name.toLowerCase(),cn=cleanName.toLowerCase(); return cn.indexOf(n)>-1||n.indexOf(cn)>-1; });
+          var cc = cobj ? cobj.code : '';
           return '<option value="'+cid+'" data-cc="'+cc+'" data-clean="'+cleanName+'">'+cleanName+'</option>';
         }).join('');
     dest.onchange = function(){ updateB2BCityDropdown(dest.value); };
@@ -4760,11 +4750,10 @@ window.showReceipt = function(data) {
   s('receipt-email',      data.email);
   s('receipt-phone',      data.phone);
   s('receipt-nationality',data.nationality);
-  // Build flag img from country code stored in destination id
-  var destCCraw = data.destinationId || data.countryId || '';
-  var destFlagHtml = destCCraw ? getFlagImg(destCCraw, '20x15') : '';
+  // Flag image using countryCode — same pattern as visa-portal.html
+  var destFlagHtml = data.countryCode ? flagImg(data.countryCode, 'sm') : '';
   var destEl2 = document.getElementById('receipt-destination');
-  if (destEl2) destEl2.innerHTML = destFlagHtml + (destClean || data.destination || '');
+  if (destEl2) destEl2.innerHTML = destFlagHtml + ' ' + (destClean || data.destination || '');
   s('receipt-visatype',   data.visaType);
   s('receipt-package',    data.package);
   s('receipt-date-travel',data.travelDate || 'A preciser');
@@ -5491,6 +5480,15 @@ window.submitB2BApplication = async function() {
     dob:        document.getElementById('b2b-dob') ? document.getElementById('b2b-dob').value : '',
     destination: destText,
     destinationId: destEl.options[destEl.selectedIndex] ? destEl.options[destEl.selectedIndex].value : '',
+    countryCode: (function(){
+      var opt = destEl.options[destEl.selectedIndex];
+      var cc = opt ? (opt.dataset.cc || '') : '';
+      if (cc) return cc.toUpperCase();
+      // Fallback: match via COUNTRIES array
+      var cname = opt ? opt.dataset.clean || opt.text : '';
+      var cm = COUNTRIES.find(function(x){ return cname.toLowerCase().indexOf(x.name.toLowerCase())>-1||x.name.toLowerCase().indexOf(cname.toLowerCase())>-1; });
+      return cm ? cm.code : '';
+    })(),
     visaType:   document.getElementById('b2b-visa-type').value,
     travelDate: document.getElementById('b2b-travel-date').value,
     numApplicants: document.getElementById('b2b-num-applicants') ? document.getElementById('b2b-num-applicants').value : '1',
@@ -5558,6 +5556,13 @@ window.submitB2BApplication = async function() {
         passport: document.getElementById('b2b-passport').value.trim(),
         destination: _b2bDestText,
         destinationId: _b2bDestOpt2 ? _b2bDestOpt2.value : '',
+        countryCode: (function(){
+          if (!_b2bDestOpt2) return '';
+          var cc = _b2bDestOpt2.dataset.cc || '';
+          if (cc) return cc.toUpperCase();
+          var cm = COUNTRIES.find(function(x){ var cn=(_b2bDestOpt2.dataset.clean||'').toLowerCase(); return cn.indexOf(x.name.toLowerCase())>-1||x.name.toLowerCase().indexOf(cn)>-1; });
+          return cm ? cm.code : '';
+        })(),
         visaType: (document.getElementById('b2b-package').options[document.getElementById('b2b-package').selectedIndex]||{}).text||'',
         package: pkgName,
         travelDate: document.getElementById('b2b-travel-date') ? document.getElementById('b2b-travel-date').value : '',
@@ -5772,6 +5777,7 @@ function appToReceiptData(a) {
     passport:     a.passport  || '',
     destination:  a.destination || '',
     destinationId: a.destinationId || '',
+    countryCode:   a.countryCode || '',
     visaType:     a.visaType  || '',
     travelDate:   a.travelDate || '',
     numApplicants:a.numApplicants || '1',
@@ -5807,10 +5813,9 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
   var now = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
           + ' à ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var destClean = (d.destination||'').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
-  // Flag via flagcdn.com img — reliable on all browsers/OS
-  var _destCC = d.destinationId || '';
-  var destFlagImg = _destCC ? '<img src="https://flagcdn.com/32x24/'+_destCC+'.png" alt="" style="height:18px;vertical-align:middle;margin-right:4px;border-radius:2px">' : '';
-  var destFlagEmoji = destFlagImg; // alias for compatibility
+  // Flag image — same pattern as visa-portal.html
+  var destFlagImg = d.countryCode ? flagImg(d.countryCode, 'sm') : '';
+  var destFlagEmoji = destFlagImg; // alias for photo block compatibility
   var addonsLine = (d.addons && d.addons.length) ? d.addons.join(', ') : '';
 
   // Security token
@@ -5887,7 +5892,7 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
         : '<div style="text-align:center;padding:8px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div style="font-size:6px;color:#aaa;margin-top:3px;letter-spacing:.8px;text-transform:uppercase">Photo</div></div>')
     + '</div>'
     + '<div style="font-size:6px;color:#888;letter-spacing:.8px;text-transform:uppercase;text-align:center">Photo demandeur</div>'
-    + (destFlagImg ? '<div style="margin-top:6px;text-align:center">'+destFlagImg+'<div style="font-size:6px;color:#888;letter-spacing:.8px;text-transform:uppercase;margin-top:2px">'+destClean+'</div></div>' : '')
+    + (d.countryCode ? '<div style="width:88px;border:1px solid #e0e0e0;border-radius:3px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.1);margin-top:6px"><img src="https://flagcdn.com/w160/'+d.countryCode.toLowerCase()+'.png" alt="'+destClean+'" style="width:100%;height:auto;display:block"></div><div style="font-size:6px;color:#888;letter-spacing:.8px;text-transform:uppercase;text-align:center;margin-top:2px">'+destClean+'</div>' : '')
     + '</div>';
 
   var addonsRows = addonsLine
