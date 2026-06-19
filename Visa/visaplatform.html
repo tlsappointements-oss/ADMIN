@@ -6290,8 +6290,9 @@ function renderB2BAppsTable(containerId, apps) {
           + '<td><span class="status-badge '+(sc[a.status]||'status-pending')+'">'+(a.status||'pending')+'</span></td>'
           + '<td style="font-weight:600">'+(a.total||0).toLocaleString()+' MAD</td>'
           + '<td style="color:#1B7A4A;font-weight:700">'+(a.agencyCommission||0).toLocaleString()+' MAD</td>'
-          + '<td><button onclick="downloadReceiptForApp(\''+a.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap">📄 Reçu</button></td>'
-          + '<td><button onclick="if(isAdmin){adminPushReceipt(\''+a.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap">📄 Reçu</button></td>'
+          + '<td>' + (isAdmin
+            ? '<button onclick="adminPushReceipt(\''+a.id+'\')" style="background:#1B7A4A;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap">✏️ Reçu</button>'
+            : '') + '</td>'
           + '</tr>';
       }).join('')
     + '</tbody></table></div>';
@@ -6391,7 +6392,10 @@ window.verifyReceipt = async function() {
       + (app.agencyName ? '<div><span style="color:var(--muted)">Agence :</span> <strong>'+app.agencyName+'</strong></div>' : '')
       + '</div>'
       + '<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(0,0,0,.08);display:flex;gap:8px">'
-      + '<button onclick="downloadReceiptForApp(\''+app.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer">📄 Régénérer le reçu</button>'
+      + (isAdmin
+        ? '<button onclick="adminPushReceipt(\''+app.id+'\')" style="background:#1B7A4A;color:#fff;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;margin-right:8px">✏️ Modifier &#38; Envoyer Reçu</button>'
+        + '<button onclick="downloadReceiptForApp(\''+app.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer">📄 PDF Reçu</button>'
+        : '<button onclick="checkAndShowReceipt(\''+app.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer">📄 Voir mon Reçu</button>')
       + '</div>'
       + '<div style="margin-top:8px;font-size:10px;color:#9CA3AF;font-family:monospace">Token SHA-256 : '+expected.match(/.{1,4}/g).join('-')+'</div>'
       + '</div>';
@@ -6423,7 +6427,8 @@ window.loadAllReceipts = async function() {
             +'<td style="font-weight:600">'+(a.total||0).toLocaleString()+' MAD</td>'
             +'<td><span style="background:var(--cream);border-radius:5px;padding:2px 8px;font-size:10px">'+(a.source==='b2b'?'B2B':'Client')+'</span></td>'
             +'<td style="white-space:nowrap">'
-            +'<button onclick="downloadReceiptForApp(\''+a.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px">📄 Reçu</button>'
+            +'<button onclick="(isAdmin?adminPushReceipt:checkAndShowReceipt)(\''+a.id+'\')" '
+            +'style="background:'+(isAdmin?'#1B7A4A':'#0B1D35')+';color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px">'+(isAdmin?'✏️ Reçu':'📄 Reçu')+'</button>'
             +'<button onclick="document.getElementById(\'verify-ref-input\').value=\''+a.ref+'\';verifyReceipt()" style="background:var(--cream);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer">🔍</button>'
             +'</td></tr>';
         }).join('')
@@ -7278,7 +7283,7 @@ function renderB2BAppsTable(containerId, apps) {
           + '<td style="color:#1B7A4A;font-weight:700">'+(a.agencyCommission||0).toLocaleString()+' MAD</td>'
           + '<td style="white-space:nowrap;display:flex;flex-direction:column;gap:4px;padding:8px">'
             // Receipt button
-            + '<button onclick="downloadReceiptForApp(\''+a.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600">📄 Reçu</button>'
+            + '<button onclick="checkAndShowReceipt(\''+a.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600">📄 Reçu</button>'
             // Message + attachments button
             + (hasNote || hasAttach ? '<button onclick="showB2BStatusDetail(\''+a.id+'\')" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;color:#1D4ED8">💬 Message'+(hasAttach?' ('+latestEntry.attachments.length+' PJ)':'')+'</button>' : '')
             // Upload docs button
