@@ -1917,6 +1917,44 @@ const COUNTRIES = [
 // ── Flag image helper (same as visa-portal.html) ──
 // flagcdn.com only serves valid widths: 20, 40, 80, 160, 320, 640
 function flagImg(code, size) {
+  if (!code) return '';
+  size = size || 'sm';
+  var w = size === 'lg' ? 160 : size === 'md' ? 40 : 20;
+  return '<img src="https://flagcdn.com/w'+w+'/'+code.toLowerCase()+'.png" alt="'+code+'" style="width:'+(w===20?'20px':w===40?'22px':'96px')+';height:auto;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.15);vertical-align:middle;display:inline-block;flex-shrink:0">';
+}
+
+// ── French/alias name → ISO code (for city_prices names that don't match COUNTRIES) ──
+var FR_NAME_TO_CODE = {
+  'france':'fr','espagne':'es','allemagne':'de','italie':'it',
+  'pays-bas':'nl','hollande':'nl','belgique':'be','portugal':'pt',
+  'autriche':'at','suisse':'ch','grece':'gr','grèce':'gr','grece':'gr',
+  'pologne':'pl','suede':'se','suède':'se','danemark':'dk',
+  'norvege':'no','norvège':'no','finlande':'fi','tcheque':'cz',
+  'republique tcheque':'cz','hongrie':'hu','slovaquie':'sk',
+  'luxembourg':'lu','islande':'is','estonie':'ee','lettonie':'lv',
+  'lituanie':'lt','slovenie':'si','malte':'mt','croatie':'hr',
+  'liechtenstein':'li','royaume-uni':'gb','grande-bretagne':'gb',
+  'etats-unis':'us','états-unis':'us','canada':'ca','australie':'au',
+  'maroc':'ma','algerie':'dz','algérie':'dz','tunisie':'tn',
+  'egypte':'eg','égypte':'eg','turquie':'tr','emirats':'ae',
+  'arabie saoudite':'sa','chine':'cn','japon':'jp','inde':'in'
+};
+
+function getCodeFromName(name) {
+  if (!name) return '';
+  var n = name.toLowerCase().trim();
+  // Direct map
+  if (FR_NAME_TO_CODE[n]) return FR_NAME_TO_CODE[n];
+  // Partial match in map
+  var keys = Object.keys(FR_NAME_TO_CODE);
+  for (var i=0;i<keys.length;i++) { if (n.indexOf(keys[i])>-1||keys[i].indexOf(n)>-1) return FR_NAME_TO_CODE[keys[i]]; }
+  // COUNTRIES array
+  var c = COUNTRIES.find(function(x){ var xn=x.name.toLowerCase(); return n.indexOf(xn)>-1||xn.indexOf(n)>-1; });
+  return c ? c.code : '';
+}
+
+// ── (internal duplicate removed) ──
+function _flagImgOld(code, size) {
   size = size || 'sm';
   var w = size === 'lg' ? 80 : size === 'md' ? 40 : 20;
   var px = w;
@@ -2454,8 +2492,8 @@ window.submitApplication = async function() {
       var nm=document.getElementById('name-'+k); if(nm){nm.style.display='none';nm.textContent='';}
     });
     currentStep=1; nextStep(0);
-    // Show receipt modal — always, even if email/WA had issues
-    window.showReceipt({
+    // Show submission confirmation — receipt only pushed by admin after payment
+    window.showSubmissionConfirmation({
       ref: ref,
       firstName: fn,
       lastName: ln,
@@ -2479,10 +2517,10 @@ window.submitApplication = async function() {
     });
   } catch(e) {
     console.error('[SUBMIT] Error:', e);
-    // Still show receipt — the application may have been saved
+    // Still show submission confirmation
     showNotif('⚠️','Note: '+e.message);
     try {
-      window.showReceipt({
+      window.showSubmissionConfirmation({
         ref: ref||('EVP-'+Date.now()),
         firstName: fn, lastName: ln, email: email,
         phone: document.getElementById('phone').value||'',
@@ -4731,6 +4769,196 @@ window.addEventListener('DOMContentLoaded', function() {
 // ══════════════════════════════════════════
 //  RECEIPT — show country flag banner
 // ══════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════
+//  SUBMISSION CONFIRMATION — shown to client/B2B after submit
+//  NOT a receipt — receipt is pushed separately by admin
+// ══════════════════════════════════════════════════════
+window.showSubmissionConfirmation = function(data) {
+  var modal = document.getElementById('submission-confirm-modal');
+  if (!modal) {
+    // Create modal dynamically
+    modal = document.createElement('div');
+    modal.id = 'submission-confirm-modal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(11,29,53,.78);z-index:600;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+    modal.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:480px;width:100%;padding:0;box-shadow:0 24px 64px rgba(0,0,0,.4);overflow:hidden;font-family:DM Sans,Arial,sans-serif">'
+      + '<div style="background:linear-gradient(135deg,#0B1D35,#132645);padding:22px 24px 18px;text-align:center">'
+      + '<div style="font-size:38px;margin-bottom:8px">✅</div>'
+      + '<div style="color:#E8B04A;font-size:18px;font-weight:700;margin-bottom:4px">Dossier soumis avec succès !</div>'
+      + '<div style="color:rgba(255,255,255,.55);font-size:11px">Votre demande a bien été reçue. Notre équipe vous contactera sous 2h.</div>'
+      + '</div>'
+      + '<div style="padding:20px 24px">'
+      + '<div style="background:#F0F9F4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 16px;margin-bottom:14px">'
+      + '<div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Numéro de référence</div>'
+      + '<div id="sc-ref" style="font-size:20px;font-weight:700;color:#0B1D35;letter-spacing:.05em"></div>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+      + '<div style="background:#F8F9FA;border-radius:8px;padding:10px 12px"><div style="font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Nom</div><div id="sc-name" style="font-size:12px;font-weight:600;color:#0B1D35"></div></div>'
+      + '<div style="background:#F8F9FA;border-radius:8px;padding:10px 12px"><div style="font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Destination</div><div id="sc-dest" style="font-size:12px;font-weight:600;color:#0B1D35"></div></div>'
+      + '<div style="background:#F8F9FA;border-radius:8px;padding:10px 12px"><div style="font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Package</div><div id="sc-pkg" style="font-size:12px;font-weight:600;color:#0B1D35"></div></div>'
+      + '<div style="background:#F8F9FA;border-radius:8px;padding:10px 12px"><div style="font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Montant</div><div id="sc-total" style="font-size:12px;font-weight:700;color:#1B7A4A"></div></div>'
+      + '</div>'
+      + '<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:#92400E">'
+      + '⏳ <strong>En attente de confirmation admin.</strong> Le reçu officiel vous sera envoyé une fois le paiement validé par notre équipe.'
+      + '</div>'
+      + '<button onclick="document.getElementById('submission-confirm-modal').style.display='none';document.body.style.overflow=''" '
+      + 'style="width:100%;background:#0B1D35;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Fermer</button>'
+      + '</div></div>';
+    document.body.appendChild(modal);
+  }
+  // Fill data
+  var sc = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v||'—'; };
+  sc('sc-ref',  data.ref);
+  sc('sc-name', (data.firstName||'') + ' ' + (data.lastName||''));
+  sc('sc-dest', (data.destination||'').replace(/[?][?-?][?][?-?]/g,'').trim());
+  sc('sc-pkg',  data.package || data.visaType || '—');
+  sc('sc-total',(data.total||0).toLocaleString() + ' MAD');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+};
+
+// ══════════════════════════════════════════════════════
+//  ADMIN: Push Receipt — saves receipt data to Firestore
+//  and shows a "receipt available" notification to client/B2B
+// ══════════════════════════════════════════════════════
+window.adminPushReceipt = async function(appId) {
+  if (!isAdmin) { showNotif('⚠️','Accès admin requis'); return; }
+  var doc = await db.collection('applications').doc(appId).get();
+  if (!doc.exists) { showNotif('⚠️','Dossier introuvable'); return; }
+  var a = Object.assign({id: appId}, doc.data());
+  // Open edit receipt modal
+  openEditReceiptModal(a);
+};
+
+// ══════════════════════════════════════════════════════
+//  ADMIN: Edit Receipt Modal — full editable form
+// ══════════════════════════════════════════════════════
+var _editReceiptAppId = null;
+
+window.openEditReceiptModal = function(a) {
+  _editReceiptAppId = a.id || a.ref;
+  var modal = document.getElementById('edit-receipt-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'edit-receipt-modal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(11,29,53,.85);z-index:700;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+    modal.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:600px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.5);font-family:DM Sans,Arial,sans-serif">'
+      + '<div style="background:linear-gradient(135deg,#0B1D35,#132645);padding:18px 22px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center">'
+      + '<div><div style="color:#E8B04A;font-size:16px;font-weight:700">✏️ Modifier le Reçu</div><div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:2px">Ces informations seront visibles par le client / B2B</div></div>'
+      + '<button onclick="document.getElementById('edit-receipt-modal').style.display='none'" style="background:rgba(255,255,255,.12);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px">✕</button>'
+      + '</div>'
+      + '<div style="padding:20px 22px;display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+      + _erField('er-firstname','Prénom','text')
+      + _erField('er-lastname','Nom','text')
+      + _erField('er-email','Email','email')
+      + _erField('er-phone','Téléphone','text')
+      + _erField('er-nationality','Nationalité','text')
+      + _erField('er-passport','N° Passeport','text')
+      + _erField('er-destination','Destination','text')
+      + _erField('er-visatype','Type de visa','text')
+      + _erField('er-package','Package / Service','text')
+      + _erField('er-traveldate','Date de voyage','date')
+      + _erField('er-applicants','Nombre de voyageurs','number')
+      + _erField('er-city','Ville RDV','text')
+      + '<div style="grid-column:span 2">' + _erField('er-total','Montant total (MAD)','number') + '</div>'
+      + '<div style="grid-column:span 2">'
+      + '<label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:5px">Add-ons (séparés par virgule)</label>'
+      + '<input id="er-addons" type="text" style="width:100%;border:1.5px solid #E5E7EB;border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none">'
+      + '</div>'
+      + '</div>'
+      + '<div style="padding:0 22px 20px;display:flex;gap:10px">'
+      + '<button onclick="saveEditedReceipt()" style="flex:1;background:#1B7A4A;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">💾 Enregistrer & Envoyer au client</button>'
+      + '<button onclick="document.getElementById('edit-receipt-modal').style.display='none'" style="flex:0 0 auto;background:#F3F4F6;color:#374151;border:none;border-radius:10px;padding:12px 18px;font-size:13px;cursor:pointer;font-family:inherit">Annuler</button>'
+      + '</div>'
+      + '</div>';
+    document.body.appendChild(modal);
+  }
+  // Fill fields
+  var set = function(id,v){ var e=document.getElementById(id); if(e) e.value=v||''; };
+  set('er-firstname',   a.firstName);
+  set('er-lastname',    a.lastName);
+  set('er-email',       a.email);
+  set('er-phone',       a.phone);
+  set('er-nationality', a.nationality);
+  set('er-passport',    a.passport);
+  set('er-destination', (a.destination||'').replace(/[?][?-?][?][?-?]/g,'').trim());
+  set('er-visatype',    a.visaType);
+  set('er-package',     a.package);
+  set('er-traveldate',  a.travelDate);
+  set('er-applicants',  a.numApplicants||'1');
+  set('er-city',        a.city);
+  set('er-total',       a.total||0);
+  set('er-addons',      (a.addons||[]).join(', '));
+  modal.style.display = 'flex';
+};
+
+function _erField(id, label, type) {
+  return '<div><label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:5px">'+label+'</label>'
+    + '<input id="'+id+'" type="'+(type||'text')+'" style="width:100%;border:1.5px solid #E5E7EB;border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none"></div>';
+}
+
+window.saveEditedReceipt = async function() {
+  if (!_editReceiptAppId) return;
+  var g = function(id){ var e=document.getElementById(id); return e ? e.value.trim() : ''; };
+  var addonsRaw = g('er-addons');
+  var addons = addonsRaw ? addonsRaw.split(',').map(function(x){ return x.trim(); }).filter(Boolean) : [];
+  var receiptData = {
+    ref:           g('er-destination') ? _editReceiptAppId : _editReceiptAppId,
+    firstName:     g('er-firstname'),
+    lastName:      g('er-lastname'),
+    email:         g('er-email'),
+    phone:         g('er-phone'),
+    nationality:   g('er-nationality'),
+    passport:      g('er-passport'),
+    destination:   g('er-destination'),
+    visaType:      g('er-visatype'),
+    package:       g('er-package'),
+    travelDate:    g('er-traveldate'),
+    numApplicants: g('er-applicants') || '1',
+    city:          g('er-city'),
+    total:         parseFloat(g('er-total')) || 0,
+    addons:        addons,
+    pushedAt:      firebase.firestore.FieldValue.serverTimestamp(),
+    pushedBy:      (firebase.auth().currentUser||{}).email || 'admin',
+    status:        'receipt_pushed'
+  };
+  // Get ref from application doc
+  var appDoc = await db.collection('applications').doc(_editReceiptAppId).get();
+  if (appDoc.exists) {
+    receiptData.ref = appDoc.data().ref || _editReceiptAppId;
+    receiptData.countryCode = appDoc.data().countryCode || getCodeFromName(receiptData.destination) || '';
+    receiptData.applicantPhoto = appDoc.data().applicantPhoto || '';
+  }
+  try {
+    // Save to receipts collection — client reads from here
+    await db.collection('receipts').doc(_editReceiptAppId).set(receiptData);
+    // Update application status
+    await db.collection('applications').doc(_editReceiptAppId).update({
+      status: 'receipt_pushed',
+      receiptPushedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById('edit-receipt-modal').style.display = 'none';
+    showNotif('✅', 'Reçu envoyé au client avec succès !');
+    // Admin can preview
+    window.showReceipt(receiptData);
+  } catch(e) {
+    showNotif('⚠️', 'Erreur: ' + e.message);
+  }
+};
+
+// ══════════════════════════════════════════════════════
+//  CLIENT/B2B: Check if receipt is available
+// ══════════════════════════════════════════════════════
+window.checkAndShowReceipt = async function(appId) {
+  var snap = await db.collection('receipts').doc(appId).get();
+  if (snap.exists) {
+    window.showReceipt(snap.data());
+  } else {
+    showNotif('ℹ️', 'Le reçu n'est pas encore disponible. L'admin le poussera après validation du paiement.');
+  }
+};
+
+
 // ── Complete showReceipt — fills modal + stores data for PDF ──
 var _receiptData = null;
 
@@ -4750,10 +4978,11 @@ window.showReceipt = function(data) {
   s('receipt-email',      data.email);
   s('receipt-phone',      data.phone);
   s('receipt-nationality',data.nationality);
-  // Flag image using countryCode — same pattern as visa-portal.html
-  var destFlagHtml = data.countryCode ? flagImg(data.countryCode, 'sm') : '';
+  // Resolve countryCode via getCodeFromName (covers FR/EN/aliases)
+  var _panelCC = data.countryCode || getCodeFromName(destClean) || '';
+  var destFlagHtml = _panelCC ? flagImg(_panelCC, 'sm') : '';
   var destEl2 = document.getElementById('receipt-destination');
-  if (destEl2) destEl2.innerHTML = destFlagHtml + ' ' + (destClean || data.destination || '');
+  if (destEl2) destEl2.innerHTML = (destFlagHtml ? destFlagHtml + ' ' : '') + (destClean || data.destination || '');
   s('receipt-visatype',   data.visaType);
   s('receipt-package',    data.package);
   s('receipt-date-travel',data.travelDate || 'A preciser');
@@ -5546,7 +5775,7 @@ window.submitB2BApplication = async function() {
       var _b2bFlag2 = _b2bDestOpt2 ? (_b2bDestOpt2.dataset.flag || '') : '';
       var _b2bClean2 = _b2bDestOpt2 ? (_b2bDestOpt2.dataset.clean || _b2bDestOpt2.text.replace(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/g,'').trim()) : '';
       var _b2bDestText = _b2bFlag2 ? _b2bFlag2 + ' ' + _b2bClean2 : _b2bClean2;
-      window.showReceipt({
+      window.showSubmissionConfirmation({
         ref: ref,
         firstName: document.getElementById('b2b-fname').value.trim(),
         lastName: document.getElementById('b2b-lname').value.trim(),
@@ -5813,9 +6042,21 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
   var now = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
           + ' à ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var destClean = (d.destination||'').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
-  // Flag image — same pattern as visa-portal.html
-  var destFlagImg = d.countryCode ? flagImg(d.countryCode, 'sm') : '';
-  var destFlagEmoji = destFlagImg; // alias for photo block compatibility
+  // Resolve countryCode using all available methods
+  var _cc = d.countryCode || getCodeFromName(destClean) || '';
+  if (!_cc && typeof _cityPricesCache !== 'undefined') {
+    Object.keys(_cityPricesCache).forEach(function(cid){
+      if (_cc) return;
+      var cn = (_cityPricesCache[cid].name||'').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').trim();
+      var dc = destClean;
+      if (cn && (dc.toLowerCase().indexOf(cn.toLowerCase())>-1 || cn.toLowerCase().indexOf(dc.toLowerCase())>-1)) {
+        _cc = getCodeFromName(cn);
+      }
+    });
+  }
+  if (_cc) d = Object.assign({}, d, { countryCode: _cc });
+  var destFlagImg = _cc ? flagImg(_cc, 'sm') : '';
+  var destFlagEmoji = destFlagImg;
   var addonsLine = (d.addons && d.addons.length) ? d.addons.join(', ') : '';
 
   // Security token
@@ -5983,12 +6224,15 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     + '</div>' // end .page
     // QR init script — runs inline after DOM ready
     + '<script>'
-    + 'window.addEventListener("load",function(){'
+    + '(function attempt(n){'
     + '  var el=document.getElementById("qr-render");'
     + '  var txt='+JSON.stringify(qrPayload)+';'
-    + '  if(!el||!window.QRCode){if(el)el.innerHTML="<div style=\"font-size:7px;color:#1a3a6b;word-break:break-all;padding:4px\">"+txt+"</div>";return;}'
-    + '  new QRCode(el,{text:txt,width:130,height:130,colorDark:"#0B1D35",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H});'
-    + '});'
+    + '  if(window.QRCode&&el){'
+    + '    el.innerHTML="";'
+    + '    new QRCode(el,{text:txt,width:130,height:130,colorDark:"#0B1D35",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H});'
+    + '  } else if(n>0){ setTimeout(function(){ attempt(n-1); },300); }'
+    + '  else if(el){ el.innerHTML="<div style=\\"font-size:7px;color:#1a3a6b;word-break:break-all;padding:4px\\">"+txt+"</div>"; }'
+    + '})(20);'
     + '<\/script>'
     + '</body></html>';
 
@@ -6054,6 +6298,7 @@ function renderB2BAppsTable(containerId, apps) {
           + '<td style="font-weight:600">'+(a.total||0).toLocaleString()+' MAD</td>'
           + '<td style="color:#1B7A4A;font-weight:700">'+(a.agencyCommission||0).toLocaleString()+' MAD</td>'
           + '<td><button onclick="downloadReceiptForApp(\''+a.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap">📄 Reçu</button></td>'
+          + '<td><button onclick="if(isAdmin){adminPushReceipt(\''+a.id+'\')" style="background:#0B1D35;color:#c9973a;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap">📄 Reçu</button></td>'
           + '</tr>';
       }).join('')
     + '</tbody></table></div>';
