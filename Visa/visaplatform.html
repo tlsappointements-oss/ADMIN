@@ -4798,7 +4798,9 @@ window.addEventListener('DOMContentLoaded', function() {
 // ══════════════════════════════════════════════════════
 //  SUBMISSION CONFIRMATION — shown to client/B2B after submit
 // ══════════════════════════════════════════════════════
+var _lastSubmissionData = null;
 window.showSubmissionConfirmation = function(data) {
+  _lastSubmissionData = data;
   var modal = document.getElementById('submission-confirm-modal');
   if (!modal) {
     modal = document.createElement('div');
@@ -4825,13 +4827,19 @@ window.showSubmissionConfirmation = function(data) {
     html += '<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:#92400E">';
     html += '<strong>En attente de confirmation admin.</strong> Le re&#231;u officiel vous sera envoy&#233; une fois le paiement valid&#233;.';
     html += '</div>';
-    html += '<button id="sc-close-btn" style="width:100%;background:#0B1D35;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Fermer</button>';
+    html += '<div style="display:flex;gap:8px;margin-top:0">';
+    html += '<button id="sc-download-btn" style="flex:1;background:#1B7A4A;color:#fff;border:none;border-radius:10px;padding:13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">&#128424; T&#233;l&#233;charger Formulaire PDF</button>';
+    html += '<button id="sc-close-btn" style="flex:1;background:#0B1D35;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Fermer</button>';
+    html += '</div>';
     html += '</div></div>';
     modal.innerHTML = html;
     document.body.appendChild(modal);
     document.getElementById('sc-close-btn').addEventListener('click', function() {
       modal.style.display = 'none';
       document.body.style.overflow = '';
+    });
+    document.getElementById('sc-download-btn').addEventListener('click', function() {
+      window.downloadSubmissionFormPDF(_lastSubmissionData);
     });
   }
   var sc = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v || '—'; };
@@ -4896,6 +4904,16 @@ window.openEditReceiptModal = function(a) {
     h += '<div style="grid-column:span 2">' + _erField('er-total', 'Montant total (MAD)', 'number') + '</div>';
     h += '<div style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:5px">Add-ons (s&#233;par&#233;s par virgule)</label>';
     h += '<input id="er-addons" type="text" style="width:100%;box-sizing:border-box;border:1.5px solid #E5E7EB;border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none"></div>';
+    h += '<div style="grid-column:span 2">';
+    h += '<label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:5px">Photo du demandeur</label>';
+    h += '<div style="display:flex;align-items:center;gap:12px">';
+    h += '<div id="er-photo-preview-wrap" style="width:72px;height:90px;border:2px solid #E5E7EB;border-radius:6px;overflow:hidden;background:#F9FAFB;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+    h += '<img id="er-photo-preview" src="" style="width:100%;height:100%;object-fit:cover;display:none"><span id="er-photo-icon" style="font-size:24px">👤</span></div>';
+    h += '<div>';
+    h += '<label style="display:inline-block;background:#0B1D35;color:#fff;border-radius:7px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer">&#128247; Choisir photo<input id="er-photo-input" type="file" style="display:none" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,.png,.jpg,.jpeg,.webp,.bmp"></label>';
+    h += '<div id="er-photo-name" style="font-size:10px;color:#6B7280;margin-top:5px">Aucune photo s&#233;lectionn&#233;e</div>';
+    h += '<div style="font-size:10px;color:#9CA3AF;margin-top:2px">Laissez vide pour conserver la photo existante</div>';
+    h += '</div></div></div>';
     h += '</div>';
     h += '<div style="padding:0 22px 20px;display:flex;gap:10px">';
     h += '<button id="er-save-btn" style="flex:1;background:#1B7A4A;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Enregistrer &#38; Envoyer au client</button>';
@@ -4906,6 +4924,19 @@ window.openEditReceiptModal = function(a) {
     document.getElementById('er-close-btn').addEventListener('click', function() { modal.style.display = 'none'; });
     document.getElementById('er-cancel-btn').addEventListener('click', function() { modal.style.display = 'none'; });
     document.getElementById('er-save-btn').addEventListener('click', function() { window.saveEditedReceipt(); });
+    document.getElementById('er-photo-input').addEventListener('change', function() {
+      var file = this.files[0]; if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var prev = document.getElementById('er-photo-preview');
+        var icon = document.getElementById('er-photo-icon');
+        var name = document.getElementById('er-photo-name');
+        if (prev) { prev.src = e.target.result; prev.style.display = 'block'; }
+        if (icon) icon.style.display = 'none';
+        if (name) name.textContent = file.name;
+      };
+      reader.readAsDataURL(file);
+    });
   }
   var set = function(id, v) { var e = document.getElementById(id); if (e) e.value = v || ''; };
   set('er-firstname',   a.firstName);
@@ -4922,6 +4953,19 @@ window.openEditReceiptModal = function(a) {
   set('er-city',        a.city);
   set('er-total',       a.total || 0);
   set('er-addons',      (a.addons || []).join(', '));
+  // Show existing photo if any
+  var erPrev = document.getElementById('er-photo-preview');
+  var erIcon = document.getElementById('er-photo-icon');
+  var erName = document.getElementById('er-photo-name');
+  if (a.applicantPhoto && erPrev) {
+    erPrev.src = a.applicantPhoto; erPrev.style.display = 'block';
+    if (erIcon) erIcon.style.display = 'none';
+    if (erName) erName.textContent = 'Photo existante';
+  } else if (erPrev) {
+    erPrev.src = ''; erPrev.style.display = 'none';
+    if (erIcon) erIcon.style.display = '';
+    if (erName) erName.textContent = 'Aucune photo sélectionnée';
+  }
   modal.style.display = 'flex';
 };
 
@@ -4948,7 +4992,16 @@ window.saveEditedReceipt = async function() {
     city:          g('er-city'),
     total:         parseFloat(g('er-total')) || 0,
     addons:        addons,
-    applicantPhoto: appData.applicantPhoto || '',
+    applicantPhoto: (function(){
+      var inp = document.getElementById('er-photo-input');
+      var prev = document.getElementById('er-photo-preview');
+      // If a new photo was selected and preview has it, use that
+      if (inp && inp.files && inp.files[0] && prev && prev.src && prev.src.startsWith('data:')) {
+        return prev.src;
+      }
+      // Otherwise keep existing
+      return appData.applicantPhoto || '';
+    })(),
     pushedAt:      firebase.firestore.FieldValue.serverTimestamp(),
     pushedBy:      (firebase.auth().currentUser || {}).email || 'admin',
     status:        'receipt_pushed'
@@ -6040,6 +6093,171 @@ function appToReceiptData(a) {
 // ══════════════════════════════════════════════════════════════════
 //  RECEIPT PDF — full appointment-letter style with inline QR
 // ══════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════
+//  SUBMISSION FORM PDF — shown to client/B2B after submit
+//  Same structure as receipt but labelled as submission form
+// ══════════════════════════════════════════════════════════════════
+window.downloadSubmissionFormPDF = async function(data) {
+  if (!data) data = _lastSubmissionData;
+  if (!data) { showNotif('Aucune donnée de soumission disponible'); return; }
+
+  var _co       = (_settingsCache && _settingsCache.company) || {};
+  var coName    = _co.name    || 'EuroVisa Pro';
+  var coAddress = _co.address || 'Casablanca, Maroc';
+  var coPhone   = _co.phone   || '+212 682 652 382';
+  var coEmail   = _co.email   || 'tls.appointements@gmail.com';
+  var coTagline = _co.tagline || 'Services Visa Schengen · Casablanca, Maroc';
+  var _sig      = (_settingsCache && _settingsCache.signature) || {};
+  var agentName = _sig.name  || localStorage.getItem('eurovisa_agent_name') || '';
+  var agentSig  = _sig.sig   || localStorage.getItem('eurovisa_signature')  || '';
+  var agentStamp= _sig.stamp || localStorage.getItem('eurovisa_stamp')      || '';
+
+  var now = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
+          + ' à ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var destClean = (data.destination||'').replace(/\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/g,'').replace(/[\u{1F300}-\u{1FFFF}]/gu,'').trim();
+  var _cc = data.countryCode || getCodeFromName(destClean) || '';
+  var destFlagImg = _cc ? flagImg(_cc, 'sm') : '';
+  var addonsLine = (data.addons && data.addons.length) ? data.addons.join(', ') : '';
+
+  var css = [
+    '*{margin:0;padding:0;box-sizing:border-box}',
+    'html,body{background:#ccc;font-family:Arial,Helvetica,sans-serif;color:#0a1628;font-size:11px}',
+    '.page{width:210mm;min-height:297mm;margin:8px auto;background:#fff;box-shadow:0 8px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden}',
+    '.top-stripe{height:8px;background:linear-gradient(90deg,#1B7A4A 0%,#0B1D35 50%,#1B7A4A 100%);flex-shrink:0}',
+    '.letterhead{padding:16px 32px 12px;border-bottom:2px solid #1B7A4A;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-shrink:0}',
+    '.lh-org{font-size:16px;font-weight:900;color:#0B1D35;letter-spacing:1.5px;text-transform:uppercase}',
+    '.lh-sub{font-size:7.5px;letter-spacing:3px;text-transform:uppercase;color:#888;margin-top:2px}',
+    '.lh-addr{font-size:8.5px;color:#666;margin-top:5px;line-height:1.7}',
+    '.lh-right{text-align:right;flex-shrink:0}',
+    '.lh-doc-label{font-size:7.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:2px}',
+    '.lh-ref{font-size:15px;font-weight:900;color:#1B7A4A;letter-spacing:.05em}',
+    '.lh-date{font-size:8.5px;color:#888;margin-top:2px}',
+    '.lh-status{display:inline-block;background:#1B7A4A;color:#fff;font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:4px;margin-top:5px}',
+    '.body{padding:14px 32px;flex:1;display:flex;flex-direction:column;gap:8px}',
+    '.doc-title{font-size:12px;font-weight:900;color:#1B7A4A;text-align:center;letter-spacing:3px;text-transform:uppercase}',
+    '.doc-subtitle{font-size:7.5px;text-align:center;color:#888;letter-spacing:2px;text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid #e8e8e8}',
+    '.intro{font-size:9.5px;line-height:1.6;color:#333}',
+    '.pending-box{background:#1B7A4A;border-radius:7px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}',
+    '.pending-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.7)}',
+    '.pending-status{font-size:14px;font-weight:900;color:#fff}',
+    '.sh{font-size:7.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1B7A4A;background:#f0f9f4;padding:4px 10px;border-left:3px solid #1B7A4A}',
+    '.it{width:100%;border-collapse:collapse;font-size:9px}',
+    '.it tr{border-bottom:1px solid #f0f0f0}',
+    '.it td{padding:3.5px 10px;vertical-align:middle}',
+    '.it td:first-child{font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#666;width:37%;background:#fafafa;font-size:8px}',
+    '.svc-t{width:100%;border-collapse:collapse}',
+    '.svc-t th{background:#f0f9f4;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#1B7A4A;padding:6px 10px;text-align:left}',
+    '.svc-t td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:9px}',
+    '.notice{background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:6px;padding:8px 12px;font-size:8.5px;color:#92400E;line-height:1.5}',
+    '.steps{background:#f0f9f4;border:1.5px solid #1B7A4A;border-radius:6px;padding:8px 12px}',
+    '.steps-t{font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0B1D35;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid rgba(27,122,74,.3)}',
+    '.steps-g{display:grid;grid-template-columns:1fr 1fr;gap:1px 12px}',
+    '.si{font-size:8.5px;color:#555;padding:2px 0 2px 10px;position:relative;line-height:1.4}',
+    '.si::before{content:"\\25B8";position:absolute;left:0;color:#1B7A4A;font-size:7.5px}',
+    '.sig-row{display:flex;justify-content:space-between;align-items:flex-end;padding-top:8px;border-top:1px solid #e8e8e8;margin-top:auto}',
+    '.sig-b{font-size:8px;color:#aaa}',
+    '.sig-line{border-bottom:1px solid #1B7A4A;width:110px;margin-bottom:3px}',
+    '.foot{padding:8px 32px;border-top:2px solid #1B7A4A;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}',
+    '.foot span{font-size:8.5px;color:#aaa}',
+    '.bot-stripe{height:5px;background:linear-gradient(90deg,#1B7A4A,#0B1D35);flex-shrink:0}',
+    '.npb{position:fixed;top:0;left:0;right:0;background:#1B7A4A;color:#fff;padding:9px 20px;display:flex;align-items:center;justify-content:center;gap:14px;z-index:9999;font-family:Arial,sans-serif;font-size:13px;font-weight:600}',
+    '.npb button{padding:6px 18px;background:#fff;color:#1B7A4A;border:none;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer}',
+    '.npb .cl{background:rgba(255,255,255,.2);color:#fff}',
+    'body{padding-top:46px}',
+    '@page{size:A4 portrait;margin:0}',
+    '@media print{.npb{display:none!important}body{padding:0!important}.page{margin:0;box-shadow:none;width:210mm}}'
+  ].join('');
+
+  // Photo block
+  var photoBlock = '<div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex-shrink:0;width:100px">'
+    + '<div style="width:88px;height:110px;border:2px solid #1B7A4A;border-radius:4px;overflow:hidden;background:#f0f9f4;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12)">'
+    + (data.applicantPhoto
+        ? '<img src="' + data.applicantPhoto + '" style="width:100%;height:100%;object-fit:cover;display:block">'
+        : '<div style="text-align:center;padding:8px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1B7A4A" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div style="font-size:6px;color:#aaa;margin-top:3px;letter-spacing:.8px;text-transform:uppercase">Photo</div></div>')
+    + '</div>'
+    + '<div style="font-size:6px;color:#888;letter-spacing:.8px;text-transform:uppercase;text-align:center">Photo demandeur</div>'
+    + (_cc ? '<div style="width:88px;border:1px solid #e0e0e0;border-radius:3px;overflow:hidden;margin-top:6px"><img src="https://flagcdn.com/w160/' + _cc.toLowerCase() + '.png" style="width:100%;height:auto;display:block"></div><div style="font-size:6px;color:#888;text-transform:uppercase;text-align:center;margin-top:2px">' + destClean + '</div>' : '')
+    + '</div>';
+
+  var addonsRows = addonsLine
+    ? addonsLine.split(', ').map(function(a){ return '<tr><td style="padding-left:16px;color:#6B7280">+ ' + a.trim() + '</td><td style="text-align:right;color:#9CA3AF;font-size:8px">inclus</td></tr>'; }).join('')
+    : '';
+
+  var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">'
+    + '<title>Soumission ' + data.ref + ' — ' + coName + '</title>'
+    + '<style>' + css + '</style></head><body>'
+    + '<div class="npb">'
+    + '<span>Formulaire de Soumission &nbsp;|&nbsp; ' + data.ref + '</span>'
+    + '<button onclick="window.print()">&#128424; Imprimer / PDF</button>'
+    + '<button class="cl" onclick="window.close()">&#10005;</button>'
+    + '</div>'
+    + '<div class="page">'
+    + '<div class="top-stripe"></div>'
+    + '<div class="letterhead">'
+    + '<div><div class="lh-org">' + coName + '</div><div class="lh-sub">' + coTagline + '</div><div class="lh-addr">' + coAddress + '<br>' + coPhone + ' &middot; ' + coEmail + '</div></div>'
+    + '<div class="lh-right"><div class="lh-doc-label">R&eacute;f&eacute;rence de soumission</div><div class="lh-ref">' + data.ref + '</div><div class="lh-date">Soumis le ' + now + '</div><div class="lh-status">&#9200; EN ATTENTE DE VALIDATION</div></div>'
+    + '</div>'
+    + '<div class="body">'
+    + '<div class="doc-title">Formulaire de Soumission</div>'
+    + '<div class="doc-subtitle">Accusé de réception · En attente de confirmation admin · ' + coName + '</div>'
+    + '<p class="intro">Ce document confirme que la demande de visa de <strong>' + data.firstName + ' ' + (data.lastName||'') + '</strong> a bien été reçue. Le reçu officiel vous sera transmis après validation du paiement par notre équipe.</p>'
+    + '<div class="pending-box"><span class="pending-label">Statut de la demande</span><span class="pending-status">&#9200; En attente de paiement</span></div>'
+    + '<div style="display:flex;gap:12px;align-items:flex-start">'
+    + '<div style="flex:1"><div class="sh">Informations client</div><table class="it">'
+    + '<tr><td>Nom complet</td><td><strong>' + data.firstName + ' ' + (data.lastName||'') + '</strong></td></tr>'
+    + '<tr><td>Email</td><td style="font-size:8px;word-break:break-all">' + (data.email||'—') + '</td></tr>'
+    + '<tr><td>T&eacute;l&eacute;phone</td><td>' + (data.phone||'—') + '</td></tr>'
+    + '<tr><td>Nationalit&eacute;</td><td>' + (data.nationality||'—') + '</td></tr>'
+    + (data.passport ? '<tr><td>Passeport</td><td>' + data.passport + '</td></tr>' : '')
+    + '</table></div>'
+    + '<div style="flex:1"><div class="sh">D&eacute;tails du visa</div><table class="it">'
+    + '<tr><td>Destination</td><td><strong>' + destFlagImg + ' ' + destClean + '</strong></td></tr>'
+    + '<tr><td>Type de visa</td><td>' + (data.visaType||'—') + '</td></tr>'
+    + '<tr><td>Date voyage</td><td>' + (data.travelDate||'À préciser') + '</td></tr>'
+    + '<tr><td>Voyageurs</td><td>' + (data.numApplicants||'1') + '</td></tr>'
+    + (data.city ? '<tr><td>Ville RDV</td><td>' + data.city + '</td></tr>' : '')
+    + '</table></div>'
+    + photoBlock
+    + '</div>'
+    + '<div><div class="sh">Services demand&eacute;s</div>'
+    + '<table class="svc-t"><thead><tr><th>Service</th><th style="text-align:right">Montant estim&eacute;</th></tr></thead><tbody>'
+    + '<tr><td style="font-weight:700">' + (data.package||'—') + '</td><td style="text-align:right;font-weight:700">' + (data.total||0).toLocaleString() + ' MAD</td></tr>'
+    + addonsRows
+    + '</tbody></table></div>'
+    + '<div class="notice">&#9888; <strong>Important :</strong> Ce document n\'est pas un reçu de paiement. Il confirme uniquement la réception de votre demande. Le reçu officiel vous sera envoyé par notre équipe une fois le paiement validé. Référence : <strong>' + data.ref + '</strong></div>'
+    + '<div class="steps"><div class="steps-t">Prochaines &eacute;tapes</div><div class="steps-g">'
+    + '<div class="si">Notre &eacute;quipe vous contacte dans les <strong>2h</strong></div>'
+    + '<div class="si">Proc&eacute;dez au r&egrave;glement du montant indiqu&eacute;</div>'
+    + '<div class="si">R&eacute;ception du re&ccedil;u officiel apr&egrave;s paiement</div>'
+    + '<div class="si">Prise de rendez-vous au centre de visa</div>'
+    + '</div></div>'
+    + '<div class="sig-row">'
+    + '<div class="sig-b">'
+    + (agentSig ? '<img src="' + agentSig + '" style="height:34px;max-width:120px;margin-bottom:3px;display:block"><br>' : '<div class="sig-line"></div>')
+    + '<span style="font-size:8px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">' + (agentName||'Agent responsable') + '</span><br><span>' + coName + '</span>'
+    + '</div>'
+    + '<div style="text-align:center;font-size:7.5px;color:#aaa"><div>Document g&eacute;n&eacute;r&eacute; automatiquement · Accusé de réception uniquement</div><div>' + now + '</div></div>'
+    + '<div class="sig-b" style="text-align:right">'
+    + (agentStamp ? '<img src="' + agentStamp + '" style="height:56px;max-width:64px;opacity:.9;display:block;margin-left:auto"><br>' : '<div class="sig-line" style="margin-left:auto"></div>')
+    + '<span style="font-size:8px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">Cachet officiel</span><br><span>Autorit&eacute; de traitement</span>'
+    + '</div>'
+    + '</div>'
+    + '</div>'
+    + '<div class="foot"><span><strong>' + data.ref + '</strong> &middot; ' + data.firstName + ' ' + (data.lastName||'') + '</span>'
+    + '<span style="text-align:center">' + coName + ' &middot; Formulaire de soumission</span>'
+    + '<span style="text-align:right">' + destClean + ' &middot; Page 1/1</span></div>'
+    + '<div class="bot-stripe"></div>'
+    + '</div>'
+    + '</body></html>';
+
+  var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  var url  = URL.createObjectURL(blob);
+  var win  = window.open(url, '_blank');
+  if (!win) { alert('Veuillez autoriser les popups.'); return; }
+  setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 120000);
+};
+
 window.downloadReceiptPDF = async function(appDataOrNull) {
   var d = appDataOrNull || _receiptData;
   if (!d) return;
@@ -6190,7 +6408,7 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     + (d.passport ? '<tr><td>Passeport</td><td>'+d.passport+'</td></tr>' : '')
     + '</table></div>'
     + '<div style="flex:1"><div class="sh">Détails du visa</div><table class="it">'
-    + '<tr><td>Destination</td><td><strong>'+destFlagImg+destClean+'</strong></td></tr>'
+    + '<tr><td>Destination</td><td><strong>'+destFlagImg+' '+destClean+'</strong></td></tr>'
     + '<tr><td>Type de visa</td><td>'+(d.visaType||'—')+'</td></tr>'
     + '<tr><td>Date voyage</td><td>'+(d.travelDate||'À préciser')+'</td></tr>'
     + '<tr><td>Voyageurs</td><td>'+(d.numApplicants||'1')+'</td></tr>'
