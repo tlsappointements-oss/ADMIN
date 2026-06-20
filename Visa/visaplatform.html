@@ -1688,6 +1688,23 @@ tr:hover td{background:var(--cream)}
         <button class="btn-sm btn-sm-green" onclick="sendWAApptOnly()">🗓 Appt. Reminder</button>
       </div>
     </div>
+    <!-- ADMIN RECEIPT ACTIONS -->
+    <div class="drawer-section" id="drawer-receipt-section">
+      <h4>🧾 Reçu Officiel</h4>
+      <div id="drawer-receipt-admin" style="display:none">
+        <p style="font-size:12px;color:var(--muted);margin:0 0 10px">En tant qu'admin, modifiez et envoyez le reçu une fois le paiement reçu.</p>
+        <div class="drawer-actions">
+          <button class="btn-sm btn-sm-green" onclick="adminPushReceipt(window._currentDrawerAppId)">✏️ Modifier &amp; Envoyer le Reçu</button>
+          <button class="btn-sm btn-sm-navy" onclick="downloadReceiptForApp(window._currentDrawerAppId)">📄 PDF Reçu</button>
+        </div>
+      </div>
+      <div id="drawer-receipt-client" style="display:none">
+        <p style="font-size:12px;color:var(--muted);margin:0 0 10px">Le reçu officiel sera disponible après validation du paiement par l'admin.</p>
+        <div class="drawer-actions">
+          <button class="btn-sm btn-sm-navy" onclick="checkAndShowReceipt(window._currentDrawerAppId)">📄 Voir mon Reçu</button>
+        </div>
+      </div>
+    </div>
     <!-- DOCUMENTS UPLOADED -->
     <div class="drawer-section" id="drawer-docs-section" style="display:none">
       <h4>📎 Documents téléchargés</h4>
@@ -2762,6 +2779,12 @@ function buildUsersTable(users) {
 //  DRAWER
 // ══════════════════════════════════════════
 window.openDrawer = function(id) {
+  window._currentDrawerAppId = id;
+  // Show correct receipt section based on role
+  var adminRec = document.getElementById("drawer-receipt-admin");
+  var clientRec = document.getElementById("drawer-receipt-client");
+  if (adminRec) adminRec.style.display = isAdmin ? "block" : "none";
+  if (clientRec) clientRec.style.display = isAdmin ? "none" : "block";
   const a = allApplications.find(x=>x.id===id);
   if (!a) return;
   currentDrawerApp = a;
