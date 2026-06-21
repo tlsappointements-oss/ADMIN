@@ -4928,6 +4928,8 @@ window.openEditReceiptModal = function(a) {
       var file = this.files[0]; if (!file) return;
       var reader = new FileReader();
       reader.onload = function(e) {
+        // Store base64 in variable — NOT just img.src (browser normalizes src)
+        window._erNewPhotoBase64 = e.target.result;
         var prev = document.getElementById('er-photo-preview');
         var icon = document.getElementById('er-photo-icon');
         var name = document.getElementById('er-photo-name');
@@ -4966,6 +4968,7 @@ window.openEditReceiptModal = function(a) {
     if (erIcon) erIcon.style.display = '';
     if (erName) erName.textContent = 'Aucune photo sélectionnée';
   }
+  window._erNewPhotoBase64 = null; // reset on each open
   modal.style.display = 'flex';
 };
 
@@ -4992,28 +4995,36 @@ window.saveEditedReceipt = async function() {
     city:          g('er-city'),
     total:         parseFloat(g('er-total')) || 0,
     addons:        addons,
-    applicantPhoto: (function(){
-      var inp = document.getElementById('er-photo-input');
-      var prev = document.getElementById('er-photo-preview');
-      // If a new photo was selected and preview has it, use that
-      if (inp && inp.files && inp.files[0] && prev && prev.src && prev.src.startsWith('data:')) {
-        return prev.src;
-      }
-      // Otherwise keep existing
-      return appData.applicantPhoto || '';
-    })(),
+    // Photo: use newly uploaded base64 or keep existing from Firestore
+    applicantPhoto: window._erNewPhotoBase64 || appData.applicantPhoto || '',
     pushedAt:      firebase.firestore.FieldValue.serverTimestamp(),
     pushedBy:      (firebase.auth().currentUser || {}).email || 'admin',
     status:        'receipt_pushed'
   };
   try {
+    // If photo is large, save to clientUploads and strip from receipts doc
+    var photoForReceipt = receiptData.applicantPhoto || '';
+    if (photoForReceipt && photoForReceipt.length > 200000) {
+      // Save large photo to clientUploads
+      await db.collection('clientUploads').add({
+        appId: _editReceiptAppId,
+        status: 'admin_photo',
+        files: [{ key: 'photo', name: 'photo', data: photoForReceipt, type: 'image/*' }],
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      receiptData.applicantPhoto = ''; // clear from main doc to avoid size limit
+    }
     await db.collection('receipts').doc(_editReceiptAppId).set(receiptData);
     await db.collection('applications').doc(_editReceiptAppId).update({ status: 'receipt_pushed' });
     document.getElementById('edit-receipt-modal').style.display = 'none';
-    showNotif('Recu envoye au client avec succes !');
+    window._erNewPhotoBase64 = null;
+    showNotif('Reçu envoyé au client avec succès !');
+    // Show receipt with full photo (use in-memory data, not stripped Firestore doc)
+    receiptData.applicantPhoto = photoForReceipt;
     window.showReceipt(receiptData);
   } catch(e) {
     showNotif('Erreur: ' + e.message);
+    console.error('[saveEditedReceipt]', e);
   }
 };
 
@@ -5021,7 +5032,21 @@ window.checkAndShowReceipt = async function(appId) {
   try {
     var snap = await db.collection('receipts').doc(appId).get();
     if (snap.exists) {
-      window.showReceipt(snap.data());
+      var rData = snap.data();
+      // Fetch photo from clientUploads if not in receipt doc
+      if (!rData.applicantPhoto) {
+        var uSnap = await db.collection('clientUploads').where('appId','==',appId).get();
+        var adminPh = '', clientPh = '';
+        uSnap.forEach(function(u){
+          var d3 = u.data(); var files = d3.files || [];
+          var pf = files.find(function(f){ return f.key==='photo'; });
+          if (!pf||!pf.data) return;
+          if (d3.status==='admin_photo') adminPh = pf.data;
+          else clientPh = pf.data;
+        });
+        rData.applicantPhoto = adminPh || clientPh;
+      }
+      window.showReceipt(rData);
     } else {
       showNotif('Le recu nest pas encore disponible.');
     }
@@ -6486,16 +6511,19 @@ window.downloadReceiptForApp = async function(appId) {
     var doc = await db.collection('applications').doc(appId).get();
     if (!doc.exists) { showNotif('⚠️', 'Dossier introuvable'); return; }
     var appObj = Object.assign({id: doc.id}, doc.data());
-    // Fetch photo from clientUploads if not in application doc
-    if (!appObj.applicantPhoto) {
-      var uploads = await db.collection('clientUploads')
-        .where('appId','==',appId).get();
-      uploads.forEach(function(u) {
-        var files = u.data().files || [];
-        var photoFile = files.find(function(f){ return f.key === 'photo'; });
-        if (photoFile && photoFile.data) appObj.applicantPhoto = photoFile.data;
-      });
-    }
+    // Fetch photo from clientUploads (initial upload or admin_photo override)
+    var uploads = await db.collection('clientUploads').where('appId','==',appId).get();
+    var adminPhoto = '', clientPhoto = '';
+    uploads.forEach(function(u) {
+      var d2 = u.data();
+      var files = d2.files || [];
+      var photoFile = files.find(function(f){ return f.key === 'photo'; });
+      if (!photoFile || !photoFile.data) return;
+      if (d2.status === 'admin_photo') adminPhoto = photoFile.data;
+      else clientPhoto = photoFile.data;
+    });
+    // Admin photo takes priority over client photo
+    if (!appObj.applicantPhoto) appObj.applicantPhoto = adminPhoto || clientPhoto;
     var data = appToReceiptData(appObj);
     await window.downloadReceiptPDF(data);
   } catch(e) {
