@@ -5002,25 +5002,37 @@ window.saveEditedReceipt = async function() {
     status:        'receipt_pushed'
   };
   try {
-    // If photo is large, save to clientUploads and strip from receipts doc
+    // Keep photo in memory for immediate display — never store base64 in Firestore (1MB limit)
     var photoForReceipt = receiptData.applicantPhoto || '';
-    if (photoForReceipt && photoForReceipt.length > 200000) {
-      // Save large photo to clientUploads
-      await db.collection('clientUploads').add({
-        appId: _editReceiptAppId,
-        status: 'admin_photo',
-        files: [{ key: 'photo', name: 'photo', data: photoForReceipt, type: 'image/*' }],
-        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      receiptData.applicantPhoto = ''; // clear from main doc to avoid size limit
-    }
+    receiptData.applicantPhoto = ''; // always strip from Firestore doc
+
     await db.collection('receipts').doc(_editReceiptAppId).set(receiptData);
     await db.collection('applications').doc(_editReceiptAppId).update({ status: 'receipt_pushed' });
     document.getElementById('edit-receipt-modal').style.display = 'none';
+
+    // Store photo in Firebase Storage instead (reliable, no size limit)
+    if (photoForReceipt) {
+      try {
+        var storageRef = storage.ref('receipt_photos/' + _editReceiptAppId + '.jpg');
+        // Convert base64 to blob
+        var arr = photoForReceipt.split(','), mime = arr[0].match(/:(.*?);/)[1];
+        var bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while (n--) u8arr[n] = bstr.charCodeAt(n);
+        var blob = new Blob([u8arr], { type: mime });
+        var snap = await storageRef.put(blob);
+        var photoUrl = await snap.ref.getDownloadURL();
+        // Save the Storage URL (not base64) back to the receipt doc
+        await db.collection('receipts').doc(_editReceiptAppId).update({ applicantPhoto: photoUrl });
+        receiptData.applicantPhoto = photoUrl;
+      } catch(photoErr) {
+        console.warn('[saveEditedReceipt] photo upload failed, using base64 for display only:', photoErr);
+        // Still show receipt with base64 for this session
+        receiptData.applicantPhoto = photoForReceipt;
+      }
+    }
+
     window._erNewPhotoBase64 = null;
     showNotif('Reçu envoyé au client avec succès !');
-    // Show receipt with full photo (use in-memory data, not stripped Firestore doc)
-    receiptData.applicantPhoto = photoForReceipt;
     window.showReceipt(receiptData);
   } catch(e) {
     showNotif('Erreur: ' + e.message);
