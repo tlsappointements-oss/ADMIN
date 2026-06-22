@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EuroVisa Pro — Schengen Visa Services</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
@@ -331,7 +334,7 @@ tr:hover td{background:var(--cream)}
 .email-log-info p{font-size:11px;color:var(--muted);margin-top:2px}
 /* ADMIN BOTTOM BTN */
 #admin-access-btn{position:fixed;bottom:24px;left:24px;z-index:150}
-#admin-access-btn button{background:rgba(11,29,53,.85);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 13px;font-size:11px;font-family:inherit;cursor:pointer;transition:.2s;backdrop-filter:blur(8px)}
+#admin-access-btn button{background:rgba(11,29,53,.85);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 13px;font-size:11px;font-family:inherit;cursor:pointer;transition:.2s;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 #admin-access-btn button:hover{color:#fff;border-color:rgba(255,255,255,.3)}
 @media(max-width:768px){.dash-layout{grid-template-columns:1fr}.dash-sidebar{display:none}.form-row{grid-template-columns:1fr}.hero{padding:48px 1.5rem 64px}nav{padding:0 1rem}.admin-layout{grid-template-columns:1fr}.admin-sidebar{display:none}}
 @media(max-width:860px){.sig-two-col{grid-template-columns:1fr !important}}
@@ -434,7 +437,7 @@ tr:hover td{background:var(--cream)}
 .company-field-group input:focus,.company-field-group textarea:focus{border-color:var(--gold);background:#fff}
 .company-field-group textarea{resize:vertical;min-height:72px}
 /* B2B modal */
-.b2b-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(11,29,53,.7);z-index:600;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.b2b-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(11,29,53,.7);z-index:600;align-items:center;justify-content:center;padding:16px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 .b2b-modal-backdrop.open{display:flex}
 .b2b-modal{background:#fff;border-radius:14px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3)}
 .b2b-modal-head{background:var(--navy);border-radius:14px 14px 0 0;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
@@ -561,7 +564,7 @@ tr:hover td{background:var(--cream)}
             <div class="form-row">
               <div class="form-group"><label>Destination Country *</label>
                 <div class="cfp-wrap" id="cfp-wrap">
-                  <input type="hidden" id="dest-country" value="">
+                  <input type="hidden" id="dest-country" aria-label="Pays de destination" title="Pays de destination" value="">
                   <button type="button" class="cfp-btn" id="cfp-btn" onclick="toggleCFP()">
                     <span class="cfp-flag" id="cfp-selected-flag">🌍</span>
                     <span class="cfp-text" id="cfp-selected-text">Select destination country</span>
@@ -574,14 +577,14 @@ tr:hover td{background:var(--cream)}
                 </div>
               </div>
               <div class="form-group"><label>Visa Type *</label>
-                <select id="visa-type"><option value="">Select type</option><option>Tourist / Leisure (Type C)</option><option>Business (Type C)</option><option>Family Visit (Type C)</option><option>Student (Type C)</option><option>Medical Treatment (Type C)</option><option>Transit (Type A/B)</option><option>Long Stay / National Visa (Type D)</option><option>Work Visa (Type D)</option></select>
+                <select id="visa-type" aria-label="Sélectionner" title="Sélectionner"><option value="">Select type</option><option>Tourist / Leisure (Type C)</option><option>Business (Type C)</option><option>Family Visit (Type C)</option><option>Student (Type C)</option><option>Medical Treatment (Type C)</option><option>Transit (Type A/B)</option><option>Long Stay / National Visa (Type D)</option><option>Work Visa (Type D)</option></select>
               </div>
             </div>
             <div class="form-row">
               <div class="form-group"><label>Intended Travel Date</label><input type="date" id="travel-date"></div>
-              <div class="form-group"><label>Duration of Stay</label><select id="stay-duration"><option>1-7 days</option><option>8-15 days</option><option>16-30 days</option><option>31-60 days</option><option>61-90 days (maximum)</option></select></div>
+              <div class="form-group"><label>Duration of Stay</label><select id="stay-duration" aria-label="Sélectionner" title="Sélectionner"><option>1-7 days</option><option>8-15 days</option><option>16-30 days</option><option>31-60 days</option><option>61-90 days (maximum)</option></select></div>
             </div>
-            <div class="form-row full"><div class="form-group"><label>Number of Applicants</label><select id="num-applicants"><option>1 person</option><option>2 persons</option><option>3 persons</option><option>4 persons</option><option>Family (5+)</option></select></div></div>
+            <div class="form-row full"><div class="form-group"><label>Number of Applicants</label><select id="num-applicants" aria-label="Sélectionner" title="Sélectionner"><option>1 person</option><option>2 persons</option><option>3 persons</option><option>4 persons</option><option>Family (5+)</option></select></div></div>
             <div class="form-actions"><span></span><button class="btn-gold" onclick="nextStep(1)">Continue →</button></div>
           </div>
           <!-- Step 2 — packages & addons populated from Firestore in real-time -->
@@ -597,7 +600,7 @@ tr:hover td{background:var(--cream)}
             <!-- City RDV selector — appears after package selection -->
             <div id="booking-city-row" style="display:none;margin:16px 0;padding:14px 16px;background:var(--cream);border-radius:10px;border:1px solid var(--border)">
               <label style="font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:8px">🏙️ Ville de rendez-vous *</label>
-              <select id="booking-city-select" onchange="updateBookingCityPrice()" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:#fff;outline:none">
+              <select id="booking-city-select" aria-label="Ville de rendez-vous" title="Ville de rendez-vous" onchange="updateBookingCityPrice()" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:#fff;outline:none">
                 <option value="">Sélectionner votre ville...</option>
               </select>
               <div id="booking-city-price-badge" style="display:none;margin-top:10px;padding:8px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;font-size:13px;color:#1e40af;font-weight:600">
@@ -630,7 +633,7 @@ tr:hover td{background:var(--cream)}
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>Nationality</label><input type="text" id="nationality" placeholder="Moroccan"></div>
+              <div class="form-group"><label>Nationality</label><input type="text" id="nationality" aria-label="Nationalité" title="Nationalité" placeholder="Moroccan"></div>
               <div class="form-group"><label>Passport Number</label><input type="text" id="passport" placeholder="AB123456"></div>
             </div>
             <div class="form-row full"><div class="form-group"><label>Additional Notes</label><textarea id="notes" placeholder="Any specific requirements or questions for our team..."></textarea></div></div>
@@ -642,7 +645,7 @@ tr:hover td{background:var(--cream)}
                 <div>
                   <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">🛂 Photo du passeport</div>
                   <div class="upload-zone" id="zone-passport">
-                    <input type="file" id="upload-passport" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif,.pdf" onchange="handleUpload(this,'zone-passport','preview-passport','name-passport')">
+                    <input type="file" id="upload-passport" aria-label="Scan Passeport" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif,.pdf" onchange="handleUpload(this,'zone-passport','preview-passport','name-passport')">
                     <div class="upload-icon">🛂</div>
                     <div class="upload-label">Page principale</div>
                     <div class="upload-sub">JPG, PNG ou PDF · max 20 Mo</div>
@@ -653,7 +656,7 @@ tr:hover td{background:var(--cream)}
                 <div>
                   <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">🪪 Carte d'identité nationale</div>
                   <div class="upload-zone" id="zone-cni">
-                    <input type="file" id="upload-cni" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif,.pdf" onchange="handleUpload(this,'zone-cni','preview-cni','name-cni')">
+                    <input type="file" id="upload-cni" aria-label="Scan CIN" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif,.pdf" onchange="handleUpload(this,'zone-cni','preview-cni','name-cni')">
                     <div class="upload-icon">🪪</div>
                     <div class="upload-label">Recto &amp; verso</div>
                     <div class="upload-sub">JPG, PNG ou PDF · max 20 Mo</div>
@@ -664,7 +667,7 @@ tr:hover td{background:var(--cream)}
                 <div>
                   <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">🤳 Selfie personnel</div>
                   <div class="upload-zone" id="zone-selfie">
-                    <input type="file" id="upload-selfie" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif" onchange="handleUpload(this,'zone-selfie','preview-selfie','name-selfie')">
+                    <input type="file" id="upload-selfie" aria-label="Photo selfie" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tiff,.heic,.heif" onchange="handleUpload(this,'zone-selfie','preview-selfie','name-selfie')">
                     <div class="upload-icon">🤳</div>
                     <div class="upload-label">Photo face visible</div>
                     <div class="upload-sub" style="color:#1B7A4A">✓ Apparaîtra sur le reçu</div>
@@ -871,19 +874,19 @@ tr:hover td{background:var(--cream)}
             <!-- SECTION: Infos client -->
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)">👤 Informations du client</div>
             <div class="form-row">
-              <div class="form-group"><label>Prénom *</label><input type="text" id="b2b-fname" placeholder="Prénom"></div>
-              <div class="form-group"><label>Nom *</label><input type="text" id="b2b-lname" placeholder="Nom de famille"></div>
+              <div class="form-group"><label>Prénom *</label><input type="text" id="b2b-fname" aria-label="Prénom" placeholder="Ex: Mohamed" placeholder="Prénom"></div>
+              <div class="form-group"><label>Nom *</label><input type="text" id="b2b-lname" aria-label="Nom" placeholder="Ex: Alami" placeholder="Nom de famille"></div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>Email</label><input type="email" id="b2b-email" placeholder="client@email.com"></div>
-              <div class="form-group"><label>Téléphone *</label><input type="tel" id="b2b-phone" placeholder="+212 6..."></div>
+              <div class="form-group"><label>Email</label><input type="email" id="b2b-email" aria-label="Email" placeholder="email@exemple.com" placeholder="client@email.com"></div>
+              <div class="form-group"><label>Téléphone *</label><input type="tel" id="b2b-phone" aria-label="Téléphone" placeholder="Ex: +212 6XX XXX XXX" placeholder="+212 6..."></div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>N° Passeport *</label><input type="text" id="b2b-passport" placeholder="AB123456"></div>
+              <div class="form-group"><label>N° Passeport *</label><input type="text" id="b2b-passport" aria-label="N° Passeport" placeholder="Ex: AB123456" placeholder="AB123456"></div>
               <div class="form-group"><label>CIN (optionnel)</label><input type="text" id="b2b-cin" placeholder="AB123456"></div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>Nationalité</label><input type="text" id="b2b-nationality" placeholder="Marocaine"></div>
+              <div class="form-group"><label>Nationalité</label><input type="text" id="b2b-nationality" aria-label="Nationalité" placeholder="Ex: Marocaine" placeholder="Marocaine"></div>
               <div class="form-group"><label>Date de naissance</label><input type="date" id="b2b-dob"></div>
             </div>
 
@@ -896,7 +899,7 @@ tr:hover td{background:var(--cream)}
                 <label style="font-size:12px;font-weight:600;margin-bottom:8px;display:block">Photo passeport *</label>
                 <div id="b2b-photo-drop" onclick="document.getElementById('b2b-photo-input').click()"
                   style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:var(--cream);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:border-color .2s">
-                  <img id="b2b-photo-preview" src="" style="display:none;width:64px;height:80px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">
+                  <img id="b2b-photo-preview" src="" style="display:none;width:64px;height:80px;object-fit:cover;border-radius:4px;border:1px solid var(--border)" alt="">
                   <div id="b2b-photo-icon">📷</div>
                   <div style="font-size:11px;color:var(--muted)" id="b2b-photo-label">Cliquer pour choisir<br><span style="font-size:10px">JPG/PNG</span></div>
                 </div>
@@ -941,12 +944,12 @@ tr:hover td{background:var(--cream)}
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)">🌍 Détails du visa</div>
             <div class="form-row">
               <div class="form-group"><label>Pays de destination *</label>
-                <select id="b2b-dest" onchange="updateB2BCityDropdown(this.value)" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+                <select id="b2b-dest" aria-label="Destination" title="Destination" onchange="updateB2BCityDropdown(this.value)" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
                   <option value="">Sélectionner...</option>
                 </select>
               </div>
               <div class="form-group"><label>Type de visa *</label>
-                <select id="b2b-visa-type" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+                <select id="b2b-visa-type" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%" aria-label="Sélectionner" title="Sélectionner">
                   <option value="">Sélectionner...</option>
                   <option>Tourist / Leisure (Type C)</option>
                   <option>Business (Type C)</option>
@@ -959,9 +962,9 @@ tr:hover td{background:var(--cream)}
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>Date de voyage prévue</label><input type="date" id="b2b-travel-date"></div>
+              <div class="form-group"><label>Date de voyage prévue</label><input type="date" id="b2b-travel-date" aria-label="Date de voyage"></div>
               <div class="form-group"><label>Nombre de voyageurs</label>
-                <select id="b2b-num-applicants" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+                <select id="b2b-num-applicants" aria-label="Nombre de voyageurs" title="Nombre de voyageurs" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
                   <option value="1">1 personne</option>
                   <option value="2">2 personnes</option>
                   <option value="3">3 personnes</option>
@@ -974,7 +977,7 @@ tr:hover td{background:var(--cream)}
             <!-- SECTION: Service -->
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)">📦 Service & Tarif</div>
             <div class="form-group" style="margin-bottom:14px"><label>Package / Service *</label>
-              <select id="b2b-package" onchange="updateB2BPriceDisplay()" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+              <select id="b2b-package" aria-label="Package / Service" title="Package / Service" onchange="updateB2BPriceDisplay()" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
                 <option value="">Choisir un service...</option>
               </select>
             </div>
@@ -985,7 +988,7 @@ tr:hover td{background:var(--cream)}
             <!-- City RDV -->
             <div id="b2b-city-pricing-row" style="display:none;margin-bottom:14px">
               <div class="form-group"><label>🏙️ Ville de rendez-vous</label>
-                <select id="b2b-city" onchange="updateB2BCityPrice()" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+                <select id="b2b-city" aria-label="Ville de rendez-vous" title="Ville de rendez-vous" onchange="updateB2BCityPrice()" style="border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
                   <option value="">Sélectionner la ville...</option>
                 </select>
               </div>
@@ -1108,7 +1111,7 @@ tr:hover td{background:var(--cream)}
           <div class="admin-card-head"><h3 id="apps-count">Applications</h3>
             <div class="admin-filters">
               <input type="text" id="search-apps" placeholder="Search name, ref, email…" oninput="filterApps()" style="width:200px">
-              <select id="filter-status" onchange="filterApps()"><option value="">All statuses</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
+              <select id="filter-status" onchange="filterApps()" aria-label="Sélectionner" title="Sélectionner"><option value="">All statuses</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
             </div>
           </div>
           <div id="admin-apps-table"><div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Loading…</div></div>
@@ -1370,7 +1373,7 @@ tr:hover td{background:var(--cream)}
             <h3>🏢 Agences enregistrées</h3>
             <div class="admin-filters">
               <input type="text" id="b2b-search" placeholder="Rechercher agence…" oninput="filterAgencies()" style="width:200px">
-              <select id="b2b-filter-status" onchange="filterAgencies()"><option value="">Tous statuts</option><option value="active">Actif</option><option value="suspended">Suspendu</option><option value="pending">En attente</option></select>
+              <select id="b2b-filter-status" onchange="filterAgencies()" aria-label="Sélectionner" title="Sélectionner"><option value="">Tous statuts</option><option value="active">Actif</option><option value="suspended">Suspendu</option><option value="pending">En attente</option></select>
             </div>
           </div>
           <div id="b2b-agencies-list" style="padding:20px;display:flex;flex-direction:column;gap:10px">
@@ -1614,7 +1617,7 @@ tr:hover td{background:var(--cream)}
     <div class="drawer-section"><h4>🧾 Services</h4><div id="drawer-services"></div></div>
     <div class="drawer-section">
       <h4>🔄 Mettre à jour le statut</h4>
-      <select id="drawer-status-sel" style="border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;width:100%;margin-bottom:10px">
+      <select id="drawer-status-sel" style="border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;width:100%;margin-bottom:10px" aria-label="Sélectionner" title="Sélectionner">
         <option value="pending">⏳ En attente</option>
         <option value="processing">⚙️ En traitement</option>
         <option value="docs-ready">📄 Documents prêts</option>
@@ -4805,7 +4808,7 @@ window.showSubmissionConfirmation = function(data) {
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'submission-confirm-modal';
-    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(11,29,53,.78);z-index:600;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(11,29,53,.78);z-index:600;align-items:center;justify-content:center;padding:16px;-webkit-backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)';
     var html = '';
     html += '<div style="background:#fff;border-radius:14px;max-width:480px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.4);overflow:hidden;font-family:DM Sans,Arial,sans-serif">';
     html += '<div style="background:linear-gradient(135deg,#0B1D35,#132645);padding:22px 24px 18px;text-align:center">';
@@ -4880,7 +4883,7 @@ window.openEditReceiptModal = function(a) {
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'edit-receipt-modal';
-    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(11,29,53,.85);z-index:700;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(11,29,53,.85);z-index:700;align-items:center;justify-content:center;padding:16px;-webkit-backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)';
     var h = '';
     h += '<div style="background:#fff;border-radius:14px;max-width:600px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.5);font-family:DM Sans,Arial,sans-serif">';
     h += '<div style="background:linear-gradient(135deg,#0B1D35,#132645);padding:18px 22px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center">';
@@ -4903,12 +4906,12 @@ window.openEditReceiptModal = function(a) {
     h += _erField('er-city', 'Ville RDV', 'text');
     h += '<div style="grid-column:span 2">' + _erField('er-total', 'Montant total (MAD)', 'number') + '</div>';
     h += '<div style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:5px">Add-ons (s&#233;par&#233;s par virgule)</label>';
-    h += '<input id="er-addons" type="text" style="width:100%;box-sizing:border-box;border:1.5px solid #E5E7EB;border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none"></div>';
+    h += '<input id="er-addons" aria-label="Add-ons" placeholder="Ex: Traduction, Assurance" type="text" style="width:100%;box-sizing:border-box;border:1.5px solid #E5E7EB;border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none"></div>';
     h += '<div style="grid-column:span 2">';
     h += '<label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:5px">Photo du demandeur</label>';
     h += '<div style="display:flex;align-items:center;gap:12px">';
     h += '<div id="er-photo-preview-wrap" style="width:72px;height:90px;border:2px solid #E5E7EB;border-radius:6px;overflow:hidden;background:#F9FAFB;display:flex;align-items:center;justify-content:center;flex-shrink:0">';
-    h += '<img id="er-photo-preview" src="" style="width:100%;height:100%;object-fit:cover;display:none"><span id="er-photo-icon" style="font-size:24px">👤</span></div>';
+    h += '<img id="er-photo-preview" src="" style="width:100%;height:100%;object-fit:cover;display:none" alt=""><span id="er-photo-icon" style="font-size:24px">👤</span></div>';
     h += '<div>';
     h += '<label style="display:inline-block;background:#0B1D35;color:#fff;border-radius:7px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer">&#128247; Choisir photo<input id="er-photo-input" type="file" style="display:none" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,.png,.jpg,.jpeg,.webp,.bmp"></label>';
     h += '<div id="er-photo-name" style="font-size:10px;color:#6B7280;margin-top:5px">Aucune photo s&#233;lectionn&#233;e</div>';
@@ -5991,7 +5994,7 @@ window.viewAgencyClients = async function(agencyId, agencyName) {
           return '<tr>'
             +'<td><strong style="color:var(--gold)">'+a.ref+'</strong></td>'
             +'<td>'+(a.firstName||'')+' '+(a.lastName||'')
-              +(a.applicantPhoto?'<br><img src="'+a.applicantPhoto+'" style="width:28px;height:35px;object-fit:cover;border-radius:3px;margin-top:3px;border:1px solid var(--border)">'  :'')+'</td>'
+              +(a.applicantPhoto?'<br><img src="'+a.applicantPhoto+'" style="width:28px;height:35px;object-fit:cover;border-radius:3px;margin-top:3px;border:1px solid var(--border)" alt="">'  :'')+'</td>'
             +'<td>'+(a.destination||'—').replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'').trim()+'</td>'
             +'<td style="font-size:12px">'+(a.package||'—')+'</td>'
             +'<td style="font-size:11px">'+(a.createdAt&&a.createdAt.toDate?a.createdAt.toDate().toLocaleDateString('fr-FR'):'—')+'</td>'
@@ -6206,11 +6209,11 @@ window.downloadSubmissionFormPDF = async function(data) {
   var photoBlock = '<div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex-shrink:0;width:100px">'
     + '<div style="width:88px;height:110px;border:2px solid #1B7A4A;border-radius:4px;overflow:hidden;background:#f0f9f4;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12)">'
     + (data.applicantPhoto
-        ? '<img src="' + data.applicantPhoto + '" style="width:100%;height:100%;object-fit:cover;display:block">'
+        ? '<img src="' + data.applicantPhoto + '" style="width:100%;height:100%;object-fit:cover;display:block" alt="">'
         : '<div style="text-align:center;padding:8px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1B7A4A" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div style="font-size:6px;color:#aaa;margin-top:3px;letter-spacing:.8px;text-transform:uppercase">Photo</div></div>')
     + '</div>'
     + '<div style="font-size:6px;color:#888;letter-spacing:.8px;text-transform:uppercase;text-align:center">Photo demandeur</div>'
-    + (_cc ? '<div style="width:88px;border:1px solid #e0e0e0;border-radius:3px;overflow:hidden;margin-top:6px"><img src="https://flagcdn.com/w160/' + _cc.toLowerCase() + '.png" style="width:100%;height:auto;display:block"></div><div style="font-size:6px;color:#888;text-transform:uppercase;text-align:center;margin-top:2px">' + destClean + '</div>' : '')
+    + (_cc ? '<div style="width:88px;border:1px solid #e0e0e0;border-radius:3px;overflow:hidden;margin-top:6px"><img src="https://flagcdn.com/w160/' + _cc.toLowerCase() + '.png" style="width:100%;height:auto;display:block" alt=""></div><div style="font-size:6px;color:#888;text-transform:uppercase;text-align:center;margin-top:2px">' + destClean + '</div>' : '')
     + '</div>';
 
   var addonsRows = addonsLine
@@ -6267,12 +6270,12 @@ window.downloadSubmissionFormPDF = async function(data) {
     + '</div></div>'
     + '<div class="sig-row">'
     + '<div class="sig-b">'
-    + (agentSig ? '<img src="' + agentSig + '" style="height:34px;max-width:120px;margin-bottom:3px;display:block"><br>' : '<div class="sig-line"></div>')
+    + (agentSig ? '<img src="' + agentSig + '" style="height:34px;max-width:120px;margin-bottom:3px;display:block" alt=""><br>' : '<div class="sig-line"></div>')
     + '<span style="font-size:8px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">' + (agentName||'Agent responsable') + '</span><br><span>' + coName + '</span>'
     + '</div>'
     + '<div style="text-align:center;font-size:7.5px;color:#aaa"><div>Document g&eacute;n&eacute;r&eacute; automatiquement · Accusé de réception uniquement</div><div>' + now + '</div></div>'
     + '<div class="sig-b" style="text-align:right">'
-    + (agentStamp ? '<img src="' + agentStamp + '" style="height:56px;max-width:64px;opacity:.9;display:block;margin-left:auto"><br>' : '<div class="sig-line" style="margin-left:auto"></div>')
+    + (agentStamp ? '<img src="' + agentStamp + '" style="height:56px;max-width:64px;opacity:.9;display:block;margin-left:auto" alt=""><br>' : '<div class="sig-line" style="margin-left:auto"></div>')
     + '<span style="font-size:8px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">Cachet officiel</span><br><span>Autorit&eacute; de traitement</span>'
     + '</div>'
     + '</div>'
@@ -6396,7 +6399,7 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
   var photoBlock = '<div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex-shrink:0;width:100px">'
     + '<div style="width:88px;height:110px;border:2px solid #0B1D35;border-radius:4px;overflow:hidden;background:#f0f2f7;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12)">'
     + (d.applicantPhoto
-        ? '<img src="'+d.applicantPhoto+'" style="width:100%;height:100%;object-fit:cover;display:block">'
+        ? '<img src="'+d.applicantPhoto+'" style="width:100%;height:100%;object-fit:cover;display:block" alt="">'
         : '<div style="text-align:center;padding:8px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div style="font-size:6px;color:#aaa;margin-top:3px;letter-spacing:.8px;text-transform:uppercase">Photo</div></div>')
     + '</div>'
     + '<div style="font-size:6px;color:#888;letter-spacing:.8px;text-transform:uppercase;text-align:center">Photo demandeur</div>'
@@ -6473,12 +6476,12 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     // signature row
     + '<div class="sig-row">'
     + '<div class="sig-b">'
-    + (agentSig ? '<img src="'+agentSig+'" style="height:34px;max-width:120px;margin-bottom:3px;display:block"><br>' : '<div class="sig-line"></div>')
+    + (agentSig ? '<img src="'+agentSig+'" style="height:34px;max-width:120px;margin-bottom:3px;display:block" alt=""><br>' : '<div class="sig-line"></div>')
     + '<span style="font-size:8px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">'+(agentName||'Agent responsable')+'</span><br><span>'+coName+'</span>'
     + '</div>'
     + '<div style="text-align:center;font-size:7.5px;color:#aaa"><div>Document généré automatiquement · Valide sans signature manuscrite</div><div>'+now+'</div></div>'
     + '<div class="sig-b" style="text-align:right">'
-    + (agentStamp ? '<img src="'+agentStamp+'" style="height:56px;max-width:64px;opacity:.9;display:block;margin-left:auto"><br>' : '<div class="sig-line" style="margin-left:auto"></div>')
+    + (agentStamp ? '<img src="'+agentStamp+'" style="height:56px;max-width:64px;opacity:.9;display:block;margin-left:auto" alt=""><br>' : '<div class="sig-line" style="margin-left:auto"></div>')
     + '<span style="font-size:8px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">Cachet officiel</span><br><span>Autorité de traitement</span>'
     + '</div>'
     + '</div>'
@@ -6564,7 +6567,7 @@ function renderB2BAppsTable(containerId, apps) {
         return '<tr>'
           + '<td><strong style="color:var(--gold)">'+(a.ref||'—')+'</strong></td>'
           + '<td>'
-          + (a.applicantPhoto ? '<img src="'+a.applicantPhoto+'" style="width:26px;height:32px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:6px">' : '')
+          + (a.applicantPhoto ? '<img src="'+a.applicantPhoto+'" style="width:26px;height:32px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:6px" alt="">' : '')
           + (a.firstName||'')+' '+(a.lastName||'')
           + '</td>'
           + '<td>'+dest+'</td>'
@@ -6758,7 +6761,7 @@ window.handleDrawerAttachments = function(input) {
       list.innerHTML = _drawerAttachments.map(function(f, i) {
         var isImg = f.type && f.type.startsWith('image/');
         return '<div style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px">'
-          + (isImg ? '<img src="'+f.url+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">' : '<span>📄</span>')
+          + (isImg ? '<img src="'+f.url+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px" alt="">' : '<span>📄</span>')
           + '<span style="flex:1;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.name+'</span>'
           + '<button onclick="_drawerAttachments.splice('+i+',1);handleDrawerAttachments({files:[]})" style="background:none;border:none;cursor:pointer;color:#991b1b;font-size:12px">✕</button>'
           + '</div>';
@@ -6955,7 +6958,7 @@ window.openDrawer = function(id) {
     var src = d.url || d.data || '';
     var isImg = src && (src.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)/i.test(d.name||'') || (d.type&&d.type.startsWith('image/')));
     return '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;width:120px;flex-shrink:0;background:var(--white)">'
-      + (isImg ? '<img src="'+src+'" style="width:120px;height:80px;object-fit:cover;display:block">'
+      + (isImg ? '<img src="'+src+'" style="width:120px;height:80px;object-fit:cover;display:block" alt="">'
                : '<div style="width:120px;height:80px;display:flex;align-items:center;justify-content:center;background:var(--cream);font-size:28px">📄</div>')
       + '<div style="padding:4px 6px"><div style="font-size:10px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.label+'</div>'
       + (d.status ? '<div style="font-size:9px;color:var(--muted)">'+d.status+'</div>' : '')
@@ -7172,7 +7175,7 @@ function enrichTrackPage(app) {
             var src = f.url || f.data || '';
             var isImg = f.type && f.type.startsWith('image/');
             return '<a href="'+src+'" target="_blank" download="'+f.name+'" style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-decoration:none;color:var(--navy);font-size:12px">'
-              + (isImg ? '<img src="'+src+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">' : '<span>📄</span>')
+              + (isImg ? '<img src="'+src+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px" alt="">' : '<span>📄</span>')
               + f.name + ' <span style="color:var(--gold);font-weight:700">⬇</span></a>';
           }).join('')
         + '</div></div>';
@@ -7262,7 +7265,7 @@ window.handleClientStepUpload = function(input) {
       var isImg = f.type && f.type.startsWith('image/');
       var previewSrc = isImg ? URL.createObjectURL(f) : null;
       return '<div style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px">'
-        + (previewSrc ? '<img src="'+previewSrc+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px">' : '<span>📄</span>')
+        + (previewSrc ? '<img src="'+previewSrc+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px" alt="">' : '<span>📄</span>')
         + '<span style="flex:1">' + f.name + '</span>'
         + '<button onclick="_clientStepFiles.splice('+i+',1);document.getElementById(\'client-upload-preview\').innerHTML=\'\';window.handleClientStepUpload({files:[]})" style="background:none;border:none;cursor:pointer;color:#991b1b">✕</button>'
         + '</div>';
@@ -7488,7 +7491,7 @@ window.updateAppStatus = async function(notifMode) {
           + historyEntry.attachments.map(function(f) {
               var isImg = f.type && f.type.startsWith('image/');
               return '<div style="margin-bottom:8px;display:flex;align-items:center;gap:10px">'
-                + (isImg ? '<img src="'+(f.url||f.data||'')+'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #ddd">' : '<span style="font-size:24px">📄</span>')
+                + (isImg ? '<img src="'+(f.url||f.data||'')+'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #ddd" alt="">' : '<span style="font-size:24px">📄</span>')
                 + '<span style="font-size:13px;color:#0B1D35;font-weight:600">'+f.name+'</span>'
                 + '</div>';
             }).join('')
@@ -7556,7 +7559,7 @@ function renderB2BAppsTable(containerId, apps) {
 
         return '<tr>'
           + '<td><strong style="color:var(--gold)">'+(a.ref||'—')+'</strong></td>'
-          + '<td>'+(a.applicantPhoto ? '<img src="'+a.applicantPhoto+'" style="width:26px;height:32px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:6px">' : '')
+          + '<td>'+(a.applicantPhoto ? '<img src="'+a.applicantPhoto+'" style="width:26px;height:32px;object-fit:cover;border-radius:3px;border:1px solid var(--border);vertical-align:middle;margin-right:6px" alt="">' : '')
           + (a.firstName||'')+' '+(a.lastName||'')+'</td>'
           + '<td>'+dest+'</td>'
           + '<td style="font-size:11px">'+dateStr+'</td>'
@@ -7603,7 +7606,7 @@ window.showB2BStatusDetail = async function(appId) {
         + entry.attachments.map(function(f) {
             var isImg = f.type && f.type.startsWith('image/');
             return '<a href="'+(f.url||f.data||'')+'" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-decoration:none;color:var(--navy)">'
-              + (isImg ? '<img src="'+(f.url||f.data||'')+'" style="width:40px;height:40px;object-fit:cover;border-radius:4px">' : '<span style="font-size:20px">📄</span>')
+              + (isImg ? '<img src="'+(f.url||f.data||'')+'" style="width:40px;height:40px;object-fit:cover;border-radius:4px" alt="">' : '<span style="font-size:20px">📄</span>')
               + '<div><div style="font-size:12px;font-weight:600">'+f.name+'</div><div style="font-size:10px;color:var(--gold)">⬇ Télécharger</div></div>'
               + '</a>';
           }).join('')
@@ -7690,7 +7693,7 @@ function _renderTrackDetail(app) {
         + currentEntry.attachments.map(function(f) {
             var isImg = f.type && f.type.startsWith('image/');
             return '<a href="'+(f.url||f.data||'')+'" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-decoration:none;color:var(--navy);transition:.15s">'
-              + (isImg ? '<img src="'+(f.url||f.data||'')+'" style="width:36px;height:36px;object-fit:cover;border-radius:4px">' : '<span style="font-size:22px">📄</span>')
+              + (isImg ? '<img src="'+(f.url||f.data||'')+'" style="width:36px;height:36px;object-fit:cover;border-radius:4px" alt="">' : '<span style="font-size:22px">📄</span>')
               + '<div><div style="font-size:13px;font-weight:600">'+f.name+'</div><div style="font-size:11px;color:var(--gold);font-weight:600">⬇ Télécharger</div></div>'
               + '</a>';
           }).join('')
@@ -7731,7 +7734,7 @@ function _renderTrackDetail(app) {
                       + h.attachments.map(function(f){
                           var isImg=f.type&&f.type.startsWith('image/');
                           return '<a href="'+(f.url||f.data||'')+'" target="_blank" style="display:flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--border);border-radius:6px;padding:5px 10px;text-decoration:none;color:var(--navy);font-size:11px">'
-                            +(isImg?'<img src="'+(f.url||f.data||'')+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px">':'<span>📄</span>')
+                            +(isImg?'<img src="'+(f.url||f.data||'')+'" style="width:24px;height:24px;object-fit:cover;border-radius:3px" alt="">':'<span>📄</span>')
                             +f.name+' <span style="color:var(--gold)">⬇</span></a>';
                         }).join('')
                       + '</div>' : '')
@@ -7782,7 +7785,7 @@ db.collection('services').limit(1).get().then(function(snap){ if(snap.empty) see
 <!-- ═══════════════════════════════════════════ -->
 <!--  RECEIPT MODAL                              -->
 <!-- ═══════════════════════════════════════════ -->
-<div id="receipt-modal" style="display:none;position:fixed;inset:0;background:rgba(11,29,53,.78);z-index:500;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)">
+<div id="receipt-modal" style="display:none;position:fixed;inset:0;background:rgba(11,29,53,.78);z-index:500;align-items:center;justify-content:center;padding:16px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)">
   <div id="receipt-box" style="background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:94vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.4);position:relative;font-family:'DM Sans',Arial,sans-serif">
 
     <!-- Close -->
@@ -7908,21 +7911,21 @@ db.collection('services').limit(1).get().then(function(snap){ if(snap.empty) see
     </div>
     <div class="b2b-modal-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div class="company-field-group" style="grid-column:1/-1"><label>Nom du service *</label><input type="text" id="svc-name" placeholder="Ex: Appointment Only"></div>
-        <div class="company-field-group" style="grid-column:1/-1"><label>Description</label><input type="text" id="svc-desc" placeholder="Description courte..."></div>
-        <div class="company-field-group"><label>Icône (emoji)</label><input type="text" id="svc-icon" placeholder="📅" style="font-size:20px;text-align:center"></div>
+        <div class="company-field-group" style="grid-column:1/-1"><label>Nom du service *</label><input type="text" id="svc-name" aria-label="Nom du service" placeholder="Ex: Package Standard" placeholder="Ex: Appointment Only"></div>
+        <div class="company-field-group" style="grid-column:1/-1"><label>Description</label><input type="text" id="svc-desc" aria-label="Description" placeholder="Description courte..."></div>
+        <div class="company-field-group"><label>Icône (emoji)</label><input type="text" id="svc-icon" aria-label="Icône" placeholder="📅" placeholder="📅" style="font-size:20px;text-align:center"></div>
         <div class="company-field-group"><label>Catégorie</label>
-          <select id="svc-category" onchange="toggleSvcCityPrices()" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+          <select id="svc-category" aria-label="Catégorie du service" title="Catégorie du service" onchange="toggleSvcCityPrices()" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
             <option value="package">Package principal</option>
             <option value="addon">Service additionnel</option>
             <option value="rdv">Rendez-vous</option>
           </select>
         </div>
-        <div class="company-field-group"><label>Prix affiché client (MAD) *</label><input type="number" id="svc-price" placeholder="500" min="0"></div>
-        <div class="company-field-group"><label>🔒 Coût interne (MAD)</label><input type="number" id="svc-cost" placeholder="150" min="0"></div>
-        <div class="company-field-group"><label>🔒 Commission agences (%)</label><input type="number" id="svc-commission" placeholder="10" min="0" max="100" value="10"></div>
+        <div class="company-field-group"><label>Prix affiché client (MAD) *</label><input type="number" id="svc-price" aria-label="Prix client" placeholder="0" placeholder="500" min="0"></div>
+        <div class="company-field-group"><label>🔒 Coût interne (MAD)</label><input type="number" id="svc-cost" aria-label="Coût interne" placeholder="0" placeholder="150" min="0"></div>
+        <div class="company-field-group"><label>🔒 Commission agences (%)</label><input type="number" id="svc-commission" aria-label="Commission %" placeholder="10" placeholder="10" min="0" max="100" value="10"></div>
         <div class="company-field-group"><label>Visible clients</label>
-          <select id="svc-visible" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+          <select id="svc-visible" aria-label="Visibilité" title="Visibilité" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
             <option value="true">✅ Oui — affiché</option>
             <option value="false">🙈 Non — masqué</option>
           </select>
@@ -7956,7 +7959,7 @@ db.collection('services').limit(1).get().then(function(snap){ if(snap.empty) see
     </div>
     <div class="b2b-modal-body">
       <div class="company-field-group"><label>Type</label>
-        <select id="ad-type" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+        <select id="ad-type" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%" aria-label="Sélectionner" title="Sélectionner">
           <option value="website">📌 Site web (affiché sur la page d'accueil)</option>
           <option value="flyer">🖨️ Flyer (imprimable)</option>
           <option value="promo">🎁 Promotion spéciale</option>
@@ -7997,7 +8000,7 @@ db.collection('services').limit(1).get().then(function(snap){ if(snap.empty) see
           </div>
         </div>
         <div class="company-field-group" style="grid-column:1/-1"><label>Statut initial</label>
-          <select id="agency-status" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%">
+          <select id="agency-status" style="border:2px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--cream);outline:none;width:100%" aria-label="Sélectionner" title="Sélectionner">
             <option value="active">✅ Actif</option>
             <option value="pending">⏳ En attente de validation</option>
             <option value="suspended">🚫 Suspendu</option>
