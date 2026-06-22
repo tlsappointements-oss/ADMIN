@@ -2793,7 +2793,7 @@ window.openDrawer = function(id) {
     db.collection('receipts').doc(id).get().then(function(snap) {
       var btn = document.getElementById('drawer-toggle-receipt-btn');
       var note = document.getElementById('drawer-receipt-admin-note');
-      if (snap.exists) {
+      if (snap.exists && snap.data().published !== false) {
         if (btn) { btn.textContent = '🔴 Dépublier le Reçu'; btn.style.background = '#DC2626'; }
         if (note) note.textContent = 'Le reçu est actuellement visible par le client. Cliquez pour le retirer.';
       } else {
@@ -5043,6 +5043,7 @@ window.saveEditedReceipt = async function() {
     // Store compressed thumbnail in receipts doc (well under 1MB)
     receiptData.applicantPhoto = compressedPhoto;
 
+    receiptData.published = true;
     await db.collection('receipts').doc(_editReceiptAppId).set(receiptData);
     await db.collection('applications').doc(_editReceiptAppId).update({ status: 'receipt_pushed' });
 
@@ -5071,17 +5072,30 @@ window.toggleReceiptPush = async function(appId) {
     var currentStatus = appSnap.exists ? (appSnap.data().status || '') : '';
 
     if (recSnap.exists && currentStatus === 'receipt_pushed') {
-      // UNPUSH — delete receipt and revert status
-      await db.collection('receipts').doc(appId).delete();
+      // UNPUSH — mark as unpublished but KEEP all data including photo
+      await db.collection('receipts').doc(appId).update({ published: false, unpushedAt: firebase.firestore.FieldValue.serverTimestamp() });
       await db.collection('applications').doc(appId).update({ status: 'pending' });
-      showNotif('Reçu dépublié — le client ne peut plus le voir');
+      showNotif('Reçu dépublié — le client ne peut plus le voir. Les données sont conservées.');
       // Update drawer button
       var btn = document.getElementById('drawer-toggle-receipt-btn');
+      var note = document.getElementById('drawer-receipt-admin-note');
       if (btn) { btn.textContent = '✏️ Modifier & Envoyer le Reçu'; btn.style.background = '#1B7A4A'; }
+      if (note) note.textContent = 'En tant qu\'admin, modifiez et envoyez le reçu une fois le paiement reçu.';
     } else {
-      // PUSH — open edit modal
-      if (appSnap.exists) {
-        openEditReceiptModal(Object.assign({ id: appId }, appSnap.data()));
+      if (recSnap.exists) {
+        // RE-PUSH existing receipt — just mark as published again (keeps all data + photo)
+        await db.collection('receipts').doc(appId).update({ published: true, unpushedAt: firebase.firestore.FieldValue.delete() });
+        await db.collection('applications').doc(appId).update({ status: 'receipt_pushed' });
+        showNotif('Reçu republié — le client peut maintenant le voir');
+        var btn2 = document.getElementById('drawer-toggle-receipt-btn');
+        var note2 = document.getElementById('drawer-receipt-admin-note');
+        if (btn2) { btn2.textContent = '🔴 Dépublier le Reçu'; btn2.style.background = '#DC2626'; }
+        if (note2) note2.textContent = 'Le reçu est actuellement visible par le client. Cliquez pour le retirer.';
+      } else {
+        // FIRST PUSH — open edit modal to fill in data
+        if (appSnap.exists) {
+          openEditReceiptModal(Object.assign({ id: appId }, appSnap.data()));
+        }
       }
     }
   } catch(e) {
@@ -5093,7 +5107,7 @@ window.toggleReceiptPush = async function(appId) {
 window.checkAndShowReceipt = async function(appId) {
   try {
     var snap = await db.collection('receipts').doc(appId).get();
-    if (snap.exists) {
+    if (snap.exists && snap.data().published !== false) {
       var rData = snap.data();
       // Fetch photo from clientUploads — exact same pattern as openDrawer doc fetch
       var uSnap2 = await db.collection('clientUploads').where('appId','==',appId).get();
@@ -6431,7 +6445,7 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     '.tok-lbl{font-size:6.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#888}',
     '.tok-val{font-family:"Courier New",monospace;font-size:8px;font-weight:700;color:#0B1D35;letter-spacing:1.5px;background:#f0f2f7;padding:2px 7px;border-radius:3px;border:1px solid #d0d4e0;word-break:break-all}',
     '.sec-meta{font-size:7px;color:#888;line-height:1.5}',
-    '.sig-row{display:flex;justify-content:space-between;align-items:flex-end;padding-top:12px;border-top:2px solid #e8e8e8;margin-top:auto;min-height:90px}',
+    '.sig-row{display:flex;justify-content:space-between;align-items:flex-end;padding-top:16px;border-top:2px solid #e8e8e8;margin-top:auto;min-height:130px;gap:12px}',
     '.sig-b{font-size:8px;color:#555;min-width:120px}',
     '.sig-line{border-bottom:1.5px solid #0B1D35;width:120px;margin-bottom:4px}',
     '.foot{padding:8px 32px;border-top:2px solid #0B1D35;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}',
@@ -6532,9 +6546,11 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     + '</div>'
     + '<div style="text-align:center;font-size:7.5px;color:#aaa"><div>Document généré automatiquement · Valide sans signature manuscrite</div><div>'+now+'</div></div>'
     + '<div class="sig-b" style="text-align:right">'
-    + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
-    + (agentStamp ? '<img src="'+agentStamp+'" style="width:80px;height:80px;object-fit:contain;opacity:.95;display:block;border-radius:4px" alt="Cachet">' : '<div style="width:80px;height:80px;border:1.5px dashed #ccc;border-radius:4px;display:flex;align-items:center;justify-content:center"><span style="font-size:8px;color:#ccc">Cachet</span></div>')
-    + '<span style="font-size:7.5px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px;text-align:right">Cachet officiel</span>'
+    + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'
+    + (agentStamp
+        ? '<img src="'+agentStamp+'" style="width:120px;height:120px;object-fit:contain;opacity:.95;display:block;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.12)" alt="Cachet officiel">'
+        : '<div style="width:120px;height:120px;border:2px dashed #ccc;border-radius:6px;display:flex;align-items:center;justify-content:center;background:#fafafa"><span style="font-size:9px;color:#ccc;font-weight:600">Cachet</span></div>')
+    + '<span style="font-size:7.5px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.8px;text-align:right">Cachet officiel</span>'
     + '<span style="font-size:7px;color:#888;text-align:right">Autorité de traitement</span>'
     + '</div>'
     + '</div>'
