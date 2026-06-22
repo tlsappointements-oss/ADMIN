@@ -5005,33 +5005,39 @@ window.saveEditedReceipt = async function() {
     status:        'receipt_pushed'
   };
   try {
-    // Photo: use exact same logic as submitClientStepDocs (FileReader → base64 → clientUploads.add)
-    // This is the only pattern proven to work without auth/Storage/size issues
     var photoBase64 = window._erNewPhotoBase64 || appData.applicantPhoto || '';
 
-    // Strip photo from receipts doc — Firestore 1MB field limit
-    receiptData.applicantPhoto = '';
+    // Compress photo to thumbnail (max 200px wide, JPEG quality 0.7)
+    // so it fits in Firestore's 1MB field limit
+    var compressedPhoto = await new Promise(function(resolve) {
+      if (!photoBase64) { resolve(''); return; }
+      var img = new Image();
+      img.onload = function() {
+        var maxW = 200, maxH = 250;
+        var scale = Math.min(maxW / img.width, maxH / img.height, 1);
+        var w = Math.round(img.width * scale);
+        var h = Math.round(img.height * scale);
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = function() { resolve(photoBase64); };
+      img.src = photoBase64;
+    });
 
-    // Save receipt data first (no photo = no size issue)
+    // Store compressed thumbnail in receipts doc (well under 1MB)
+    receiptData.applicantPhoto = compressedPhoto;
+
     await db.collection('receipts').doc(_editReceiptAppId).set(receiptData);
     await db.collection('applications').doc(_editReceiptAppId).update({ status: 'receipt_pushed' });
-
-    // Save photo to clientUploads using exact same pattern as submitClientStepDocs
-    if (photoBase64) {
-      await db.collection('clientUploads').add({
-        appId:      _editReceiptAppId,
-        status:     'admin_receipt_photo',
-        files:      [{ name: 'receipt_photo', data: photoBase64, type: 'image/jpeg' }],
-        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
 
     document.getElementById('edit-receipt-modal').style.display = 'none';
     window._erNewPhotoBase64 = null;
     showNotif('Reçu envoyé au client avec succès !');
 
-    // Show receipt immediately using in-memory photo (no need to re-fetch)
-    receiptData.applicantPhoto = photoBase64;
+    // Show receipt with full quality photo from memory
+    receiptData.applicantPhoto = photoBase64 || compressedPhoto;
     window.showReceipt(receiptData);
 
   } catch(e) {
