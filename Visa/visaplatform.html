@@ -5002,38 +5002,35 @@ window.saveEditedReceipt = async function() {
     status:        'receipt_pushed'
   };
   try {
-    // Keep photo in memory for immediate display — never store base64 in Firestore (1MB limit)
-    var photoForReceipt = receiptData.applicantPhoto || '';
-    receiptData.applicantPhoto = ''; // always strip from Firestore doc
+    // Photo: use exact same logic as submitClientStepDocs (FileReader → base64 → clientUploads.add)
+    // This is the only pattern proven to work without auth/Storage/size issues
+    var photoBase64 = window._erNewPhotoBase64 || appData.applicantPhoto || '';
 
+    // Strip photo from receipts doc — Firestore 1MB field limit
+    receiptData.applicantPhoto = '';
+
+    // Save receipt data first (no photo = no size issue)
     await db.collection('receipts').doc(_editReceiptAppId).set(receiptData);
     await db.collection('applications').doc(_editReceiptAppId).update({ status: 'receipt_pushed' });
-    document.getElementById('edit-receipt-modal').style.display = 'none';
 
-    // Store photo in Firebase Storage instead (reliable, no size limit)
-    if (photoForReceipt) {
-      try {
-        var storageRef = storage.ref('receipt_photos/' + _editReceiptAppId + '.jpg');
-        // Convert base64 to blob
-        var arr = photoForReceipt.split(','), mime = arr[0].match(/:(.*?);/)[1];
-        var bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
-        while (n--) u8arr[n] = bstr.charCodeAt(n);
-        var blob = new Blob([u8arr], { type: mime });
-        var snap = await storageRef.put(blob);
-        var photoUrl = await snap.ref.getDownloadURL();
-        // Save the Storage URL (not base64) back to the receipt doc
-        await db.collection('receipts').doc(_editReceiptAppId).update({ applicantPhoto: photoUrl });
-        receiptData.applicantPhoto = photoUrl;
-      } catch(photoErr) {
-        console.warn('[saveEditedReceipt] photo upload failed, using base64 for display only:', photoErr);
-        // Still show receipt with base64 for this session
-        receiptData.applicantPhoto = photoForReceipt;
-      }
+    // Save photo to clientUploads using exact same pattern as submitClientStepDocs
+    if (photoBase64) {
+      await db.collection('clientUploads').add({
+        appId:      _editReceiptAppId,
+        status:     'admin_receipt_photo',
+        files:      [{ name: 'receipt_photo', data: photoBase64, type: 'image/jpeg' }],
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
     }
 
+    document.getElementById('edit-receipt-modal').style.display = 'none';
     window._erNewPhotoBase64 = null;
     showNotif('Reçu envoyé au client avec succès !');
+
+    // Show receipt immediately using in-memory photo (no need to re-fetch)
+    receiptData.applicantPhoto = photoBase64;
     window.showReceipt(receiptData);
+
   } catch(e) {
     showNotif('Erreur: ' + e.message);
     console.error('[saveEditedReceipt]', e);
@@ -5045,19 +5042,18 @@ window.checkAndShowReceipt = async function(appId) {
     var snap = await db.collection('receipts').doc(appId).get();
     if (snap.exists) {
       var rData = snap.data();
-      // Fetch photo from clientUploads if not in receipt doc
-      if (!rData.applicantPhoto) {
-        var uSnap = await db.collection('clientUploads').where('appId','==',appId).get();
-        var adminPh = '', clientPh = '';
-        uSnap.forEach(function(u){
-          var d3 = u.data(); var files = d3.files || [];
-          var pf = files.find(function(f){ return f.key==='photo'; });
-          if (!pf||!pf.data) return;
-          if (d3.status==='admin_photo') adminPh = pf.data;
-          else clientPh = pf.data;
-        });
-        rData.applicantPhoto = adminPh || clientPh;
-      }
+      // Fetch photo from clientUploads — exact same pattern as openDrawer doc fetch
+      var uSnap2 = await db.collection('clientUploads').where('appId','==',appId).get();
+      var adminReceiptPh = '', clientPh2 = '';
+      uSnap2.forEach(function(u){
+        var ud = u.data(); var files = ud.files || [];
+        var pf = files.find(function(f){ return f.name==='receipt_photo'||f.key==='photo'; });
+        if (!pf || !pf.data) return;
+        if (ud.status === 'admin_receipt_photo') adminReceiptPh = pf.data;
+        else if (!clientPh2) clientPh2 = pf.data;
+      });
+      // Admin receipt photo takes priority, then client uploaded photo, then existing
+      if (!rData.applicantPhoto) rData.applicantPhoto = adminReceiptPh || clientPh2;
       window.showReceipt(rData);
     } else {
       showNotif('Le recu nest pas encore disponible.');
@@ -6523,19 +6519,24 @@ window.downloadReceiptForApp = async function(appId) {
     var doc = await db.collection('applications').doc(appId).get();
     if (!doc.exists) { showNotif('⚠️', 'Dossier introuvable'); return; }
     var appObj = Object.assign({id: doc.id}, doc.data());
-    // Fetch photo from clientUploads (initial upload or admin_photo override)
+    // Fetch photo from clientUploads — same pattern as submitClientStepDocs
     var uploads = await db.collection('clientUploads').where('appId','==',appId).get();
-    var adminPhoto = '', clientPhoto = '';
+    var adminReceiptPhoto = '', clientUploadPhoto = '';
     uploads.forEach(function(u) {
-      var d2 = u.data();
-      var files = d2.files || [];
-      var photoFile = files.find(function(f){ return f.key === 'photo'; });
-      if (!photoFile || !photoFile.data) return;
-      if (d2.status === 'admin_photo') adminPhoto = photoFile.data;
-      else clientPhoto = photoFile.data;
+      var ud2 = u.data();
+      var files = ud2.files || [];
+      var pf2 = files.find(function(f){ return f.name==='receipt_photo'||f.key==='photo'; });
+      if (!pf2 || !pf2.data) return;
+      if (ud2.status === 'admin_receipt_photo') adminReceiptPhoto = pf2.data;
+      else if (!clientUploadPhoto) clientUploadPhoto = pf2.data;
     });
-    // Admin photo takes priority over client photo
-    if (!appObj.applicantPhoto) appObj.applicantPhoto = adminPhoto || clientPhoto;
+    // Admin receipt photo overrides client photo
+    if (!appObj.applicantPhoto) appObj.applicantPhoto = adminReceiptPhoto || clientUploadPhoto;
+    // Also check receipts collection for admin-set photo
+    if (!appObj.applicantPhoto) {
+      var recSnap = await db.collection('receipts').doc(appId).get();
+      if (recSnap.exists && recSnap.data().applicantPhoto) appObj.applicantPhoto = recSnap.data().applicantPhoto;
+    }
     var data = appToReceiptData(appObj);
     await window.downloadReceiptPDF(data);
   } catch(e) {
