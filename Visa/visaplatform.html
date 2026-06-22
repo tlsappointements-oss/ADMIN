@@ -1695,9 +1695,9 @@ tr:hover td{background:var(--cream)}
     <div class="drawer-section" id="drawer-receipt-section">
       <h4>🧾 Reçu Officiel</h4>
       <div id="drawer-receipt-admin" style="display:none">
-        <p style="font-size:12px;color:var(--muted);margin:0 0 10px">En tant qu'admin, modifiez et envoyez le reçu une fois le paiement reçu.</p>
+        <p id="drawer-receipt-admin-note" style="font-size:12px;color:var(--muted);margin:0 0 10px">En tant qu'admin, modifiez et envoyez le reçu une fois le paiement reçu.</p>
         <div class="drawer-actions">
-          <button class="btn-sm btn-sm-green" onclick="adminPushReceipt(window._currentDrawerAppId)">✏️ Modifier &amp; Envoyer le Reçu</button>
+          <button id="drawer-toggle-receipt-btn" class="btn-sm btn-sm-green" onclick="toggleReceiptPush(window._currentDrawerAppId)">✏️ Modifier &amp; Envoyer le Reçu</button>
           <button class="btn-sm btn-sm-navy" onclick="downloadReceiptForApp(window._currentDrawerAppId)">📄 PDF Reçu</button>
         </div>
       </div>
@@ -2788,6 +2788,20 @@ window.openDrawer = function(id) {
   var clientRec = document.getElementById("drawer-receipt-client");
   if (adminRec) adminRec.style.display = isAdmin ? "block" : "none";
   if (clientRec) clientRec.style.display = isAdmin ? "none" : "block";
+  // Update toggle button label based on whether receipt is pushed
+  if (isAdmin) {
+    db.collection('receipts').doc(id).get().then(function(snap) {
+      var btn = document.getElementById('drawer-toggle-receipt-btn');
+      var note = document.getElementById('drawer-receipt-admin-note');
+      if (snap.exists) {
+        if (btn) { btn.textContent = '🔴 Dépublier le Reçu'; btn.style.background = '#DC2626'; }
+        if (note) note.textContent = 'Le reçu est actuellement visible par le client. Cliquez pour le retirer.';
+      } else {
+        if (btn) { btn.textContent = '✏️ Modifier & Envoyer le Reçu'; btn.style.background = '#1B7A4A'; }
+        if (note) note.textContent = 'En tant qu\'admin, modifiez et envoyez le reçu une fois le paiement reçu.';
+      }
+    }).catch(function(){});
+  }
   const a = allApplications.find(x=>x.id===id);
   if (!a) return;
   currentDrawerApp = a;
@@ -5046,6 +5060,36 @@ window.saveEditedReceipt = async function() {
   }
 };
 
+// ══════════════════════════════════════════════════════
+//  ADMIN: Toggle receipt push/unpush
+// ══════════════════════════════════════════════════════
+window.toggleReceiptPush = async function(appId) {
+  if (!isAdmin) { showNotif('Accès admin requis'); return; }
+  try {
+    var recSnap = await db.collection('receipts').doc(appId).get();
+    var appSnap = await db.collection('applications').doc(appId).get();
+    var currentStatus = appSnap.exists ? (appSnap.data().status || '') : '';
+
+    if (recSnap.exists && currentStatus === 'receipt_pushed') {
+      // UNPUSH — delete receipt and revert status
+      await db.collection('receipts').doc(appId).delete();
+      await db.collection('applications').doc(appId).update({ status: 'pending' });
+      showNotif('Reçu dépublié — le client ne peut plus le voir');
+      // Update drawer button
+      var btn = document.getElementById('drawer-toggle-receipt-btn');
+      if (btn) { btn.textContent = '✏️ Modifier & Envoyer le Reçu'; btn.style.background = '#1B7A4A'; }
+    } else {
+      // PUSH — open edit modal
+      if (appSnap.exists) {
+        openEditReceiptModal(Object.assign({ id: appId }, appSnap.data()));
+      }
+    }
+  } catch(e) {
+    showNotif('Erreur: ' + e.message);
+    console.error('[toggleReceiptPush]', e);
+  }
+};
+
 window.checkAndShowReceipt = async function(appId) {
   try {
     var snap = await db.collection('receipts').doc(appId).get();
@@ -6387,9 +6431,9 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     '.tok-lbl{font-size:6.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#888}',
     '.tok-val{font-family:"Courier New",monospace;font-size:8px;font-weight:700;color:#0B1D35;letter-spacing:1.5px;background:#f0f2f7;padding:2px 7px;border-radius:3px;border:1px solid #d0d4e0;word-break:break-all}',
     '.sec-meta{font-size:7px;color:#888;line-height:1.5}',
-    '.sig-row{display:flex;justify-content:space-between;align-items:flex-end;padding-top:8px;border-top:1px solid #e8e8e8;margin-top:auto}',
-    '.sig-b{font-size:8px;color:#aaa}',
-    '.sig-line{border-bottom:1px solid #0B1D35;width:110px;margin-bottom:3px}',
+    '.sig-row{display:flex;justify-content:space-between;align-items:flex-end;padding-top:12px;border-top:2px solid #e8e8e8;margin-top:auto;min-height:90px}',
+    '.sig-b{font-size:8px;color:#555;min-width:120px}',
+    '.sig-line{border-bottom:1.5px solid #0B1D35;width:120px;margin-bottom:4px}',
     '.foot{padding:8px 32px;border-top:2px solid #0B1D35;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}',
     '.foot span{font-size:8.5px;color:#aaa}',
     '.bot-stripe{height:5px;background:linear-gradient(90deg,#c9973a,#0B1D35);flex-shrink:0}',
@@ -6481,14 +6525,18 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     + '</div></div>'
     // signature row
     + '<div class="sig-row">'
-    + '<div class="sig-b">'
-    + (agentSig ? '<img src="'+agentSig+'" style="height:34px;max-width:120px;margin-bottom:3px;display:block" alt=""><br>' : '<div class="sig-line"></div>')
-    + '<span style="font-size:8px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">'+(agentName||'Agent responsable')+'</span><br><span>'+coName+'</span>'
+    + '<div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px">'
+    + (agentSig ? '<img src="'+agentSig+'" style="height:44px;max-width:130px;object-fit:contain;display:block;margin-bottom:2px" alt="Signature">' : '<div style="width:130px;height:44px;border-bottom:1.5px solid #0B1D35"></div>')
+    + '<span style="font-size:7.5px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">'+(agentName||'Agent responsable')+'</span>'
+    + '<span style="font-size:7px;color:#888">'+coName+'</span>'
     + '</div>'
     + '<div style="text-align:center;font-size:7.5px;color:#aaa"><div>Document généré automatiquement · Valide sans signature manuscrite</div><div>'+now+'</div></div>'
     + '<div class="sig-b" style="text-align:right">'
-    + (agentStamp ? '<img src="'+agentStamp+'" style="height:56px;max-width:64px;opacity:.9;display:block;margin-left:auto" alt=""><br>' : '<div class="sig-line" style="margin-left:auto"></div>')
-    + '<span style="font-size:8px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px">Cachet officiel</span><br><span>Autorité de traitement</span>'
+    + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
+    + (agentStamp ? '<img src="'+agentStamp+'" style="width:80px;height:80px;object-fit:contain;opacity:.95;display:block;border-radius:4px" alt="Cachet">' : '<div style="width:80px;height:80px;border:1.5px dashed #ccc;border-radius:4px;display:flex;align-items:center;justify-content:center"><span style="font-size:8px;color:#ccc">Cachet</span></div>')
+    + '<span style="font-size:7.5px;font-weight:700;color:#0B1D35;text-transform:uppercase;letter-spacing:.5px;text-align:right">Cachet officiel</span>'
+    + '<span style="font-size:7px;color:#888;text-align:right">Autorité de traitement</span>'
+    + '</div>'
     + '</div>'
     + '</div>'
     + '</div>' // end .body
