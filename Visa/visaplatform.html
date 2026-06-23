@@ -4886,6 +4886,18 @@ window.adminPushReceipt = async function(appId) {
 // ══════════════════════════════════════════════════════
 var _editReceiptAppId = null;
 
+function erTogglePaymentFields() {
+  var method = document.getElementById('er-payment-method');
+  if (!method) return;
+  var val = method.value;
+  var cardF    = document.getElementById('er-card-fields');
+  var chequeF  = document.getElementById('er-cheque-fields');
+  var virementF= document.getElementById('er-virement-fields');
+  if (cardF)     cardF.style.display     = val === 'carte'    ? 'block' : 'none';
+  if (chequeF)   chequeF.style.display   = val === 'cheque'   ? 'block' : 'none';
+  if (virementF) virementF.style.display = val === 'virement' ? 'block' : 'none';
+}
+
 function _erField(id, label, type) {
   return '<div><label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:5px">' + label + '</label>'
     + '<input id="' + id + '" type="' + (type || 'text') + '" style="width:100%;box-sizing:border-box;border:1.5px solid #E5E7EB;border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none"></div>';
@@ -4921,6 +4933,48 @@ window.openEditReceiptModal = function(a) {
     h += '<div style="grid-column:span 2">' + _erField('er-total', 'Montant total (MAD)', 'number') + '</div>';
     h += '<div style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:5px">Add-ons (s&#233;par&#233;s par virgule)</label>';
     h += '<input id="er-addons" aria-label="Add-ons" placeholder="Ex: Traduction, Assurance" type="text" style="width:100%;box-sizing:border-box;border:1.5px solid #E5E7EB;border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none"></div>';
+    h += '<div style="grid-column:span 2;border-top:2px solid #F3F4F6;padding-top:14px;margin-top:4px">';
+    h += '<div style="font-size:11px;font-weight:800;color:#0B1D35;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">💳 Informations de paiement</div>';
+    h += '</div>';
+    h += _erField('er-paid', 'Montant pay&#233; (MAD)', 'number');
+    h += _erField('er-remaining', 'Reste &#224; payer (MAD)', 'number');
+    h += '<div style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:5px">M&#233;thode de paiement</label>';
+    h += '<select id="er-payment-method" aria-label="M&#233;thode de paiement" title="M&#233;thode de paiement" onchange="erTogglePaymentFields()" style="width:100%;border:1.5px solid #E5E7EB;border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none;background:#fff">';
+    h += '<option value="">-- S&#233;lectionner --</option>';
+    h += '<option value="especes">💵 Esp&#232;ces</option>';
+    h += '<option value="virement">🏦 Virement bancaire</option>';
+    h += '<option value="carte">💳 Carte bancaire</option>';
+    h += '<option value="cheque">📄 Ch&#232;que</option>';
+    h += '<option value="mobile">📱 Paiement mobile (CIH/Wafacash)</option>';
+    h += '</select></div>';
+    h += '<div style="grid-column:span 2">' + _erField('er-transaction', 'N&#176; Transaction / R&#233;f&#233;rence', 'text') + '</div>';
+    h += '<div id="er-card-fields" style="display:none;grid-column:span 2;display:none">';
+    h += '<div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    h += '<div style="grid-column:span 2;font-size:10px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">💳 Informations carte bancaire</div>';
+    h += _erField('er-card-holder', 'Titulaire de la carte', 'text');
+    h += _erField('er-card-last4', '4 derniers chiffres', 'text');
+    h += _erField('er-card-bank', 'Banque &#233;mettrice', 'text');
+    h += _erField('er-card-type', 'Type (Visa/Mastercard/...)', 'text');
+    h += '</div></div>';
+    h += '<div id="er-cheque-fields" style="display:none;grid-column:span 2">';
+    h += '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    h += '<div style="grid-column:span 2;font-size:10px;font-weight:700;color:#15803D;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">📄 Informations ch&#232;que</div>';
+    h += _erField('er-cheque-number', 'N&#176; de ch&#232;que', 'text');
+    h += _erField('er-cheque-bank', 'Banque &#233;mettrice', 'text');
+    h += _erField('er-cheque-holder', 'Titulaire du compte', 'text');
+    h += _erField('er-cheque-date', 'Date du ch&#232;que', 'date');
+    h += '</div></div>';
+    h += '<div id="er-virement-fields" style="display:none;grid-column:span 2">';
+    h += '<div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    h += '<div style="grid-column:span 2;font-size:10px;font-weight:700;color:#C2410C;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">🏦 Informations virement</div>';
+    h += _erField('er-virement-rib', 'RIB / IBAN', 'text');
+    h += _erField('er-virement-bank', 'Banque', 'text');
+    h += _erField('er-virement-sender', 'Nom de l\'exp&#233;diteur', 'text');
+    h += _erField('er-virement-date', 'Date du virement', 'date');
+    h += '</div></div>';
+    h += '<div style="grid-column:span 2;border-top:2px solid #F3F4F6;padding-top:14px;margin-top:4px">';
+    h += '<div style="font-size:11px;font-weight:800;color:#0B1D35;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">🖼️ Photo du demandeur</div>';
+    h += '</div>';
     h += '<div style="grid-column:span 2">';
     h += '<label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:5px">Photo du demandeur</label>';
     h += '<div style="display:flex;align-items:center;gap:12px">';
@@ -4972,6 +5026,26 @@ window.openEditReceiptModal = function(a) {
   set('er-city',        a.city);
   set('er-total',       a.total || 0);
   set('er-addons',      (a.addons || []).join(', '));
+  // Payment fields
+  var pay = a.payment || {};
+  set('er-paid',          pay.amountPaid    || a.total || 0);
+  set('er-remaining',     pay.amountLeft    || 0);
+  set('er-transaction',   pay.transaction   || '');
+  set('er-card-holder',   pay.cardHolder    || '');
+  set('er-card-last4',    pay.cardLast4     || '');
+  set('er-card-bank',     pay.cardBank      || '');
+  set('er-card-type',     pay.cardType      || '');
+  set('er-cheque-number', pay.chequeNumber  || '');
+  set('er-cheque-bank',   pay.chequeBank    || '');
+  set('er-cheque-holder', pay.chequeHolder  || '');
+  set('er-cheque-date',   pay.chequeDate    || '');
+  set('er-virement-rib',  pay.virementRib   || '');
+  set('er-virement-bank', pay.virementBank  || '');
+  set('er-virement-sender', pay.virementSender || '');
+  set('er-virement-date', pay.virementDate  || '');
+  // Set payment method and trigger field toggle
+  var pmSel = document.getElementById('er-payment-method');
+  if (pmSel) { pmSel.value = pay.method || ''; erTogglePaymentFields(); }
   // Show existing photo if any
   var erPrev = document.getElementById('er-photo-preview');
   var erIcon = document.getElementById('er-photo-icon');
@@ -4993,6 +5067,29 @@ window.saveEditedReceipt = async function() {
   if (!_editReceiptAppId) return;
   var g = function(id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; };
   var addons = g('er-addons') ? g('er-addons').split(',').map(function(x) { return x.trim(); }).filter(Boolean) : [];
+  var payMethod = g('er-payment-method');
+  var payment = {
+    method:         payMethod,
+    amountPaid:     parseFloat(g('er-paid'))      || 0,
+    amountLeft:     parseFloat(g('er-remaining')) || 0,
+    transaction:    g('er-transaction')
+  };
+  if (payMethod === 'carte') {
+    payment.cardHolder = g('er-card-holder');
+    payment.cardLast4  = g('er-card-last4');
+    payment.cardBank   = g('er-card-bank');
+    payment.cardType   = g('er-card-type');
+  } else if (payMethod === 'cheque') {
+    payment.chequeNumber = g('er-cheque-number');
+    payment.chequeBank   = g('er-cheque-bank');
+    payment.chequeHolder = g('er-cheque-holder');
+    payment.chequeDate   = g('er-cheque-date');
+  } else if (payMethod === 'virement') {
+    payment.virementRib    = g('er-virement-rib');
+    payment.virementBank   = g('er-virement-bank');
+    payment.virementSender = g('er-virement-sender');
+    payment.virementDate   = g('er-virement-date');
+  }
   var appDoc = await db.collection('applications').doc(_editReceiptAppId).get();
   var appData = appDoc.exists ? appDoc.data() : {};
   var receiptData = {
@@ -5012,6 +5109,7 @@ window.saveEditedReceipt = async function() {
     city:          g('er-city'),
     total:         parseFloat(g('er-total')) || 0,
     addons:        addons,
+    payment:       payment,
     // Photo: use newly uploaded base64 or keep existing from Firestore
     applicantPhoto: window._erNewPhotoBase64 || appData.applicantPhoto || '',
     pushedAt:      firebase.firestore.FieldValue.serverTimestamp(),
@@ -6175,6 +6273,7 @@ function appToReceiptData(a) {
     passport:     a.passport  || '',
     destination:  a.destination || '',
     destinationId: a.destinationId || '',
+    payment:       a.payment       || null,
     countryCode:   a.countryCode || '',
     visaType:     a.visaType  || '',
     travelDate:   a.travelDate || '',
@@ -6523,6 +6622,29 @@ window.downloadReceiptPDF = async function(appDataOrNull) {
     + addonsRows
     + '</tbody></table></div>'
     // steps
+    + (d.payment && d.payment.method ? (
+        '<div><div class="sh">Informations de paiement</div>'
+        + '<table class="it">'
+        + '<tr><td>Méthode</td><td><strong>' + ({
+            especes:'💵 Espèces', virement:'🏦 Virement bancaire',
+            carte:'💳 Carte bancaire', cheque:'📄 Chèque', mobile:'📱 Paiement mobile'
+          }[d.payment.method] || d.payment.method) + '</strong></td></tr>'
+        + (d.payment.amountPaid ? '<tr><td>Montant payé</td><td><strong style="color:#1B7A4A">' + parseFloat(d.payment.amountPaid).toLocaleString() + ' MAD</strong></td></tr>' : '')
+        + (d.payment.amountLeft > 0 ? '<tr><td>Reste à payer</td><td><strong style="color:#DC2626">' + parseFloat(d.payment.amountLeft).toLocaleString() + ' MAD</strong></td></tr>' : '<tr><td>Reste à payer</td><td><strong style="color:#1B7A4A">✓ Soldé</strong></td></tr>')
+        + (d.payment.transaction ? '<tr><td>N° Transaction</td><td>' + d.payment.transaction + '</td></tr>' : '')
+        + (d.payment.method==='carte' && d.payment.cardHolder ? '<tr><td>Titulaire carte</td><td>' + d.payment.cardHolder + '</td></tr>' : '')
+        + (d.payment.method==='carte' && d.payment.cardLast4  ? '<tr><td>N° carte</td><td>•••• •••• •••• ' + d.payment.cardLast4 + '</td></tr>' : '')
+        + (d.payment.method==='carte' && d.payment.cardBank   ? '<tr><td>Banque</td><td>' + d.payment.cardBank + (d.payment.cardType?' — '+d.payment.cardType:'') + '</td></tr>' : '')
+        + (d.payment.method==='cheque' && d.payment.chequeNumber ? '<tr><td>N° Chèque</td><td>' + d.payment.chequeNumber + '</td></tr>' : '')
+        + (d.payment.method==='cheque' && d.payment.chequeBank   ? '<tr><td>Banque émettrice</td><td>' + d.payment.chequeBank + '</td></tr>' : '')
+        + (d.payment.method==='cheque' && d.payment.chequeHolder ? '<tr><td>Titulaire</td><td>' + d.payment.chequeHolder + '</td></tr>' : '')
+        + (d.payment.method==='cheque' && d.payment.chequeDate   ? '<tr><td>Date chèque</td><td>' + d.payment.chequeDate + '</td></tr>' : '')
+        + (d.payment.method==='virement' && d.payment.virementRib    ? '<tr><td>RIB / IBAN</td><td style="font-size:8px">' + d.payment.virementRib + '</td></tr>' : '')
+        + (d.payment.method==='virement' && d.payment.virementBank   ? '<tr><td>Banque</td><td>' + d.payment.virementBank + '</td></tr>' : '')
+        + (d.payment.method==='virement' && d.payment.virementSender ? '<tr><td>Expéditeur</td><td>' + d.payment.virementSender + '</td></tr>' : '')
+        + (d.payment.method==='virement' && d.payment.virementDate   ? '<tr><td>Date virement</td><td>' + d.payment.virementDate + '</td></tr>' : '')
+        + '</table></div>'
+      ) : '')
     + '<div class="steps"><div class="steps-t">Prochaines étapes</div><div class="steps-g">'
     + '<div class="si">Notre équipe vous contacte dans les <strong>2h</strong></div>'
     + '<div class="si">Vérification et validation des documents</div>'
