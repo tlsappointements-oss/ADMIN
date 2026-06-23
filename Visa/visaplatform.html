@@ -4905,7 +4905,10 @@ function _erField(id, label, type) {
 
 window.openEditReceiptModal = function(a) {
   _editReceiptAppId = a.id;
-  var modal = document.getElementById('edit-receipt-modal');
+  // Always rebuild modal to ensure latest fields are present
+  var oldModal = document.getElementById('edit-receipt-modal');
+  if (oldModal) oldModal.parentNode.removeChild(oldModal);
+  var modal = null;
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'edit-receipt-modal';
@@ -4948,30 +4951,30 @@ window.openEditReceiptModal = function(a) {
     h += '<option value="mobile">📱 Paiement mobile (CIH/Wafacash)</option>';
     h += '</select></div>';
     h += '<div style="grid-column:span 2">' + _erField('er-transaction', 'N&#176; Transaction / R&#233;f&#233;rence', 'text') + '</div>';
-    h += '<div id="er-card-fields" style="display:none;grid-column:span 2;display:none">';
+    h += '<div style="grid-column:span 2"><div id="er-card-fields" style="display:none">';
     h += '<div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     h += '<div style="grid-column:span 2;font-size:10px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">💳 Informations carte bancaire</div>';
     h += _erField('er-card-holder', 'Titulaire de la carte', 'text');
     h += _erField('er-card-last4', '4 derniers chiffres', 'text');
     h += _erField('er-card-bank', 'Banque &#233;mettrice', 'text');
     h += _erField('er-card-type', 'Type (Visa/Mastercard/...)', 'text');
-    h += '</div></div>';
-    h += '<div id="er-cheque-fields" style="display:none;grid-column:span 2">';
+    h += '</div></div></div>';
+    h += '<div style="grid-column:span 2"><div id="er-cheque-fields" style="display:none">';
     h += '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     h += '<div style="grid-column:span 2;font-size:10px;font-weight:700;color:#15803D;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">📄 Informations ch&#232;que</div>';
     h += _erField('er-cheque-number', 'N&#176; de ch&#232;que', 'text');
     h += _erField('er-cheque-bank', 'Banque &#233;mettrice', 'text');
     h += _erField('er-cheque-holder', 'Titulaire du compte', 'text');
     h += _erField('er-cheque-date', 'Date du ch&#232;que', 'date');
-    h += '</div></div>';
-    h += '<div id="er-virement-fields" style="display:none;grid-column:span 2">';
+    h += '</div></div></div>';
+    h += '<div style="grid-column:span 2"><div id="er-virement-fields" style="display:none">';
     h += '<div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     h += '<div style="grid-column:span 2;font-size:10px;font-weight:700;color:#C2410C;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">🏦 Informations virement</div>';
     h += _erField('er-virement-rib', 'RIB / IBAN', 'text');
     h += _erField('er-virement-bank', 'Banque', 'text');
     h += _erField('er-virement-sender', 'Nom de l\'exp&#233;diteur', 'text');
     h += _erField('er-virement-date', 'Date du virement', 'date');
-    h += '</div></div>';
+    h += '</div></div></div>';
     h += '<div style="grid-column:span 2;border-top:2px solid #F3F4F6;padding-top:14px;margin-top:4px">';
     h += '<div style="font-size:11px;font-weight:800;color:#0B1D35;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">🖼️ Photo du demandeur</div>';
     h += '</div>';
