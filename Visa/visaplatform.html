@@ -1076,6 +1076,7 @@ tr:hover td{background:var(--cream)}
         <li class="nav-section">Personnalisation</li>
         <li><a onclick="showAdminTab('signatures')">✍️ Signatures & Cachet</a></li>
         <li><a onclick="showAdminTab('verify')">🔐 Vérifier Reçu</a></li>
+        <li><a onclick="showAdminTab('guide')">🇪🇸 Guide Visa Espagne</a></li>
         <li class="nav-section">System</li>
         <li><a onclick="adminLogOut()">🚪 Sign Out</a></li>
       </ul>
@@ -1600,6 +1601,59 @@ tr:hover td{background:var(--cream)}
         </div>
 
       </div><!-- /atab-signatures -->
+
+      <!-- SPAIN VISA GUIDE TAB -->
+      <div id="atab-guide" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>🇪🇸 Guide Visa Espagne</h2><p>Créez et publiez un guide étape par étape pour vos clients et B2B.</p></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <span id="guide-publish-status" style="font-size:12px;padding:5px 14px;border-radius:20px;background:#F3F4F6;color:#6B7280;font-weight:600">● Non publié</span>
+            <button class="btn-gold" onclick="saveGuide()" style="font-size:13px;padding:9px 18px;border-radius:8px">💾 Enregistrer</button>
+            <button id="guide-publish-btn" onclick="toggleGuidePublish()" style="font-size:13px;padding:9px 18px;border-radius:8px;background:#1B7A4A;color:#fff;border:none;cursor:pointer;font-family:inherit;font-weight:600">📤 Publier</button>
+          </div>
+        </div>
+
+        <!-- Guide Steps Editor -->
+        <div class="admin-card">
+          <div class="admin-card-head"><h3>Étapes du guide</h3><button class="btn-sm btn-sm-green" onclick="addGuideStep()">+ Ajouter étape</button></div>
+          <div style="padding:16px" id="guide-steps-editor">
+            <div style="text-align:center;padding:24px;color:var(--muted)">Chargement...</div>
+          </div>
+        </div>
+
+        <!-- Selfie Verification Step Config -->
+        <div class="admin-card">
+          <div class="admin-card-head"><h3>📸 Configuration vérification selfie</h3></div>
+          <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--navy);display:block;margin-bottom:6px">Titre de l'étape selfie</label>
+              <input id="guide-selfie-title" type="text" value="Vérification d'identité — Selfie" aria-label="Titre selfie" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--navy);display:block;margin-bottom:6px">Instructions</label>
+              <input id="guide-selfie-instructions" type="text" value="Prenez une photo claire de votre visage sur fond blanc" aria-label="Instructions selfie" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;font-family:inherit;font-size:13px;outline:none">
+            </div>
+            <div style="grid-column:span 2">
+              <label style="font-size:12px;font-weight:600;color:var(--navy);display:block;margin-bottom:6px">Image de référence selfie (exemple à montrer)</label>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div id="guide-selfie-ref-preview" style="width:80px;height:80px;border:2px solid var(--border);border-radius:8px;overflow:hidden;background:#F8F9FA;display:flex;align-items:center;justify-content:center">
+                  <span style="font-size:24px">🤳</span>
+                </div>
+                <label style="background:#0B1D35;color:#fff;border-radius:7px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer">
+                  📷 Choisir image de référence
+                  <input id="guide-selfie-ref-input" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp" style="display:none" aria-label="Image référence selfie">
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="admin-card">
+          <div class="admin-card-head"><h3>👁️ Aperçu du guide</h3><button class="btn-sm btn-sm-navy" onclick="previewGuide()">Voir aperçu →</button></div>
+          <div style="padding:16px;font-size:13px;color:var(--muted)">Cliquez sur "Voir aperçu" pour voir le guide tel que le client le verra.</div>
+        </div>
+      </div><!-- /atab-guide -->
     </div>
   </div>
 </div>
@@ -4813,7 +4867,383 @@ window.addEventListener('DOMContentLoaded', function() {
 
 
 // ══════════════════════════════════════════════════════
-//  SUBMISSION CONFIRMATION — shown to client/B2B after submit
+// ══════════════════════════════════════════════════════════════
+//  SPAIN VISA GUIDE — Admin Management + Client View
+//  Stores in Firestore: guides/spain_visa
+//  Selfie photos stored in clientUploads (same as all other docs)
+// ══════════════════════════════════════════════════════════════
+
+var _guideData = null;
+var _guideCurrentStep = 0;
+var _guidePublished = false;
+var _selfieBase64 = null;
+var _guideAppId = null;
+
+var DEFAULT_GUIDE_STEPS = [
+  { id:'intro',       icon:'🇪🇸', title:'Bienvenue dans votre guide Visa Espagne', content:'Ce guide vous accompagne étape par étape dans la préparation de votre dossier de visa Schengen pour l\'Espagne. Suivez chaque étape attentivement.', type:'info', image:'' },
+  { id:'documents',   icon:'📄', title:'Documents requis', content:'Passeport valide (6 mois minimum),Photo d\'identité biométrique,Justificatif d\'hébergement,Billets d\'avion,Assurance voyage (30 000€ minimum),Relevés bancaires (3 derniers mois),Formulaire de demande signé', type:'list', image:'' },
+  { id:'photo',       icon:'📸', title:'Vérification selfie — Photo d\'identité', content:'Prenez une photo selfie de qualité pour votre dossier. Cette photo sera utilisée pour votre vérification d\'identité.', type:'selfie', image:'' },
+  { id:'appointment', icon:'📅', title:'Prise de rendez-vous', content:'Une fois votre dossier validé, notre équipe vous contactera pour fixer votre rendez-vous au centre de visa espagnol (TLScontact / BLS).', type:'info', image:'' },
+  { id:'payment',     icon:'💳', title:'Paiement des frais', content:'Les frais de visa Schengen sont de 80€ (adultes) et 40€ (enfants 6-12 ans). Les frais de service de notre agence vous seront communiqués lors de votre rendez-vous.', type:'info', image:'' },
+  { id:'tracking',    icon:'🔍', title:'Suivi de votre dossier', content:'Une fois votre dossier déposé, vous recevrez un numéro de suivi. Le délai de traitement est généralement de 15 jours ouvrables.', type:'info', image:'' }
+];
+
+// ── Load guide (admin) ──
+async function loadGuideAdmin() {
+  try {
+    var snap = await db.collection('guides').doc('spain_visa').get();
+    _guideData = snap.exists ? snap.data() : { steps: DEFAULT_GUIDE_STEPS.slice(), published: false, selfieTitle:'Vérification selfie', selfieInstructions:'Photo claire, fond blanc' };
+    _guidePublished = _guideData.published === true;
+    renderGuideEditor();
+    updateGuidePublishBtn();
+  } catch(e) { console.error('[loadGuideAdmin]', e); }
+}
+
+function updateGuidePublishBtn() {
+  var btn = document.getElementById('guide-publish-btn');
+  var status = document.getElementById('guide-publish-status');
+  if (_guidePublished) {
+    if (btn) { btn.textContent = '🔴 Dépublier'; btn.style.background = '#DC2626'; }
+    if (status) { status.textContent = '● Publié'; status.style.background = '#D1FAE5'; status.style.color = '#065F46'; }
+  } else {
+    if (btn) { btn.textContent = '📤 Publier'; btn.style.background = '#1B7A4A'; }
+    if (status) { status.textContent = '● Non publié'; status.style.background = '#F3F4F6'; status.style.color = '#6B7280'; }
+  }
+}
+
+function renderGuideEditor() {
+  var el = document.getElementById('guide-steps-editor');
+  if (!el || !_guideData) return;
+  var steps = _guideData.steps || DEFAULT_GUIDE_STEPS;
+  el.innerHTML = steps.map(function(step, i) {
+    return '<div style="border:1.5px solid #E5E7EB;border-radius:12px;padding:16px;margin-bottom:12px;background:#FAFAFA">'
+      + '<div style="display:grid;grid-template-columns:60px 80px 1fr auto;gap:10px;align-items:end">'
+      + '<div><label style="font-size:10px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px">Icône</label>'
+      + '<input type="text" value="' + (step.icon||'📌') + '" onchange="updateGuideStep(' + i + ',\'icon\',this.value)" style="width:100%;border:1.5px solid #E5E7EB;border-radius:6px;padding:6px;font-size:18px;text-align:center" aria-label="Icône"></div>'
+      + '<div><label style="font-size:10px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px">Type</label>'
+      + '<select onchange="updateGuideStep(' + i + ',\'type\',this.value)" aria-label="Type" style="width:100%;border:1.5px solid #E5E7EB;border-radius:6px;padding:6px 4px;font-size:11px;font-family:inherit">'
+      + ['info','list','selfie','image'].map(function(t){ return '<option value="'+t+'"'+(step.type===t?' selected':'')+'>'+t+'</option>'; }).join('') + '</select></div>'
+      + '<div><label style="font-size:10px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px">Titre</label>'
+      + '<input type="text" value="' + (step.title||'').replace(/"/g,'&quot;') + '" onchange="updateGuideStep(' + i + ',\'title\',this.value)" style="width:100%;border:1.5px solid #E5E7EB;border-radius:6px;padding:6px;font-size:12px" aria-label="Titre"></div>'
+      + '<div style="display:flex;gap:5px">'
+      + (i>0 ? '<button onclick="moveGuideStep('+i+',-1)" style="background:#F3F4F6;border:none;border-radius:6px;padding:6px 8px;cursor:pointer" title="Monter">↑</button>' : '<span style="width:34px"></span>')
+      + (i<steps.length-1 ? '<button onclick="moveGuideStep('+i+',1)" style="background:#F3F4F6;border:none;border-radius:6px;padding:6px 8px;cursor:pointer" title="Descendre">↓</button>' : '<span style="width:34px"></span>')
+      + '<button onclick="deleteGuideStep('+i+')" style="background:#FEE2E2;color:#DC2626;border:none;border-radius:6px;padding:6px 8px;cursor:pointer" title="Supprimer">🗑</button>'
+      + '</div></div>'
+      + '<div style="margin-top:10px"><label style="font-size:10px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px">Contenu</label>'
+      + '<textarea rows="3" onchange="updateGuideStep('+i+',\'content\',this.value)" style="width:100%;border:1.5px solid #E5E7EB;border-radius:6px;padding:8px;font-family:inherit;font-size:12px;resize:vertical;box-sizing:border-box" aria-label="Contenu">'+(step.content||'')+'</textarea></div>'
+      + (step.type==='image' ? '<div style="margin-top:8px"><label style="font-size:10px;font-weight:600;color:#9CA3AF;display:block;margin-bottom:4px">URL image</label><input type="text" value="'+(step.image||'')+'" placeholder="https://..." onchange="updateGuideStep('+i+',\'image\',this.value)" style="width:100%;border:1.5px solid #E5E7EB;border-radius:6px;padding:6px;font-size:11px" aria-label="URL image"></div>' : '')
+      + '</div>';
+  }).join('') || '<div style="text-align:center;padding:24px;color:var(--muted)">Aucune étape.</div>';
+
+  var st = document.getElementById('guide-selfie-title');
+  var si = document.getElementById('guide-selfie-instructions');
+  if (st) st.value = _guideData.selfieTitle || '';
+  if (si) si.value = _guideData.selfieInstructions || '';
+  if (_guideData.selfieRefImage) {
+    var prev = document.getElementById('guide-selfie-ref-preview');
+    if (prev) prev.innerHTML = '<img src="'+_guideData.selfieRefImage+'" style="width:100%;height:100%;object-fit:cover;border-radius:6px" alt="Référence">';
+  }
+}
+
+window.updateGuideStep = function(i, field, value) { if (_guideData && _guideData.steps) _guideData.steps[i][field] = value; };
+window.addGuideStep = function() {
+  if (!_guideData) _guideData = { steps: [] };
+  if (!_guideData.steps) _guideData.steps = [];
+  _guideData.steps.push({ id:'step_'+Date.now(), icon:'📌', title:'Nouvelle étape', content:'', type:'info', image:'' });
+  renderGuideEditor();
+};
+window.deleteGuideStep = function(i) { if (_guideData && _guideData.steps) { _guideData.steps.splice(i,1); renderGuideEditor(); } };
+window.moveGuideStep = function(i, dir) {
+  var arr = _guideData && _guideData.steps; if (!arr) return;
+  var ni = i + dir; if (ni < 0 || ni >= arr.length) return;
+  var tmp = arr[i]; arr[i] = arr[ni]; arr[ni] = tmp; renderGuideEditor();
+};
+
+// Wire selfie ref image input
+document.addEventListener('DOMContentLoaded', function() {
+  var inp = document.getElementById('guide-selfie-ref-input');
+  if (!inp) return;
+  inp.addEventListener('change', function() {
+    var file = this.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var prev = document.getElementById('guide-selfie-ref-preview');
+      if (prev) prev.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:6px" alt="Référence">';
+      if (!_guideData) _guideData = {};
+      // Compress before storing
+      var img2 = new Image();
+      img2.onload = function() {
+        var canvas = document.createElement('canvas');
+        var scale = Math.min(400/img2.width, 500/img2.height, 1);
+        canvas.width = Math.round(img2.width*scale); canvas.height = Math.round(img2.height*scale);
+        canvas.getContext('2d').drawImage(img2, 0, 0, canvas.width, canvas.height);
+        _guideData.selfieRefImage = canvas.toDataURL('image/jpeg', 0.8);
+      };
+      img2.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+window.saveGuide = async function() {
+  if (!_guideData) return;
+  _guideData.selfieTitle = (document.getElementById('guide-selfie-title')||{}).value || '';
+  _guideData.selfieInstructions = (document.getElementById('guide-selfie-instructions')||{}).value || '';
+  _guideData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+  try {
+    await db.collection('guides').doc('spain_visa').set(_guideData, { merge: true });
+    showNotif('Guide enregistré !');
+  } catch(e) { showNotif('Erreur: ' + e.message); }
+};
+
+window.toggleGuidePublish = async function() {
+  if (!_guideData) { showNotif('Enregistrez d\'abord le guide'); return; }
+  _guidePublished = !_guidePublished;
+  try {
+    await db.collection('guides').doc('spain_visa').set({ published: _guidePublished }, { merge: true });
+    _guideData.published = _guidePublished;
+    updateGuidePublishBtn();
+    showNotif(_guidePublished ? 'Guide publié !' : 'Guide dépublié');
+  } catch(e) { _guidePublished = !_guidePublished; showNotif('Erreur: ' + e.message); }
+};
+
+// Hook showAdminTab to load guide
+var _origShowAdminTabForGuide = window.showAdminTab;
+window.showAdminTab = function(tab) {
+  _origShowAdminTabForGuide && _origShowAdminTabForGuide(tab);
+  if (tab === 'guide') loadGuideAdmin();
+};
+
+// ── CLIENT GUIDE MODAL ──
+window.openGuideModal = async function(appId) {
+  _guideAppId = appId || null;
+  try {
+    var snap = await db.collection('guides').doc('spain_visa').get();
+    if (!snap.exists || !snap.data().published) { showNotif('Le guide n\'est pas encore disponible.'); return; }
+    _guideData = snap.data();
+    _guideCurrentStep = 0;
+    var modal = document.getElementById('guide-modal');
+    if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+    renderGuideModal();
+  } catch(e) { showNotif('Erreur: ' + e.message); }
+};
+
+window.closeGuideModal = function() {
+  var m = document.getElementById('guide-modal');
+  if (m) { m.style.display = 'none'; document.body.style.overflow = ''; }
+};
+
+window.previewGuide = async function() {
+  await window.saveGuide();
+  if (!_guideData) return;
+  _guideData.published = true;
+  _guideCurrentStep = 0;
+  var m = document.getElementById('guide-modal');
+  if (m) { m.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  renderGuideModal();
+};
+
+function renderGuideModal() {
+  var steps = (_guideData && _guideData.steps) || DEFAULT_GUIDE_STEPS;
+  var step = steps[_guideCurrentStep]; if (!step) return;
+
+  // Progress
+  var pb = document.getElementById('guide-progress-bar');
+  if (pb) pb.innerHTML = steps.map(function(s,i){
+    return '<div style="display:flex;align-items:center;gap:4px">'
+      +'<div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;'
+      +(i<_guideCurrentStep?'background:#1B7A4A;color:#fff;':i===_guideCurrentStep?'background:#0B1D35;color:#E8B04A;':'background:#E5E7EB;color:#9CA3AF;')
+      +'">'+(i<_guideCurrentStep?'✓':(i+1))+'</div>'
+      +(i<steps.length-1?'<div style="width:20px;height:2px;background:'+(i<_guideCurrentStep?'#1B7A4A':'#E5E7EB')+'"></div>':'')
+      +'</div>';
+  }).join('');
+
+  var sc = document.getElementById('guide-step-counter');
+  if (sc) sc.textContent = 'Étape '+(_guideCurrentStep+1)+' sur '+steps.length;
+
+  var prev = document.getElementById('guide-btn-prev');
+  var next = document.getElementById('guide-btn-next');
+  if (prev) prev.style.visibility = _guideCurrentStep > 0 ? 'visible' : 'hidden';
+  if (next) {
+    var isLast = _guideCurrentStep === steps.length-1;
+    next.textContent = isLast ? '✅ Terminer' : 'Suivant →';
+    next.onclick = isLast ? function(){ closeGuideModal(); } : function(){ guideStepNav(1); };
+  }
+
+  var body = document.getElementById('guide-modal-body'); if (!body) return;
+  var h = '<div style="animation:fadeIn .25s ease">'
+    +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">'
+    +'<div style="font-size:36px">'+(step.icon||'📌')+'</div>'
+    +'<div style="font-size:17px;font-weight:700;color:#0B1D35">'+(step.title||'')+'</div>'
+    +'</div>';
+
+  if (step.type === 'selfie') {
+    h += '<p style="font-size:13px;color:#4B5563;line-height:1.6;margin-bottom:14px">'+(step.content||'')+'</p>';
+    if (_guideData.selfieRefImage) {
+      h += '<div style="background:#F8F9FA;border-radius:10px;padding:12px;margin-bottom:14px;text-align:center">'
+        +'<div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">📋 Exemple de photo acceptée</div>'
+        +'<img src="'+_guideData.selfieRefImage+'" alt="Exemple" style="max-height:150px;border-radius:8px;display:inline-block"></div>';
+    }
+    h += '<div id="selfie-guide-status-box" style="margin-bottom:12px"></div>';
+    h += '<button onclick="openSelfieOverlay()" style="width:100%;background:#0B1D35;color:#E8B04A;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">📸 Télécharger ma photo selfie</button>';
+    if (_guideAppId) {
+      db.collection('clientUploads').where('appId','==',_guideAppId).where('status','==','guide_selfie').get().then(function(snap){
+        var box = document.getElementById('selfie-guide-status-box'); if (!box) return;
+        box.innerHTML = snap.empty
+          ? '<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E">⏳ Selfie en attente de soumission</div>'
+          : '<div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:10px 14px;font-size:12px;color:#065F46;font-weight:600">✅ Selfie déjà soumis</div>';
+      }).catch(function(){});
+    }
+  } else if (step.type === 'list') {
+    var items = (step.content||'').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    h += items.length > 1
+      ? '<ul style="list-style:none;padding:0">' + items.map(function(it){ return '<li style="padding:7px 0;border-bottom:1px solid #F3F4F6;display:flex;gap:8px"><span style="color:#1B7A4A;font-weight:700;flex-shrink:0">✓</span><span style="font-size:13px;color:#374151">'+it+'</span></li>'; }).join('') + '</ul>'
+      : '<p style="font-size:13px;color:#4B5563;line-height:1.7">'+(step.content||'')+'</p>';
+  } else if (step.type === 'image' && step.image) {
+    h += '<p style="font-size:13px;color:#4B5563;line-height:1.6;margin-bottom:12px">'+(step.content||'')+'</p>'
+      +'<img src="'+step.image+'" alt="'+step.title+'" style="width:100%;max-height:280px;object-fit:contain;border-radius:10px;border:1px solid #E5E7EB">';
+  } else {
+    h += '<p style="font-size:13px;color:#4B5563;line-height:1.7">'+(step.content||'')+'</p>';
+  }
+  h += '</div>';
+  body.innerHTML = h;
+}
+
+window.guideStepNav = function(dir) {
+  var steps = (_guideData && _guideData.steps) || DEFAULT_GUIDE_STEPS;
+  _guideCurrentStep = Math.max(0, Math.min(steps.length-1, _guideCurrentStep+dir));
+  renderGuideModal();
+};
+
+// ── SELFIE UPLOAD ──
+window.openSelfieOverlay = function() {
+  _selfieBase64 = null;
+  var refImg = document.getElementById('selfie-ref-img');
+  var refEx  = document.getElementById('selfie-ref-example');
+  if (_guideData && _guideData.selfieRefImage && refImg) {
+    refImg.src = _guideData.selfieRefImage;
+    if (refEx) refEx.style.display = 'block';
+  } else if (refEx) refEx.style.display = 'none';
+  ['selfie-upload-status','selfie-upload-preview'].forEach(function(id){ var e=document.getElementById(id); if(e) e.style.display='none'; });
+  var ph = document.getElementById('selfie-upload-placeholder'); if (ph) ph.style.display = 'block';
+  var sb = document.getElementById('selfie-submit-btn'); if (sb) { sb.style.display = 'none'; sb.disabled = false; sb.textContent = '✅ Valider ma photo'; }
+  var inp = document.getElementById('selfie-file-input'); if (inp) inp.value = '';
+  var ov = document.getElementById('selfie-guide-overlay'); if (ov) ov.style.display = 'flex';
+};
+
+window.closeSelfieOverlay = function() {
+  var ov = document.getElementById('selfie-guide-overlay'); if (ov) ov.style.display = 'none';
+};
+
+window.handleSelfieUpload = function(input) {
+  var file = input.files[0]; if (!file) return;
+  if (file.size > 5*1024*1024) { _setStatus('warning','⚠️ Fichier trop volumineux (max 5 Mo)'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _selfieBase64 = e.target.result;
+    var prev = document.getElementById('selfie-preview-img'); if (prev) prev.src = _selfieBase64;
+    var pw = document.getElementById('selfie-upload-preview'); if (pw) pw.style.display = 'block';
+    var ph = document.getElementById('selfie-upload-placeholder'); if (ph) ph.style.display = 'none';
+    var sb = document.getElementById('selfie-submit-btn'); if (sb) sb.style.display = 'block';
+    _setStatus('success','✅ Photo sélectionnée — cliquez sur Valider');
+  };
+  reader.readAsDataURL(file);
+};
+
+function _setStatus(type, msg) {
+  var el = document.getElementById('selfie-upload-status'); if (!el) return;
+  el.style.display = 'block'; el.textContent = msg;
+  var colors = { success:['#D1FAE5','#065F46','#6EE7B7'], warning:['#FEF3C7','#92400E','#FDE68A'], error:['#FEE2E2','#991B1B','#FECACA'] };
+  var c = colors[type]||colors.warning;
+  el.style.background = c[0]; el.style.color = c[1]; el.style.border = '1px solid '+c[2]; el.style.borderRadius = '8px'; el.style.padding = '10px 14px'; el.style.fontSize = '12px'; el.style.fontWeight = '600';
+}
+
+window.submitSelfiePhoto = async function() {
+  if (!_selfieBase64) { _setStatus('warning','⚠️ Aucune photo sélectionnée'); return; }
+  var btn = document.getElementById('selfie-submit-btn');
+  if (btn) { btn.textContent = '⏳ Envoi...'; btn.disabled = true; }
+  try {
+    // Compress — same as other photo uploads
+    var compressed = await new Promise(function(resolve) {
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var scale = Math.min(400/img.width, 500/img.height, 1);
+        canvas.width = Math.round(img.width*scale); canvas.height = Math.round(img.height*scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = function() { resolve(_selfieBase64); };
+      img.src = _selfieBase64;
+    });
+    // Store in clientUploads — exact same pattern as all other document uploads in this platform
+    await db.collection('clientUploads').add({
+      appId:      _guideAppId || 'guide_anonymous_'+Date.now(),
+      status:     'guide_selfie',
+      files:      [{ name:'selfie_guide', data:compressed, type:'image/jpeg' }],
+      uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    _setStatus('success','✅ Photo envoyée avec succès !');
+    if (btn) { btn.textContent = '✅ Photo validée'; btn.style.background = '#1B7A4A'; }
+    setTimeout(function() {
+      closeSelfieOverlay();
+      var box = document.getElementById('selfie-guide-status-box');
+      if (box) box.innerHTML = '<div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:10px 14px;font-size:12px;color:#065F46;font-weight:600">✅ Selfie soumis avec succès !</div>';
+    }, 1400);
+  } catch(e) {
+    _setStatus('error','❌ Erreur: '+e.message);
+    if (btn) { btn.textContent = '✅ Valider ma photo'; btn.disabled = false; }
+  }
+};
+
+// ── ADMIN: view guide selfies in drawer ──
+(function hookDrawerForGuide() {
+  var orig = window.openDrawer;
+  window.openDrawer = function(id) {
+    orig && orig(id);
+    setTimeout(function() {
+      var drawerBody = document.querySelector('.drawer-body');
+      if (!drawerBody || !isAdmin) return;
+      var existing = document.getElementById('drawer-guide-selfie-section');
+      if (existing) existing.parentNode.removeChild(existing);
+      var section = document.createElement('div');
+      section.id = 'drawer-guide-selfie-section';
+      section.className = 'drawer-section';
+      section.innerHTML = '<h4>📸 Selfie Guide Visa</h4><div id="drawer-guide-selfie-content"><div style="font-size:12px;color:var(--muted)">Chargement...</div></div>';
+      drawerBody.insertBefore(section, drawerBody.firstChild);
+      db.collection('clientUploads').where('appId','==',id).where('status','==','guide_selfie').get().then(function(snap) {
+        var content = document.getElementById('drawer-guide-selfie-content'); if (!content) return;
+        if (snap.empty) { content.innerHTML = '<div style="font-size:12px;color:var(--muted);font-style:italic">Aucun selfie soumis via le guide.</div>'; return; }
+        var photos = [];
+        snap.forEach(function(doc) { (doc.data().files||[]).forEach(function(f){ if(f.data) photos.push(f.data); }); });
+        content.innerHTML = photos.map(function(src,i) {
+          return '<img src="'+src+'" alt="Selfie '+(i+1)+'" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #E5E7EB;cursor:pointer;margin:3px" onclick="showFullPhoto(\''+src+'\')" title="Agrandir">';
+        }).join('');
+      }).catch(function(){ var c=document.getElementById('drawer-guide-selfie-content'); if(c) c.innerHTML='<div style="font-size:11px;color:#DC2626">Erreur de chargement</div>'; });
+    }, 400);
+  };
+})();
+
+window.showFullPhoto = function(src) {
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1000;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  ov.onclick = function() { document.body.removeChild(ov); };
+  ov.innerHTML = '<img src="'+src+'" alt="Photo" style="max-width:90vw;max-height:90vh;border-radius:12px;box-shadow:0 24px 64px rgba(0,0,0,.5)">';
+  document.body.appendChild(ov);
+};
+
+// Animation CSS
+(function(){
+  if (document.getElementById('guide-anim-style')) return;
+  var s = document.createElement('style');
+  s.id = 'guide-anim-style';
+  s.textContent = '@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}';
+  document.head.appendChild(s);
+})();
+
+
+//   SUBMISSION CONFIRMATION — shown to client/B2B after submit
 // ══════════════════════════════════════════════════════
 var _lastSubmissionData = null;
 window.showSubmissionConfirmation = function(data) {
@@ -7978,6 +8408,83 @@ db.collection('services').limit(1).get().then(function(snap){ if(snap.empty) see
 <!-- ═══════════════════════════════════════════ -->
 <!--  RECEIPT MODAL                              -->
 <!-- ═══════════════════════════════════════════ -->
+<!-- ════ SPAIN VISA GUIDE MODAL ════ -->
+<div id="guide-modal" style="display:none;position:fixed;inset:0;background:rgba(11,29,53,.85);z-index:800;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)">
+  <div style="background:#fff;border-radius:16px;max-width:760px;width:100%;margin:20px auto;box-shadow:0 24px 64px rgba(0,0,0,.4);overflow:hidden;font-family:DM Sans,Arial,sans-serif">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0B1D35,#1a3a6b);padding:24px 28px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <img src="https://flagcdn.com/w40/es.png" alt="Espagne" style="height:24px;border-radius:3px">
+          <span style="color:#E8B04A;font-size:18px;font-weight:700">Guide Visa Espagne</span>
+        </div>
+        <div style="color:rgba(255,255,255,.5);font-size:11px">Suivez les étapes pour préparer votre dossier</div>
+      </div>
+      <button onclick="closeGuideModal()" aria-label="Fermer" style="background:rgba(255,255,255,.12);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <!-- Steps progress bar -->
+    <div style="background:#F8F9FA;border-bottom:1px solid #E5E7EB;padding:14px 28px">
+      <div id="guide-progress-bar" style="display:flex;gap:4px;align-items:center"></div>
+    </div>
+    <!-- Step content -->
+    <div id="guide-modal-body" style="padding:28px;min-height:300px"></div>
+    <!-- Navigation -->
+    <div style="padding:16px 28px;border-top:1px solid #F3F4F6;display:flex;justify-content:space-between;align-items:center">
+      <button id="guide-btn-prev" onclick="guideStepNav(-1)" style="background:#F3F4F6;color:#374151;border:none;border-radius:10px;padding:11px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">← Précédent</button>
+      <span id="guide-step-counter" style="font-size:12px;color:#9CA3AF"></span>
+      <button id="guide-btn-next" onclick="guideStepNav(1)" style="background:#0B1D35;color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Suivant →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ SELFIE UPLOAD OVERLAY (inside guide) ════ -->
+<div id="selfie-guide-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)">
+  <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;margin:20px;box-shadow:0 24px 64px rgba(0,0,0,.5);overflow:hidden;font-family:DM Sans,Arial,sans-serif">
+    <div style="background:linear-gradient(135deg,#0B1D35,#1a3a6b);padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+      <span style="color:#E8B04A;font-weight:700;font-size:15px">📸 Télécharger votre selfie</span>
+      <button onclick="closeSelfieOverlay()" aria-label="Fermer" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer">✕</button>
+    </div>
+    <div style="padding:22px">
+      <!-- Reference example -->
+      <div id="selfie-ref-example" style="margin-bottom:16px;display:none">
+        <div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Exemple à suivre</div>
+        <img id="selfie-ref-img" src="" alt="Exemple selfie" style="width:100%;max-height:180px;object-fit:contain;border-radius:8px;border:1px solid #E5E7EB">
+      </div>
+      <!-- Requirements -->
+      <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;padding:12px 16px;margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Exigences</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:#374151">
+          <div>✅ Fond blanc ou clair</div>
+          <div>✅ Visage bien éclairé</div>
+          <div>✅ Regardez l'objectif</div>
+          <div>✅ Pas de lunettes</div>
+          <div>✅ Format JPG/PNG</div>
+          <div>✅ Photo récente</div>
+        </div>
+      </div>
+      <!-- Upload zone -->
+      <div id="selfie-upload-zone" style="border:2px dashed #D1D5DB;border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all .2s" onclick="document.getElementById('selfie-file-input').click()" onmouseover="this.style.borderColor='#0B1D35'" onmouseout="this.style.borderColor='#D1D5DB'">
+        <div id="selfie-upload-preview" style="display:none;margin-bottom:12px">
+          <img id="selfie-preview-img" src="" alt="Aperçu" style="max-width:160px;max-height:160px;border-radius:8px;object-fit:cover">
+        </div>
+        <div id="selfie-upload-placeholder">
+          <div style="font-size:32px;margin-bottom:8px">🤳</div>
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">Cliquez pour choisir votre photo</div>
+          <div style="font-size:11px;color:#9CA3AF">JPG, PNG, WebP — Max 5 Mo</div>
+        </div>
+        <input id="selfie-file-input" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp" style="display:none" aria-label="Selfie" onchange="handleSelfieUpload(this)">
+      </div>
+      <!-- Status -->
+      <div id="selfie-upload-status" style="display:none;margin-top:12px;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600"></div>
+      <!-- Actions -->
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button id="selfie-submit-btn" onclick="submitSelfiePhoto()" style="flex:1;background:#1B7A4A;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:none">✅ Valider ma photo</button>
+        <button onclick="closeSelfieOverlay()" style="flex:1;background:#F3F4F6;color:#374151;border:none;border-radius:10px;padding:12px;font-size:13px;cursor:pointer;font-family:inherit">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="receipt-modal" style="display:none;position:fixed;inset:0;background:rgba(11,29,53,.78);z-index:500;align-items:center;justify-content:center;padding:16px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)">
   <div id="receipt-box" style="background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:94vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.4);position:relative;font-family:'DM Sans',Arial,sans-serif">
 
