@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -443,6 +444,94 @@ tr:hover td{background:var(--cream)}
 .b2b-modal-head{background:var(--navy);border-radius:14px 14px 0 0;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
 .b2b-modal-body{padding:24px}
 
+
+/* ════ BIOMETRIC OVERLAY CSS ════ */
+#biometric-overlay {
+  display:none; position:fixed; inset:0; z-index:9999;
+  flex-direction:column; justify-content:center; align-items:center;
+  overflow:hidden;
+  background: radial-gradient(ellipse at 50% 35%, #030d1a 0%, #000305 100%);
+}
+#biometric-overlay::before {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background-image: linear-gradient(rgba(0,190,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(0,190,255,0.035) 1px, transparent 1px);
+  background-size: 52px 52px; animation: bioGridScroll 10s linear infinite;
+}
+#biometric-overlay::after {
+  content:''; position:absolute; pointer-events:none;
+  width:800px; height:800px; border-radius:50%;
+  background: radial-gradient(circle, rgba(0,170,255,0.05) 0%, transparent 65%);
+  top:50%; left:50%; transform:translate(-50%,-50%); animation: bioBreathe 5s ease-in-out infinite;
+}
+@keyframes bioGridScroll { from{background-position:0 0} to{background-position:52px 52px} }
+@keyframes bioBreathe { 0%,100%{opacity:.5} 50%{opacity:1} }
+@keyframes bioScanLine { 0%{top:16%} 100%{top:84%} }
+@keyframes bioBlink { 0%,100%{opacity:1} 50%{opacity:.25} }
+@keyframes bioFadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes bioCheckDraw { from{stroke-dashoffset:60} to{stroke-dashoffset:0} }
+@keyframes bioSpinHex { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes bioMergeReveal { from{clip-path:inset(0 100% 0 0)} to{clip-path:inset(0 0 0 0)} }
+@keyframes bioGlowPulse { 0%,100%{opacity:.3} 50%{opacity:.8} }
+#bio-scan-zone { display:flex; flex-direction:column; align-items:center; position:relative; z-index:2; animation: bioFadeUp .5s ease both; }
+.bio-header-label { font-family:'DM Sans',sans-serif; font-size:8.5px; font-weight:700; letter-spacing:5px; text-transform:uppercase; color:rgba(0,190,255,0.45); margin-bottom:22px; }
+.bio-ring-container { position:relative; width:340px; height:340px; display:flex; justify-content:center; align-items:center; }
+.bio-hex-outer { position:absolute; width:390px; height:390px; animation: bioSpinHex 18s linear infinite; opacity:.18; }
+.bio-hex-inner { position:absolute; width:310px; height:310px; animation: bioSpinHex 12s linear infinite reverse; opacity:.1; }
+.bio-arcs-svg { position:absolute; inset:0; overflow:visible; }
+.bio-scan-line { position:absolute; left:50%; width:200px; height:1px; top:20%; background: linear-gradient(90deg, transparent, rgba(0,190,255,.7), transparent); transform:translateX(-50%); animation: bioScanLine 1.8s ease-in-out infinite alternate; filter:drop-shadow(0 0 5px rgba(0,190,255,.8)); pointer-events:none; z-index:5; }
+#bio-video { width:240px; height:240px; border-radius:50%; object-fit:cover; position:relative; z-index:3; border:1px solid rgba(0,190,255,.12); filter: saturate(.65) contrast(1.08); }
+#bio-mesh-canvas { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); border-radius:50%; z-index:4; pointer-events:none; }
+.bio-reticle { position:absolute; width:26px; height:26px; z-index:5; }
+.bio-reticle.tl { top:22px; left:22px; border-top:1.5px solid rgba(0,190,255,.5); border-left:1.5px solid rgba(0,190,255,.5); }
+.bio-reticle.tr { top:22px; right:22px; border-top:1.5px solid rgba(0,190,255,.5); border-right:1.5px solid rgba(0,190,255,.5); }
+.bio-reticle.bl { bottom:22px; left:22px; border-bottom:1.5px solid rgba(0,190,255,.5); border-left:1.5px solid rgba(0,190,255,.5); }
+.bio-reticle.br { bottom:22px; right:22px; border-bottom:1.5px solid rgba(0,190,255,.5); border-right:1.5px solid rgba(0,190,255,.5); }
+.bio-tick { position:absolute; background:rgba(0,190,255,.35); z-index:5; }
+.bio-tick.top    { top:14px; left:50%; transform:translateX(-50%); width:20px; height:1px; }
+.bio-tick.bottom { bottom:14px; left:50%; transform:translateX(-50%); width:20px; height:1px; }
+.bio-tick.left   { left:14px; top:50%; transform:translateY(-50%); width:1px; height:20px; }
+.bio-tick.right  { right:14px; top:50%; transform:translateY(-50%); width:1px; height:20px; }
+.bio-data-panel { position:absolute; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:rgba(0,190,255,.45); line-height:2; letter-spacing:.3px; animation: bioFadeUp .8s ease .2s both; min-width:140px; }
+.bio-data-panel.left  { right:calc(100% + 24px); top:50%; transform:translateY(-50%); text-align:right; }
+.bio-data-panel.right { left:calc(100% + 24px);  top:50%; transform:translateY(-50%); text-align:left; }
+.bio-dp-row { display:flex; justify-content:flex-end; gap:6px; align-items:baseline; }
+.bio-dp-row.r { justify-content:flex-start; }
+.bio-dp-k { font-size:7px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(0,190,255,.22); flex-shrink:0; }
+.bio-dp-v { color:rgba(0,190,255,.65); }
+.bio-dp-v.live { color:#b8892e; animation: bioBlink 1.4s ease-in-out infinite; }
+.bio-pct-row { display:flex; align-items:baseline; gap:4px; margin-top:20px; animation: bioFadeUp .7s ease .15s both; }
+#bio-percent { font-family:Georgia,serif; font-size:56px; font-weight:300; line-height:1; color:white; letter-spacing:-3px; text-shadow:0 0 40px rgba(0,190,255,.15); min-width:80px; text-align:right; }
+.bio-pct-unit { font-size:13px; color:rgba(255,255,255,.3); }
+#bio-status-label { font-size:9.5px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(0,190,255,.55); margin-top:8px; min-height:14px; animation: bioFadeUp .8s ease .25s both; }
+.bio-progress-strip { width:260px; height:1.5px; background:rgba(255,255,255,.05); border-radius:1px; margin-top:14px; overflow:hidden; }
+#bio-strip-fill { height:100%; width:0%; background:linear-gradient(90deg,rgba(0,190,255,.6),rgba(184,137,46,.8)); transition:width .1s linear; }
+#bio-success-zone { display:none; flex-direction:column; align-items:center; gap:24px; position:relative; z-index:2; animation: bioFadeUp .5s ease both; }
+.bio-merge-wrap { position:relative; display:flex; align-items:center; }
+#bio-merge-ref-c { width:180px; height:180px; border-radius:3px; border:1px solid rgba(0,190,255,.3); filter:saturate(.55); flex-shrink:0; z-index:1; }
+#bio-merge-live-c { width:180px; height:180px; border-radius:3px; border:1px solid rgba(184,137,46,.4); filter:saturate(.55); flex-shrink:0; margin-left:-60px; z-index:2; clip-path:inset(0 100% 0 0); animation: bioMergeReveal .9s cubic-bezier(.4,0,.2,1) .4s forwards; }
+.bio-merge-divider { position:absolute; left:calc(50% - 1px); top:0; bottom:0; width:1px; background:linear-gradient(180deg,transparent,rgba(255,255,255,.2),transparent); z-index:3; pointer-events:none; }
+#bio-check-badge { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:56px; height:56px; border-radius:50%; background:rgba(29,122,82,.12); border:1.5px solid rgba(29,122,82,.4); display:flex; align-items:center; justify-content:center; z-index:4; opacity:0; }
+#bio-check-badge svg polyline { stroke-dasharray:60; stroke-dashoffset:60; animation: bioCheckDraw .4s ease 1.2s forwards; }
+.bio-merge-sub { font-size:8px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.2); text-align:center; }
+#bio-score-val { font-size:38px; font-weight:300; color:#1d7a52; letter-spacing:-1px; }
+.bio-confirmed-pill { display:flex; align-items:center; gap:10px; padding:11px 22px; background:rgba(29,122,82,.05); border:1px solid rgba(29,122,82,.18); border-radius:2px; }
+.bio-confirmed-pill span { font-size:10px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:rgba(29,122,82,.85); }
+#bio-breach-zone { display:none; flex-direction:column; align-items:center; gap:22px; position:relative; z-index:2; }
+.bio-breach-pair { display:flex; gap:28px; align-items:flex-start; }
+.bio-breach-side { text-align:center; }
+.bio-breach-lbl { font-size:8px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; margin-bottom:8px; }
+.bio-breach-lbl.c { color:rgba(0,190,255,.55); }
+.bio-breach-lbl.w { color:rgba(192,57,43,.7); }
+.bio-breach-img { width:144px; height:144px; border-radius:3px; object-fit:cover; display:block; }
+#bio-ref-img { border:1px solid rgba(0,190,255,.25); filter:saturate(.5) brightness(.8); }
+#bio-live-cnv { border:1px solid rgba(192,57,43,.3); filter:saturate(.5) brightness(.8); }
+.bio-vs { font-size:22px; color:rgba(255,255,255,.1); align-self:center; }
+.bio-breach-info { text-align:center; max-width:380px; padding:18px 24px; border:1px solid rgba(192,57,43,.18); background:rgba(192,57,43,.03); border-radius:2px; }
+.bio-breach-ttl { font-size:10px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(192,57,43,.75); margin-bottom:7px; }
+.bio-breach-txt { font-size:11.5px; color:rgba(255,255,255,.3); line-height:1.85; }
+.bio-retry { padding:10px 28px; background:transparent; color:rgba(255,255,255,.35); border:1px solid rgba(255,255,255,.09); border-radius:2px; font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; cursor:pointer; }
+#bio-canvas, #bio-live-canvas { display:none; }
+/* ════ END BIOMETRIC CSS ════ */
 </style>
 </head>
 <body>
@@ -766,6 +855,18 @@ tr:hover td{background:var(--cream)}
 
 <!-- DASHBOARD PAGE -->
 <div id="page-dashboard" class="page">
+  <!-- Guide banner — shown when guide is published -->
+  <div id="guide-banner" style="display:none;background:linear-gradient(135deg,#0B1D35,#1a3a6b);border-radius:14px;padding:18px 22px;margin-bottom:20px;display:none;align-items:center;justify-content:space-between;gap:16px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <img src="https://flagcdn.com/w40/es.png" alt="Espagne" style="height:28px;border-radius:3px">
+      <div>
+        <div style="color:#E8B04A;font-weight:700;font-size:15px">Guide Visa Espagne disponible</div>
+        <div style="color:rgba(255,255,255,.5);font-size:11px;margin-top:2px">Suivez notre guide étape par étape pour préparer votre dossier</div>
+      </div>
+    </div>
+    <button onclick="openGuideModal(window._dashCurrentAppId)" style="background:#E8B04A;color:#0B1D35;border:none;border-radius:10px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">🇪🇸 Voir le Guide →</button>
+  </div>
+
   <div class="dash-layout">
     <div class="dash-sidebar">
       <div class="sidebar-user">
@@ -2700,6 +2801,12 @@ window.trackApplication = async function() {
 //  DASHBOARD
 // ══════════════════════════════════════════
 window.loadDashboard = async function() {
+  // Check if Spain visa guide is published and show banner
+  db.collection('guides').doc('spain_visa').get().then(function(snap){
+    var banner = document.getElementById('guide-banner');
+    if (banner) banner.style.display = (snap.exists && snap.data().published) ? 'flex' : 'none';
+  }).catch(function(){});
+
   const user = auth.currentUser;
   document.getElementById('dash-today').textContent =
     new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -5241,6 +5348,259 @@ window.showFullPhoto = function(src) {
   s.textContent = '@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}';
   document.head.appendChild(s);
 })();
+
+
+// ══════════════════════════════════════════════════════════════
+//  BIOMETRIC FACE VERIFICATION
+//  Ref photo from Firestore clientUploads (guide_selfie)
+//  Live capture saved to Firestore clientUploads (bio_verification)
+// ══════════════════════════════════════════════════════════════
+
+var _bioFaceVerified  = false;
+var _bioModelsLoaded  = false;
+var _bioModelsPromise = null;
+var _bioRefPhotoB64   = null;
+var _bioAppId         = null;
+
+window.closeBiometricOverlay = function() {
+  var ov = document.getElementById('biometric-overlay');
+  if (ov) ov.style.display = 'none';
+  var vid = document.getElementById('bio-video');
+  if (vid && vid.srcObject) { vid.srcObject.getTracks().forEach(function(t){t.stop();}); vid.srcObject = null; }
+};
+
+function preloadFaceModels() {
+  if (_bioModelsPromise) return _bioModelsPromise;
+  _bioModelsPromise = new Promise(function(res,rej) {
+    var t=0, iv=setInterval(function(){
+      t++;
+      if (typeof faceapi!=='undefined'){clearInterval(iv);res();}
+      if (t>60){clearInterval(iv);rej(new Error('face-api not loaded'));}
+    },500);
+  }).then(function() {
+    var M='https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+    return Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(M),
+      faceapi.nets.faceLandmark68Net.loadFromUri(M),
+      faceapi.nets.faceRecognitionNet.loadFromUri(M),
+      faceapi.nets.ssdMobilenetv1.loadFromUri(M)
+    ]);
+  }).then(function(){ _bioModelsLoaded=true; console.log('[Bio] Models ready'); });
+  return _bioModelsPromise;
+}
+setTimeout(function(){ preloadFaceModels().catch(function(){}); }, 2500);
+
+async function loadBioRefPhoto(appId) {
+  try {
+    var snap = await db.collection('clientUploads').where('appId','==',appId).where('status','==','guide_selfie').get();
+    if (snap.empty) return null;
+    var photos=[]; snap.forEach(function(d){ (d.data().files||[]).forEach(function(f){if(f.data)photos.push(f.data);}); });
+    return photos.length ? photos[photos.length-1] : null;
+  } catch(e){ return null; }
+}
+
+window.startBioVerification = async function(appId, refB64) {
+  _bioAppId = appId;
+  var ref = refB64 || _bioRefPhotoB64;
+  if (!ref && appId) { showNotif('Chargement...'); ref = await loadBioRefPhoto(appId); }
+  if (!ref) { showNotif('Soumettez d'abord votre selfie dans le guide.'); return; }
+  _bioRefPhotoB64 = ref;
+  _runBioVerify(ref, appId);
+};
+
+async function _runBioVerify(refB64, appId) {
+  var OV=document.getElementById('biometric-overlay'),
+      SZ=document.getElementById('bio-scan-zone'),
+      SU=document.getElementById('bio-success-zone'),
+      BR=document.getElementById('bio-breach-zone'),
+      VID=document.getElementById('bio-video'),
+      ring=document.getElementById('bio-ring-fill'),
+      acc=document.getElementById('bio-ring-accent'),
+      pct=document.getElementById('bio-percent'),
+      strip=document.getElementById('bio-strip-fill'),
+      lbl=document.getElementById('bio-status-label'),
+      mesh=document.getElementById('bio-mesh-canvas'),
+      proc=document.getElementById('bio-canvas'),
+      liveC=document.getElementById('bio-live-canvas'),
+      mCtx=mesh.getContext('2d'),
+      CIRC=980, ACCI=930;
+
+  function dp(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+  function prog(v){
+    ring.style.strokeDashoffset=CIRC-(v/100*CIRC);
+    acc.style.strokeDashoffset=ACCI-(v/100*ACCI*0.85);
+    strip.style.width=v+'%'; pct.textContent=Math.floor(v);
+  }
+
+  prog(0); ring.style.strokeDashoffset=CIRC; acc.style.strokeDashoffset=ACCI;
+  SZ.style.display='flex'; SU.style.display='none'; BR.style.display='none'; OV.style.display='flex';
+  mCtx.clearRect(0,0,240,240);
+  dp('bio-d-name',(window._currentAppName||'DEMANDEUR').toUpperCase());
+  dp('bio-d-passport',(window._currentPassport||'—').toUpperCase());
+  dp('bio-d-sess','VS-'+Math.random().toString(36).slice(2,8).toUpperCase());
+
+  function drawMesh(det) {
+    mCtx.clearRect(0,0,240,240);
+    if(!det) return;
+    var pts=det.landmarks.positions, sx=240/(VID.videoWidth||480), sy=240/(VID.videoHeight||480);
+    mCtx.fillStyle='rgba(0,190,255,0.75)';
+    pts.forEach(function(p){mCtx.beginPath();mCtx.arc(p.x*sx,p.y*sy,1.2,0,Math.PI*2);mCtx.fill();});
+    mCtx.strokeStyle='rgba(0,190,255,0.28)'; mCtx.lineWidth=0.8;
+    function seg(idx){mCtx.beginPath();idx.forEach(function(i,j){var p=pts[i];j?mCtx.lineTo(p.x*sx,p.y*sy):mCtx.moveTo(p.x*sx,p.y*sy);});mCtx.stroke();}
+    seg([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);
+    seg([17,18,19,20,21]);seg([22,23,24,25,26]);seg([27,28,29,30]);seg([31,32,33,34,35]);
+    mCtx.strokeStyle='rgba(184,137,46,0.5)';
+    seg([36,37,38,39,40,41,36]);seg([42,43,44,45,46,47,42]);
+    mCtx.strokeStyle='rgba(0,190,255,0.22)';
+    seg([48,49,50,51,52,53,54,55,56,57,58,59,48]);
+  }
+
+  try {
+    lbl.textContent='Chargement des modèles de sécurité';
+    await preloadFaceModels();
+    if(!_bioModelsLoaded) throw new Error('Modèles non disponibles');
+
+    lbl.textContent='Analyse de la photo de référence';
+    var refImg=new Image(); refImg.src=refB64;
+    await new Promise(function(r,j){refImg.onload=r;refImg.onerror=j;});
+    var refDet=await faceapi.detectSingleFace(refImg,new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
+    if(!refDet){OV.style.display='none';showNotif('Aucun visage dans la photo de référence. Soumettez une photo claire.');return;}
+
+    lbl.textContent='Activation de la caméra';
+    var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:480},height:{ideal:480}}});
+    VID.srcObject=stream; await new Promise(function(r){VID.onloadedmetadata=r;}); VID.play();
+
+    lbl.textContent='Scan en cours · Regardez la caméra';
+    dp('bio-d-pts','ACTIF'); dp('bio-d-live','ACTIF');
+    var progress=0,frames=0,isMatch=false,bestScore=0,liveB64=null;
+    var matcher=new faceapi.FaceMatcher(refDet,0.55);
+
+    var iv=setInterval(async function(){
+      if(VID.readyState<2) return;
+      frames++;
+      dp('bio-d-frm',String(frames).padStart(3,'0'));
+      var live=await faceapi.detectSingleFace(VID,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.5})).withFaceLandmarks().withFaceDescriptor();
+      if(live){
+        drawMesh(live);
+        var m=matcher.findBestMatch(live.descriptor), score=1-(m.distance||1);
+        if(score>bestScore) bestScore=score;
+        if(m.label!=='unknown') isMatch=true;
+        dp('bio-d-conf',Math.round(score*100)+'%'); dp('bio-d-match',isMatch?'CONFIRMÉ':'VÉRIF.');
+        dp('bio-d-live','DÉTECTÉ'); dp('bio-d-pts',live.landmarks.positions.length+' PTS');
+      } else { dp('bio-d-live','RECHERCHE'); dp('bio-d-pts','—'); }
+
+      progress+=1.6; prog(Math.min(progress,100));
+      if(progress>=100){
+        clearInterval(iv);
+        proc.width=VID.videoWidth||480; proc.height=VID.videoHeight||480;
+        proc.getContext('2d').drawImage(VID,0,0);
+        liveB64=proc.toDataURL('image/jpeg',0.8);
+        liveC.width=proc.width; liveC.height=proc.height;
+        liveC.getContext('2d').drawImage(proc,0,0);
+        stream.getTracks().forEach(function(t){t.stop();}); mCtx.clearRect(0,0,240,240);
+
+        // Save to Firestore clientUploads — same pattern as all other uploads
+        try {
+          await db.collection('clientUploads').add({
+            appId:      appId||'bio_'+Date.now(),
+            status:     'bio_verification',
+            files:      [{name:'live_capture',data:liveB64,type:'image/jpeg'}],
+            matchScore: Math.round(bestScore*100),
+            result:     isMatch?'MATCH':'MISMATCH',
+            uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } catch(saveErr){ console.warn('[Bio] save error:',saveErr); }
+
+        if(isMatch){
+          prog(100); lbl.textContent='Identité confirmée';
+          setTimeout(function(){
+            SZ.style.display='none'; SU.style.display='flex';
+            document.getElementById('bio-merge-ref-c').getContext('2d').drawImage(refImg,0,0,180,180);
+            document.getElementById('bio-merge-live-c').getContext('2d').drawImage(liveC,0,0,liveC.width,liveC.height,0,0,180,180);
+            document.getElementById('bio-score-val').textContent=Math.round(bestScore*100)+'% MATCH';
+            _bioFaceVerified=true;
+            setTimeout(function(){
+              OV.style.display='none';
+              showNotif('Vérification biométrique réussie !');
+              var box=document.getElementById('selfie-guide-status-box');
+              if(box) box.innerHTML='<div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:10px 14px;font-size:12px;color:#065F46;font-weight:600">✅ Identité vérifiée par scan biométrique</div>';
+            },3200);
+          },600);
+        } else {
+          setTimeout(function(){
+            SZ.style.display='none'; BR.style.display='flex';
+            document.getElementById('bio-ref-img').src=refB64;
+            document.getElementById('bio-live-cnv').getContext('2d').drawImage(liveC,0,0,liveC.width,liveC.height,0,0,144,144);
+          },400);
+        }
+      }
+    },55);
+
+  } catch(err){
+    OV.style.display='none';
+    showNotif(err.name==='NotAllowedError'?'Accès caméra refusé. Autorisez la caméra.':'Erreur: '+err.message);
+    console.error('[Bio]',err);
+  }
+}
+
+// After selfie submitted — show bio verify button
+var _origSubmitSelfieForBio=window.submitSelfiePhoto;
+window.submitSelfiePhoto=async function(){
+  await _origSubmitSelfieForBio();
+  _bioRefPhotoB64=_selfieBase64;
+  setTimeout(function(){
+    var box=document.getElementById('selfie-guide-status-box');
+    if(box) box.innerHTML+='<div style="margin-top:10px"><button onclick="startBioVerification(_bioAppId,_bioRefPhotoB64)" style="width:100%;background:linear-gradient(135deg,#030d1a,#0a1628);color:rgba(0,190,255,.9);border:1px solid rgba(0,190,255,.2);border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:1px">🔬 Lancer la vérification biométrique</button></div>';
+    _bioAppId=_guideAppId;
+  },1800);
+};
+
+// Preload ref photo when guide opens
+var _origOpenGuideForBio=window.openGuideModal;
+window.openGuideModal=async function(appId){
+  _bioAppId=appId||null;
+  if(appId) loadBioRefPhoto(appId).then(function(p){_bioRefPhotoB64=p;}).catch(function(){});
+  return _origOpenGuideForBio&&_origOpenGuideForBio(appId);
+};
+
+// Dashboard: show guide banner when published
+var _origLoadDashboardForGuide=window.loadDashboard;
+window.loadDashboard=async function(){
+  _origLoadDashboardForGuide&&await _origLoadDashboardForGuide();
+  try{
+    var snap=await db.collection('guides').doc('spain_visa').get();
+    var banner=document.getElementById('guide-banner');
+    if(banner) banner.style.display=(snap.exists&&snap.data().published)?'flex':'none';
+  }catch(e){}
+};
+
+// Admin drawer — show bio verifications
+var _origOpenDrawerForBio=window.openDrawer;
+window.openDrawer=function(id){
+  _origOpenDrawerForBio&&_origOpenDrawerForBio(id);
+  if(!isAdmin) return;
+  setTimeout(function(){
+    var drawerBody=document.querySelector('.drawer-body'); if(!drawerBody) return;
+    var old=document.getElementById('drawer-bio-section'); if(old) old.parentNode.removeChild(old);
+    var sec=document.createElement('div'); sec.id='drawer-bio-section'; sec.className='drawer-section';
+    sec.innerHTML='<h4>🔬 Vérifications biométriques</h4><div id="drawer-bio-content"><div style="font-size:12px;color:var(--muted)">Chargement...</div></div>';
+    drawerBody.insertBefore(sec,drawerBody.firstChild);
+    db.collection('clientUploads').where('appId','==',id).where('status','==','bio_verification').get().then(function(snap){
+      var c=document.getElementById('drawer-bio-content'); if(!c) return;
+      if(snap.empty){c.innerHTML='<div style="font-size:12px;color:var(--muted);font-style:italic">Aucune vérification biométrique.</div>';return;}
+      var rows=[];
+      snap.forEach(function(d){
+        var data=d.data(), lf=(data.files||[]).find(function(f){return f.name==='live_capture';});
+        rows.push('<div style="background:'+(data.result==='MATCH'?'#F0FDF4':'#FFF1F2')+';border:1px solid '+(data.result==='MATCH'?'#BBF7D0':'#FECDD3')+';border-radius:8px;padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
+          +(lf?'<img src="'+lf.data+'" alt="Live" style="width:50px;height:50px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="showFullPhoto(''+lf.data+'')">':'')
+          +'<div><div style="font-size:11px;font-weight:700;color:'+(data.result==='MATCH'?'#065F46':'#991B1B')+'">'+(data.result==='MATCH'?'✅ IDENTITÉ CONFIRMÉE':'❌ NON CONFORME')+'</div>'
+          +'<div style="font-size:10px;color:#6B7280;margin-top:2px">Score: '+(data.matchScore||0)+'%</div></div></div>');
+      });
+      c.innerHTML=rows.join('');
+    }).catch(function(){});
+  },600);
+};
+
 
 
 //   SUBMISSION CONFIRMATION — shown to client/B2B after submit
@@ -8409,6 +8769,77 @@ db.collection('services').limit(1).get().then(function(snap){ if(snap.empty) see
 <!--  RECEIPT MODAL                              -->
 <!-- ═══════════════════════════════════════════ -->
 <!-- ════ SPAIN VISA GUIDE MODAL ════ -->
+
+<!-- ════ BIOMETRIC OVERLAY ════ -->
+<div id="biometric-overlay">
+  <div id="bio-scan-zone">
+    <div class="bio-header-label">Vérification Biométrique &nbsp;·&nbsp; EuroVisa Security</div>
+    <div class="bio-ring-container">
+      <svg class="bio-hex-outer" viewBox="0 0 390 390" fill="none"><polygon points="195,6 378,102 378,288 195,384 12,288 12,102" stroke="rgba(0,190,255,0.15)" stroke-width="1" stroke-dasharray="3 9"/></svg>
+      <svg class="bio-hex-inner" viewBox="0 0 310 310" fill="none"><polygon points="155,5 300,82 300,228 155,305 10,228 10,82" stroke="rgba(184,137,46,0.12)" stroke-width="1" stroke-dasharray="2 10"/></svg>
+      <svg class="bio-arcs-svg" width="340" height="340" viewBox="0 0 340 340">
+        <defs><linearGradient id="bioArcGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="rgba(0,190,255,0.9)"/><stop offset="55%" stop-color="rgba(0,150,255,0.75)"/><stop offset="100%" stop-color="rgba(184,137,46,0.85)"/></linearGradient></defs>
+        <circle cx="170" cy="170" r="156" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <circle cx="170" cy="170" r="164" fill="none" stroke="rgba(0,190,255,0.07)" stroke-width="1" stroke-dasharray="2 7"/>
+        <circle id="bio-ring-fill" cx="170" cy="170" r="156" fill="none" stroke="url(#bioArcGrad)" stroke-width="2" stroke-linecap="round" stroke-dasharray="980" stroke-dashoffset="980" transform="rotate(-90 170 170)" style="transition:stroke-dashoffset .08s linear"/>
+        <circle id="bio-ring-accent" cx="170" cy="170" r="148" fill="none" stroke="rgba(184,137,46,0.2)" stroke-width="1" stroke-dasharray="930" stroke-dashoffset="930" transform="rotate(-90 170 170)" style="transition:stroke-dashoffset .12s linear"/>
+      </svg>
+      <div class="bio-scan-line"></div>
+      <div class="bio-reticle tl"></div><div class="bio-reticle tr"></div>
+      <div class="bio-reticle bl"></div><div class="bio-reticle br"></div>
+      <div class="bio-tick top"></div><div class="bio-tick bottom"></div>
+      <div class="bio-tick left"></div><div class="bio-tick right"></div>
+      <video id="bio-video" autoplay muted playsinline></video>
+      <canvas id="bio-mesh-canvas" width="240" height="240"></canvas>
+    </div>
+    <div class="bio-data-panel left">
+      <div class="bio-dp-row"><span class="bio-dp-k">SUJET</span><span class="bio-dp-v" id="bio-d-name">&mdash;</span></div>
+      <div class="bio-dp-row"><span class="bio-dp-k">PASSEPORT</span><span class="bio-dp-v" id="bio-d-passport">&mdash;</span></div>
+      <div class="bio-dp-row"><span class="bio-dp-k">POINTS</span><span class="bio-dp-v live" id="bio-d-pts">MAPPING</span></div>
+      <div class="bio-dp-row"><span class="bio-dp-k">VIVACITÉ</span><span class="bio-dp-v live" id="bio-d-live">DETECTING</span></div>
+      <div class="bio-dp-row"><span class="bio-dp-k">CONFIANCE</span><span class="bio-dp-v" id="bio-d-conf">&mdash;</span></div>
+    </div>
+    <div class="bio-data-panel right">
+      <div class="bio-dp-row r"><span class="bio-dp-k">SESSION</span><span class="bio-dp-v" id="bio-d-sess">&mdash;</span></div>
+      <div class="bio-dp-row r"><span class="bio-dp-k">FRAME</span><span class="bio-dp-v live" id="bio-d-frm">000</span></div>
+      <div class="bio-dp-row r"><span class="bio-dp-k">ALGORITHME</span><span class="bio-dp-v">SSD + TFD</span></div>
+      <div class="bio-dp-row r"><span class="bio-dp-k">SEUIL</span><span class="bio-dp-v">0.55</span></div>
+      <div class="bio-dp-row r"><span class="bio-dp-k">MATCH</span><span class="bio-dp-v" id="bio-d-match">&mdash;</span></div>
+    </div>
+    <div class="bio-pct-row"><div id="bio-percent">0</div><div class="bio-pct-unit">%</div></div>
+    <div id="bio-status-label">Initialisation</div>
+    <div class="bio-progress-strip"><div id="bio-strip-fill"></div></div>
+  </div>
+  <div id="bio-success-zone">
+    <div class="bio-header-label" style="color:rgba(29,122,82,0.55)">Identité Confirmée &nbsp;·&nbsp; Accès Accordé</div>
+    <div class="bio-merge-wrap">
+      <canvas id="bio-merge-ref-c" width="180" height="180" class="bio-merge-img" style="flex-shrink:0;z-index:1"></canvas>
+      <canvas id="bio-merge-live-c" width="180" height="180" class="bio-merge-img" style="flex-shrink:0;margin-left:-60px;z-index:2"></canvas>
+      <div class="bio-merge-divider"></div>
+      <div id="bio-check-badge"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    </div>
+    <div class="bio-merge-sub">Photo de référence &nbsp;·&nbsp; Capture live</div>
+    <div id="bio-score-val">CONFIRMÉ</div>
+    <div class="bio-confirmed-pill"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span>Vérification biométrique réussie — capture sauvegardée</span></div>
+  </div>
+  <div id="bio-breach-zone">
+    <div class="bio-header-label" style="color:rgba(192,57,43,0.55)">Vérification Échouée &nbsp;·&nbsp; Identité Non Conforme</div>
+    <div class="bio-breach-pair">
+      <div class="bio-breach-side"><div class="bio-breach-lbl c">Photo enregistrée</div><img id="bio-ref-img" class="bio-breach-img" alt="Référence"></div>
+      <div class="bio-vs">≠</div>
+      <div class="bio-breach-side"><div class="bio-breach-lbl w">Capture live</div><canvas id="bio-live-cnv" class="bio-breach-img" width="144" height="144"></canvas></div>
+    </div>
+    <div class="bio-breach-info">
+      <div class="bio-breach-ttl">Divergence d'identité détectée</div>
+      <div class="bio-breach-txt">Le visage capturé ne correspond pas au demandeur enregistré. Assurez-vous d'être bien le demandeur nommé sur ce dossier.</div>
+    </div>
+    <button class="bio-retry" onclick="closeBiometricOverlay()">Réessayer</button>
+  </div>
+  <canvas id="bio-canvas" width="480" height="480"></canvas>
+  <canvas id="bio-live-canvas" width="480" height="480"></canvas>
+</div>
+<!-- ════ END BIOMETRIC OVERLAY ════ -->
+
 <div id="guide-modal" style="display:none;position:fixed;inset:0;background:rgba(11,29,53,.85);z-index:800;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)">
   <div style="background:#fff;border-radius:16px;max-width:760px;width:100%;margin:20px auto;box-shadow:0 24px 64px rgba(0,0,0,.4);overflow:hidden;font-family:DM Sans,Arial,sans-serif">
     <!-- Header -->
