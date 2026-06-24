@@ -1850,7 +1850,7 @@ tr:hover td{background:var(--cream)}
     <div class="drawer-section" id="drawer-receipt-section">
       <h4>🧾 Reçu Officiel</h4>
       <div id="drawer-receipt-admin" style="display:none">
-        <p id="drawer-receipt-admin-note" style="font-size:12px;color:var(--muted);margin:0 0 10px">En tant qu'admin, modifiez et envoyez le reçu une fois le paiement reçu.</p>
+        <p id="drawer-receipt-admin-note" style="font-size:12px;color:var(--muted);margin:0 0 10px">En tant qu\'admin, modifiez et envoyez le reçu une fois le paiement reçu.</p>
         <div class="drawer-actions">
           <button id="drawer-toggle-receipt-btn" class="btn-sm btn-sm-green" onclick="toggleReceiptPush(window._currentDrawerAppId)">✏️ Modifier &amp; Envoyer le Reçu</button>
           <button class="btn-sm btn-sm-navy" onclick="downloadReceiptForApp(window._currentDrawerAppId)">📄 PDF Reçu</button>
@@ -5403,7 +5403,7 @@ window.startBioVerification = async function(appId, refB64) {
   _bioAppId = appId;
   var ref = refB64 || _bioRefPhotoB64;
   if (!ref && appId) { showNotif('Chargement...'); ref = await loadBioRefPhoto(appId); }
-  if (!ref) { showNotif('Soumettez d'abord votre selfie dans le guide.'); return; }
+  if (!ref) { showNotif('Soumettez d\'abord votre selfie dans le guide.'); return; }
   _bioRefPhotoB64 = ref;
   _runBioVerify(ref, appId);
 };
@@ -5592,7 +5592,7 @@ window.openDrawer=function(id){
       snap.forEach(function(d){
         var data=d.data(), lf=(data.files||[]).find(function(f){return f.name==='live_capture';});
         rows.push('<div style="background:'+(data.result==='MATCH'?'#F0FDF4':'#FFF1F2')+';border:1px solid '+(data.result==='MATCH'?'#BBF7D0':'#FECDD3')+';border-radius:8px;padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
-          +(lf?'<img src="'+lf.data+'" alt="Live" style="width:50px;height:50px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="showFullPhoto(''+lf.data+'')">':'')
+          +(lf?'<img src="'+lf.data+'" alt="Live" style="width:50px;height:50px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="showFullPhoto(\"'+lf.data+'\")">':'')
           +'<div><div style="font-size:11px;font-weight:700;color:'+(data.result==='MATCH'?'#065F46':'#991B1B')+'">'+(data.result==='MATCH'?'✅ IDENTITÉ CONFIRMÉE':'❌ NON CONFORME')+'</div>'
           +'<div style="font-size:10px;color:#6B7280;margin-top:2px">Score: '+(data.matchScore||0)+'%</div></div></div>');
       });
