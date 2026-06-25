@@ -646,7 +646,9 @@ tr:hover td{background:var(--cream)}
             <div class="form-step active" id="step-ind-1">1 · Destination</div>
             <div class="form-step" id="step-ind-2">2 · Service</div>
             <div class="form-step" id="step-ind-3">3 · Details</div>
-            <div class="form-step" id="step-ind-4">4 · Confirm</div>
+            <div class="form-step" id="step-ind-4">4 · Selfie</div>
+            <div class="form-step" id="step-ind-5">5 · Paiement</div>
+            <div class="form-step" id="step-ind-6">6 · Confirm</div>
           </div>
           <!-- Step 1 -->
           <div class="step-content active" id="step-1">
@@ -772,15 +774,109 @@ tr:hover td{background:var(--cream)}
             <div class="form-actions"><button class="btn-ghost" onclick="nextStep(-1)">← Back</button><button class="btn-gold" onclick="nextStep(1)">Review Order →</button></div>
           </div>
           <!-- Step 4 -->
+          <!-- STEP 4: SELFIE VERIFICATION -->
           <div class="step-content" id="step-4">
+            <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px">📸 Vérification Selfie</h3>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:18px">Prenez un selfie pour vérifier votre identité avant de soumettre votre dossier.</p>
+
+            <!-- Selfie upload zone -->
+            <div id="booking-selfie-zone" style="border:2px dashed #D1D5DB;border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px" onclick="document.getElementById('booking-selfie-input').click()" onmouseover="this.style.borderColor='#0B1D35'" onmouseout="this.style.borderColor='#D1D5DB'">
+              <div id="booking-selfie-preview-wrap" style="display:none;margin-bottom:12px">
+                <img id="booking-selfie-preview-img" src="" alt="Aperçu selfie" style="max-width:180px;max-height:180px;border-radius:10px;object-fit:cover;border:2px solid #E5E7EB">
+              </div>
+              <div id="booking-selfie-placeholder">
+                <div style="font-size:40px;margin-bottom:8px">🤳</div>
+                <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:4px">Cliquez pour choisir votre selfie</div>
+                <div style="font-size:11px;color:var(--muted)">JPG, PNG, WebP · Fond blanc · Visage bien visible</div>
+              </div>
+              <input id="booking-selfie-input" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp" style="display:none" aria-label="Photo selfie" onchange="handleBookingSelfie(this)">
+            </div>
+
+            <!-- Biometric verify button -->
+            <div id="booking-bio-status" style="margin-bottom:14px"></div>
+            <button id="booking-bio-btn" onclick="launchBookingBiometric()" style="display:none;width:100%;background:linear-gradient(135deg,#030d1a,#0a1628);color:rgba(0,190,255,.9);border:1px solid rgba(0,190,255,.2);border-radius:10px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.5px;margin-bottom:14px">
+              🔬 Lancer la vérification biométrique
+            </button>
+
+            <!-- Selfie requirements -->
+            <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;padding:14px;font-size:12px;color:#0369A1">
+              <div style="font-weight:700;margin-bottom:8px">📋 Exigences pour le selfie :</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+                <div>✅ Fond blanc ou clair</div><div>✅ Visage bien éclairé</div>
+                <div>✅ Regardez l'objectif</div><div>✅ Pas de lunettes</div>
+                <div>✅ Photo nette et récente</div><div>✅ Pas de filtre</div>
+              </div>
+            </div>
+
+            <div class="form-actions" style="margin-top:16px">
+              <button class="btn-ghost" onclick="nextStep(-1)">← Back</button>
+              <button class="btn-gold" id="booking-step4-next" onclick="bookingStep4Next()">Continuer →</button>
+            </div>
+          </div>
+
+          <!-- STEP 5: PAYMENT SIMULATION -->
+          <div class="step-content" id="step-5">
+            <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px">💳 Simulation de Paiement</h3>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:18px">Sélectionnez votre méthode de paiement préférée. Le paiement sera finalisé avec notre équipe.</p>
+
+            <!-- Amount summary -->
+            <div id="booking-payment-summary" style="background:linear-gradient(135deg,#0B1D35,#132645);border-radius:12px;padding:18px;margin-bottom:18px;color:#fff">
+              <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:12px">Récapitulatif</div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-end">
+                <div>
+                  <div id="booking-pay-pkg" style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:4px">Package sélectionné</div>
+                  <div id="booking-pay-total" style="font-size:28px;font-weight:700;color:#E8B04A">— MAD</div>
+                </div>
+                <img src="https://flagcdn.com/w40/es.png" alt="Espagne" style="height:28px;border-radius:3px;opacity:.8">
+              </div>
+            </div>
+
+            <!-- Payment method selector -->
+            <div style="margin-bottom:18px">
+              <div style="font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Méthode de paiement</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="booking-pay-methods">
+                <div class="booking-pay-method" data-method="especes" onclick="selectBookingPayMethod(this)" style="border:2px solid #E5E7EB;border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:all .2s">
+                  <div style="font-size:24px;margin-bottom:6px">💵</div><div style="font-size:12px;font-weight:600;color:var(--navy)">Espèces</div>
+                </div>
+                <div class="booking-pay-method" data-method="virement" onclick="selectBookingPayMethod(this)" style="border:2px solid #E5E7EB;border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:all .2s">
+                  <div style="font-size:24px;margin-bottom:6px">🏦</div><div style="font-size:12px;font-weight:600;color:var(--navy)">Virement</div>
+                </div>
+                <div class="booking-pay-method" data-method="carte" onclick="selectBookingPayMethod(this)" style="border:2px solid #E5E7EB;border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:all .2s">
+                  <div style="font-size:24px;margin-bottom:6px">💳</div><div style="font-size:12px;font-weight:600;color:var(--navy)">Carte bancaire</div>
+                </div>
+                <div class="booking-pay-method" data-method="mobile" onclick="selectBookingPayMethod(this)" style="border:2px solid #E5E7EB;border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:all .2s">
+                  <div style="font-size:24px;margin-bottom:6px">📱</div><div style="font-size:12px;font-weight:600;color:var(--navy)">Mobile</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Payment notice -->
+            <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:10px;padding:14px;font-size:12px;color:#92400E;margin-bottom:16px">
+              <strong>ℹ️ Information :</strong> Le paiement réel sera effectué lors de votre rendez-vous ou par virement après confirmation de notre équipe. Cette sélection nous aide à préparer votre dossier.
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-ghost" onclick="nextStep(-1)">← Back</button>
+              <button class="btn-gold" onclick="bookingStep5Next()">Continuer →</button>
+            </div>
+          </div>
+
+          <!-- STEP 6: CONFIRM & SUBMIT (was step 4) -->
+          <div class="step-content" id="step-6">
             <div style="background:var(--cream);border-radius:10px;padding:20px;margin-bottom:16px">
-              <h4 style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--navy)">Order Summary</h4>
+              <h4 style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--navy)">Récapitulatif de votre demande</h4>
               <div id="summary-content" style="font-size:13px;color:var(--muted);line-height:2"></div>
             </div>
+            <!-- Selfie & payment summary -->
+            <div id="step6-selfie-status" style="margin-bottom:10px"></div>
+            <div id="step6-payment-status" style="margin-bottom:16px"></div>
             <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:16px;font-size:13px;color:#166534;margin-bottom:16px">
-              ✅ Our team will contact you within <strong>2 hours</strong> to confirm your order and provide payment instructions.
+              ✅ Notre équipe vous contactera sous <strong>2 heures</strong> pour confirmer votre dossier.
             </div>
-            <div class="form-actions"><button class="btn-ghost" onclick="nextStep(-1)">← Back</button><button class="btn-gold" onclick="submitApplication()">Submit Request ✓</button></div>
+            <div class="form-actions">
+              <button class="btn-ghost" onclick="nextStep(-1)">← Back</button>
+              <button class="btn-gold" onclick="submitApplication()">Soumettre le dossier ✓</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2512,36 +2608,127 @@ window.adminLogOut = async function() {
 // ══════════════════════════════════════════
 //  BOOKING FORM
 // ══════════════════════════════════════════
+// Booking form state
+var _bookingSelfieB64 = null;
+var _bookingBioVerified = false;
+var _bookingPayMethod = null;
+
 window.nextStep = function(dir) {
   if (dir > 0) {
     if (currentStep === 1) {
-      const dest  = document.getElementById('dest-country').value;
-      const vtype = document.getElementById('visa-type').value;
-      if (!dest)  { showNotif('⚠️','Please select a destination country'); return; }
-      if (!vtype) { showNotif('⚠️','Please select a visa type'); return; }
+      var dest  = document.getElementById('dest-country').value;
+      var vtype = document.getElementById('visa-type') ? document.getElementById('visa-type').value : 'standard';
+      if (!dest) { showNotif('⚠️','Veuillez sélectionner un pays de destination'); return; }
     }
     if (currentStep === 2) {
-      if (!pkgName) { showNotif('⚠️','Please choose a service package'); return; }
+      if (!pkgName) { showNotif('⚠️','Veuillez choisir un package'); return; }
     }
     if (currentStep === 3) {
-      const fn    = document.getElementById('fname').value.trim();
-      const ln    = document.getElementById('lname').value.trim();
-      const email = document.getElementById('app-email').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      if (!fn)    { showNotif('⚠️','First name is required'); document.getElementById('fname').focus(); return; }
-      if (!ln)    { showNotif('⚠️','Last name is required');  document.getElementById('lname').focus(); return; }
-      if (!email) { showNotif('⚠️','Email address is required'); document.getElementById('app-email').focus(); return; }
-      if (!phone) { showNotif('⚠️','Phone number is required'); document.getElementById('phone').focus(); return; }
-      if (phone.replace(/[\s\-+()]/g,'').length < 8) { showNotif('⚠️','Please enter a valid phone number'); document.getElementById('phone').focus(); return; }
+      var fn    = document.getElementById('fname').value.trim();
+      var ln    = document.getElementById('lname').value.trim();
+      var email = document.getElementById('app-email').value.trim();
+      var phone = document.getElementById('phone').value.trim();
+      if (!fn)    { showNotif('⚠️','Le prénom est requis'); document.getElementById('fname').focus(); return; }
+      if (!ln)    { showNotif('⚠️','Le nom est requis'); document.getElementById('lname').focus(); return; }
+      if (!email) { showNotif('⚠️','L\'email est requis'); document.getElementById('app-email').focus(); return; }
+      if (!phone) { showNotif('⚠️','Le téléphone est requis'); document.getElementById('phone').focus(); return; }
+    }
+    // Step 4 (selfie) — allow skipping selfie but warn
+    if (currentStep === 4 && !_bookingSelfieB64) {
+      showNotif('⚠️','Veuillez d\'abord télécharger votre selfie');
+      return;
     }
   }
-  currentStep = Math.max(1, Math.min(4, currentStep + dir));
-  document.querySelectorAll('.step-content').forEach((s,i)=> s.classList.toggle('active', i+1===currentStep));
-  document.querySelectorAll('.form-step').forEach((s,i)=> {
+  currentStep = Math.max(1, Math.min(6, currentStep + dir));
+  document.querySelectorAll('.step-content').forEach(function(s,i){ s.classList.toggle('active', i+1===currentStep); });
+  document.querySelectorAll('.form-step').forEach(function(s,i){
     s.classList.toggle('active', i+1===currentStep);
     s.classList.toggle('done',   i+1<currentStep);
   });
-  if (currentStep===4) buildSummary();
+  if (currentStep === 5) updateBookingPaymentSummary();
+  if (currentStep === 6) buildSummary();
+};
+
+// Handle selfie upload in booking form
+window.handleBookingSelfie = function(input) {
+  var file = input.files[0]; if (!file) return;
+  if (file.size > 10*1024*1024) { showNotif('⚠️','Fichier trop volumineux (max 10 Mo)'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _bookingSelfieB64 = e.target.result;
+    var prev = document.getElementById('booking-selfie-preview-img');
+    var prevW = document.getElementById('booking-selfie-preview-wrap');
+    var ph   = document.getElementById('booking-selfie-placeholder');
+    var bioBtn = document.getElementById('booking-bio-btn');
+    var status = document.getElementById('booking-bio-status');
+    if (prev) prev.src = _bookingSelfieB64;
+    if (prevW) prevW.style.display = 'block';
+    if (ph)   ph.style.display = 'none';
+    if (bioBtn) bioBtn.style.display = 'block';
+    if (status) status.innerHTML = '<div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:10px 14px;font-size:12px;color:#065F46;font-weight:600">✅ Selfie sélectionné — lancez la vérification biométrique ou continuez</div>';
+  };
+  reader.readAsDataURL(file);
+};
+
+// Launch biometric verification from booking form
+window.launchBookingBiometric = function() {
+  if (!_bookingSelfieB64) { showNotif('⚠️','T\u00e9l\u00e9chargez d\'abord votre selfie'); return; }
+  _bioRefPhotoB64 = _bookingSelfieB64;
+  _bioAppId = 'booking_temp_' + Date.now();
+  // Override success callback to update booking form status
+  var origClose = window.closeBiometricOverlay;
+  window.closeBiometricOverlay = function() {
+    origClose && origClose();
+    if (_bioFaceVerified) {
+      var status = document.getElementById('booking-bio-status');
+      if (status) status.innerHTML = '<div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:10px 14px;font-size:12px;color:#065F46;font-weight:600">✅ Identité vérifiée par scan biométrique — Continuer →</div>';
+      _bookingBioVerified = true;
+      var bioBtn = document.getElementById('booking-bio-btn');
+      if (bioBtn) { bioBtn.textContent = '✅ Vérification réussie'; bioBtn.style.background = '#1B7A4A'; bioBtn.disabled = true; }
+    }
+    window.closeBiometricOverlay = origClose; // restore
+  };
+  startBioVerification(_bioAppId, _bookingSelfieB64);
+};
+
+// Step 4 Next — validate selfie
+window.bookingStep4Next = function() {
+  if (!_bookingSelfieB64) { showNotif('⚠️','Veuillez télécharger votre selfie'); return; }
+  nextStep(1);
+};
+
+// Step 5 — update payment summary
+function updateBookingPaymentSummary() {
+  var pkgEl  = document.getElementById('booking-pay-pkg');
+  var totEl  = document.getElementById('booking-pay-total');
+  if (pkgEl) pkgEl.textContent = pkgName || 'Package sélectionné';
+  var total = pkgPrice + addonTotal + (typeof _bookingCityPrice !== 'undefined' ? _bookingCityPrice : 0);
+  if (totEl) totEl.textContent = total > 0 ? total.toLocaleString() + ' MAD' : '— MAD';
+}
+
+// Select payment method
+window.selectBookingPayMethod = function(el) {
+  document.querySelectorAll('.booking-pay-method').forEach(function(m) {
+    m.style.border = '2px solid #E5E7EB';
+    m.style.background = '#fff';
+  });
+  el.style.border = '2px solid #0B1D35';
+  el.style.background = '#F0F9FF';
+  _bookingPayMethod = el.dataset.method;
+};
+
+// Step 5 Next — validate payment selection
+window.bookingStep5Next = function() {
+  if (!_bookingPayMethod) { showNotif('⚠️','Veuillez sélectionner une méthode de paiement'); return; }
+  // Update step 6 statuses
+  var s6selfie = document.getElementById('step6-selfie-status');
+  var s6pay    = document.getElementById('step6-payment-status');
+  var methodLabels = { especes:'💵 Espèces', virement:'🏦 Virement bancaire', carte:'💳 Carte bancaire', mobile:'📱 Paiement mobile' };
+  if (s6selfie) s6selfie.innerHTML = _bookingBioVerified
+    ? '<div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:8px 14px;font-size:12px;color:#065F46;font-weight:600;margin-bottom:8px">✅ Identité vérifiée biométriquement</div>'
+    : '<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:8px 14px;font-size:12px;color:#92400E;font-weight:600;margin-bottom:8px">📸 Selfie soumis (sans vérification biométrique)</div>';
+  if (s6pay) s6pay.innerHTML = '<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 14px;font-size:12px;color:#1e40af;font-weight:600;margin-bottom:8px">💳 Méthode choisie : ' + (methodLabels[_bookingPayMethod]||_bookingPayMethod) + '</div>';
+  nextStep(1);
 };
 
 window.selectPackage = function(pkg) {
@@ -2615,20 +2802,42 @@ window.submitApplication = async function() {
       });
     } catch(e2) {}
   }
+  // Destination with flag
+  var destSel = document.getElementById('dest-country');
+  var destOpt = destSel ? destSel.options[destSel.selectedIndex] : null;
+  var destVal = destOpt ? destOpt.value : g('dest-country');
+  var destFlag = destOpt ? (destOpt.dataset.flag||'') : '';
+  if (!destFlag) { var _dfm=COUNTRIES.find(function(x){return destVal.indexOf(x.name)>-1;}); if(_dfm){destFlag=_dfm.flag;} }
+  var destFull = destFlag ? destFlag+' '+destVal : destVal;
   const data = {
     ref, firstName:fn, lastName:ln, email,
-    phone:g('phone'), destination:g('dest-country'), visaType:g('visa-type'),
+    phone:g('phone'), destination:destFull, visaType:g('visa-type'),
     travelDate:g('travel-date'), numApplicants:g('num-applicants'),
     nationality:g('nationality'), passport:g('passport'), notes:g('notes'),
     package:pkgName, addons:[...document.querySelectorAll('.addon-item input:checked')].map(c=>c.dataset.name),
     total:pkgPrice+addonTotal, status:'pending', createdAt:firebase.firestore.FieldValue.serverTimestamp(),
     userId: auth.currentUser ? auth.currentUser.uid : 'guest',
-    applicantPhoto: selfiePhoto
+    applicantPhoto: selfiePhoto || (_bookingSelfieB64 && _bookingSelfieB64.length < 200000 ? _bookingSelfieB64 : ''),
+    paymentMethod:  _bookingPayMethod || '',
+    bioVerified:    _bookingBioVerified || false,
+    countryCode:    destOpt ? (destOpt.dataset.cc||getCodeFromName(destVal)||'') : getCodeFromName(destVal)||''
   };
   try {
     // Save application first — no large files embedded (avoids Firestore 1MB field limit)
     var appRef = await db.collection('applications').add(data);
     var appId  = appRef.id;
+
+    // Save booking selfie to clientUploads (same as guide_selfie pattern)
+    if (_bookingSelfieB64) {
+      try {
+        await db.collection('clientUploads').add({
+          appId: appId, status: 'guide_selfie',
+          files: [{name:'selfie_guide', data:_bookingSelfieB64, type:'image/jpeg'}],
+          bioVerified: _bookingBioVerified || false,
+          uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch(e3){ console.warn('[selfie save]',e3); }
+    }
 
     // Upload passport/CIN to clientUploads — same collection as supplementary docs
     var documents = await getUploadedDocsBase64();
@@ -2667,6 +2876,12 @@ window.submitApplication = async function() {
       var nm=document.getElementById('name-'+k); if(nm){nm.style.display='none';nm.textContent='';}
     });
     currentStep=1; nextStep(0);
+    _bookingSelfieB64=null; _bookingBioVerified=false; _bookingPayMethod=null;
+    var bsPrev=document.getElementById('booking-selfie-preview-wrap'); if(bsPrev) bsPrev.style.display='none';
+    var bsPh=document.getElementById('booking-selfie-placeholder'); if(bsPh) bsPh.style.display='block';
+    var bsBio=document.getElementById('booking-bio-btn'); if(bsBio){bsBio.style.display='none';bsBio.textContent='🔬 Lancer la vérification biométrique';bsBio.disabled=false;bsBio.style.background='';}
+    var bsSt=document.getElementById('booking-bio-status'); if(bsSt) bsSt.innerHTML='';
+    document.querySelectorAll('.booking-pay-method').forEach(function(m){m.style.border='2px solid #E5E7EB';m.style.background='#fff';});
     // Show submission confirmation — receipt only pushed by admin after payment
     window.showSubmissionConfirmation({
       ref: ref,
