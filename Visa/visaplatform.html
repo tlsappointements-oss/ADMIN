@@ -8287,6 +8287,73 @@ window.openDrawer = function(id) {
 
   renderDrawerStatusHistory(currentDrawerApp);
 
+  // ── Load biometric verifications (admin only) ──
+  if (isAdmin) {
+    setTimeout(function() {
+      // Remove old sections
+      var ob = document.getElementById('drawer-bio-section'); if(ob) ob.parentNode.removeChild(ob);
+      var og = document.getElementById('drawer-guide-selfie-section'); if(og) og.parentNode.removeChild(og);
+      var db2 = document.querySelector('.drawer-body'); if(!db2) return;
+
+      // Bio verification section
+      var bioSec = document.createElement('div');
+      bioSec.id = 'drawer-bio-section'; bioSec.className = 'drawer-section';
+      bioSec.innerHTML = '<h4>🔬 Vérifications biométriques</h4><div id="drawer-bio-content"><em style="font-size:12px;color:var(--muted)">Chargement...</em></div>';
+      db2.insertBefore(bioSec, db2.firstChild);
+
+      // Guide selfie section
+      var selSec = document.createElement('div');
+      selSec.id = 'drawer-guide-selfie-section'; selSec.className = 'drawer-section';
+      selSec.innerHTML = '<h4>📸 Selfie Guide / Formulaire</h4><div id="drawer-guide-selfie-content"><em style="font-size:12px;color:var(--muted)">Chargement...</em></div>';
+      db2.insertBefore(selSec, db2.firstChild);
+
+      var appIdForDocs = id;
+
+      // Fetch all clientUploads for this app
+      db.collection('clientUploads').where('appId','==',appIdForDocs).get().then(function(snap) {
+        var bioRows = [], selfiePhotos = [];
+        snap.forEach(function(doc) {
+          var d = doc.data();
+          if (d.status === 'bio_verification') {
+            var lf = (d.files||[]).find(function(f){ return f.name==='live_capture'; });
+            var isMatch = d.result === 'MATCH';
+            bioRows.push('<div style="background:'+(isMatch?'#F0FDF4':'#FFF1F2')+';border:1px solid '+(isMatch?'#BBF7D0':'#FECDD3')+';border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px">'
+              + (lf && lf.data ? '<img src="'+lf.data+'" alt="Capture live" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid '+(isMatch?'#BBF7D0':'#FECDD3')+';cursor:pointer;flex-shrink:0" onclick="showFullPhoto(\"'+lf.data+'\")">' : '<div style="width:72px;height:72px;background:#E5E7EB;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px">📷</div>')
+              + '<div>'
+              + '<div style="font-size:12px;font-weight:700;color:'+(isMatch?'#065F46':'#991B1B')+'">'+(isMatch?'✅ IDENTITÉ CONFIRMÉE':'❌ NON CONFORME')+'</div>'
+              + '<div style="font-size:11px;color:#6B7280;margin-top:3px">Score de correspondance : <strong>'+(d.matchScore||0)+'%</strong></div>'
+              + (d.bioVerified?'<div style="font-size:10px;color:#1B7A4A;margin-top:2px">✓ Vérification biométrique complète</div>':'')
+              + '</div></div>');
+          } else if (d.status === 'guide_selfie') {
+            (d.files||[]).forEach(function(f){
+              if (f.data) selfiePhotos.push({ data:f.data, bioVerified:d.bioVerified||false });
+            });
+          }
+        });
+
+        var bioEl = document.getElementById('drawer-bio-content');
+        if (bioEl) bioEl.innerHTML = bioRows.length ? bioRows.join('') : '<div style="font-size:12px;color:var(--muted);font-style:italic">Aucune vérification biométrique.</div>';
+
+        var selfieEl = document.getElementById('drawer-guide-selfie-content');
+        if (selfieEl) {
+          if (selfiePhotos.length) {
+            selfieEl.innerHTML = selfiePhotos.map(function(p) {
+              return '<div style="display:inline-block;margin:4px;position:relative">'
+                +'<img src="'+p.data+'" alt="Selfie" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #E5E7EB;cursor:pointer" onclick="showFullPhoto(\"'+p.data+'\")" title="Cliquer pour agrandir">'
+                +(p.bioVerified?'<div style="position:absolute;bottom:2px;right:2px;background:#1B7A4A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px">✓</div>':'')
+                +'</div>';
+            }).join('');
+          } else {
+            selfieEl.innerHTML = '<div style="font-size:12px;color:var(--muted);font-style:italic">Aucun selfie soumis.</div>';
+          }
+        }
+      }).catch(function(e) {
+        var bioEl = document.getElementById('drawer-bio-content');
+        if (bioEl) bioEl.innerHTML = '<div style="font-size:11px;color:#DC2626">Erreur: '+e.message+'</div>';
+      });
+    }, 400);
+  }
+
   var a = currentDrawerApp;
   var docsSection  = document.getElementById('drawer-docs-section');
   var docsList     = document.getElementById('drawer-docs-list');
