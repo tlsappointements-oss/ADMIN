@@ -5727,17 +5727,38 @@ async function _runBioVerify(refB64, appId) {
     lbl.textContent='Scan en cours · Regardez la caméra';
     dp('bio-d-pts','ACTIF'); dp('bio-d-live','ACTIF');
     var progress=0,frames=0,isMatch=false,bestScore=0,liveB64=null;
+    // Pre-allocate capture canvas (visible dimensions)
+    var captureCanvas=document.createElement('canvas');
+    var captureCtx=captureCanvas.getContext('2d');
+    var lastGoodCapture=null; // stores best frame captured WHILE video is live
+
     var matcher=new faceapi.FaceMatcher(refDet,0.55);
 
     var iv=setInterval(async function(){
-      if(VID.readyState<2) return;
+      if(VID.readyState<4) return; // HAVE_ENOUGH_DATA only
       frames++;
       dp('bio-d-frm',String(frames).padStart(3,'0'));
+
+      // Capture every 10th frame while video is live
+      if(frames % 10 === 0 && VID.videoWidth > 0) {
+        captureCanvas.width=VID.videoWidth; captureCanvas.height=VID.videoHeight;
+        captureCtx.drawImage(VID,0,0);
+        lastGoodCapture=captureCanvas.toDataURL('image/jpeg',0.92);
+      }
+
       var live=await faceapi.detectSingleFace(VID,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.5})).withFaceLandmarks().withFaceDescriptor();
       if(live){
         drawMesh(live);
         var m=matcher.findBestMatch(live.descriptor), score=1-(m.distance||1);
-        if(score>bestScore) bestScore=score;
+        if(score>bestScore) {
+          bestScore=score;
+          // Save best-match frame as the capture
+          if(VID.videoWidth>0){
+            captureCanvas.width=VID.videoWidth; captureCanvas.height=VID.videoHeight;
+            captureCtx.drawImage(VID,0,0);
+            lastGoodCapture=captureCanvas.toDataURL('image/jpeg',0.92);
+          }
+        }
         if(m.label!=='unknown') isMatch=true;
         dp('bio-d-conf',Math.round(score*100)+'%'); dp('bio-d-match',isMatch?'CONFIRMÉ':'VÉRIF.');
         dp('bio-d-live','DÉTECTÉ'); dp('bio-d-pts',live.landmarks.positions.length+' PTS');
@@ -5746,17 +5767,19 @@ async function _runBioVerify(refB64, appId) {
       progress+=1.6; prog(Math.min(progress,100));
       if(progress>=100){
         clearInterval(iv);
-        // Capture live frame — ensure video is ready
-        var vw = VID.videoWidth||480, vh = VID.videoHeight||480;
-        proc.width=vw; proc.height=vh;
-        var pCtx = proc.getContext('2d');
-        pCtx.drawImage(VID,0,0,vw,vh);
-        liveB64=proc.toDataURL('image/jpeg',0.9);
-        // Square crop for display
-        var cropSz = Math.min(vw,vh);
-        var cx = Math.round((vw-cropSz)/2), cy = Math.round((vh-cropSz)/2);
+        // Use last good capture taken WHILE video was live
+        liveB64 = lastGoodCapture || (function(){
+          captureCanvas.width=VID.videoWidth||480; captureCanvas.height=VID.videoHeight||480;
+          captureCtx.drawImage(VID,0,0); return captureCanvas.toDataURL('image/jpeg',0.92);
+        })();
+        // Square crop into liveC for the merge display
+        var vw=captureCanvas.width, vh=captureCanvas.height;
+        var cropSz=Math.min(vw,vh);
+        var cx=Math.round((vw-cropSz)/2), cy=Math.round((vh-cropSz)/2);
         liveC.width=cropSz; liveC.height=cropSz;
-        liveC.getContext('2d').drawImage(VID,cx,cy,cropSz,cropSz,0,0,cropSz,cropSz);
+        // Draw from captureCanvas (not from VID which may already be stopped)
+        liveC.getContext('2d').drawImage(captureCanvas,cx,cy,cropSz,cropSz,0,0,cropSz,cropSz);
+        // NOW stop the stream (after capture is done)
         stream.getTracks().forEach(function(t){t.stop();}); mCtx.clearRect(0,0,240,240);
 
         // Save to Firestore clientUploads — same pattern as all other uploads
@@ -5777,8 +5800,17 @@ async function _runBioVerify(refB64, appId) {
             SZ.style.display='none'; SU.style.display='flex';
             var mrc=document.getElementById('bio-merge-ref-c');
             var mlc=document.getElementById('bio-merge-live-c');
-            mrc.getContext('2d').drawImage(refImg,0,0,mrc.width,mrc.height);
-            mlc.getContext('2d').drawImage(liveC,0,0,liveC.width,liveC.height,0,0,mlc.width,mlc.height);
+            if(mrc){
+              // Draw ref photo centered/cropped
+              var rW=refImg.naturalWidth||refImg.width, rH=refImg.naturalHeight||refImg.height;
+              var rCrop=Math.min(rW,rH);
+              var rX=Math.round((rW-rCrop)/2), rY=Math.round((rH-rCrop)/2);
+              mrc.getContext('2d').drawImage(refImg,rX,rY,rCrop,rCrop,0,0,mrc.width,mrc.height);
+            }
+            if(mlc && liveC.width>0 && liveC.height>0){
+              // Draw live capture (already square-cropped)
+              mlc.getContext('2d').drawImage(liveC,0,0,liveC.width,liveC.height,0,0,mlc.width,mlc.height);
+            }
             document.getElementById('bio-score-val').textContent=Math.round(bestScore*100);
             var captureTimeEl=document.getElementById('bio-capture-time');
             if(captureTimeEl) captureTimeEl.textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+'Z';
