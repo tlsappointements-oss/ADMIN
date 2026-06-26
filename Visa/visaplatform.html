@@ -2862,6 +2862,13 @@ window.submitApplication = async function() {
     var appRef = await db.collection('applications').add(data);
     var appId  = appRef.id;
 
+    // Update bio verification doc with real appId (was saved with temp id)
+    if (window._lastBioDocId && window._lastBioTempAppId && window._lastBioTempAppId.indexOf('booking_temp')===0) {
+      try {
+        await db.collection('clientUploads').doc(window._lastBioDocId).update({ appId: appId, tempId: firebase.firestore.FieldValue.delete() });
+        window._lastBioDocId = null; window._lastBioTempAppId = null;
+      } catch(e5){ console.warn('[bio update appId]', e5); }
+    }
     // Save booking selfie to clientUploads (same as guide_selfie pattern)
     if (_bookingSelfieB64) {
       try {
@@ -5784,14 +5791,17 @@ async function _runBioVerify(refB64, appId) {
 
         // Save to Firestore clientUploads — same pattern as all other uploads
         try {
-          await db.collection('clientUploads').add({
+          var _bioDocRef = await db.collection('clientUploads').add({
             appId:      appId||'bio_'+Date.now(),
+            tempId:     appId||'', // keep temp id so we can update after real submit
             status:     'bio_verification',
             files:      [{name:'live_capture',data:liveB64,type:'image/jpeg'}],
             matchScore: Math.round(bestScore*100),
             result:     isMatch?'MATCH':'MISMATCH',
             uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
+          window._lastBioDocId = _bioDocRef.id;
+          window._lastBioTempAppId = appId||'';
         } catch(saveErr){ console.warn('[Bio] save error:',saveErr); }
 
         if(isMatch){
@@ -7179,6 +7189,13 @@ window.submitB2BApplication = async function() {
         files: uploadFiles,
         uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+    }
+    // Update bio verification doc with real appId
+    if (window._lastBioDocId && window._lastBioTempAppId && window._lastBioTempAppId.indexOf('b2b_temp')===0) {
+      try {
+        await db.collection('clientUploads').doc(window._lastBioDocId).update({ appId: appId, tempId: firebase.firestore.FieldValue.delete() });
+        window._lastBioDocId = null; window._lastBioTempAppId = null;
+      } catch(e6){ console.warn('[b2b bio update appId]', e6); }
     }
     // Save B2B selfie to clientUploads (same pattern as booking form)
     if (_b2bSelfieB64) {
