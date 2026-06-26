@@ -1209,6 +1209,41 @@ tr:hover td{background:var(--cream)}
               <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:6px;color:#1B7A4A"><span>Votre commission :</span><span id="b2b-commission-display" style="font-weight:700">—</span></div>
             </div>
 
+            <!-- B2B SELFIE VERIFICATION -->
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)">📸 Vérification Selfie du Client</div>
+            <div id="b2b-selfie-zone" style="border:2px dashed #D1D5DB;border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px" onclick="document.getElementById('b2b-selfie-input').click()" onmouseover="this.style.borderColor='#0B1D35'" onmouseout="this.style.borderColor='#D1D5DB'">
+              <div id="b2b-selfie-preview-wrap" style="display:none;margin-bottom:10px">
+                <img id="b2b-selfie-preview-img" src="" alt="Selfie" style="max-width:160px;max-height:160px;border-radius:10px;object-fit:cover;border:2px solid #E5E7EB">
+              </div>
+              <div id="b2b-selfie-placeholder">
+                <div style="font-size:36px;margin-bottom:6px">🤳</div>
+                <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:4px">Selfie du client</div>
+                <div style="font-size:11px;color:var(--muted)">Photo identité · Fond blanc · JPG/PNG</div>
+              </div>
+              <input id="b2b-selfie-input" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp" style="display:none" aria-label="Selfie client" onchange="handleB2BSelfie(this)">
+            </div>
+            <div id="b2b-bio-status" style="margin-bottom:10px"></div>
+            <button id="b2b-bio-btn" onclick="launchB2BBiometric()" style="display:none;width:100%;background:linear-gradient(135deg,#030d1a,#0a1628);color:rgba(0,190,255,.9);border:1px solid rgba(0,190,255,.2);border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.5px;margin-bottom:16px">
+              🔬 Lancer la vérification biométrique
+            </button>
+
+            <!-- B2B PAYMENT METHOD -->
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)">💳 Méthode de Paiement Client</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="b2b-pay-methods">
+              <div class="b2b-pay-method" data-method="especes" onclick="selectB2BPayMethod(this)" style="border:2px solid #E5E7EB;border-radius:10px;padding:12px;cursor:pointer;text-align:center;transition:all .2s">
+                <div style="font-size:22px;margin-bottom:4px">💵</div><div style="font-size:11px;font-weight:600;color:var(--navy)">Espèces</div>
+              </div>
+              <div class="b2b-pay-method" data-method="virement" onclick="selectB2BPayMethod(this)" style="border:2px solid #E5E7EB;border-radius:10px;padding:12px;cursor:pointer;text-align:center;transition:all .2s">
+                <div style="font-size:22px;margin-bottom:4px">🏦</div><div style="font-size:11px;font-weight:600;color:var(--navy)">Virement</div>
+              </div>
+              <div class="b2b-pay-method" data-method="carte" onclick="selectB2BPayMethod(this)" style="border:2px solid #E5E7EB;border-radius:10px;padding:12px;cursor:pointer;text-align:center;transition:all .2s">
+                <div style="font-size:22px;margin-bottom:4px">💳</div><div style="font-size:11px;font-weight:600;color:var(--navy)">Carte</div>
+              </div>
+              <div class="b2b-pay-method" data-method="mobile" onclick="selectB2BPayMethod(this)" style="border:2px solid #E5E7EB;border-radius:10px;padding:12px;cursor:pointer;text-align:center;transition:all .2s">
+                <div style="font-size:22px;margin-bottom:4px">📱</div><div style="font-size:11px;font-weight:600;color:var(--navy)">Mobile</div>
+              </div>
+            </div>
+
             <button class="btn-gold" onclick="submitB2BApplication()" style="padding:13px 32px;font-size:14px;border-radius:8px">✅ Soumettre le dossier</button>
           </div>
         </div>
@@ -2809,12 +2844,12 @@ window.submitApplication = async function() {
   var destFlag = destOpt ? (destOpt.dataset.flag||'') : '';
   if (!destFlag) { var _dfm=COUNTRIES.find(function(x){return destVal.indexOf(x.name)>-1;}); if(_dfm){destFlag=_dfm.flag;} }
   var destFull = destFlag ? destFlag+' '+destVal : destVal;
-  const data = {
+  var data = {
     ref, firstName:fn, lastName:ln, email,
     phone:g('phone'), destination:destFull, visaType:g('visa-type'),
     travelDate:g('travel-date'), numApplicants:g('num-applicants'),
     nationality:g('nationality'), passport:g('passport'), notes:g('notes'),
-    package:pkgName, addons:[...document.querySelectorAll('.addon-item input:checked')].map(c=>c.dataset.name),
+    package:pkgName, addons:Array.from(document.querySelectorAll('.addon-item input:checked')).map(function(c){return c.dataset.name;}),
     total:pkgPrice+addonTotal, status:'pending', createdAt:firebase.firestore.FieldValue.serverTimestamp(),
     userId: auth.currentUser ? auth.currentUser.uid : 'guest',
     applicantPhoto: selfiePhoto || (_bookingSelfieB64 && _bookingSelfieB64.length < 200000 ? _bookingSelfieB64 : ''),
@@ -5682,8 +5717,12 @@ async function _runBioVerify(refB64, appId) {
     if(!refDet){OV.style.display='none';showNotif('Aucun visage dans la photo de référence. Soumettez une photo claire.');return;}
 
     lbl.textContent='Activation de la caméra';
-    var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:480},height:{ideal:480}}});
-    VID.srcObject=stream; await new Promise(function(r){VID.onloadedmetadata=r;}); VID.play();
+    var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480},frameRate:{ideal:30}}});
+    VID.srcObject=stream;
+    await new Promise(function(r,j){ VID.onloadedmetadata=r; setTimeout(j,8000); });
+    await VID.play();
+    // Wait for video to actually render frames
+    await new Promise(function(r){ setTimeout(r, 800); });
 
     lbl.textContent='Scan en cours · Regardez la caméra';
     dp('bio-d-pts','ACTIF'); dp('bio-d-live','ACTIF');
@@ -5707,11 +5746,17 @@ async function _runBioVerify(refB64, appId) {
       progress+=1.6; prog(Math.min(progress,100));
       if(progress>=100){
         clearInterval(iv);
-        proc.width=VID.videoWidth||480; proc.height=VID.videoHeight||480;
-        proc.getContext('2d').drawImage(VID,0,0);
-        liveB64=proc.toDataURL('image/jpeg',0.8);
-        liveC.width=proc.width; liveC.height=proc.height;
-        liveC.getContext('2d').drawImage(proc,0,0);
+        // Capture live frame — ensure video is ready
+        var vw = VID.videoWidth||480, vh = VID.videoHeight||480;
+        proc.width=vw; proc.height=vh;
+        var pCtx = proc.getContext('2d');
+        pCtx.drawImage(VID,0,0,vw,vh);
+        liveB64=proc.toDataURL('image/jpeg',0.9);
+        // Square crop for display
+        var cropSz = Math.min(vw,vh);
+        var cx = Math.round((vw-cropSz)/2), cy = Math.round((vh-cropSz)/2);
+        liveC.width=cropSz; liveC.height=cropSz;
+        liveC.getContext('2d').drawImage(VID,cx,cy,cropSz,cropSz,0,0,cropSz,cropSz);
         stream.getTracks().forEach(function(t){t.stop();}); mCtx.clearRect(0,0,240,240);
 
         // Save to Firestore clientUploads — same pattern as all other uploads
@@ -5730,9 +5775,13 @@ async function _runBioVerify(refB64, appId) {
           prog(100); lbl.textContent='Identité confirmée';
           setTimeout(function(){
             SZ.style.display='none'; SU.style.display='flex';
-            document.getElementById('bio-merge-ref-c').getContext('2d').drawImage(refImg,0,0,180,180);
-            document.getElementById('bio-merge-live-c').getContext('2d').drawImage(liveC,0,0,liveC.width,liveC.height,0,0,180,180);
-            document.getElementById('bio-score-val').textContent=Math.round(bestScore*100)+'% MATCH';
+            var mrc=document.getElementById('bio-merge-ref-c');
+            var mlc=document.getElementById('bio-merge-live-c');
+            mrc.getContext('2d').drawImage(refImg,0,0,mrc.width,mrc.height);
+            mlc.getContext('2d').drawImage(liveC,0,0,liveC.width,liveC.height,0,0,mlc.width,mlc.height);
+            document.getElementById('bio-score-val').textContent=Math.round(bestScore*100);
+            var captureTimeEl=document.getElementById('bio-capture-time');
+            if(captureTimeEl) captureTimeEl.textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+'Z';
             _bioFaceVerified=true;
             setTimeout(function(){
               OV.style.display='none';
@@ -6925,6 +6974,60 @@ window.renderB2BNewAppPackages = function() {
   renderB2BAddons();
 };
 
+
+// ══════════════════════════════════════════════════════════════
+//  B2B SELFIE + PAYMENT HANDLERS
+// ══════════════════════════════════════════════════════════════
+var _b2bSelfieB64 = null;
+var _b2bBioVerified = false;
+var _b2bPayMethod = null;
+
+window.handleB2BSelfie = function(input) {
+  var file = input.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _b2bSelfieB64 = e.target.result;
+    var prev = document.getElementById('b2b-selfie-preview-img');
+    var pw   = document.getElementById('b2b-selfie-preview-wrap');
+    var ph   = document.getElementById('b2b-selfie-placeholder');
+    var btn  = document.getElementById('b2b-bio-btn');
+    var st   = document.getElementById('b2b-bio-status');
+    if (prev) prev.src = e.target.result;
+    if (pw)   pw.style.display  = 'block';
+    if (ph)   ph.style.display  = 'none';
+    if (btn)  btn.style.display = 'block';
+    if (st)   st.innerHTML = '<div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:10px 14px;font-size:12px;color:#065F46;font-weight:600">✅ Selfie sélectionné — lancez la vérification ou continuez</div>';
+  };
+  reader.readAsDataURL(file);
+};
+
+window.launchB2BBiometric = function() {
+  if (!_b2bSelfieB64) { showNotif('Téléchargez d\'abord le selfie'); return; }
+  _bioRefPhotoB64 = _b2bSelfieB64;
+  _bioAppId = 'b2b_temp_' + Date.now();
+  var origClose = window.closeBiometricOverlay;
+  window.closeBiometricOverlay = function() {
+    origClose && origClose();
+    if (_bioFaceVerified) {
+      var st  = document.getElementById('b2b-bio-status');
+      var btn = document.getElementById('b2b-bio-btn');
+      if (st)  st.innerHTML = '<div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:10px 14px;font-size:12px;color:#065F46;font-weight:600">✅ Identité vérifiée biométriquement</div>';
+      if (btn) { btn.textContent = '✅ Vérification réussie'; btn.style.background = '#1B7A4A'; btn.disabled = true; }
+      _b2bBioVerified = true;
+    }
+    window.closeBiometricOverlay = origClose;
+  };
+  startBioVerification(_bioAppId, _b2bSelfieB64);
+};
+
+window.selectB2BPayMethod = function(el) {
+  document.querySelectorAll('.b2b-pay-method').forEach(function(m) {
+    m.style.border = '2px solid #E5E7EB'; m.style.background = '#fff';
+  });
+  el.style.border = '2px solid #0B1D35'; el.style.background = '#F0F9FF';
+  _b2bPayMethod = el.dataset.method;
+};
+
 // ── Updated submitB2BApplication with file data ──
 window.submitB2BApplication = async function() {
   if (!_agencyData) { showNotif('⚠️','Erreur agence introuvable'); return; }
@@ -7009,6 +7112,9 @@ window.submitB2BApplication = async function() {
     agencyCommissionPct: commPct,
     // Photo stored in application doc for receipt display (base64)
     applicantPhoto: _b2bFiles.photo || '',
+    paymentMethod:  _b2bPayMethod || '',
+    bioVerified:    _b2bBioVerified || false,
+    hasSelfie:      !!_b2bSelfieB64,
     source: 'b2b',
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -7041,6 +7147,28 @@ window.submitB2BApplication = async function() {
         files: uploadFiles,
         uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+    }
+    // Save B2B selfie to clientUploads (same pattern as booking form)
+    if (_b2bSelfieB64) {
+      try {
+        var _b2bSelfieComp = await new Promise(function(res) {
+          var img3 = new Image(); img3.src = _b2bSelfieB64;
+          img3.onload = function() {
+            var c3 = document.createElement('canvas');
+            var sc3 = Math.min(300/img3.width,400/img3.height,1);
+            c3.width = Math.round(img3.width*sc3); c3.height = Math.round(img3.height*sc3);
+            c3.getContext('2d').drawImage(img3,0,0,c3.width,c3.height);
+            res(c3.toDataURL('image/jpeg',0.8));
+          };
+          img3.onerror = function(){ res(_b2bSelfieB64); };
+        });
+        await db.collection('clientUploads').add({
+          appId: appId, status: 'guide_selfie',
+          files: [{name:'selfie_guide', data:_b2bSelfieComp, type:'image/jpeg'}],
+          bioVerified: _b2bBioVerified || false,
+          uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch(e4){ console.warn('[b2b selfie]',e4); }
     }
     showNotif('✅','Dossier soumis — Réf: ' + ref + ' (' + uploadFiles.length + ' fichier(s) joint(s))');
 
@@ -7087,6 +7215,12 @@ window.submitB2BApplication = async function() {
     document.getElementById('b2b-package').value = '';
     document.getElementById('b2b-city-pricing-row').style.display = 'none';
     _b2bFiles = { photo:null, passportScan:null, cin:null, extra:[] };
+    _b2bSelfieB64 = null; _b2bBioVerified = false; _b2bPayMethod = null;
+    var b2bSPrev = document.getElementById('b2b-selfie-preview-wrap'); if(b2bSPrev) b2bSPrev.style.display='none';
+    var b2bSPh = document.getElementById('b2b-selfie-placeholder'); if(b2bSPh) b2bSPh.style.display='block';
+    var b2bBBtn = document.getElementById('b2b-bio-btn'); if(b2bBBtn){b2bBBtn.style.display='none';b2bBBtn.textContent='🔬 Lancer la vérification biométrique';b2bBBtn.disabled=false;b2bBBtn.style.background='';}
+    var b2bBSt = document.getElementById('b2b-bio-status'); if(b2bBSt) b2bBSt.innerHTML='';
+    document.querySelectorAll('.b2b-pay-method').forEach(function(m){m.style.border='2px solid #E5E7EB';m.style.background='#fff';});
     // Reset file UI
     ['b2b-photo-preview','b2b-photo-icon','b2b-photo-label','b2b-passport-scan-icon','b2b-passport-scan-label','b2b-cin-icon','b2b-cin-label','b2b-extra-icon','b2b-extra-label'].forEach(function(id){
       var el=document.getElementById(id); if(!el) return;
@@ -9026,16 +9160,79 @@ db.collection('services').limit(1).get().then(function(snap){ if(snap.empty) see
     <div class="bio-progress-strip"><div id="bio-strip-fill"></div></div>
   </div>
   <div id="bio-success-zone">
-    <div class="bio-header-label" style="color:rgba(29,122,82,0.55)">Identité Confirmée &nbsp;·&nbsp; Accès Accordé</div>
-    <div class="bio-merge-wrap">
-      <canvas id="bio-merge-ref-c" width="180" height="180" class="bio-merge-img" style="flex-shrink:0;z-index:1"></canvas>
-      <canvas id="bio-merge-live-c" width="180" height="180" class="bio-merge-img" style="flex-shrink:0;margin-left:-60px;z-index:2"></canvas>
-      <div class="bio-merge-divider"></div>
-      <div id="bio-check-badge"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <!-- Futuristic header -->
+    <div style="text-align:center;margin-bottom:28px;position:relative;z-index:2">
+      <div style="font-size:7.5px;font-weight:700;letter-spacing:6px;text-transform:uppercase;color:rgba(29,200,120,0.45);margin-bottom:6px">SYSTÈME BIOMÉTRIQUE AVANCÉ</div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:rgba(29,200,120,0.6)">IDENTITÉ CONFIRMÉE &nbsp;·&nbsp; ACCÈS ACCORDÉ &nbsp;·&nbsp; NIVEAU 5</div>
     </div>
-    <div class="bio-merge-sub">Photo de référence &nbsp;·&nbsp; Capture live</div>
-    <div id="bio-score-val">CONFIRMÉ</div>
-    <div class="bio-confirmed-pill"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1d7a52" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span>Vérification biométrique réussie — capture sauvegardée</span></div>
+    <!-- Split faces with futuristic overlay -->
+    <div class="bio-merge-wrap" style="position:relative">
+      <!-- Ref photo -->
+      <div style="position:relative;flex-shrink:0;z-index:1">
+        <canvas id="bio-merge-ref-c" width="200" height="200" style="display:block;border:1px solid rgba(0,190,255,0.3);filter:saturate(0.6) brightness(0.85)"></canvas>
+        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,10,20,0.9));padding:8px 10px">
+          <div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:rgba(0,190,255,0.7)">RÉFÉRENCE</div>
+          <div style="font-size:8px;color:rgba(0,190,255,0.5);margin-top:1px">ENROLLED · VERIFIED</div>
+        </div>
+        <!-- Scan line overlay -->
+        <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">
+          <div style="width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(0,190,255,0.6),transparent);position:absolute;top:30%;animation:bioScanLine 2s ease-in-out infinite alternate"></div>
+        </div>
+        <!-- Corner brackets -->
+        <div style="position:absolute;top:6px;left:6px;width:16px;height:16px;border-top:1.5px solid rgba(0,190,255,0.7);border-left:1.5px solid rgba(0,190,255,0.7)"></div>
+        <div style="position:absolute;top:6px;right:6px;width:16px;height:16px;border-top:1.5px solid rgba(0,190,255,0.7);border-right:1.5px solid rgba(0,190,255,0.7)"></div>
+        <div style="position:absolute;bottom:6px;left:6px;width:16px;height:16px;border-bottom:1.5px solid rgba(0,190,255,0.7);border-left:1.5px solid rgba(0,190,255,0.7)"></div>
+        <div style="position:absolute;bottom:6px;right:6px;width:16px;height:16px;border-bottom:1.5px solid rgba(0,190,255,0.7);border-right:1.5px solid rgba(0,190,255,0.7)"></div>
+      </div>
+      <!-- Center merge divider with match data -->
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:90px;flex-shrink:0;position:relative;z-index:3">
+        <div style="width:1px;flex:1;background:linear-gradient(180deg,transparent,rgba(29,200,120,0.4),transparent)"></div>
+        <div style="background:rgba(29,200,120,0.08);border:1px solid rgba(29,200,120,0.3);border-radius:8px;padding:12px 8px;text-align:center">
+          <div id="bio-score-val" style="font-size:22px;font-weight:300;color:#1dc878;letter-spacing:-1px;line-height:1">100</div>
+          <div style="font-size:7px;color:rgba(29,200,120,0.6);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px">MATCH</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1dc878" stroke-width="2" stroke-linecap="round" style="margin-top:8px;display:block;margin-left:auto;margin-right:auto"><polyline points="20 6 9 17 4 12" style="stroke-dasharray:60;stroke-dashoffset:60;animation:bioCheckDraw .4s ease .5s forwards"/></svg>
+        </div>
+        <div style="width:1px;flex:1;background:linear-gradient(180deg,transparent,rgba(29,200,120,0.4),transparent)"></div>
+      </div>
+      <!-- Live capture -->
+      <div style="position:relative;flex-shrink:0;z-index:2">
+        <canvas id="bio-merge-live-c" width="200" height="200" style="display:block;border:1px solid rgba(29,200,120,0.4);clip-path:inset(0 100% 0 0);animation:bioMergeReveal .9s cubic-bezier(.4,0,.2,1) .4s forwards"></canvas>
+        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,10,20,0.9));padding:8px 10px">
+          <div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:rgba(29,200,120,0.7)">CAPTURE LIVE</div>
+          <div style="font-size:8px;color:rgba(29,200,120,0.5);margin-top:1px" id="bio-capture-time">CONFIRMED</div>
+        </div>
+        <div style="position:absolute;inset:0;pointer-events:none">
+          <div style="position:absolute;top:6px;left:6px;width:16px;height:16px;border-top:1.5px solid rgba(29,200,120,0.7);border-left:1.5px solid rgba(29,200,120,0.7)"></div>
+          <div style="position:absolute;top:6px;right:6px;width:16px;height:16px;border-top:1.5px solid rgba(29,200,120,0.7);border-right:1.5px solid rgba(29,200,120,0.7)"></div>
+          <div style="position:absolute;bottom:6px;left:6px;width:16px;height:16px;border-bottom:1.5px solid rgba(29,200,120,0.7);border-left:1.5px solid rgba(29,200,120,0.7)"></div>
+          <div style="position:absolute;bottom:6px;right:6px;width:16px;height:16px;border-bottom:1.5px solid rgba(29,200,120,0.7);border-right:1.5px solid rgba(29,200,120,0.7)"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Data readout -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:20px;width:490px">
+      <div style="background:rgba(29,200,120,0.04);border:1px solid rgba(29,200,120,0.1);padding:10px 12px;text-align:center">
+        <div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:rgba(29,200,120,0.35);margin-bottom:4px">ALGORITHME</div>
+        <div style="font-size:9px;color:rgba(29,200,120,0.7);font-weight:600">SSD + TFD</div>
+      </div>
+      <div style="background:rgba(29,200,120,0.04);border:1px solid rgba(29,200,120,0.1);padding:10px 12px;text-align:center">
+        <div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:rgba(29,200,120,0.35);margin-bottom:4px">SEUIL</div>
+        <div style="font-size:9px;color:rgba(29,200,120,0.7);font-weight:600">0.55 / PASSÉ</div>
+      </div>
+      <div style="background:rgba(29,200,120,0.04);border:1px solid rgba(29,200,120,0.1);padding:10px 12px;text-align:center">
+        <div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:rgba(29,200,120,0.35);margin-bottom:4px">STATUT</div>
+        <div style="font-size:9px;color:rgba(29,200,120,0.7);font-weight:600">AUTORISÉ</div>
+      </div>
+      <div style="background:rgba(29,200,120,0.04);border:1px solid rgba(29,200,120,0.1);padding:10px 12px;text-align:center">
+        <div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:rgba(29,200,120,0.35);margin-bottom:4px">CAPTURE</div>
+        <div style="font-size:9px;color:rgba(29,200,120,0.7);font-weight:600">SAUVEGARDÉE</div>
+      </div>
+    </div>
+    <!-- Confirmed pill -->
+    <div class="bio-confirmed-pill" style="margin-top:20px;border-color:rgba(29,200,120,0.25)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1dc878" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      <span style="color:rgba(29,200,120,0.85);letter-spacing:2px">VÉRIFICATION BIOMÉTRIQUE RÉUSSIE — IDENTITÉ CONFIRMÉE</span>
+    </div>
   </div>
   <div id="bio-breach-zone">
     <div class="bio-header-label" style="color:rgba(192,57,43,0.55)">Vérification Échouée &nbsp;·&nbsp; Identité Non Conforme</div>
