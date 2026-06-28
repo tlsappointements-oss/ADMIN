@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -1309,6 +1310,8 @@ tr:hover td{background:var(--cream)}
         <li><a onclick="showAdminTab('signatures')">✍️ Signatures & Cachet</a></li>
         <li><a onclick="showAdminTab('verify')">🔐 Vérifier Reçu</a></li>
         <li><a onclick="showAdminTab('guide')">🇪🇸 Guide Visa Espagne</a></li>
+        <li class="nav-section">Intelligence</li>
+        <li><a onclick="showAdminTab('client-intel')">🔍 Analyse Client</a></li>
         <li class="nav-section">System</li>
         <li><a onclick="adminLogOut()">🚪 Sign Out</a></li>
       </ul>
@@ -1886,6 +1889,78 @@ tr:hover td{background:var(--cream)}
           <div style="padding:16px;font-size:13px;color:var(--muted)">Cliquez sur "Voir aperçu" pour voir le guide tel que le client le verra.</div>
         </div>
       </div><!-- /atab-guide -->
+
+      <!-- CLIENT INTELLIGENCE TAB -->
+      <div id="atab-client-intel" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div>
+            <h2>🔍 Analyse & Identification Client</h2>
+            <p>Uploadez un passeport, CIN ou photo pour identifier un client existant ou créer son profil.</p>
+          </div>
+          <button class="btn-gold" onclick="openClientProfilesModal()" style="font-size:13px;padding:9px 18px;border-radius:8px">👥 Voir tous les profils</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <!-- LEFT: Upload zone -->
+          <div class="admin-card">
+            <div class="admin-card-head"><h3>📄 Document / Photo à analyser</h3></div>
+            <div style="padding:20px">
+              <!-- Upload tabs -->
+              <div style="display:flex;gap:8px;margin-bottom:16px">
+                <button class="intel-tab-btn active" data-type="passport" onclick="setIntelMode(this,'passport')" style="flex:1;padding:9px;border-radius:8px;border:2px solid #0B1D35;background:#0B1D35;color:#E8B04A;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🛂 Passeport</button>
+                <button class="intel-tab-btn" data-type="cin" onclick="setIntelMode(this,'cin')" style="flex:1;padding:9px;border-radius:8px;border:2px solid #E5E7EB;background:#fff;color:#374151;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🪪 CIN</button>
+                <button class="intel-tab-btn" data-type="photo" onclick="setIntelMode(this,'photo')" style="flex:1;padding:9px;border-radius:8px;border:2px solid #E5E7EB;background:#fff;color:#374151;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📸 Photo visage</button>
+              </div>
+              <!-- Drop zone -->
+              <div id="intel-drop-zone" style="border:2.5px dashed #D1D5DB;border-radius:14px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .2s;background:#FAFAFA" onclick="document.getElementById('intel-file-input').click()" onmouseover="this.style.borderColor='#0B1D35'" onmouseout="this.style.borderColor='#D1D5DB'">
+                <div id="intel-drop-placeholder">
+                  <div style="font-size:48px;margin-bottom:12px">🛂</div>
+                  <div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:4px">Glissez ou cliquez pour uploader</div>
+                  <div style="font-size:12px;color:#9CA3AF">JPG, PNG, PDF · Max 10 Mo</div>
+                </div>
+                <div id="intel-preview-wrap" style="display:none">
+                  <img id="intel-preview-img" src="" alt="Document" style="max-width:100%;max-height:260px;border-radius:8px;object-fit:contain;border:1px solid #E5E7EB">
+                </div>
+                <input id="intel-file-input" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp,.pdf" style="display:none" aria-label="Document à analyser" onchange="handleIntelUpload(this)">
+              </div>
+              <!-- Action buttons -->
+              <div style="display:flex;gap:10px;margin-top:14px" id="intel-action-btns" style="display:none">
+                <button onclick="runIntelAnalysis()" id="intel-analyse-btn" style="flex:1;background:#0B1D35;color:#E8B04A;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🔍 Analyser</button>
+                <button onclick="clearIntelUpload()" style="background:#F3F4F6;color:#374151;border:none;border-radius:10px;padding:12px 16px;font-size:13px;cursor:pointer;font-family:inherit">✕ Effacer</button>
+              </div>
+              <div id="intel-progress" style="display:none;margin-top:14px">
+                <div style="background:#E5E7EB;border-radius:99px;height:6px;overflow:hidden"><div id="intel-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#0B1D35,#E8B04A);transition:width .3s"></div></div>
+                <div id="intel-progress-label" style="font-size:12px;color:#6B7280;margin-top:6px;text-align:center">Initialisation...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Results -->
+          <div class="admin-card">
+            <div class="admin-card-head"><h3>📊 Résultats de l'analyse</h3></div>
+            <div style="padding:20px" id="intel-results">
+              <div style="text-align:center;padding:40px 20px;color:var(--muted)">
+                <div style="font-size:40px;margin-bottom:12px">🔬</div>
+                <div style="font-size:13px">Uploadez un document ou une photo pour commencer l'analyse</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Extracted data + profile form -->
+        <div class="admin-card" id="intel-profile-card" style="display:none">
+          <div class="admin-card-head">
+            <h3 id="intel-profile-card-title">👤 Données extraites</h3>
+            <div style="display:flex;gap:8px">
+              <button onclick="saveClientProfile()" class="btn-gold" style="font-size:13px;padding:8px 18px;border-radius:8px">💾 Sauvegarder profil</button>
+              <button onclick="prefillApplicationFromProfile()" style="background:#1B7A4A;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">📋 Pré-remplir dossier</button>
+            </div>
+          </div>
+          <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px" id="intel-profile-form">
+            <!-- Filled dynamically -->
+          </div>
+        </div>
+      </div><!-- /atab-client-intel -->
     </div>
   </div>
 </div>
@@ -5907,6 +5982,522 @@ window.openDrawer=function(id){
   },600);
 };
 
+
+
+
+// ══════════════════════════════════════════════════════════════
+//  CLIENT INTELLIGENCE — OCR + Face Matching + Profile DB
+//  Firestore collections:
+//    clientProfiles/{id} — master client profiles
+//    clientUploads — all doc images (reuse existing)
+// ══════════════════════════════════════════════════════════════
+
+var _intelMode       = 'passport'; // passport | cin | photo
+var _intelImageB64   = null;
+var _intelExtracted  = {};         // OCR extracted fields
+var _intelMatchedProfile = null;   // existing profile match
+var _intelFaceDescriptor = null;   // face descriptor from uploaded photo
+var _allClientProfiles   = [];     // cached profiles for face matching
+
+// ── Set analysis mode ──
+window.setIntelMode = function(btn, mode) {
+  _intelMode = mode;
+  document.querySelectorAll('.intel-tab-btn').forEach(function(b) {
+    b.style.background = '#fff'; b.style.color = '#374151'; b.style.borderColor = '#E5E7EB';
+  });
+  btn.style.background = '#0B1D35'; btn.style.color = '#E8B04A'; btn.style.borderColor = '#0B1D35';
+  var ph = document.getElementById('intel-drop-placeholder');
+  if (ph) ph.querySelector('div').textContent = mode==='passport'?'🛂':mode==='cin'?'🪪':'📸';
+  clearIntelUpload();
+};
+
+// ── Handle file upload ──
+window.handleIntelUpload = function(input) {
+  var file = input.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _intelImageB64 = e.target.result;
+    var ph   = document.getElementById('intel-drop-placeholder');
+    var pw   = document.getElementById('intel-preview-wrap');
+    var pimg = document.getElementById('intel-preview-img');
+    var btns = document.getElementById('intel-action-btns');
+    if (ph)   ph.style.display  = 'none';
+    if (pw)   pw.style.display  = 'block';
+    if (pimg) pimg.src = _intelImageB64;
+    if (btns) btns.style.display = 'flex';
+    document.getElementById('intel-results').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Image chargée — cliquez sur <strong>Analyser</strong></div>';
+    var card = document.getElementById('intel-profile-card');
+    if (card) card.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+};
+
+window.clearIntelUpload = function() {
+  _intelImageB64 = null; _intelExtracted = {}; _intelMatchedProfile = null;
+  var ph   = document.getElementById('intel-drop-placeholder');
+  var pw   = document.getElementById('intel-preview-wrap');
+  var btns = document.getElementById('intel-action-btns');
+  var prog = document.getElementById('intel-progress');
+  if (ph)   ph.style.display  = 'block';
+  if (pw)   pw.style.display  = 'none';
+  if (btns) btns.style.display = 'none';
+  if (prog) prog.style.display = 'none';
+  document.getElementById('intel-results').innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:40px;margin-bottom:12px">🔬</div><div style="font-size:13px">Uploadez un document ou une photo pour commencer</div></div>';
+  var card = document.getElementById('intel-profile-card'); if (card) card.style.display = 'none';
+  var inp = document.getElementById('intel-file-input'); if (inp) inp.value = '';
+};
+
+function intelProgress(pct, label) {
+  var bar  = document.getElementById('intel-progress-bar');
+  var lbl  = document.getElementById('intel-progress-label');
+  var wrap = document.getElementById('intel-progress');
+  if (wrap) wrap.style.display = 'block';
+  if (bar)  bar.style.width = pct + '%';
+  if (lbl)  lbl.textContent = label;
+}
+
+// ── Main analysis runner ──
+window.runIntelAnalysis = async function() {
+  if (!_intelImageB64) { showNotif('Aucune image chargée'); return; }
+  var btn = document.getElementById('intel-analyse-btn');
+  if (btn) { btn.textContent = '⏳ Analyse...'; btn.disabled = true; }
+  _intelExtracted = {}; _intelMatchedProfile = null;
+
+  document.getElementById('intel-results').innerHTML = '<div style="text-align:center;padding:30px"><div style="font-size:28px;margin-bottom:10px">⚙️</div><div style="font-size:13px;color:var(--muted)">Analyse en cours...</div></div>';
+
+  try {
+    if (_intelMode === 'photo') {
+      await _runFaceIdentification();
+    } else {
+      await _runOCRAndIdentify();
+    }
+  } catch(e) {
+    console.error('[Intel]', e);
+    document.getElementById('intel-results').innerHTML = '<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:16px;color:#991B1B;font-size:13px">❌ Erreur: ' + e.message + '</div>';
+  }
+
+  if (btn) { btn.textContent = '🔍 Analyser'; btn.disabled = false; }
+  var prog = document.getElementById('intel-progress'); if (prog) prog.style.display = 'none';
+};
+
+// ══════════════════════════════════════════════════════════════
+//  OCR — Extract passport / CIN data via Tesseract.js
+// ══════════════════════════════════════════════════════════════
+async function _runOCRAndIdentify() {
+  intelProgress(10, 'Chargement du moteur OCR...');
+
+  var worker;
+  try {
+    // Tesseract.js v5 API
+    worker = await Tesseract.createWorker(['fra', 'eng', 'ara'], 1, {
+      logger: function(m) {
+        if (m.status === 'recognizing text') intelProgress(10 + Math.round(m.progress*60), 'Lecture du document... ' + Math.round(m.progress*100) + '%');
+      }
+    });
+  } catch(e) {
+    worker = await Tesseract.createWorker('eng+fra');
+  }
+
+  intelProgress(15, 'Analyse de l\'image...');
+  var result = await worker.recognize(_intelImageB64);
+  await worker.terminate();
+
+  var text = result.data.text;
+  intelProgress(75, 'Extraction des données...');
+
+  // Extract fields from OCR text
+  var extracted = _parseDocumentText(text, _intelMode);
+  _intelExtracted = extracted;
+
+  intelProgress(85, 'Recherche dans la base de données...');
+
+  // Search existing profiles by passport/CIN number or name
+  var matchResult = await _searchProfiles(extracted);
+  _intelMatchedProfile = matchResult.profile;
+
+  intelProgress(100, 'Analyse terminée');
+
+  _showIntelResults(extracted, matchResult, text);
+}
+
+function _parseDocumentText(text, mode) {
+  var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+  var data = { raw: text };
+
+  if (mode === 'passport') {
+    // MRZ parsing (last 2 lines of passport)
+    var mrzLines = lines.filter(function(l){ return /^[A-Z0-9<]{30,}$/.test(l.replace(/\s/g,'')); });
+    if (mrzLines.length >= 2) {
+      var mrz1 = mrzLines[mrzLines.length-2].replace(/\s/g,'').padEnd(44,'<');
+      var mrz2 = mrzLines[mrzLines.length-1].replace(/\s/g,'').padEnd(44,'<');
+      // Line 1: P<COUNTRYNAME<<FIRSTNAME<...
+      var nameMatch = mrz1.match(/^P[A-Z<][A-Z]{3}([A-Z<]+)$/);
+      if (nameMatch) {
+        var nameParts = nameMatch[1].split('<<');
+        data.lastName  = (nameParts[0]||'').replace(/</g,' ').trim();
+        data.firstName = (nameParts[1]||'').replace(/</g,' ').trim();
+      }
+      // Line 2: PASSPORT_NO + DOB + EXPIRY + NATIONALITY
+      data.passportNo   = mrz2.substring(0,9).replace(/</g,'').trim();
+      data.nationality  = mrz2.substring(10,13).replace(/</g,'').trim();
+      var dob = mrz2.substring(13,19);
+      if (/^\d{6}$/.test(dob)) {
+        var yr = parseInt(dob.substring(0,2)); yr = yr > 30 ? 1900+yr : 2000+yr;
+        data.birthDate = yr+'-'+dob.substring(2,4)+'-'+dob.substring(4,6);
+      }
+      var exp = mrz2.substring(19,25);
+      if (/^\d{6}$/.test(exp)) {
+        var eyr = 2000+parseInt(exp.substring(0,2));
+        data.expiryDate = eyr+'-'+exp.substring(2,4)+'-'+exp.substring(4,6);
+      }
+      data.gender = mrz2.charAt(20)==='F'?'F':'M';
+    }
+    // Fallback: text patterns
+    if (!data.passportNo) {
+      var pMatch = text.match(/[A-Z]{2}[0-9]{7}/);
+      if (pMatch) data.passportNo = pMatch[0];
+    }
+  } else if (mode === 'cin') {
+    // Moroccan CIN: letter(s) + numbers
+    var cinMatch = text.match(/\b([A-Z]{1,2}[0-9]{5,9})\b/);
+    if (cinMatch) data.cinNo = cinMatch[1];
+    // Name patterns
+    var nomMatch = text.match(/(?:Nom|NOM|الاسم)[:\s]+([A-ZÀ-Ö]+)/i);
+    if (nomMatch) data.lastName = nomMatch[1].trim();
+    var prenomMatch = text.match(/(?:Prénom|PRÉNOM|الشهرة)[:\s]+([A-ZÀ-Ö]+)/i);
+    if (prenomMatch) data.firstName = prenomMatch[1].trim();
+    var neMatch = text.match(/(?:Né le|DATE DE NAISSANCE)[:\s]+([\d\/\-.]+)/i);
+    if (neMatch) data.birthDate = neMatch[1].trim();
+  }
+
+  // Common: extract any dates, names
+  if (!data.firstName && !data.lastName) {
+    // Try to find name-like patterns
+    var nameLines = lines.filter(function(l){ return /^[A-ZÀ-Ö ]{4,30}$/.test(l) && l.split(' ').length <= 4; });
+    if (nameLines.length >= 2) { data.lastName = nameLines[0]; data.firstName = nameLines[1]; }
+    else if (nameLines.length === 1) { var parts = nameLines[0].split(' '); data.lastName = parts[0]; data.firstName = parts.slice(1).join(' '); }
+  }
+
+  return data;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FACE IDENTIFICATION — compare against all existing profiles
+// ══════════════════════════════════════════════════════════════
+async function _runFaceIdentification() {
+  intelProgress(5, 'Chargement des modèles biométriques...');
+  await preloadFaceModels();
+  if (!_bioModelsLoaded) throw new Error('Modèles biométriques non disponibles');
+
+  intelProgress(20, 'Détection du visage...');
+  var img = new Image(); img.src = _intelImageB64;
+  await new Promise(function(r,j){ img.onload=r; img.onerror=j; });
+
+  var det = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options())
+    .withFaceLandmarks().withFaceDescriptor();
+
+  if (!det) throw new Error('Aucun visage d\'identité détecté. Utilisez une photo claire.');
+  _intelFaceDescriptor = det.descriptor;
+  _intelExtracted = { faceDetected: true, landmarks: det.landmarks.positions.length };
+
+  intelProgress(40, 'Chargement des profils clients...');
+  await _loadAllProfiles();
+
+  intelProgress(60, 'Comparaison biométrique en cours...');
+  var bestMatch = null, bestScore = 0;
+
+  for (var i=0; i<_allClientProfiles.length; i++) {
+    var p = _allClientProfiles[i];
+    if (!p.faceDescriptor) continue;
+    var storedDesc = new Float32Array(p.faceDescriptor);
+    var dist = faceapi.euclideanDistance(_intelFaceDescriptor, storedDesc);
+    var score = Math.max(0, 1 - dist);
+    if (score > bestScore) { bestScore = score; bestMatch = p; }
+  }
+
+  intelProgress(90, 'Finalisation...');
+
+  var matchResult = { profile: null, score: 0, isNew: true };
+  if (bestMatch && bestScore > 0.45) {
+    matchResult = { profile: bestMatch, score: Math.round(bestScore*100), isNew: false };
+    _intelMatchedProfile = bestMatch;
+    // Pre-fill extracted with profile data
+    _intelExtracted = Object.assign({}, bestMatch, { faceDetected:true, faceScore:matchResult.score });
+  }
+
+  _showIntelResults(_intelExtracted, matchResult, '');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SEARCH profiles by document number or name
+// ══════════════════════════════════════════════════════════════
+async function _searchProfiles(extracted) {
+  try {
+    var results = [];
+    // Search by passport number
+    if (extracted.passportNo) {
+      var snap = await db.collection('clientProfiles').where('passportNo','==',extracted.passportNo).get();
+      snap.forEach(function(d){ results.push(Object.assign({id:d.id},d.data())); });
+    }
+    // Search by CIN
+    if (!results.length && extracted.cinNo) {
+      var snap2 = await db.collection('clientProfiles').where('cinNo','==',extracted.cinNo).get();
+      snap2.forEach(function(d){ results.push(Object.assign({id:d.id},d.data())); });
+    }
+    // Search by name if no doc number found
+    if (!results.length && extracted.lastName) {
+      var snap3 = await db.collection('clientProfiles').where('lastName','==',extracted.lastName).get();
+      snap3.forEach(function(d){ results.push(Object.assign({id:d.id},d.data())); });
+    }
+    return results.length ? { profile:results[0], score:100, isNew:false, count:results.length } : { profile:null, score:0, isNew:true };
+  } catch(e) { return { profile:null, score:0, isNew:true }; }
+}
+
+async function _loadAllProfiles() {
+  if (_allClientProfiles.length) return;
+  var snap = await db.collection('clientProfiles').get();
+  _allClientProfiles = [];
+  snap.forEach(function(d){ _allClientProfiles.push(Object.assign({id:d.id},d.data())); });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SHOW RESULTS
+// ══════════════════════════════════════════════════════════════
+function _showIntelResults(extracted, matchResult, rawText) {
+  var isNew = !matchResult.profile;
+  var resultsEl = document.getElementById('intel-results');
+  var card = document.getElementById('intel-profile-card');
+  var cardTitle = document.getElementById('intel-profile-card-title');
+
+  var html = '';
+
+  // Match banner
+  if (!isNew) {
+    html += '<div style="background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border:2px solid #86EFAC;border-radius:12px;padding:16px;margin-bottom:16px">'
+      + '<div style="display:flex;align-items:center;gap:12px">'
+      + '<div style="font-size:36px">✅</div>'
+      + '<div><div style="font-size:14px;font-weight:700;color:#065F46">Client existant trouvé !</div>'
+      + '<div style="font-size:12px;color:#16A34A;margin-top:3px">Correspondance : <strong>' + (matchResult.score||100) + '%</strong></div>'
+      + (matchResult.profile.totalApplications ? '<div style="font-size:11px;color:#6B7280;margin-top:2px">' + matchResult.profile.totalApplications + ' dossier(s) précédent(s)</div>' : '')
+      + '</div></div></div>';
+  } else {
+    html += '<div style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border:2px solid #93C5FD;border-radius:12px;padding:16px;margin-bottom:16px">'
+      + '<div style="display:flex;align-items:center;gap:12px">'
+      + '<div style="font-size:36px">🆕</div>'
+      + '<div><div style="font-size:14px;font-weight:700;color:#1E40AF">Nouveau client</div>'
+      + '<div style="font-size:12px;color:#3B82F6;margin-top:3px">Aucun profil existant trouvé</div></div></div></div>';
+  }
+
+  // Extracted fields
+  html += '<div style="background:#F9FAFB;border-radius:10px;padding:14px">';
+  html += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9CA3AF;margin-bottom:10px">Données extraites</div>';
+
+  var fieldLabels = {
+    firstName:'Prénom', lastName:'Nom', passportNo:'N° Passeport', cinNo:'N° CIN',
+    nationality:'Nationalité', birthDate:'Date de naissance', expiryDate:'Expiration',
+    gender:'Sexe', faceScore:'Score facial'
+  };
+  var hasFields = false;
+  Object.keys(fieldLabels).forEach(function(k) {
+    if (!extracted[k]) return;
+    hasFields = true;
+    html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F3F4F6">'
+      + '<span style="font-size:12px;color:#6B7280">' + fieldLabels[k] + '</span>'
+      + '<span style="font-size:12px;font-weight:600;color:#0B1D35">' + extracted[k] + (k==='faceScore'?'%':'') + '</span></div>';
+  });
+  if (!hasFields) html += '<div style="font-size:12px;color:#9CA3AF;font-style:italic">Extraction limitée — remplissez manuellement ci-dessous</div>';
+  html += '</div>';
+
+  // Raw OCR toggle
+  if (rawText && rawText.length > 10) {
+    html += '<details style="margin-top:12px"><summary style="font-size:11px;color:#9CA3AF;cursor:pointer">Texte OCR brut</summary>'
+      + '<pre style="font-size:9px;color:#6B7280;background:#F9FAFB;padding:10px;border-radius:6px;overflow-x:auto;max-height:120px;margin-top:6px;white-space:pre-wrap">' + rawText.substring(0,500) + '</pre></details>';
+  }
+
+  resultsEl.innerHTML = html;
+
+  // Show profile form
+  if (card) card.style.display = 'block';
+  if (cardTitle) cardTitle.textContent = isNew ? '👤 Nouveau profil client' : '✅ Profil existant — ' + (matchResult.profile.firstName||'') + ' ' + (matchResult.profile.lastName||'');
+
+  _renderProfileForm(isNew ? extracted : Object.assign({}, matchResult.profile, extracted));
+}
+
+function _renderProfileForm(data) {
+  var form = document.getElementById('intel-profile-form');
+  if (!form) return;
+  var fields = [
+    {id:'ip-lastname',   label:'Nom *',              val:data.lastName||''},
+    {id:'ip-firstname',  label:'Prénom *',            val:data.firstName||''},
+    {id:'ip-email',      label:'Email',               val:data.email||'', type:'email'},
+    {id:'ip-phone',      label:'Téléphone',           val:data.phone||''},
+    {id:'ip-nationality',label:'Nationalité',         val:data.nationality||''},
+    {id:'ip-birthdate',  label:'Date de naissance',   val:data.birthDate||'', type:'date'},
+    {id:'ip-passport',   label:'N° Passeport',        val:data.passportNo||''},
+    {id:'ip-cin',        label:'N° CIN',              val:data.cinNo||''},
+    {id:'ip-expiry',     label:'Expiration passeport',val:data.expiryDate||'', type:'date'},
+    {id:'ip-gender',     label:'Sexe',                val:data.gender||'', type:'select', opts:['','M','F']},
+    {id:'ip-address',    label:'Adresse',             val:data.address||''},
+    {id:'ip-notes',      label:'Notes',               val:data.notes||''},
+  ];
+  form.innerHTML = fields.map(function(f) {
+    var input = '';
+    if (f.type==='select') {
+      input = '<select id="'+f.id+'" aria-label="'+f.label+'" style="width:100%;border:1.5px solid #E5E7EB;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;outline:none;background:#fff">'
+        + f.opts.map(function(o){ return '<option value="'+o+'"'+(o===f.val?' selected':'')+'>'+o+'</option>'; }).join('')
+        + '</select>';
+    } else {
+      input = '<input id="'+f.id+'" type="'+(f.type||'text')+'" value="'+f.val.replace(/"/g,'&quot;')+'" aria-label="'+f.label+'" style="width:100%;border:1.5px solid #E5E7EB;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;outline:none">';
+    }
+    return '<div><label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px">'+f.label+'</label>'+input+'</div>';
+  }).join('');
+  // Store matched profile id for update
+  form.dataset.profileId = (_intelMatchedProfile && _intelMatchedProfile.id) || '';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SAVE / UPDATE client profile
+// ══════════════════════════════════════════════════════════════
+window.saveClientProfile = async function() {
+  var g = function(id){ var e=document.getElementById(id); return e?e.value.trim():''; };
+  var profileData = {
+    lastName:    g('ip-lastname'),
+    firstName:   g('ip-firstname'),
+    email:       g('ip-email'),
+    phone:       g('ip-phone'),
+    nationality: g('ip-nationality'),
+    birthDate:   g('ip-birthdate'),
+    passportNo:  g('ip-passport'),
+    cinNo:       g('ip-cin'),
+    expiryDate:  g('ip-expiry'),
+    gender:      g('ip-gender'),
+    address:     g('ip-address'),
+    notes:       g('ip-notes'),
+    updatedAt:   firebase.firestore.FieldValue.serverTimestamp()
+  };
+  if (!profileData.lastName) { showNotif('Le nom est requis'); return; }
+
+  // Attach face descriptor if available
+  if (_intelFaceDescriptor) {
+    profileData.faceDescriptor = Array.from(_intelFaceDescriptor);
+  }
+  // Attach document image thumbnail
+  if (_intelImageB64) {
+    try {
+      var thumb = await new Promise(function(res){
+        var i2=new Image(); i2.src=_intelImageB64;
+        i2.onload=function(){ var c=document.createElement('canvas'); var s=Math.min(200/i2.width,200/i2.height,1); c.width=Math.round(i2.width*s); c.height=Math.round(i2.height*s); c.getContext('2d').drawImage(i2,0,0,c.width,c.height); res(c.toDataURL('image/jpeg',0.7)); };
+        i2.onerror=function(){ res(''); };
+      });
+      if (thumb) profileData.docThumbnail = thumb;
+    } catch(e){}
+  }
+
+  try {
+    var form = document.getElementById('intel-profile-form');
+    var existingId = form ? form.dataset.profileId : '';
+    if (existingId) {
+      await db.collection('clientProfiles').doc(existingId).update(profileData);
+      profileData.totalApplications = (_intelMatchedProfile && _intelMatchedProfile.totalApplications) || 0;
+      showNotif('Profil client mis à jour !');
+    } else {
+      profileData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      profileData.totalApplications = 0;
+      var ref = await db.collection('clientProfiles').add(profileData);
+      if (form) form.dataset.profileId = ref.id;
+      _allClientProfiles.push(Object.assign({id:ref.id}, profileData));
+      showNotif('Nouveau profil client créé !');
+    }
+  } catch(e) { showNotif('Erreur: ' + e.message); }
+};
+
+// ══════════════════════════════════════════════════════════════
+//  PRE-FILL booking/B2B form with profile data
+// ══════════════════════════════════════════════════════════════
+window.prefillApplicationFromProfile = function() {
+  var g = function(id){ var e=document.getElementById(id); return e?e.value.trim():''; };
+  var data = {
+    lastName:    g('ip-lastname'),
+    firstName:   g('ip-firstname'),
+    email:       g('ip-email'),
+    phone:       g('ip-phone'),
+    nationality: g('ip-nationality'),
+    passport:    g('ip-passport')
+  };
+  // Try booking form fields
+  var map = { 'ip-firstname':'fname', 'ip-lastname':'lname', 'ip-email':'app-email', 'ip-phone':'phone', 'ip-nationality':'nationality', 'ip-passport':'passport' };
+  var filled = 0;
+  Object.keys(map).forEach(function(src) {
+    var val = g(src);
+    var el = document.getElementById(map[src]);
+    if (el && val) { el.value = val; filled++; }
+  });
+  // Try B2B form
+  var b2bMap = { 'ip-firstname':'b2b-fname', 'ip-lastname':'b2b-lname', 'ip-email':'b2b-email', 'ip-phone':'b2b-phone', 'ip-nationality':'b2b-nationality', 'ip-passport':'b2b-passport' };
+  Object.keys(b2bMap).forEach(function(src) {
+    var val = g(src);
+    var el = document.getElementById(b2bMap[src]);
+    if (el && val) { el.value = val; filled++; }
+  });
+  showNotif(filled > 0 ? ('Données pré-remplies dans le formulaire (' + Math.round(filled/2) + ' champs)') : 'Aucun champ à pré-remplir');
+};
+
+// ══════════════════════════════════════════════════════════════
+//  CLIENT PROFILES MODAL — view all profiles
+// ══════════════════════════════════════════════════════════════
+window.openClientProfilesModal = async function() {
+  var existing = document.getElementById('client-profiles-modal');
+  if (existing) existing.parentNode.removeChild(existing);
+  var modal = document.createElement('div');
+  modal.id = 'client-profiles-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(11,29,53,.85);z-index:800;display:flex;align-items:center;justify-content:center;padding:16px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)';
+  modal.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.4);font-family:DM Sans,Arial,sans-serif">'
+    + '<div style="background:linear-gradient(135deg,#0B1D35,#132645);padding:18px 22px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1">'
+    + '<div style="color:#E8B04A;font-size:16px;font-weight:700">👥 Base de données clients</div>'
+    + '<button onclick="document.getElementById(\'client-profiles-modal\').remove()" style="background:rgba(255,255,255,.12);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px">&#10005;</button>'
+    + '</div>'
+    + '<div style="padding:16px 20px"><div id="profiles-list-content"><div style="text-align:center;padding:30px;color:var(--muted)">Chargement...</div></div></div></div>';
+  document.body.appendChild(modal);
+
+  try {
+    var snap = await db.collection('clientProfiles').orderBy('lastName').get();
+    var rows = [];
+    snap.forEach(function(doc) {
+      var p = doc.data();
+      rows.push('<tr style="border-bottom:1px solid #F3F4F6">'
+        + '<td style="padding:10px 12px">'
+        + (p.docThumbnail ? '<img src="'+p.docThumbnail+'" style="width:40px;height:40px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="showFullPhoto(\''+p.docThumbnail+'\')">' : '<div style="width:40px;height:40px;background:#F3F4F6;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px">👤</div>')
+        + '</td>'
+        + '<td style="padding:10px 12px"><div style="font-weight:600;color:#0B1D35">' + (p.lastName||'—') + ' ' + (p.firstName||'') + '</div><div style="font-size:11px;color:#6B7280">' + (p.email||'') + '</div></td>'
+        + '<td style="padding:10px 12px;font-size:12px;color:#374151">' + (p.passportNo||p.cinNo||'—') + '</td>'
+        + '<td style="padding:10px 12px;font-size:12px;color:#374151">' + (p.nationality||'—') + '</td>'
+        + '<td style="padding:10px 12px;font-size:12px;color:#374151">' + (p.phone||'—') + '</td>'
+        + '<td style="padding:10px 12px;text-align:center"><span style="background:#EFF6FF;color:#1E40AF;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:600">' + (p.totalApplications||0) + ' dossiers</span></td>'
+        + '<td style="padding:10px 12px">'
+        + (p.faceDescriptor ? '<span style="background:#D1FAE5;color:#065F46;border-radius:99px;padding:3px 8px;font-size:10px;font-weight:600">🔬 Bio</span>' : '')
+        + '</td></tr>');
+    });
+    var listEl = document.getElementById('profiles-list-content');
+    if (listEl) {
+      listEl.innerHTML = rows.length
+        ? '<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F9FAFB"><th style="padding:10px 12px;font-size:11px;text-align:left;color:#9CA3AF;font-weight:600;text-transform:uppercase">Photo</th><th style="padding:10px 12px;font-size:11px;text-align:left;color:#9CA3AF;font-weight:600;text-transform:uppercase">Nom</th><th style="padding:10px 12px;font-size:11px;text-align:left;color:#9CA3AF;font-weight:600;text-transform:uppercase">Document</th><th style="padding:10px 12px;font-size:11px;text-align:left;color:#9CA3AF;font-weight:600;text-transform:uppercase">Nationalité</th><th style="padding:10px 12px;font-size:11px;text-align:left;color:#9CA3AF;font-weight:600;text-transform:uppercase">Téléphone</th><th style="padding:10px 12px;font-size:11px;text-align:left;color:#9CA3AF;font-weight:600;text-transform:uppercase">Dossiers</th><th style="padding:10px 12px;font-size:11px;text-align:left;color:#9CA3AF;font-weight:600;text-transform:uppercase">Bio</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>'
+        : '<div style="text-align:center;padding:40px;color:var(--muted)">Aucun profil client. Analysez des documents pour créer des profils.</div>';
+    }
+  } catch(e) {
+    var listEl2 = document.getElementById('profiles-list-content');
+    if (listEl2) listEl2.innerHTML = '<div style="color:#DC2626;padding:20px">Erreur: ' + e.message + '</div>';
+  }
+};
+
+// Load intel tab when opened
+var _origShowAdminTabForIntel = window.showAdminTab;
+window.showAdminTab = function(tab) {
+  _origShowAdminTabForIntel && _origShowAdminTabForIntel(tab);
+  // reset state when switching to intel tab
+  if (tab === 'client-intel') {
+    _allClientProfiles = []; // refresh on each visit
+  }
+};
 
 
 //   SUBMISSION CONFIRMATION — shown to client/B2B after submit
