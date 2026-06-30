@@ -6182,51 +6182,417 @@ function _parseDocumentText(text, mode) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  FACE IDENTIFICATION — compare against all existing profiles
+//  FACE IDENTIFICATION — cinematic scan + crowd matching + profile reveal
 // ══════════════════════════════════════════════════════════════
 async function _runFaceIdentification() {
-  intelProgress(5, 'Chargement des modèles biométriques...');
-  await preloadFaceModels();
-  if (!_bioModelsLoaded) throw new Error('Modèles biométriques non disponibles');
+  // Launch the cinematic overlay immediately
+  _launchCinematicScan(_intelImageB64);
+}
 
-  intelProgress(20, 'Détection du visage...');
-  var img = new Image(); img.src = _intelImageB64;
-  await new Promise(function(r,j){ img.onload=r; img.onerror=j; });
+// ── Generates random fake face silhouettes for crowd animation ──
+function _fakePersonCanvas(size) {
+  var c = document.createElement('canvas'); c.width = size; c.height = size;
+  var ctx = c.getContext('2d');
+  // Random skin tone
+  var tones = ['#8B6355','#C68642','#FAD5B0','#6B3A2A','#D2956B','#4A2410','#E8B89A'];
+  var skin = tones[Math.floor(Math.random()*tones.length)];
+  // BG
+  ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.clearRect(0,0,size,size);
+  // Head
+  ctx.beginPath(); ctx.arc(size*.5, size*.36, size*.22, 0, Math.PI*2);
+  ctx.fillStyle = skin; ctx.fill();
+  // Body
+  ctx.beginPath(); ctx.ellipse(size*.5, size*.75, size*.18, size*.26, 0, 0, Math.PI*2);
+  ctx.fillStyle = ['#1a2a4a','#2d4a1a','#4a1a1a','#333','#1a1a4a'][Math.floor(Math.random()*5)]; ctx.fill();
+  // Random noise variation
+  ctx.globalAlpha = 0.15 + Math.random()*.2;
+  ctx.fillStyle = Math.random()>.5?'#fff':'#000';
+  ctx.beginPath(); ctx.arc(size*(.3+Math.random()*.4), size*(.2+Math.random()*.3), size*.05, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+  return c;
+}
 
-  var det = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options())
-    .withFaceLandmarks().withFaceDescriptor();
+// ── Main cinematic overlay ──
+function _launchCinematicScan(imageB64) {
+  // Remove existing
+  var old = document.getElementById('intel-cinematic-overlay');
+  if (old) old.remove();
 
-  if (!det) throw new Error('Aucun visage d\'identité détecté. Utilisez une photo claire.');
-  _intelFaceDescriptor = det.descriptor;
-  _intelExtracted = { faceDetected: true, landmarks: det.landmarks.positions.length };
+  var ov = document.createElement('div');
+  ov.id = 'intel-cinematic-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;overflow:hidden;font-family:JetBrains Mono,Courier New,monospace';
 
-  intelProgress(40, 'Chargement des profils clients...');
-  await _loadAllProfiles();
+  ov.innerHTML = `
+    <div id="cin-top-bar" style="display:flex;justify-content:space-between;align-items:center;padding:12px 24px;border-bottom:1px solid rgba(0,190,255,.15);background:rgba(0,10,20,.95);flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#00BFFF;animation:bioBlink 1s infinite"></div>
+        <span style="font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(0,190,255,.7)">EuroVisa Intelligence · Identification Biométrique</span>
+      </div>
+      <div id="cin-clock" style="font-size:10px;color:rgba(0,190,255,.4);letter-spacing:2px"></div>
+    </div>
 
-  intelProgress(60, 'Comparaison biométrique en cours...');
-  var bestMatch = null, bestScore = 0;
+    <div style="display:flex;flex:1;overflow:hidden">
+      <!-- LEFT: subject scan -->
+      <div style="width:380px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid rgba(0,190,255,.1);background:rgba(0,5,15,.98)">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(0,190,255,.08)">
+          <div style="font-size:8px;letter-spacing:4px;text-transform:uppercase;color:rgba(0,190,255,.35);margin-bottom:6px">SUJET IDENTIFIÉ</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(0,190,255,.7)">ANALYSE EN COURS</div>
+        </div>
+        <!-- Subject photo -->
+        <div style="position:relative;margin:16px 20px;flex-shrink:0">
+          <canvas id="cin-subject-canvas" width="340" height="340" style="width:100%;border:1px solid rgba(0,190,255,.2);display:block"></canvas>
+          <!-- Scan line -->
+          <div id="cin-scan-line" style="position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,190,255,.9),transparent);top:0;pointer-events:none;box-shadow:0 0 12px rgba(0,190,255,.6)"></div>
+          <!-- Corner brackets -->
+          <div style="position:absolute;top:4px;left:4px;width:20px;height:20px;border-top:2px solid rgba(0,190,255,.7);border-left:2px solid rgba(0,190,255,.7)"></div>
+          <div style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-top:2px solid rgba(0,190,255,.7);border-right:2px solid rgba(0,190,255,.7)"></div>
+          <div style="position:absolute;bottom:4px;left:4px;width:20px;height:20px;border-bottom:2px solid rgba(0,190,255,.7);border-left:2px solid rgba(0,190,255,.7)"></div>
+          <div style="position:absolute;bottom:4px;right:4px;width:20px;height:20px;border-bottom:2px solid rgba(0,190,255,.7);border-right:2px solid rgba(0,190,255,.7)"></div>
+          <!-- Mesh canvas -->
+          <canvas id="cin-mesh-canvas" width="340" height="340" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+        </div>
+        <!-- Data readout -->
+        <div style="padding:0 20px;flex:1">
+          <div id="cin-data-readout" style="font-size:9px;color:rgba(0,190,255,.5);line-height:2.2;letter-spacing:.5px"></div>
+        </div>
+        <!-- Progress -->
+        <div style="padding:16px 20px;border-top:1px solid rgba(0,190,255,.08)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(0,190,255,.4)" id="cin-phase-label">INITIALISATION</span>
+            <span style="font-size:9px;color:rgba(0,190,255,.6)" id="cin-pct-label">0%</span>
+          </div>
+          <div style="background:rgba(0,190,255,.08);height:3px;border-radius:2px;overflow:hidden">
+            <div id="cin-main-progress" style="height:100%;width:0%;background:linear-gradient(90deg,rgba(0,190,255,.6),rgba(184,137,46,.8));transition:width .15s linear"></div>
+          </div>
+        </div>
+      </div>
 
-  for (var i=0; i<_allClientProfiles.length; i++) {
-    var p = _allClientProfiles[i];
-    if (!p.faceDescriptor) continue;
-    var storedDesc = new Float32Array(p.faceDescriptor);
-    var dist = faceapi.euclideanDistance(_intelFaceDescriptor, storedDesc);
-    var score = Math.max(0, 1 - dist);
-    if (score > bestScore) { bestScore = score; bestMatch = p; }
+      <!-- RIGHT: crowd matching grid -->
+      <div style="flex:1;display:flex;flex-direction:column;background:#000;overflow:hidden">
+        <div style="padding:12px 20px;border-bottom:1px solid rgba(0,190,255,.08);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+          <span style="font-size:8px;letter-spacing:4px;text-transform:uppercase;color:rgba(0,190,255,.3)">COMPARAISON BASE DE DONNÉES</span>
+          <span id="cin-match-counter" style="font-size:9px;color:rgba(0,190,255,.5);letter-spacing:2px">PROFILS ANALYSÉS: 0</span>
+        </div>
+        <div id="cin-crowd-grid" style="flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:3px;padding:12px;overflow:hidden;align-content:start"></div>
+        <!-- Match found flash -->
+        <div id="cin-match-flash" style="display:none;position:absolute;inset:0;pointer-events:none;background:rgba(29,200,120,0.04);animation:bioGlowPulse .5s ease-in-out 3"></div>
+      </div>
+    </div>
+
+    <!-- RESULT OVERLAY (hidden initially) -->
+    <div id="cin-result-overlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.92);z-index:10;flex-direction:column;align-items:center;justify-content:center">
+      <div id="cin-result-box" style="max-width:560px;width:100%;padding:40px;text-align:center"></div>
+      <button onclick="document.getElementById('intel-cinematic-overlay').remove()" style="margin-top:24px;background:transparent;color:rgba(0,190,255,.5);border:1px solid rgba(0,190,255,.2);border-radius:4px;padding:10px 28px;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:inherit">FERMER</button>
+    </div>`;
+
+  document.body.appendChild(ov);
+
+  // Start clock
+  var clockIv = setInterval(function() {
+    var el = document.getElementById('cin-clock');
+    if (el) el.textContent = new Date().toISOString().replace('T',' ').substring(0,19) + ' UTC';
+  }, 1000);
+
+  // Run the cinematic async
+  _cinematicRun(imageB64, clockIv).catch(function(e) {
+    console.error('[Cinematic]', e);
+    var ov2 = document.getElementById('intel-cinematic-overlay');
+    if (ov2) ov2.remove();
+    document.getElementById('intel-results').innerHTML = '<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:16px;color:#991B1B;font-size:13px">❌ ' + e.message + '</div>';
+  });
+}
+
+async function _cinematicRun(imageB64, clockIv) {
+  var subjectCanvas = document.getElementById('cin-subject-canvas');
+  var meshCanvas    = document.getElementById('cin-mesh-canvas');
+  var scanLine      = document.getElementById('cin-scan-line');
+  var crowdGrid     = document.getElementById('cin-crowd-grid');
+  var mainProg      = document.getElementById('cin-main-progress');
+  var phaseLabel    = document.getElementById('cin-phase-label');
+  var pctLabel      = document.getElementById('cin-pct-label');
+  var dataReadout   = document.getElementById('cin-data-readout');
+  var matchCounter  = document.getElementById('cin-match-counter');
+  var sCtx          = subjectCanvas.getContext('2d');
+  var mCtx          = meshCanvas.getContext('2d');
+
+  function setPhase(label, pct) {
+    if (phaseLabel) phaseLabel.textContent = label;
+    if (pctLabel)   pctLabel.textContent   = Math.round(pct) + '%';
+    if (mainProg)   mainProg.style.width   = pct + '%';
+  }
+  function addData(key, val) {
+    if (!dataReadout) return;
+    dataReadout.innerHTML += '<div><span style="color:rgba(0,190,255,.25)">' + key + '</span> <span style="color:rgba(0,190,255,.7)">' + val + '</span></div>';
   }
 
-  intelProgress(90, 'Finalisation...');
+  // ── PHASE 1: Draw subject photo ──
+  setPhase('CHARGEMENT SUJET', 5);
+  var subImg = new Image(); subImg.src = imageB64;
+  await new Promise(function(r,j){ subImg.onload=r; subImg.onerror=j; });
+  // Square crop + draw
+  var iw = subImg.naturalWidth, ih = subImg.naturalHeight;
+  var cs = Math.min(iw,ih), sx=(iw-cs)/2, sy=(ih-cs)/2;
+  sCtx.drawImage(subImg, sx,sy,cs,cs, 0,0,340,340);
+  // Overlay grid
+  sCtx.strokeStyle = 'rgba(0,190,255,0.06)'; sCtx.lineWidth = .5;
+  for (var g=0;g<340;g+=20){ sCtx.beginPath();sCtx.moveTo(g,0);sCtx.lineTo(g,340);sCtx.stroke(); sCtx.beginPath();sCtx.moveTo(0,g);sCtx.lineTo(340,g);sCtx.stroke(); }
+  addData('IMG_SIZE', iw+'×'+ih);
+  addData('MODE', 'BIOMETRIC_FACIAL');
+  addData('STATUS', 'SCANNING...');
+  await new Promise(function(r){ setTimeout(r,600); });
 
-  var matchResult = { profile: null, score: 0, isNew: true };
+  // ── PHASE 2: Scan line animation ──
+  setPhase('SCAN FACIAL EN COURS', 15);
+  var scanPct = 0;
+  await new Promise(function(res) {
+    var iv = setInterval(function() {
+      scanPct += 2;
+      if (scanLine) scanLine.style.top = scanPct + '%';
+      setPhase('SCAN FACIAL EN COURS', 15 + scanPct*.15);
+      if (scanPct >= 100) { clearInterval(iv); if(scanLine) scanLine.style.display='none'; res(); }
+    }, 25);
+  });
+
+  // ── PHASE 3: Load face models + detect ──
+  setPhase('CHARGEMENT MODÈLES IA', 30);
+  addData('ENGINE', 'SSD_MOBILENETV1');
+  await preloadFaceModels();
+  if (!_bioModelsLoaded) throw new Error('Modèles IA non disponibles');
+  setPhase('DÉTECTION DU VISAGE', 38);
+  addData('MODELS', 'LOADED · TFD+SSD');
+
+  var det = await faceapi.detectSingleFace(subImg, new faceapi.SsdMobilenetv1Options())
+    .withFaceLandmarks().withFaceDescriptor();
+  if (!det) throw new Error('Aucun visage détecté. Utilisez une photo de face claire.');
+
+  _intelFaceDescriptor = det.descriptor;
+  _intelExtracted = { faceDetected:true, landmarks: det.landmarks.positions.length };
+  addData('LANDMARKS', det.landmarks.positions.length + ' POINTS');
+  addData('CONFIDENCE', Math.round((det.detection.score||.9)*100)+'%');
+
+  // ── PHASE 4: Draw facial mesh point by point ──
+  setPhase('CARTOGRAPHIE FACIALE', 45);
+  var pts = det.landmarks.positions;
+  var scale = 340 / cs;
+  // Offset back to original crop
+  function toCanvas(pt) {
+    return { x: (pt.x - sx) * scale, y: (pt.y - sy) * scale };
+  }
+
+  // Draw points one by one with delay
+  mCtx.clearRect(0,0,340,340);
+  for (var pi=0; pi<pts.length; pi++) {
+    var cp = toCanvas(pts[pi]);
+    mCtx.beginPath();
+    mCtx.arc(cp.x, cp.y, 2.5, 0, Math.PI*2);
+    mCtx.fillStyle = 'rgba(0,190,255,0.9)';
+    mCtx.fill();
+    // Glow
+    mCtx.beginPath(); mCtx.arc(cp.x,cp.y,5,0,Math.PI*2);
+    mCtx.fillStyle='rgba(0,190,255,0.15)'; mCtx.fill();
+    if (pi % 3 === 0) await new Promise(function(r){ setTimeout(r,18); });
+  }
+
+  // Draw face outline segments
+  var segments = [
+    [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], // jaw
+    [17,18,19,20,21],[22,23,24,25,26], // brows
+    [27,28,29,30],[31,32,33,34,35], // nose
+    [36,37,38,39,40,41,36],[42,43,44,45,46,47,42], // eyes
+    [48,49,50,51,52,53,54,55,56,57,58,59,48] // mouth
+  ];
+  var segColors = [
+    'rgba(0,190,255,0.4)','rgba(184,137,46,0.5)','rgba(184,137,46,0.5)',
+    'rgba(0,190,255,0.3)','rgba(0,190,255,0.3)',
+    'rgba(29,200,120,0.6)','rgba(29,200,120,0.6)',
+    'rgba(255,100,100,0.5)'
+  ];
+  for (var si=0; si<segments.length; si++) {
+    mCtx.beginPath(); mCtx.strokeStyle=segColors[si]||'rgba(0,190,255,0.4)'; mCtx.lineWidth=1.2;
+    segments[si].forEach(function(idx,j){ var p=toCanvas(pts[idx]); j?mCtx.lineTo(p.x,p.y):mCtx.moveTo(p.x,p.y); });
+    mCtx.stroke();
+    await new Promise(function(r){ setTimeout(r,80); });
+  }
+
+  // Region labels
+  var regions = [
+    {pt:toCanvas(pts[27]),label:'PONT'},
+    {pt:toCanvas(pts[8]),label:'MÂCHOIRE'},
+    {pt:toCanvas(pts[19]),label:'SOURCIL G'},
+    {pt:toCanvas(pts[36]),label:'ŒIL G'},
+    {pt:toCanvas(pts[48]),label:'BOUCHE'},
+  ];
+  regions.forEach(function(r) {
+    mCtx.font='bold 7px JetBrains Mono,monospace';
+    mCtx.fillStyle='rgba(0,190,255,0.5)';
+    mCtx.fillText(r.label, r.pt.x+6, r.pt.y-4);
+    mCtx.beginPath(); mCtx.moveTo(r.pt.x,r.pt.y); mCtx.lineTo(r.pt.x+5,r.pt.y-3);
+    mCtx.strokeStyle='rgba(0,190,255,0.3)'; mCtx.lineWidth=.8; mCtx.stroke();
+  });
+
+  addData('STRUCTURE', 'MAPPED · ' + segments.length + ' ZONES');
+  await new Promise(function(r){ setTimeout(r,500); });
+
+  // ── PHASE 5: Load profiles + crowd animation ──
+  setPhase('CHARGEMENT BASE DE DONNÉES', 60);
+  addData('DB_QUERY', 'clientProfiles...');
+  await _loadAllProfiles();
+  addData('PROFILES', _allClientProfiles.length + ' ENTRÉES');
+
+  setPhase('COMPARAISON EN COURS', 65);
+
+  // Generate fake crowd faces (mix of fake + real profiles)
+  var totalFakes = Math.max(120, _allClientProfiles.length * 8 + 80);
+  var crowdItems = []; // {type:'fake'|'real', profile:null|{...}, el:null}
+  var bestMatch = null, bestScore = 0;
+  var matchedEl = null;
+  var analysedCount = 0;
+
+  // Build the grid cells first
+  var gridCells = [];
+  for (var ci=0; ci<totalFakes; ci++) {
+    var cell = document.createElement('div');
+    cell.style.cssText = 'position:relative;aspect-ratio:1;overflow:hidden;background:rgba(0,10,20,.8);border:1px solid rgba(0,190,255,.05);opacity:.4;transition:opacity .1s';
+    var fc = _fakePersonCanvas(72);
+    var cimg = document.createElement('img');
+    cimg.src = fc.toDataURL('image/jpeg',0.6);
+    cimg.style.cssText = 'width:100%;height:100%;object-fit:cover;filter:saturate(0.3) brightness(0.6)';
+    cell.appendChild(cimg);
+    // Scanline overlay
+    var sl = document.createElement('div');
+    sl.style.cssText = 'position:absolute;left:0;right:0;height:1px;background:rgba(0,190,255,0.5);top:0;display:none';
+    cell.appendChild(sl);
+    crowdGrid.appendChild(cell);
+    gridCells.push({el:cell, sl:sl, type:'fake', isRealProfile:false});
+  }
+
+  // Sprinkle real profiles at random positions
+  if (_allClientProfiles.length > 0) {
+    var slots = [];
+    while (slots.length < _allClientProfiles.length && slots.length < gridCells.length-1) {
+      var s = Math.floor(Math.random()*(gridCells.length-1))+1; // not first slot
+      if (!slots.includes(s)) slots.push(s);
+    }
+    _allClientProfiles.forEach(function(profile, i) {
+      if (i >= slots.length) return;
+      var slot = slots[i];
+      var cell = gridCells[slot];
+      if (!cell) return;
+      cell.type = 'real';
+      cell.profile = profile;
+      cell.isRealProfile = true;
+      if (profile.docThumbnail) {
+        var realImg = document.createElement('img');
+        realImg.src = profile.docThumbnail;
+        realImg.style.cssText = 'width:100%;height:100%;object-fit:cover;filter:saturate(0.3) brightness(0.6);position:absolute;inset:0';
+        cell.el.appendChild(realImg);
+      }
+    });
+  }
+
+  // ── Animate through cells progressively ──
+  var SPEED_MS = 35;
+  for (var ci2=0; ci2<gridCells.length; ci2++) {
+    var cell2 = gridCells[ci2];
+    // Activate cell
+    cell2.el.style.opacity = '1';
+    cell2.sl.style.display = 'block';
+    cell2.el.style.borderColor = 'rgba(0,190,255,.3)';
+
+    // If real profile, do face comparison
+    var score2 = Math.random()*.35; // default fake score
+    if (cell2.isRealProfile && cell2.profile.faceDescriptor && _intelFaceDescriptor) {
+      var storedDesc = new Float32Array(cell2.profile.faceDescriptor);
+      var dist2 = faceapi.euclideanDistance(_intelFaceDescriptor, storedDesc);
+      score2 = Math.max(0, 1 - dist2);
+      if (score2 > bestScore) { bestScore = score2; bestMatch = cell2.profile; matchedEl = cell2.el; }
+    }
+
+    // Visual feedback
+    await new Promise(function(r){ setTimeout(r, SPEED_MS); });
+    cell2.sl.style.display = 'none';
+
+    if (score2 > 0.45 && cell2.isRealProfile) {
+      // Found match — green highlight
+      cell2.el.style.borderColor = 'rgba(29,200,120,.9)';
+      cell2.el.style.boxShadow = '0 0 12px rgba(29,200,120,.5)';
+      var img2 = cell2.el.querySelector('img');
+      if (img2) img2.style.filter = 'saturate(1) brightness(1)';
+    } else {
+      // No match — dim
+      cell2.el.style.opacity = '.18';
+      cell2.el.style.borderColor = 'rgba(0,190,255,.04)';
+    }
+
+    analysedCount++;
+    if (analysedCount % 5 === 0) {
+      if (matchCounter) matchCounter.textContent = 'PROFILS ANALYSÉS: ' + analysedCount;
+      setPhase('COMPARAISON EN COURS', 65 + (analysedCount/gridCells.length)*30);
+    }
+  }
+
+  // ── PHASE 6: Result reveal ──
+  setPhase('FINALISATION', 98);
+  addData('COMPARAISON', 'TERMINÉE');
+  addData('RÉSULTAT', bestMatch && bestScore>0.45 ? 'CORRESPONDANCE' : 'INCONNU');
+  await new Promise(function(r){ setTimeout(r,800); });
+
+  clearInterval(clockIv);
+  if (matchCounter) matchCounter.textContent = 'PROFILS ANALYSÉS: ' + analysedCount;
+  setPhase('TERMINÉ', 100);
+
+  var matchResult = { profile:null, score:0, isNew:true };
   if (bestMatch && bestScore > 0.45) {
-    matchResult = { profile: bestMatch, score: Math.round(bestScore*100), isNew: false };
+    matchResult = { profile:bestMatch, score:Math.round(bestScore*100), isNew:false };
     _intelMatchedProfile = bestMatch;
-    // Pre-fill extracted with profile data
     _intelExtracted = Object.assign({}, bestMatch, { faceDetected:true, faceScore:matchResult.score });
   }
 
-  _showIntelResults(_intelExtracted, matchResult, '');
+  // Flash the matched cell
+  if (matchedEl) {
+    for (var fi=0; fi<6; fi++) {
+      matchedEl.style.borderColor = fi%2===0?'rgba(29,200,120,1)':'rgba(255,255,255,.8)';
+      await new Promise(function(r){ setTimeout(r,180); });
+    }
+    matchedEl.scrollIntoView({ behavior:'smooth', block:'center' });
+    await new Promise(function(r){ setTimeout(r,600); });
+  }
+
+  // Show result overlay
+  var resultOverlay = document.getElementById('cin-result-overlay');
+  var resultBox = document.getElementById('cin-result-box');
+  if (resultBox) {
+    if (!matchResult.isNew) {
+      resultBox.innerHTML =
+        '<div style="font-size:9px;font-weight:700;letter-spacing:5px;color:rgba(29,200,120,.5);margin-bottom:16px">IDENTITÉ CONFIRMÉE</div>'
+        + '<div style="font-size:48px;font-weight:300;color:#1dc878;letter-spacing:-2px;margin-bottom:8px">' + matchResult.score + '<span style="font-size:18px;color:rgba(29,200,120,.5)">%</span></div>'
+        + '<div style="font-size:10px;letter-spacing:3px;color:rgba(29,200,120,.4);margin-bottom:24px">CORRESPONDANCE BIOMÉTRIQUE</div>'
+        + '<div style="background:rgba(29,200,120,.06);border:1px solid rgba(29,200,120,.2);border-radius:8px;padding:20px;margin-bottom:24px;text-align:left">'
+        + '<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(29,200,120,.4);margin-bottom:12px">Profil identifié</div>'
+        + '<div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">' + (matchResult.profile.lastName||'—') + ' ' + (matchResult.profile.firstName||'') + '</div>'
+        + '<div style="font-size:11px;color:rgba(255,255,255,.4);">' + (matchResult.profile.passportNo||matchResult.profile.cinNo||'—') + ' · ' + (matchResult.profile.nationality||'—') + '</div>'
+        + '</div>'
+        + '<button onclick="_cinematicConfirmResult()" style="background:rgba(29,200,120,.1);color:#1dc878;border:1px solid rgba(29,200,120,.3);border-radius:4px;padding:12px 32px;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:inherit">VOIR LE PROFIL →</button>';
+    } else {
+      resultBox.innerHTML =
+        '<div style="font-size:9px;font-weight:700;letter-spacing:5px;color:rgba(0,190,255,.5);margin-bottom:16px">AUCUNE CORRESPONDANCE</div>'
+        + '<div style="font-size:40px;margin-bottom:12px">❓</div>'
+        + '<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:24px;line-height:1.7">Aucun profil existant ne correspond à ce visage.<br>Vous pouvez créer un nouveau profil client.</div>'
+        + '<button onclick="_cinematicConfirmResult()" style="background:rgba(0,190,255,.08);color:rgba(0,190,255,.7);border:1px solid rgba(0,190,255,.2);border-radius:4px;padding:12px 32px;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:inherit">CRÉER UN PROFIL →</button>';
+    }
+  }
+  if (resultOverlay) resultOverlay.style.display = 'flex';
+
+  // Store result for after close
+  window._cinematicPendingResult = matchResult;
 }
+
+window._cinematicConfirmResult = function() {
+  var ov = document.getElementById('intel-cinematic-overlay');
+  if (ov) ov.remove();
+  var r = window._cinematicPendingResult || { profile:null, score:0, isNew:true };
+  _showIntelResults(_intelExtracted || {}, r, '');
+};
 
 // ══════════════════════════════════════════════════════════════
 //  SEARCH profiles by document number or name
