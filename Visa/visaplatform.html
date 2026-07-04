@@ -6189,27 +6189,28 @@ async function _runFaceIdentification() {
   _launchCinematicScan(_intelImageB64);
 }
 
-// ── Generates random fake face silhouettes for crowd animation ──
-function _fakePersonCanvas(size) {
-  var c = document.createElement('canvas'); c.width = size; c.height = size;
-  var ctx = c.getContext('2d');
-  // Random skin tone
-  var tones = ['#8B6355','#C68642','#FAD5B0','#6B3A2A','#D2956B','#4A2410','#E8B89A'];
-  var skin = tones[Math.floor(Math.random()*tones.length)];
-  // BG
-  ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.clearRect(0,0,size,size);
-  // Head
-  ctx.beginPath(); ctx.arc(size*.5, size*.36, size*.22, 0, Math.PI*2);
-  ctx.fillStyle = skin; ctx.fill();
-  // Body
-  ctx.beginPath(); ctx.ellipse(size*.5, size*.75, size*.18, size*.26, 0, 0, Math.PI*2);
-  ctx.fillStyle = ['#1a2a4a','#2d4a1a','#4a1a1a','#333','#1a1a4a'][Math.floor(Math.random()*5)]; ctx.fill();
-  // Random noise variation
-  ctx.globalAlpha = 0.15 + Math.random()*.2;
-  ctx.fillStyle = Math.random()>.5?'#fff':'#000';
-  ctx.beginPath(); ctx.arc(size*(.3+Math.random()*.4), size*(.2+Math.random()*.3), size*.05, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 1;
-  return c;
+// ── Real random face photos — thispersondoesnotexist.com mirrors + randomuser.me ──
+// Pre-built list of diverse AI-generated face photo URLs (royalty-free, no real people)
+var _CROWD_PHOTOS = (function() {
+  var photos = [];
+  // randomuser.me seeds give deterministic AI-generated faces
+  var genders = ['men','women'];
+  for (var i=1; i<=50; i++) {
+    photos.push('https://randomuser.me/api/portraits/' + genders[i%2] + '/' + i + '.jpg');
+  }
+  for (var i=1; i<=50; i++) {
+    photos.push('https://randomuser.me/api/portraits/' + genders[(i+1)%2] + '/' + i + '.jpg');
+  }
+  // Shuffle
+  for (var k=photos.length-1;k>0;k--){ var j=Math.floor(Math.random()*(k+1)); var tmp=photos[k];photos[k]=photos[j];photos[j]=tmp; }
+  return photos;
+})();
+
+var _crowdPhotoIdx = 0;
+function _nextCrowdPhoto() {
+  var url = _CROWD_PHOTOS[_crowdPhotoIdx % _CROWD_PHOTOS.length];
+  _crowdPhotoIdx++;
+  return url;
 }
 
 // ── Main cinematic overlay ──
@@ -6383,35 +6384,68 @@ async function _cinematicRun(imageB64, clockIv) {
   mCtx.clearRect(0,0,340,340);
   for (var pi=0; pi<pts.length; pi++) {
     var cp = toCanvas(pts[pi]);
-    mCtx.beginPath();
-    mCtx.arc(cp.x, cp.y, 2.5, 0, Math.PI*2);
-    mCtx.fillStyle = 'rgba(0,190,255,0.9)';
-    mCtx.fill();
-    // Glow
-    mCtx.beginPath(); mCtx.arc(cp.x,cp.y,5,0,Math.PI*2);
-    mCtx.fillStyle='rgba(0,190,255,0.15)'; mCtx.fill();
-    if (pi % 3 === 0) await new Promise(function(r){ setTimeout(r,18); });
+    // Outer glow
+    mCtx.beginPath(); mCtx.arc(cp.x,cp.y,7,0,Math.PI*2);
+    mCtx.fillStyle='rgba(0,255,100,0.07)'; mCtx.fill();
+    // Core dot
+    mCtx.beginPath(); mCtx.arc(cp.x,cp.y,2.2,0,Math.PI*2);
+    mCtx.fillStyle='rgba(0,255,130,0.95)'; mCtx.fill();
+    // Inner bright
+    mCtx.beginPath(); mCtx.arc(cp.x,cp.y,.7,0,Math.PI*2);
+    mCtx.fillStyle='rgba(200,255,220,1)'; mCtx.fill();
+    if (pi % 4 === 0) await new Promise(function(r){ setTimeout(r,14); });
   }
 
-  // Draw face outline segments
+  // ── GREEN TRIANGULATED MESH — draw all facial structure segments ──
   var segments = [
-    [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], // jaw
-    [17,18,19,20,21],[22,23,24,25,26], // brows
-    [27,28,29,30],[31,32,33,34,35], // nose
-    [36,37,38,39,40,41,36],[42,43,44,45,46,47,42], // eyes
-    [48,49,50,51,52,53,54,55,56,57,58,59,48] // mouth
+    {pts:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], color:'rgba(0,220,100,0.5)', w:1.2},   // jaw
+    {pts:[17,18,19,20,21], color:'rgba(0,220,100,0.6)', w:1.1},                               // left brow
+    {pts:[22,23,24,25,26], color:'rgba(0,220,100,0.6)', w:1.1},                               // right brow
+    {pts:[27,28,29,30],    color:'rgba(0,255,120,0.4)', w:1},                                  // nose bridge
+    {pts:[31,32,33,34,35], color:'rgba(0,255,120,0.5)', w:1},                                  // nose base
+    {pts:[36,37,38,39,40,41,36], color:'rgba(0,255,150,0.8)', w:1.3},                         // left eye
+    {pts:[42,43,44,45,46,47,42], color:'rgba(0,255,150,0.8)', w:1.3},                         // right eye
+    {pts:[48,49,50,51,52,53,54,55,56,57,58,59,48], color:'rgba(0,200,80,0.7)', w:1.2},       // outer mouth
+    {pts:[60,61,62,63,64,65,66,67,60], color:'rgba(0,200,80,0.5)', w:1}                       // inner mouth
   ];
-  var segColors = [
-    'rgba(0,190,255,0.4)','rgba(184,137,46,0.5)','rgba(184,137,46,0.5)',
-    'rgba(0,190,255,0.3)','rgba(0,190,255,0.3)',
-    'rgba(29,200,120,0.6)','rgba(29,200,120,0.6)',
-    'rgba(255,100,100,0.5)'
+  // Triangulation mesh lines — cross-connect key points
+  var triangles = [
+    [0,17,36],[17,18,36],[18,19,37],[19,20,38],[20,21,39],[21,22,42],[22,23,43],
+    [17,36,37],[36,37,38],[37,38,39],[38,39,40],[40,41,36],
+    [16,26,45],[26,25,45],[25,24,44],[24,23,43],[43,44,45],
+    [27,36,39],[27,42,45],[27,28,29],[28,29,30],[29,30,31],
+    [31,32,33],[33,34,35],[35,31,32],
+    [0,1,31],[1,2,31],[2,3,32],[3,4,32],[4,5,33],[5,6,33],
+    [6,7,34],[7,8,34],[8,9,35],[9,10,35],[10,11,0],[11,12,0],
+    [48,49,50],[50,51,52],[52,53,54],[48,54,55],[48,55,56],
+    [56,57,58],[58,59,48],[36,37,48],[45,46,54]
   ];
+
+  // Draw triangulation first (faint background mesh)
+  mCtx.lineWidth = 0.5; mCtx.strokeStyle = 'rgba(0,180,80,0.18)';
+  for (var ti=0; ti<triangles.length; ti++) {
+    var tr = triangles[ti];
+    if (tr[0]>=pts.length||tr[1]>=pts.length||tr[2]>=pts.length) continue;
+    var p0=toCanvas(pts[tr[0]]),p1=toCanvas(pts[tr[1]]),p2=toCanvas(pts[tr[2]]);
+    mCtx.beginPath(); mCtx.moveTo(p0.x,p0.y); mCtx.lineTo(p1.x,p1.y); mCtx.lineTo(p2.x,p2.y); mCtx.closePath(); mCtx.stroke();
+    if (ti % 3 === 0) {
+      mCtx.fillStyle = 'rgba(0,255,100,0.025)'; mCtx.fill();
+    }
+    await new Promise(function(r){ setTimeout(r,12); });
+  }
+
+  // Draw main structure outlines on top
   for (var si=0; si<segments.length; si++) {
-    mCtx.beginPath(); mCtx.strokeStyle=segColors[si]||'rgba(0,190,255,0.4)'; mCtx.lineWidth=1.2;
-    segments[si].forEach(function(idx,j){ var p=toCanvas(pts[idx]); j?mCtx.lineTo(p.x,p.y):mCtx.moveTo(p.x,p.y); });
+    var seg = segments[si];
+    mCtx.beginPath(); mCtx.strokeStyle=seg.color; mCtx.lineWidth=seg.w;
+    mCtx.shadowColor='rgba(0,255,100,0.4)'; mCtx.shadowBlur=4;
+    seg.pts.forEach(function(idx,j){
+      if (idx>=pts.length) return;
+      var p=toCanvas(pts[idx]); j?mCtx.lineTo(p.x,p.y):mCtx.moveTo(p.x,p.y);
+    });
     mCtx.stroke();
-    await new Promise(function(r){ setTimeout(r,80); });
+    mCtx.shadowBlur=0;
+    await new Promise(function(r){ setTimeout(r,55); });
   }
 
   // Region labels
@@ -6448,22 +6482,28 @@ async function _cinematicRun(imageB64, clockIv) {
   var matchedEl = null;
   var analysedCount = 0;
 
-  // Build the grid cells first
+  // Build the grid cells with real crowd photos
+  _crowdPhotoIdx = 0;
   var gridCells = [];
   for (var ci=0; ci<totalFakes; ci++) {
     var cell = document.createElement('div');
-    cell.style.cssText = 'position:relative;aspect-ratio:1;overflow:hidden;background:rgba(0,10,20,.8);border:1px solid rgba(0,190,255,.05);opacity:.4;transition:opacity .1s';
-    var fc = _fakePersonCanvas(72);
+    cell.style.cssText = 'position:relative;aspect-ratio:1;overflow:hidden;background:rgba(0,10,20,.95);border:1px solid rgba(0,190,255,.06);opacity:.35;transition:all .12s;flex-shrink:0';
     var cimg = document.createElement('img');
-    cimg.src = fc.toDataURL('image/jpeg',0.6);
-    cimg.style.cssText = 'width:100%;height:100%;object-fit:cover;filter:saturate(0.3) brightness(0.6)';
+    cimg.src = _nextCrowdPhoto();
+    cimg.style.cssText = 'width:100%;height:100%;object-fit:cover;filter:saturate(0.25) brightness(0.55) hue-rotate(180deg)';
+    cimg.loading = 'lazy';
     cell.appendChild(cimg);
+    // Rejected X overlay (shown when no match)
+    var rx = document.createElement('div');
+    rx.style.cssText = 'position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(180,0,0,.12)';
+    rx.innerHTML = '<span style="font-size:20px;color:rgba(200,50,50,.6);font-weight:900">✕</span>';
+    cell.appendChild(rx);
     // Scanline overlay
     var sl = document.createElement('div');
-    sl.style.cssText = 'position:absolute;left:0;right:0;height:1px;background:rgba(0,190,255,0.5);top:0;display:none';
+    sl.style.cssText = 'position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,190,255,.8),transparent);top:0;display:none;box-shadow:0 0 6px rgba(0,190,255,.5)';
     cell.appendChild(sl);
     crowdGrid.appendChild(cell);
-    gridCells.push({el:cell, sl:sl, type:'fake', isRealProfile:false});
+    gridCells.push({el:cell, sl:sl, rx:rx, img:cimg, type:'fake', isRealProfile:false});
   }
 
   // Sprinkle real profiles at random positions
@@ -6491,7 +6531,7 @@ async function _cinematicRun(imageB64, clockIv) {
   }
 
   // ── Animate through cells progressively ──
-  var SPEED_MS = 35;
+  var SPEED_MS = 28;
   for (var ci2=0; ci2<gridCells.length; ci2++) {
     var cell2 = gridCells[ci2];
     // Activate cell
@@ -6513,15 +6553,16 @@ async function _cinematicRun(imageB64, clockIv) {
     cell2.sl.style.display = 'none';
 
     if (score2 > 0.45 && cell2.isRealProfile) {
-      // Found match — green highlight
+      // MATCH — green highlight, restore photo
       cell2.el.style.borderColor = 'rgba(29,200,120,.9)';
-      cell2.el.style.boxShadow = '0 0 12px rgba(29,200,120,.5)';
-      var img2 = cell2.el.querySelector('img');
-      if (img2) img2.style.filter = 'saturate(1) brightness(1)';
+      cell2.el.style.boxShadow = '0 0 16px rgba(29,200,120,.6),inset 0 0 8px rgba(29,200,120,.1)';
+      cell2.el.style.opacity = '1';
+      if (cell2.img) cell2.img.style.filter = 'saturate(0.9) brightness(0.95)';
     } else {
-      // No match — dim
-      cell2.el.style.opacity = '.18';
-      cell2.el.style.borderColor = 'rgba(0,190,255,.04)';
+      // REJECTED — show X, dim
+      cell2.el.style.opacity = '.12';
+      cell2.el.style.borderColor = 'rgba(180,0,0,.1)';
+      if (cell2.rx) { cell2.rx.style.display='flex'; }
     }
 
     analysedCount++;
