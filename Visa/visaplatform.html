@@ -2070,8 +2070,8 @@ tr:hover td{background:var(--cream)}
           <!-- RIGHT: Canvas editor -->
           <div style="position:relative;overflow:auto;background:#94a3b8;border-radius:12px;display:flex;align-items:flex-start;justify-content:center;padding:20px">
             <div id="doc-ed-canvas-wrap" style="position:relative;background:#fff;box-shadow:0 8px 40px rgba(0,0,0,.25);min-width:600px;min-height:800px;cursor:default;user-select:none" onclick="docEditorCanvasClick(event)">
-              <!-- Background image layer -->
-              <img id="doc-ed-bg-img" src="" alt="Document de base" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;display:none">
+              <!-- Background canvas layer (filled by docEditorLoad) -->
+              <img id="doc-ed-bg-img" src="" alt="" style="display:none">
               <!-- Elements container -->
               <div id="doc-ed-elements" style="position:absolute;inset:0;overflow:hidden"></div>
               <!-- Placeholder -->
@@ -7043,83 +7043,208 @@ var _docEdDragState  = null; // {id, startX, startY, origX, origY, mode:'move'|'
 var _docEdNextId     = 1;
 
 // ── Configure PDF.js worker ──
-if (typeof pdfjsLib !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-}
+(function() {
+  function initPDFjs() {
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initPDFjs);
+  else initPDFjs();
+})();
 
-// ── Load document + run OCR ──
+// ── Master render canvas (stores the document with text whited out) ──
+var _docEdMasterCanvas = null; // the canvas with original image minus text areas
+var _docEdScaleX = 1, _docEdScaleY = 1;
+var _docEdNatW = 0, _docEdNatH = 0;
+
+// ── Load document ──
 window.docEditorLoad = async function(input) {
   var file = input.files[0]; if (!file) return;
   var isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-
-  var bg    = document.getElementById('doc-ed-bg-img');
-  var ph    = document.getElementById('doc-ed-canvas-placeholder');
-  var wrap  = document.getElementById('doc-ed-canvas-wrap');
   var prog  = document.getElementById('doc-ed-ocr-progress');
   var bar   = document.getElementById('doc-ed-ocr-bar');
   var lbl   = document.getElementById('doc-ed-ocr-label');
+  var wrap  = document.getElementById('doc-ed-canvas-wrap');
+  var ph    = document.getElementById('doc-ed-canvas-placeholder');
+  var bg    = document.getElementById('doc-ed-bg-img');
 
-  if (ph)   ph.style.display = 'none';
+  if (ph)   ph.style.display  = 'none';
+  if (bg)   bg.style.display  = 'none';
   if (prog) prog.style.display = 'block';
-  if (bar)  bar.style.width = '5%';
-  if (lbl)  lbl.textContent = 'Chargement du document...';
-
+  if (bar)  bar.style.width   = '3%';
+  if (lbl)  lbl.textContent   = 'Chargement...';
   _docEdClearAll(false);
 
   try {
-    var imageB64;
-
+    var imageB64, srcCanvas;
     if (isPDF) {
-      // ── Render PDF page to canvas using PDF.js ──
-      if (typeof pdfjsLib === 'undefined') {
-        // PDF.js not loaded yet — wait
-        await new Promise(function(r){ setTimeout(r, 1500); });
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-      }
-      if (lbl) lbl.textContent = 'Lecture du PDF...';
-      var arrayBuf = await file.arrayBuffer();
-      var pdfDoc   = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
-      var page     = await pdfDoc.getPage(1); // first page
-      var viewport = page.getViewport({ scale: 2.0 }); // 2x for quality
-      var offCanvas = document.createElement('canvas');
-      offCanvas.width  = viewport.width;
-      offCanvas.height = viewport.height;
-      var ctx = offCanvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-      imageB64 = offCanvas.toDataURL('image/png', 1.0);
-      if (lbl) lbl.textContent = 'PDF rendu — analyse OCR...';
+      if (typeof pdfjsLib === 'undefined') await new Promise(function(r){ setTimeout(r,2000); });
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+      if (lbl) lbl.textContent = 'Rendu PDF...';
+      var ab = await file.arrayBuffer();
+      var pdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
+      var page   = await pdfDoc.getPage(1);
+      var vp     = page.getViewport({ scale: 2.5 });
+      srcCanvas         = document.createElement('canvas');
+      srcCanvas.width   = vp.width;
+      srcCanvas.height  = vp.height;
+      await page.render({ canvasContext: srcCanvas.getContext('2d'), viewport: vp }).promise;
+      imageB64 = srcCanvas.toDataURL('image/png', 1.0);
     } else {
-      // ── Image: read as dataURL ──
-      imageB64 = await new Promise(function(res, rej) {
-        var reader = new FileReader();
-        reader.onload  = function(e){ res(e.target.result); };
-        reader.onerror = rej;
-        reader.readAsDataURL(file);
+      imageB64 = await new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(e){res(e.target.result);}; r.onerror=rej; r.readAsDataURL(file); });
+      srcCanvas = await new Promise(function(res) {
+        var img=new Image(); img.onload=function(){ var c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext('2d').drawImage(img,0,0); res(c); }; img.src=imageB64;
+      });
+    }
+    if (bar) bar.style.width = '20%';
+    if (lbl) lbl.textContent = 'Analyse OCR en cours...';
+
+    var natW = srcCanvas.width, natH = srcCanvas.height;
+    var maxW = 920;
+    var scale = Math.min(maxW / natW, 1.8);
+    var canvasW = Math.round(natW * scale);
+    var canvasH = Math.round(natH * scale);
+    _docEdNatW = natW; _docEdNatH = natH;
+    _docEdScaleX = canvasW / natW;
+    _docEdScaleY = canvasH / natH;
+
+    if (wrap) { wrap.style.width=canvasW+'px'; wrap.style.minWidth=canvasW+'px'; wrap.style.height=canvasH+'px'; wrap.style.minHeight=canvasH+'px'; }
+
+    // Run OCR on high-res source
+    if (lbl) lbl.textContent = 'Reconnaissance du texte...';
+    var worker = await Tesseract.createWorker(['fra','eng'], 1, {
+      logger: function(m) {
+        if (m.status==='recognizing text' && bar) bar.style.width=(20+Math.round(m.progress*55))+'%';
+      }
+    });
+    await worker.setParameters({ tessedit_pageseg_mode:'11' });
+    var ocrResult = await worker.recognize(imageB64);
+    await worker.terminate();
+
+    if (bar) bar.style.width = '78%';
+    if (lbl) lbl.textContent = 'Reconstruction du document...';
+
+    // ── Build master canvas: original image with text erased ──
+    _docEdMasterCanvas = document.createElement('canvas');
+    _docEdMasterCanvas.width  = canvasW;
+    _docEdMasterCanvas.height = canvasH;
+    var mCtx = _docEdMasterCanvas.getContext('2d');
+
+    // Draw scaled original
+    mCtx.drawImage(srcCanvas, 0, 0, canvasW, canvasH);
+
+    // Collect all text bboxes
+    var allLines = [];
+    (ocrResult.data.blocks||[]).forEach(function(block) {
+      (block.paragraphs||[]).forEach(function(para) {
+        (para.lines||[]).forEach(function(line) {
+          var txt = (line.words||[]).map(function(w){return w.text;}).join(' ').trim();
+          if (!txt || txt.length < 1) return;
+          var b = line.bbox;
+          if ((b.y1-b.y0)<3 || (b.x1-b.x0)<3) return;
+          allLines.push({ text:txt, bbox:b,
+            conf: line.words ? (line.words.reduce(function(s,w){return s+(w.confidence||0);},0)/Math.max(1,line.words.length)) : 50
+          });
+        });
+      });
+    });
+
+    // Fallback to words if no lines
+    if (!allLines.length) {
+      (ocrResult.data.words||[]).forEach(function(w) {
+        if (!w.text.trim()) return;
+        allLines.push({ text:w.text, bbox:w.bbox, conf:w.confidence||50 });
       });
     }
 
-    // Display background
-    if (bg) { bg.src = imageB64; bg.style.display = 'block'; }
-
-    // Size canvas to image
-    await new Promise(function(res) {
-      var tmpImg = new Image();
-      tmpImg.onload = function() {
-        var maxW  = 920;
-        var scale = Math.min(maxW / tmpImg.naturalWidth, 1);
-        var W = Math.round(tmpImg.naturalWidth  * scale);
-        var H = Math.round(tmpImg.naturalHeight * scale);
-        if (wrap) {
-          wrap.style.width    = W + 'px'; wrap.style.minWidth  = W + 'px';
-          wrap.style.height   = H + 'px'; wrap.style.minHeight = H + 'px';
-        }
-        res({ W: W, H: H, nW: tmpImg.naturalWidth, nH: tmpImg.naturalHeight });
-      };
-      tmpImg.onerror = function(){ res({ W:920, H:1200, nW:920, nH:1200 }); };
-      tmpImg.src = imageB64;
-    }).then(function(dims) {
-      return _docEdRunOCR(imageB64, dims.W, dims.H, dims.nW, dims.nH);
+    // White out each text area on master canvas (with slight padding to fully erase)
+    // Sample background color near each bbox to use as erase color
+    allLines.forEach(function(line) {
+      var b = line.bbox;
+      var sx = Math.round(b.x0 * _docEdScaleX);
+      var sy = Math.round(b.y0 * _docEdScaleY);
+      var sw = Math.round((b.x1-b.x0)*_docEdScaleX);
+      var sh = Math.round((b.y1-b.y0)*_docEdScaleY);
+      var pad = Math.max(2, Math.round(sh*0.15));
+      sx = Math.max(0, sx-pad);
+      sy = Math.max(0, sy-pad);
+      sw = Math.min(canvasW-sx, sw+pad*2);
+      sh = Math.min(canvasH-sy, sh+pad*2);
+      // Sample a pixel just above the text to get background color
+      var sampleY = Math.max(0, sy-3);
+      var sampleX = Math.min(canvasW-1, sx+Math.floor(sw/2));
+      var pxData  = mCtx.getImageData(sampleX, sampleY, 1, 1).data;
+      // If pixel is close to white or light color, use it; otherwise use white
+      var r=pxData[0],g=pxData[1],b2=pxData[2];
+      var brightness = (r*299+g*587+b2*114)/1000;
+      var eraseColor = brightness > 180 ? 'rgb('+r+','+g+','+b2+')' : '#ffffff';
+      mCtx.fillStyle = eraseColor;
+      mCtx.fillRect(sx, sy, sw, sh);
+      line._sx=sx; line._sy=sy; line._sw=sw; line._sh=sh;
     });
+
+    if (bar) bar.style.width = '88%';
+    if (lbl) lbl.textContent = 'Création des calques éditables...';
+
+    // ── Display master canvas as background ──
+    // Replace bg img with canvas
+    var bgCanvas = document.getElementById('doc-ed-bg-canvas');
+    if (!bgCanvas) {
+      bgCanvas = document.createElement('canvas');
+      bgCanvas.id = 'doc-ed-bg-canvas';
+      bgCanvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+      wrap.insertBefore(bgCanvas, wrap.firstChild);
+    }
+    bgCanvas.width  = canvasW;
+    bgCanvas.height = canvasH;
+    bgCanvas.getContext('2d').drawImage(_docEdMasterCanvas, 0, 0);
+
+    // ── Create editable text elements over each erased zone ──
+    _docEdSaveHistory();
+    var elemCount = 0;
+    allLines.forEach(function(line) {
+      if (line.conf < 15) return; // skip very low confidence
+      var b = line.bbox;
+      var x = Math.round(b.x0 * _docEdScaleX);
+      var y = Math.round(b.y0 * _docEdScaleY);
+      var w = Math.round((b.x1-b.x0)*_docEdScaleX)+6;
+      var h = Math.round((b.y1-b.y0)*_docEdScaleY)+2;
+      var lh = b.y1-b.y0;
+      var fontSize = Math.max(6, Math.round(lh * _docEdScaleY * 0.76));
+      var isAllCaps = line.text === line.text.toUpperCase() && /[A-Z]/.test(line.text);
+      var isBig = lh * _docEdScaleY > 22;
+
+      // Detect foreground color (sample original image at text center)
+      var origCtx = srcCanvas.getContext('2d');
+      var cx = Math.round((b.x0+b.x1)/2), cy = Math.round((b.y0+b.y1)/2);
+      var px2 = origCtx.getImageData(Math.min(cx, natW-1), Math.min(cy, natH-1), 1, 1).data;
+      var brightness2 = (px2[0]*299+px2[1]*587+px2[2]*114)/1000;
+      var textColor = brightness2 < 128 ? '#000000' : '#ffffff';
+      // If it's very dark on light, standard black; very light on dark, white
+      if (px2[0]>200&&px2[1]>200&&px2[2]>200) textColor='#000000'; // white bg = dark text
+      else if (px2[0]<80&&px2[1]<80&&px2[2]<80) textColor='#000000'; // dark pixel = black text too (might be the text itself)
+
+      _docEdAddElement({
+        type:'text', x:x, y:y, w:w, h:h,
+        text: line.text,
+        fontSize: fontSize,
+        color: textColor,
+        font: 'Arial',
+        bold: isAllCaps || isBig,
+        italic: false, underline: false,
+        align: 'left',
+        bg: 'transparent',
+        opacity: 100
+      });
+      elemCount++;
+    });
+
+    if (bar) bar.style.width = '100%';
+    setTimeout(function(){
+      if (prog) prog.style.display = 'none';
+      showNotif('✅ ' + elemCount + ' zones de texte reconstruites et éditables !');
+    }, 300);
 
   } catch(e) {
     if (prog) prog.style.display = 'none';
@@ -7128,133 +7253,8 @@ window.docEditorLoad = async function(input) {
   }
 };
 
-async function _docEdRunOCR(b64, canvasW, canvasH, natW, natH) {
-  var prog = document.getElementById('doc-ed-ocr-progress');
-  var bar  = document.getElementById('doc-ed-ocr-bar');
-  var lbl  = document.getElementById('doc-ed-ocr-label');
-  if (prog) prog.style.display = 'block';
-  if (bar)  bar.style.width = '8%';
-  if (lbl)  lbl.textContent = 'Initialisation du moteur OCR...';
-
-  try {
-    var worker = await Tesseract.createWorker(['fra','eng','ara'], 1, {
-      logger: function(m) {
-        if (m.status === 'recognizing text' && bar) {
-          bar.style.width = (10 + Math.round(m.progress * 75)) + '%';
-          if (lbl) lbl.textContent = 'Reconnaissance OCR: ' + Math.round(m.progress*100) + '%';
-        }
-      }
-    });
-
-    // Use PSM 11 (sparse text) for documents with mixed layouts
-    await worker.setParameters({ tessedit_pageseg_mode: '11' });
-
-    if (lbl) lbl.textContent = 'Analyse du document...';
-    var result = await worker.recognize(b64);
-    await worker.terminate();
-
-    if (bar) bar.style.width = '90%';
-    if (lbl) lbl.textContent = 'Construction des calques éditables...';
-
-    var scaleX = canvasW / natW;
-    var scaleY = canvasH / natH;
-
-    _docEdSaveHistory();
-
-    // Use paragraph + line + word hierarchy for better grouping
-    var blocks = result.data.blocks || [];
-    var elementCount = 0;
-
-    blocks.forEach(function(block) {
-      (block.paragraphs||[]).forEach(function(para) {
-        (para.lines||[]).forEach(function(line) {
-          var lineText = (line.words||[]).map(function(w){ return w.text; }).join(' ').trim();
-          if (!lineText || lineText.length < 1) return;
-
-          var bbox = line.bbox;
-          var lineH = bbox.y1 - bbox.y0;
-          var lineW = bbox.x1 - bbox.x0;
-          if (lineH < 4 || lineW < 4) return;
-
-          var x = Math.round(bbox.x0 * scaleX);
-          var y = Math.round(bbox.y0 * scaleY);
-          var w = Math.round(lineW * scaleX) + 12;
-          var h = Math.round(lineH * scaleY) + 4;
-
-          // Estimate font size from line height
-          var fontSize = Math.max(7, Math.min(72, Math.round(lineH * scaleY * 0.78)));
-
-          // Detect bold/all-caps lines
-          var isAllCaps = lineText === lineText.toUpperCase() && lineText.length > 2;
-          // Detect large headings
-          var isLarge = lineH * scaleY > 20;
-
-          _docEdAddElement({
-            type:'text', x:x, y:y, w:w, h:h,
-            text: lineText,
-            fontSize: fontSize,
-            color: '#000000',
-            font: 'Arial',
-            bold: isAllCaps || isLarge,
-            italic: false, underline: false,
-            align: 'left',
-            bg: 'transparent',
-            opacity: 100
-          });
-          elementCount++;
-        });
-      });
-    });
-
-    // Fallback: if no blocks found, use words directly
-    if (elementCount === 0) {
-      var words = result.data.words || [];
-      var lines2 = [];
-      words.forEach(function(word) {
-        if (!word.text.trim()) return;
-        var b = word.bbox;
-        var placed = false;
-        for (var li=0; li<lines2.length; li++) {
-          if (Math.abs(b.y0 - lines2[li].y0) < 8) {
-            lines2[li].words.push(word);
-            lines2[li].x1 = Math.max(lines2[li].x1, b.x1);
-            placed = true; break;
-          }
-        }
-        if (!placed) lines2.push({ x0:b.x0, y0:b.y0, x1:b.x1, y1:b.y1, words:[word] });
-      });
-      lines2.forEach(function(line) {
-        var text = line.words.map(function(w){ return w.text; }).join(' ').trim();
-        if (!text) return;
-        var lh = line.y1 - line.y0;
-        _docEdAddElement({
-          type:'text',
-          x: Math.round(line.x0 * scaleX),
-          y: Math.round(line.y0 * scaleY),
-          w: Math.round((line.x1-line.x0)*scaleX)+16,
-          h: Math.round(lh*scaleY)+4,
-          text: text,
-          fontSize: Math.max(7, Math.round(lh*scaleY*0.78)),
-          color:'#000000', font:'Arial',
-          bold:false, italic:false, underline:false,
-          align:'left', bg:'transparent', opacity:100
-        });
-        elementCount++;
-      });
-    }
-
-    if (bar) bar.style.width = '100%';
-    setTimeout(function(){
-      if (prog) prog.style.display = 'none';
-      showNotif('✅ ' + elementCount + ' blocs de texte extraits et éditables !');
-    }, 300);
-
-  } catch(e) {
-    if (prog) prog.style.display = 'none';
-    showNotif('Erreur OCR: ' + e.message);
-    console.error('[DocEditor OCR]', e);
-  }
-}
+// ── Keep _docEdRunOCR as no-op (replaced by docEditorLoad inline) ──
+async function _docEdRunOCR(b64, canvasW, canvasH, natW, natH) {}
 
 // ── Element management ──
 function _docEdAddElement(props) {
@@ -7515,6 +7515,7 @@ window.docEditorExportPDF = function() {
   var canvas = document.createElement('canvas'); canvas.width=W*2; canvas.height=H*2;
   var ctx = canvas.getContext('2d'); ctx.scale(2,2);
   // Draw bg image
+  var bgCanvas2 = document.getElementById('doc-ed-bg-canvas');
   var bgImg = document.getElementById('doc-ed-bg-img');
   var drawEls = function() {
     // Draw each text element
@@ -7556,11 +7557,7 @@ window.docEditorExportPDF = function() {
       +'</div>'
       +'<img src="'+dataUrl+'" alt="Document" style="margin-top:50px;display:block"></body></html>');
   };
-  if (bgImg && bgImg.src && bgImg.style.display!=='none') {
-    var tmpImg = new Image(); tmpImg.crossOrigin='anonymous'; tmpImg.src=bgImg.src;
-    tmpImg.onload=function(){ ctx.drawImage(tmpImg,0,0,W,H); drawEls(); };
-    tmpImg.onerror=function(){ drawEls(); };
-  } else { drawEls(); }
+  if (bgCanvas2 && bgCanvas2.width) { try{ctx.drawImage(bgCanvas2,0,0,W,H);}catch(e){} drawEls(); } else { drawEls(); }
 };
 
 // ── Export PNG ──
@@ -7569,6 +7566,7 @@ window.docEditorExportPNG = function() {
   var W = parseInt(wrap.style.width)||600, H = parseInt(wrap.style.height)||800;
   var canvas = document.createElement('canvas'); canvas.width=W*2; canvas.height=H*2;
   var ctx = canvas.getContext('2d'); ctx.scale(2,2); ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  var bgCanvas2 = document.getElementById('doc-ed-bg-canvas');
   var bgImg = document.getElementById('doc-ed-bg-img');
   var finish = function() {
     _docEdElements.forEach(function(e) {
@@ -7591,10 +7589,7 @@ window.docEditorExportPNG = function() {
     var a=document.createElement('a'); a.download='document-edite.png'; a.href=canvas.toDataURL('image/png');
     a.click();
   };
-  if (bgImg&&bgImg.src&&bgImg.style.display!=='none') {
-    var tmp2=new Image();tmp2.crossOrigin='anonymous';tmp2.src=bgImg.src;
-    tmp2.onload=function(){ctx.drawImage(tmp2,0,0,W,H);finish();};tmp2.onerror=finish;
-  } else { finish(); }
+  var bgCv2=document.getElementById('doc-ed-bg-canvas'); if(bgCv2&&bgCv2.width){try{ctx.drawImage(bgCv2,0,0,W,H);}catch(e){} finish();}else{finish();}
 };
 
 
