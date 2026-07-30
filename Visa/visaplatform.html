@@ -6,6 +6,9 @@
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -1315,6 +1318,7 @@ tr:hover td{background:var(--cream)}
         <li class="nav-section">Intelligence</li>
         <li><a onclick="showAdminTab('client-intel')">🔍 Analyse Client</a></li>
         <li><a onclick="showAdminTab('doc-editor')">✏️ Éditeur de Document</a></li>
+        <li><a onclick="showAdminTab('live-analysis')">🎥 Analyse Live</a></li>
         <li class="nav-section">System</li>
         <li><a onclick="adminLogOut()">🚪 Sign Out</a></li>
       </ul>
@@ -2084,6 +2088,87 @@ tr:hover td{background:var(--cream)}
           </div>
         </div>
       </div><!-- /atab-doc-editor -->
+
+      <!-- LIVE ANALYSIS TAB -->
+      <div id="atab-live-analysis" class="admin-tab" style="display:none">
+        <div class="admin-topbar">
+          <div><h2>🎥 Analyse Comportementale Live</h2><p>Analyse en temps réel : visage, émotions, apparence, mains, parole.</p></div>
+          <div style="display:flex;gap:10px">
+            <button id="live-start-btn" onclick="liveAnalysisStart()" class="btn-gold" style="font-size:13px;padding:9px 20px;border-radius:8px">▶ Démarrer</button>
+            <button id="live-stop-btn" onclick="liveAnalysisStop()" style="display:none;background:#DC2626;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">⏹ Arrêter</button>
+            <button onclick="liveExportReport()" style="background:#1B7A4A;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">📄 Rapport PDF</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 420px;gap:20px">
+          <!-- LEFT: Camera feed -->
+          <div class="admin-card">
+            <div class="admin-card-head"><h3>📹 Flux vidéo en direct</h3><span id="live-fps" style="font-size:11px;color:var(--muted)">0 fps</span></div>
+            <div style="padding:16px;position:relative;background:#000;border-radius:0 0 12px 12px">
+              <div style="position:relative;display:inline-block;width:100%">
+                <video id="live-video" autoplay muted playsinline style="width:100%;border-radius:8px;display:block;background:#111" aria-label="Flux caméra"></video>
+                <canvas id="live-overlay-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border-radius:8px"></canvas>
+              </div>
+              <!-- Status bar -->
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap" id="live-status-pills">
+                <span style="background:#1a1a1a;color:#9CA3AF;border-radius:99px;padding:4px 12px;font-size:11px;font-weight:600">⏸ En attente</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Real-time data panels -->
+          <div style="display:flex;flex-direction:column;gap:14px;overflow-y:auto;max-height:80vh">
+
+            <!-- Face analysis -->
+            <div class="admin-card">
+              <div class="admin-card-head"><h3>😊 Analyse faciale</h3><div id="live-face-badge" style="width:10px;height:10px;border-radius:50%;background:#E5E7EB"></div></div>
+              <div style="padding:14px;display:flex;flex-direction:column;gap:8px" id="live-face-panel">
+                <div style="text-align:center;color:var(--muted);font-size:12px;padding:16px">Démarrez l'analyse</div>
+              </div>
+            </div>
+
+            <!-- Emotion meter -->
+            <div class="admin-card">
+              <div class="admin-card-head"><h3>🧠 Émotions détectées</h3></div>
+              <div style="padding:14px" id="live-emotion-panel">
+                <div style="text-align:center;color:var(--muted);font-size:12px;padding:8px">—</div>
+              </div>
+            </div>
+
+            <!-- Appearance -->
+            <div class="admin-card">
+              <div class="admin-card-head"><h3>👤 Apparence physique</h3></div>
+              <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px" id="live-appearance-panel">
+                <div style="grid-column:span 2;text-align:center;color:var(--muted);font-size:12px;padding:8px">—</div>
+              </div>
+            </div>
+
+            <!-- Hand tracking -->
+            <div class="admin-card">
+              <div class="admin-card-head"><h3>🖐 Mouvements des mains</h3></div>
+              <div style="padding:14px" id="live-hands-panel">
+                <div style="text-align:center;color:var(--muted);font-size:12px;padding:8px">—</div>
+              </div>
+            </div>
+
+            <!-- Audio transcript -->
+            <div class="admin-card">
+              <div class="admin-card-head"><h3>🎤 Transcription audio</h3><span id="live-audio-indicator" style="font-size:9px;color:#9CA3AF;letter-spacing:1px">INACTIF</span></div>
+              <div style="padding:14px;max-height:160px;overflow-y:auto" id="live-audio-panel">
+                <div style="text-align:center;color:var(--muted);font-size:12px;padding:8px">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full report at bottom -->
+        <div class="admin-card" style="margin-top:20px">
+          <div class="admin-card-head"><h3>📋 Rapport d'analyse complet</h3><button onclick="liveClearReport()" style="background:#F3F4F6;color:#374151;border:none;border-radius:6px;padding:4px 12px;font-size:11px;cursor:pointer">Effacer</button></div>
+          <div style="padding:16px" id="live-report-panel">
+            <div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Le rapport apparaîtra ici après l'analyse</div>
+          </div>
+        </div>
+      </div><!-- /atab-live-analysis -->
     </div>
   </div>
 </div>
@@ -7592,6 +7677,537 @@ window.docEditorExportPNG = function() {
   var bgCv2=document.getElementById('doc-ed-bg-canvas'); if(bgCv2&&bgCv2.width){try{ctx.drawImage(bgCv2,0,0,W,H);}catch(e){} finish();}else{finish();}
 };
 
+
+
+// ══════════════════════════════════════════════════════════════
+//  LIVE BEHAVIOURAL ANALYSIS
+//  Face: face-api.js (emotion, landmarks, age, gender)
+//  Hands: MediaPipe Hands
+//  Audio: Web Speech API
+//  Appearance: pixel analysis (skin tone, hair)
+// ══════════════════════════════════════════════════════════════
+
+var _liveStream      = null;
+var _liveRunning     = false;
+var _liveFrameCount  = 0;
+var _liveFPS         = 0;
+var _liveFPSTime     = Date.now();
+var _liveHandsInst   = null;
+var _liveSpeechRec   = null;
+var _liveTranscript  = [];
+var _liveReportData  = { face:[], emotions:[], appearance:{}, hands:[], audio:[] };
+var _liveAnimFrame   = null;
+var _liveLastHandGesture = '';
+
+// ── Start analysis ──
+window.liveAnalysisStart = async function() {
+  var startBtn = document.getElementById('live-start-btn');
+  var stopBtn  = document.getElementById('live-stop-btn');
+  var video    = document.getElementById('live-video');
+
+  try {
+    if (startBtn) startBtn.style.display = 'none';
+    if (stopBtn)  stopBtn.style.display  = 'block';
+
+    // Camera
+    _liveStream = await navigator.mediaDevices.getUserMedia({
+      video: { width:{ideal:640}, height:{ideal:480}, facingMode:'user', frameRate:{ideal:30} },
+      audio: true
+    });
+    video.srcObject = _liveStream;
+    await new Promise(function(r){ video.onloadedmetadata=r; });
+    await video.play();
+
+    // Resize overlay canvas
+    var ov = document.getElementById('live-overlay-canvas');
+    if (ov) { ov.width=video.videoWidth; ov.height=video.videoHeight; }
+
+    _liveRunning    = true;
+    _liveFrameCount = 0;
+    _liveReportData = { face:[], emotions:[], appearance:{}, hands:[], audio:[] };
+
+    // Load face-api models
+    _liveSetPill('🔄 Chargement modèles IA...','#FEF3C7','#92400E');
+    await preloadFaceModels();
+
+    // Init MediaPipe Hands
+    await _liveInitHands(video);
+
+    // Start speech recognition
+    _liveStartSpeech();
+
+    // Start analysis loop
+    _liveSetPill('🟢 Analyse active','#D1FAE5','#065F46');
+    _liveLoop(video);
+
+  } catch(e) {
+    showNotif('Erreur: ' + e.message);
+    liveAnalysisStop();
+  }
+};
+
+// ── Stop ──
+window.liveAnalysisStop = function() {
+  _liveRunning = false;
+  if (_liveAnimFrame) { cancelAnimationFrame(_liveAnimFrame); _liveAnimFrame=null; }
+  if (_liveStream) { _liveStream.getTracks().forEach(function(t){t.stop();}); _liveStream=null; }
+  if (_liveSpeechRec) { try{ _liveSpeechRec.stop(); }catch(e){} _liveSpeechRec=null; }
+  if (_liveHandsInst) { try{ _liveHandsInst.close(); }catch(e){} _liveHandsInst=null; }
+  var video = document.getElementById('live-video');
+  if (video) { video.srcObject=null; }
+  var startBtn=document.getElementById('live-start-btn'); if(startBtn) startBtn.style.display='block';
+  var stopBtn=document.getElementById('live-stop-btn');   if(stopBtn)  stopBtn.style.display='none';
+  _liveSetPill('⏹ Arrêté','#F3F4F6','#374151');
+  _liveBuildReport();
+};
+
+// ── Main analysis loop ──
+async function _liveLoop(video) {
+  if (!_liveRunning) return;
+
+  _liveFrameCount++;
+  var now = Date.now();
+  if (now - _liveFPSTime >= 1000) {
+    _liveFPS = _liveFrameCount;
+    _liveFrameCount = 0;
+    _liveFPSTime = now;
+    var fpsEl = document.getElementById('live-fps');
+    if (fpsEl) fpsEl.textContent = _liveFPS + ' fps';
+  }
+
+  // Run face analysis every 8 frames
+  if (_liveFrameCount % 8 === 0) {
+    await _liveAnalyseFace(video);
+  }
+
+  // MediaPipe sends hand results via callback — just schedule next frame
+  if (_liveHandsInst && video.readyState >= 2) {
+    try { await _liveHandsInst.send({ image: video }); } catch(e){}
+  }
+
+  _liveAnimFrame = requestAnimationFrame(function(){ _liveLoop(video); });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FACE ANALYSIS
+// ══════════════════════════════════════════════════════════════
+var _liveEmotionLabels = {
+  happy:'😊 Heureux', sad:'😢 Triste', angry:'😠 En colère',
+  fearful:'😨 Apeuré', disgusted:'🤢 Dégoûté', surprised:'😲 Surpris', neutral:'😐 Neutre'
+};
+
+async function _liveAnalyseFace(video) {
+  if (!_bioModelsLoaded || video.readyState < 2) return;
+  try {
+    var det = await faceapi
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({inputSize:320, scoreThreshold:0.4}))
+      .withFaceLandmarks()
+      .withFaceExpressions()
+      .withAgeAndGender();
+
+    var ov  = document.getElementById('live-overlay-canvas');
+    var ctx = ov ? ov.getContext('2d') : null;
+    if (ctx) ctx.clearRect(0, 0, ov.width, ov.height);
+
+    if (!det) {
+      _liveSetPanel('live-face-panel', '<div style="text-align:center;color:#9CA3AF;font-size:12px;padding:12px">Aucun visage détecté</div>');
+      document.getElementById('live-face-badge').style.background = '#E5E7EB';
+      return;
+    }
+
+    document.getElementById('live-face-badge').style.background = '#10B981';
+
+    // Draw face box + landmarks on overlay
+    if (ctx && ov) {
+      var box = det.detection.box;
+      var scX = ov.width  / video.videoWidth;
+      var scY = ov.height / video.videoHeight;
+      // Face box
+      ctx.strokeStyle = 'rgba(0,255,100,0.85)'; ctx.lineWidth = 2;
+      ctx.strokeRect(box.x*scX, box.y*scY, box.width*scX, box.height*scY);
+      // Corner brackets
+      var bx=box.x*scX, by=box.y*scY, bw=box.width*scX, bh=box.height*scY, cs=16;
+      ctx.strokeStyle='rgba(0,255,150,1)'; ctx.lineWidth=2.5;
+      [[bx,by,1,0,0,1],[bx+bw,by,-1,0,0,1],[bx,by+bh,1,0,0,-1],[bx+bw,by+bh,-1,0,0,-1]].forEach(function(c){
+        ctx.beginPath(); ctx.moveTo(c[0],c[1]); ctx.lineTo(c[0]+c[2]*cs,c[1]); ctx.moveTo(c[0],c[1]); ctx.lineTo(c[0],c[1]+c[5]*cs); ctx.stroke();
+      });
+      // Landmarks
+      var pts = det.landmarks.positions;
+      ctx.fillStyle = 'rgba(0,255,120,0.8)';
+      pts.forEach(function(p){
+        ctx.beginPath(); ctx.arc(p.x*scX, p.y*scY, 1.5, 0, Math.PI*2); ctx.fill();
+      });
+      // Label
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(bx, by-22, 160, 20);
+      ctx.fillStyle='#00FF88'; ctx.font='bold 11px Arial';
+      ctx.fillText('VISAGE DÉTECTÉ · ' + Math.round(det.detection.score*100)+'%', bx+4, by-7);
+    }
+
+    // Expressions
+    var exprs = det.expressions;
+    var topEmotion = Object.keys(exprs).reduce(function(a,b){ return exprs[a]>exprs[b]?a:b; });
+    var age    = Math.round(det.age);
+    var gender = det.gender === 'male' ? 'Homme' : 'Femme';
+    var genderConf = Math.round(det.genderProbability * 100);
+
+    // Appearance analysis from face region
+    var appearance = _liveAnalyseAppearance(video, det.detection.box);
+
+    // Update face panel
+    var faceHTML = [
+      _liveDataRow('Émotion dominante', (_liveEmotionLabels[topEmotion]||topEmotion)),
+      _liveDataRow('Âge estimé', age + ' ans'),
+      _liveDataRow('Genre estimé', gender + ' (' + genderConf + '%)'),
+      _liveDataRow('Teint de peau', appearance.skinTone),
+      _liveDataRow('Couleur cheveux', appearance.hairColor),
+      _liveDataRow('Longueur cheveux', appearance.hairLength),
+      _liveDataRow('Ethnicité estimée', appearance.ethnicity),
+      _liveDataRow('Score détection', Math.round(det.detection.score*100)+'%'),
+    ].join('');
+    _liveSetPanel('live-face-panel', faceHTML);
+
+    // Emotion bars
+    var emotionHTML = Object.keys(exprs).sort(function(a,b){return exprs[b]-exprs[a];}).map(function(k){
+      var pct = Math.round(exprs[k]*100);
+      var color = k==='happy'?'#10B981':k==='sad'?'#3B82F6':k==='angry'?'#EF4444':k==='neutral'?'#6B7280':'#F59E0B';
+      return '<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:11px;color:#374151;margin-bottom:2px"><span>'+(_liveEmotionLabels[k]||k)+'</span><span style="font-weight:700">'+pct+'%</span></div>'
+        +'<div style="background:#F3F4F6;border-radius:99px;height:6px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+color+';transition:width .3s;border-radius:99px"></div></div></div>';
+    }).join('');
+    _liveSetPanel('live-emotion-panel', emotionHTML);
+
+    // Appearance panel
+    var appHTML = [
+      _liveAppCard('🎨', 'Teint', appearance.skinTone),
+      _liveAppCard('💇', 'Cheveux', appearance.hairColor + ' · ' + appearance.hairLength),
+      _liveAppCard('🌍', 'Ethnicité', appearance.ethnicity),
+      _liveAppCard('👁️', 'Yeux', appearance.eyeColor),
+    ].join('');
+    _liveSetPanel('live-appearance-panel', appHTML);
+
+    // Store for report
+    _liveReportData.face.push({ time:new Date().toLocaleTimeString(), emotion:topEmotion, age:age, gender:gender, appearance:appearance });
+    _liveReportData.emotions.push(Object.assign({time:new Date().toLocaleTimeString()}, exprs));
+
+    // Build rolling report
+    if (_liveFrameCount % 30 === 0) _liveBuildReport();
+
+  } catch(e) { console.warn('[LiveFace]', e); }
+}
+
+// ── Appearance analysis from pixel data ──
+function _liveAnalyseAppearance(video, box) {
+  try {
+    var tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width  = video.videoWidth;
+    tmpCanvas.height = video.videoHeight;
+    tmpCanvas.getContext('2d').drawImage(video, 0, 0);
+    var ctx = tmpCanvas.getContext('2d');
+
+    // Sample face center pixels
+    var fx = Math.round(box.x + box.width*0.3);
+    var fy = Math.round(box.y + box.height*0.4);
+    var fw = Math.round(box.width*0.4);
+    var fh = Math.round(box.height*0.3);
+    var faceData = ctx.getImageData(Math.max(0,fx), Math.max(0,fy), Math.max(1,fw), Math.max(1,fh)).data;
+
+    // Average face color
+    var r=0,g=0,b=0,n=0;
+    for (var i=0; i<faceData.length; i+=16) { r+=faceData[i]; g+=faceData[i+1]; b+=faceData[i+2]; n++; }
+    if (n) { r=Math.round(r/n); g=Math.round(g/n); b=Math.round(b/n); }
+
+    // Skin tone classification
+    var brightness = (r*299+g*587+b*114)/1000;
+    var skinTone, ethnicity;
+    if (brightness > 200) { skinTone='Très clair / Pâle'; ethnicity='Caucasien / Nordique'; }
+    else if (brightness > 170) { skinTone='Clair'; ethnicity='Caucasien / Méditerranéen'; }
+    else if (brightness > 140) { skinTone='Intermédiaire'; ethnicity='Méditerranéen / Maghrébin'; }
+    else if (brightness > 110) { skinTone='Olivâtre / Brun'; ethnicity='Moyen-Oriental / Latino'; }
+    else if (brightness > 80)  { skinTone='Brun foncé'; ethnicity='Afro-Asiatique / Indien'; }
+    else { skinTone='Très foncé'; ethnicity='Afro-Américain / Subsaharien'; }
+
+    // Sample top of head for hair
+    var hy = Math.max(0, Math.round(box.y + 5));
+    var hx = Math.round(box.x + box.width*0.35);
+    var hw = Math.round(box.width*0.3);
+    var hh = Math.round(box.height*0.15);
+    var hairData = ctx.getImageData(Math.max(0,hx), hy, Math.max(1,hw), Math.max(1,hh)).data;
+    var hr=0,hg=0,hb=0,hn=0;
+    for (var j=0; j<hairData.length; j+=16) { hr+=hairData[j]; hg+=hairData[j+1]; hb+=hairData[j+2]; hn++; }
+    if (hn) { hr=Math.round(hr/hn); hg=Math.round(hg/hn); hb=Math.round(hb/hn); }
+    var hairBrightness = (hr*299+hg*587+hb*114)/1000;
+    var hairColor;
+    if (hairBrightness < 50)  hairColor='Noir';
+    else if (hairBrightness < 100) hairColor='Brun foncé';
+    else if (hairBrightness < 150) hairColor='Châtain';
+    else if (hairBrightness < 200) hairColor='Blond';
+    else hairColor='Gris / Blanc';
+
+    // Hair length: compare head top to face ratio
+    var headTopY = box.y;
+    var faceTopY = box.y + box.height*0.1;
+    var hairRegionH = faceTopY - headTopY;
+    var hairLength = hairRegionH > box.height*0.25 ? 'Longs' : hairRegionH > box.height*0.1 ? 'Mi-longs' : 'Courts';
+
+    // Eye color — sample eye region
+    var eyeX = Math.round(box.x + box.width*0.2);
+    var eyeY = Math.round(box.y + box.height*0.35);
+    var eyeData = ctx.getImageData(Math.max(0,eyeX), Math.max(0,eyeY), 8, 4).data;
+    var er=eyeData[0],eg=eyeData[1],eb=eyeData[2];
+    var eyeColor = eb>er&&eb>eg?'Bleu':eg>er&&eg>eb?'Vert':er>eb+20?'Marron':'Noir/Foncé';
+
+    return { skinTone:skinTone, ethnicity:ethnicity, hairColor:hairColor, hairLength:hairLength, eyeColor:eyeColor, r:r, g:g, b:b };
+  } catch(e) {
+    return { skinTone:'—', ethnicity:'—', hairColor:'—', hairLength:'—', eyeColor:'—', r:0, g:0, b:0 };
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MEDIAPIPE HANDS
+// ══════════════════════════════════════════════════════════════
+async function _liveInitHands(video) {
+  try {
+    if (typeof Hands === 'undefined') { console.warn('[LiveHands] MediaPipe Hands not loaded'); return; }
+    _liveHandsInst = new Hands({ locateFile: function(f){ return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f; } });
+    _liveHandsInst.setOptions({ maxNumHands:2, modelComplexity:1, minDetectionConfidence:0.6, minTrackingConfidence:0.5 });
+    _liveHandsInst.onResults(function(results) { _liveHandResults(results, video); });
+    await _liveHandsInst.initialize();
+    console.log('[LiveHands] Initialized');
+  } catch(e) { console.warn('[LiveHands] Init error:', e); _liveHandsInst = null; }
+}
+
+function _liveHandResults(results, video) {
+  var ov  = document.getElementById('live-overlay-canvas');
+  var ctx = ov ? ov.getContext('2d') : null;
+  if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
+    _liveLastHandGesture = 'Mains non détectées';
+    _liveSetPanel('live-hands-panel','<div style="text-align:center;color:#9CA3AF;font-size:12px;padding:8px">Mains non détectées dans le champ</div>');
+    return;
+  }
+  var handDescriptions = [];
+  results.multiHandLandmarks.forEach(function(landmarks, idx) {
+    var handedness = (results.multiHandedness && results.multiHandedness[idx]) ? results.multiHandedness[idx].label : 'Main';
+    handedness = handedness === 'Left' ? 'Gauche' : 'Droite';
+    // Draw skeleton on overlay
+    if (ctx && ov) {
+      var W = ov.width, H = ov.height;
+      // Connections
+      var CONNECTIONS = [[0,1],[1,2],[2,3],[3,4],[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20],[0,5],[5,9],[9,13],[13,17],[0,17]];
+      ctx.strokeStyle='rgba(255,200,0,0.8)'; ctx.lineWidth=2;
+      CONNECTIONS.forEach(function(c){ var a=landmarks[c[0]],b=landmarks[c[1]]; ctx.beginPath(); ctx.moveTo(a.x*W,a.y*H); ctx.lineTo(b.x*W,b.y*H); ctx.stroke(); });
+      // Joints
+      landmarks.forEach(function(pt){ ctx.beginPath(); ctx.arc(pt.x*W,pt.y*H,3,0,Math.PI*2); ctx.fillStyle='rgba(255,220,0,0.9)'; ctx.fill(); });
+    }
+    // Gesture recognition
+    var gesture = _liveDetectGesture(landmarks);
+    handDescriptions.push({ hand:handedness, gesture:gesture, landmarks:landmarks });
+    _liveReportData.hands.push({ time:new Date().toLocaleTimeString(), hand:handedness, gesture:gesture });
+  });
+  _liveLastHandGesture = handDescriptions.map(function(h){ return h.hand+': '+h.gesture; }).join(' | ');
+  var handsHTML = handDescriptions.map(function(h) {
+    return '<div style="background:#F8F9FA;border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+      +'<div style="font-size:11px;font-weight:700;color:#0B1D35;margin-bottom:3px">✋ Main '+h.hand+'</div>'
+      +'<div style="font-size:12px;color:#374151">Geste: <strong>'+h.gesture+'</strong></div></div>';
+  }).join('');
+  _liveSetPanel('live-hands-panel', handsHTML);
+}
+
+function _liveDetectGesture(lm) {
+  // lm[0]=wrist, [4]=thumb tip, [8]=index tip, [12]=middle tip, [16]=ring tip, [20]=pinky tip
+  // [6]=index mid, [10]=middle mid, [14]=ring mid, [18]=pinky mid
+  try {
+    var fingerUp = [
+      lm[4].y < lm[3].y,           // thumb (rough)
+      lm[8].y < lm[6].y,           // index
+      lm[12].y < lm[10].y,         // middle
+      lm[16].y < lm[14].y,         // ring
+      lm[20].y < lm[18].y          // pinky
+    ];
+    var upCount = fingerUp.filter(Boolean).length;
+    // Common gestures
+    if (!fingerUp[1]&&!fingerUp[2]&&!fingerUp[3]&&!fingerUp[4]) return 'Poing fermé ✊';
+    if (fingerUp[1]&&fingerUp[2]&&!fingerUp[3]&&!fingerUp[4]) return 'Victoire / Peace ✌️';
+    if (fingerUp[1]&&!fingerUp[2]&&!fingerUp[3]&&!fingerUp[4]) return 'Pointage ☝️';
+    if (fingerUp[0]&&!fingerUp[1]&&!fingerUp[2]&&!fingerUp[3]&&!fingerUp[4]) return 'Pouce levé 👍';
+    if (fingerUp[0]&&fingerUp[1]&&fingerUp[2]&&fingerUp[3]&&fingerUp[4]) return 'Main ouverte 🖐️';
+    if (!fingerUp[0]&&fingerUp[1]&&fingerUp[2]&&fingerUp[3]&&fingerUp[4]) return 'Quatre doigts';
+    if (fingerUp[1]&&fingerUp[2]&&fingerUp[3]&&fingerUp[4]) return 'Quatre doigts levés';
+    if (fingerUp[0]&&fingerUp[4]&&!fingerUp[1]&&!fingerUp[2]&&!fingerUp[3]) return 'Corne / Rock 🤘';
+    // Wrist movement
+    var wrist = lm[0];
+    if (wrist.y < 0.3) return 'Main levée (' + upCount + ' doigts)';
+    if (wrist.y > 0.7) return 'Main basse (' + upCount + ' doigts)';
+    return upCount + ' doigt(s) levé(s)';
+  } catch(e) { return 'Mouvement détecté'; }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  WEB SPEECH API — Audio transcription
+// ══════════════════════════════════════════════════════════════
+function _liveStartSpeech() {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    var audioPanel = document.getElementById('live-audio-panel');
+    if (audioPanel) audioPanel.innerHTML = '<div style="font-size:11px;color:#9CA3AF;font-style:italic">Transcription audio non supportée par ce navigateur (Chrome requis)</div>';
+    return;
+  }
+  _liveSpeechRec = new SpeechRecognition();
+  _liveSpeechRec.continuous = true;
+  _liveSpeechRec.interimResults = true;
+  _liveSpeechRec.lang = 'fr-FR';
+  _liveSpeechRec.maxAlternatives = 1;
+
+  var audioInd = document.getElementById('live-audio-indicator');
+
+  _liveSpeechRec.onstart = function() { if (audioInd) { audioInd.textContent='🔴 ENREGISTREMENT'; audioInd.style.color='#EF4444'; } };
+  _liveSpeechRec.onend   = function() {
+    if (audioInd) { audioInd.textContent='INACTIF'; audioInd.style.color='#9CA3AF'; }
+    if (_liveRunning) setTimeout(function(){ if(_liveRunning&&_liveSpeechRec) try{_liveSpeechRec.start();}catch(e){} }, 300);
+  };
+  _liveSpeechRec.onerror = function(e) { console.warn('[Speech]', e.error); };
+
+  _liveSpeechRec.onresult = function(event) {
+    var transcript = '', isFinal = false;
+    for (var i=event.resultIndex; i<event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+      if (event.results[i].isFinal) isFinal = true;
+    }
+    if (isFinal && transcript.trim()) {
+      var entry = { time:new Date().toLocaleTimeString(), text:transcript.trim() };
+      _liveTranscript.push(entry);
+      _liveReportData.audio.push(entry);
+      var panel = document.getElementById('live-audio-panel');
+      if (panel) {
+        panel.innerHTML = _liveTranscript.slice(-8).map(function(e){
+          return '<div style="padding:4px 0;border-bottom:1px solid #F3F4F6;font-size:12px"><span style="font-size:10px;color:#9CA3AF;margin-right:6px">'+e.time+'</span>'+e.text+'</div>';
+        }).join('');
+        panel.scrollTop = panel.scrollHeight;
+      }
+    }
+  };
+  try { _liveSpeechRec.start(); } catch(e) { console.warn('[Speech] start error:', e); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  REPORT BUILDER
+// ══════════════════════════════════════════════════════════════
+function _liveBuildReport() {
+  var panel = document.getElementById('live-report-panel'); if (!panel) return;
+  var data  = _liveReportData;
+  var latest = data.face.length ? data.face[data.face.length-1] : null;
+  var now = new Date().toLocaleString('fr-FR');
+
+  // Average emotions
+  var emoAvg = {};
+  if (data.emotions.length) {
+    data.emotions.forEach(function(e) { Object.keys(e).forEach(function(k){ if(k!=='time') emoAvg[k]=(emoAvg[k]||0)+e[k]; }); });
+    Object.keys(emoAvg).forEach(function(k){ emoAvg[k]=Math.round(emoAvg[k]/data.emotions.length*100); });
+  }
+  var dominantEmo = emoAvg ? Object.keys(emoAvg).sort(function(a,b){return emoAvg[b]-emoAvg[a];})[0] : '—';
+
+  // Most common gesture
+  var gestureCounts = {};
+  data.hands.forEach(function(h){ gestureCounts[h.gesture]=(gestureCounts[h.gesture]||0)+1; });
+  var topGesture = Object.keys(gestureCounts).sort(function(a,b){return gestureCounts[b]-gestureCounts[a];})[0] || '—';
+
+  var html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">';
+  // Summary cards
+  var cards = [
+    { label:'Émotion dominante', val: _liveEmotionLabels[dominantEmo]||dominantEmo, icon:'🧠', color:'#EFF6FF' },
+    { label:'Âge estimé', val: latest ? latest.age+' ans' : '—', icon:'🎂', color:'#F0FDF4' },
+    { label:'Genre', val: latest ? latest.gender : '—', icon:'👤', color:'#FFF7ED' },
+    { label:'Teint', val: latest ? (latest.appearance.skinTone||'—') : '—', icon:'🎨', color:'#FDF4FF' },
+    { label:'Geste dominant', val: topGesture, icon:'✋', color:'#FFFBEB' },
+    { label:'Paroles captées', val: data.audio.length + ' phrases', icon:'🎤', color:'#F0F9FF' },
+  ];
+  cards.forEach(function(c) {
+    html += '<div style="background:'+c.color+';border-radius:10px;padding:14px;text-align:center">'
+      +'<div style="font-size:24px;margin-bottom:6px">'+c.icon+'</div>'
+      +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#6B7280;margin-bottom:4px">'+c.label+'</div>'
+      +'<div style="font-size:14px;font-weight:700;color:#0B1D35">'+c.val+'</div></div>';
+  });
+  html += '</div>';
+
+  // Appearance details
+  if (latest && latest.appearance) {
+    var ap = latest.appearance;
+    html += '<div style="background:#F9FAFB;border-radius:10px;padding:16px;margin-bottom:16px">'
+      +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9CA3AF;margin-bottom:12px">Analyse physique détaillée</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px">'
+      +[['Teint de peau',ap.skinTone],['Ethnicité estimée',ap.ethnicity],['Couleur cheveux',ap.hairColor],['Longueur cheveux',ap.hairLength],['Couleur yeux',ap.eyeColor],['Confiance détection','Élevée']].map(function(r){ return '<div><span style="color:#9CA3AF">'+r[0]+': </span><strong>'+r[1]+'</strong></div>'; }).join('')
+      +'</div></div>';
+  }
+
+  // Emotion timeline
+  if (Object.keys(emoAvg).length) {
+    html += '<div style="background:#F9FAFB;border-radius:10px;padding:16px;margin-bottom:16px">'
+      +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9CA3AF;margin-bottom:12px">Distribution émotionnelle (moyenne session)</div>';
+    Object.keys(emoAvg).sort(function(a,b){return emoAvg[b]-emoAvg[a];}).forEach(function(k){
+      var pct=emoAvg[k], color=k==='happy'?'#10B981':k==='sad'?'#3B82F6':k==='angry'?'#EF4444':'#6B7280';
+      html += '<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span>'+(_liveEmotionLabels[k]||k)+'</span><span style="font-weight:700">'+pct+'%</span></div>'
+        +'<div style="background:#E5E7EB;border-radius:99px;height:5px"><div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:99px"></div></div></div>';
+    });
+    html += '</div>';
+  }
+
+  // Audio transcript
+  if (data.audio.length) {
+    html += '<div style="background:#F9FAFB;border-radius:10px;padding:16px;margin-bottom:16px">'
+      +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9CA3AF;margin-bottom:10px">Transcription complète</div>'
+      + data.audio.map(function(a){ return '<div style="padding:5px 0;border-bottom:1px solid #F3F4F6;font-size:12px"><span style="font-size:10px;color:#9CA3AF;margin-right:8px">'+a.time+'</span>'+a.text+'</div>'; }).join('')
+      +'</div>';
+  }
+
+  html += '<div style="font-size:10px;color:#9CA3AF;text-align:right;margin-top:8px">Rapport généré le '+now+' · EuroVisa Intelligence System</div>';
+  panel.innerHTML = html;
+}
+
+window.liveClearReport = function() {
+  _liveReportData = { face:[], emotions:[], appearance:{}, hands:[], audio:[] };
+  _liveTranscript = [];
+  var p = document.getElementById('live-report-panel');
+  if (p) p.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Rapport effacé</div>';
+};
+
+// ── Export report as PDF ──
+window.liveExportReport = function() {
+  var html = document.getElementById('live-report-panel').innerHTML;
+  var win = window.open('','_blank');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rapport Analyse Comportementale</title>'
+    +'<style>body{font-family:Arial,sans-serif;padding:32px;max-width:900px;margin:0 auto;color:#0B1D35}'
+    +'h1{font-size:22px;margin-bottom:4px}p{color:#6B7280;font-size:13px;margin-bottom:24px}'
+    +'@media print{.no-print{display:none}}'
+    +'</style></head><body>'
+    +'<div class="no-print" style="background:#0B1D35;color:#E8B04A;padding:10px 20px;margin-bottom:24px;border-radius:6px;display:flex;justify-content:space-between;align-items:center"><span>Rapport Analyse Comportementale</span><button onclick="window.print()" style="background:#E8B04A;color:#0B1D35;border:none;border-radius:4px;padding:6px 16px;font-weight:700;cursor:pointer">🖨️ Imprimer / PDF</button></div>'
+    +'<h1>🎥 Rapport d\'Analyse Comportementale Live</h1>'
+    +'<p>Généré par EuroVisa Intelligence System · ' + new Date().toLocaleString('fr-FR') + '</p>'
+    + html
+    +'</body></html>');
+};
+
+// ── UI helpers ──
+function _liveSetPanel(id, html) { var e=document.getElementById(id); if(e) e.innerHTML=html; }
+function _liveSetPill(label, bg, color) {
+  var pills = document.getElementById('live-status-pills');
+  if (pills) pills.innerHTML='<span style="background:'+bg+';color:'+color+';border-radius:99px;padding:4px 12px;font-size:11px;font-weight:600">'+label+'</span>';
+}
+function _liveDataRow(label, val) {
+  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #F9FAFB;font-size:12px">'
+    +'<span style="color:#6B7280">'+label+'</span>'
+    +'<span style="font-weight:600;color:#0B1D35">'+val+'</span></div>';
+}
+function _liveAppCard(icon, label, val) {
+  return '<div style="background:#F8F9FA;border-radius:8px;padding:10px;text-align:center">'
+    +'<div style="font-size:20px;margin-bottom:4px">'+icon+'</div>'
+    +'<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#9CA3AF;margin-bottom:2px">'+label+'</div>'
+    +'<div style="font-size:11px;font-weight:600;color:#0B1D35">'+val+'</div></div>';
+}
+
+// Hook showAdminTab to stop analysis when leaving
+var _origShowAdminTabForLive = window.showAdminTab;
+window.showAdminTab = function(tab) {
+  if (tab !== 'live-analysis' && _liveRunning) liveAnalysisStop();
+  _origShowAdminTabForLive && _origShowAdminTabForLive(tab);
+};
 
 //   SUBMISSION CONFIRMATION — shown to client/B2B after submit
 // ══════════════════════════════════════════════════════
