@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FleetDesk — Car rental control</title>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+<style>
+:root{--bg:#EEF1F4;--ink:#12202E;--mut:#5C6B7A;--card:#fff;--line:#D5DCE3;--acc:#0E6BA8;--bad:#C62F2A;--ok:#1B7F55;--warn:#B7791F}
+*{box-sizing:border-box;margin:0}
+body{font:14px/1.5 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;gap:16px;align-items:center;padding:12px 20px;background:var(--ink);color:#fff;flex-wrap:wrap}
+header b{font-size:18px;margin-right:12px}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:none;border:0;color:#B9C6D3;padding:8px 14px;border-radius:6px;cursor:pointer;font:inherit}
+nav button.on,nav button:hover{background:#25384C;color:#fff}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+main{padding:20px;max-width:1200px;margin:auto}
+.tab{display:none}.tab.on{display:block}
+.grid{display:grid;gap:16px;grid-template-columns:1.2fr 1fr}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px}
+h2{font-size:16px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-weight:600;font-size:12px}
+tr.sel{background:#E4F0F8}tbody tr{cursor:pointer}
+.pill{padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600}
+.ok{background:#DDF1E7;color:var(--ok)}.bad{background:#F9DEDC;color:var(--bad)}.warn{background:#F8ECD3;color:var(--warn)}.off{background:#E3E7EB;color:var(--mut)}
+button.b{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;font:inherit}
+button.b.d{background:var(--bad)}button.b.g{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
+input,select{padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff;min-width:0}
+label{display:block;font-size:12px;color:var(--mut);margin:8px 0 2px}
+.gauges{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.gauges div{background:var(--bg);border-radius:6px;padding:8px;text-align:center}
+.gauges b{display:block;font-size:22px}.gauges span{font-size:11px;color:var(--mut)}
+svg.map{width:100%;background:#DCE6EC;border-radius:8px}
+#alerts li{list-style:none;padding:6px 8px;border-left:3px solid var(--line);margin-bottom:4px;background:var(--bg);font-size:13px}
+#alerts li.bad{border-color:var(--bad)}#alerts li.warn{border-color:var(--warn)}
+.dash{background:#0e1722;color:#9FE3C0;border-radius:8px;padding:10px;font-family:monospace;min-height:44px}
+video,canvas.pv,img.pv{max-width:100%;border-radius:6px;background:#000}
+.note{font-size:12px;color:var(--mut);margin-top:8px}
+</style></head><body>
+<header><b>FleetDesk</b>
+<nav id="nav"><button data-t="fleet" class="on">Fleet</button><button data-t="clients">Clients</button><button data-t="pay">Rentals &amp; payments</button><button data-t="log">Alerts</button></nav></header>
+<main>
+
+<section class="tab on" id="fleet"><div class="grid">
+ <div class="card"><h2>Live map — Casablanca</h2>
+  <svg class="map" id="map" viewBox="0 0 400 260" aria-label="Fleet map"><path d="M0 200 Q100 150 200 190 T400 170" stroke="#fff" stroke-width="8" fill="none"/><path d="M120 0 L160 260" stroke="#fff" stroke-width="6"/><circle cx="200" cy="130" r="9" fill="#12202E"/><text x="212" y="134" font-size="10" fill="#12202E">Agency</text><g id="pins"></g></svg>
+  <table><thead><tr><th>Car</th><th>Status</th><th>Speed</th><th>Limit</th></tr></thead><tbody id="cars"></tbody></table></div>
+ <div class="card"><h2 id="ct">Select a car</h2>
+  <div class="gauges"><div><b id="gs">0</b><span>km/h</span></div><div><b id="gst">0°</b><span>steering</span></div><div><b id="gb">0%</b><span>brake</span></div><div><b id="gl">–</b><span>limit</span></div></div>
+  <div class="row"><button class="b" id="bon">Engine on</button><button class="b g" id="boff">Safe stop &amp; off</button></div>
+  <div class="row"><label for="lim" style="margin:0">Speed limit</label><input id="lim" type="number" min="20" max="180" value="120" style="width:80px"><button class="b g" id="bl">Apply</button></div>
+  <div class="row"><input id="msg" placeholder="Message to car dashboard" style="flex:1"><button class="b g" id="bm">Send</button></div>
+  <div class="dash" id="dash">Car dashboard: –</div>
+  <h2 style="margin-top:14px">Theft response</h2>
+  <div class="row"><button class="b g" id="bsim">Simulate unauthorized movement</button></div>
+  <div class="row"><button class="b d" id="bpol">Alert police + share GPS</button><button class="b d" id="bslow">Cap speed 20 &amp; safe stop</button></div>
+  <p class="note">The car cannot drive itself to the agency. Real remote control needs vehicle telematics hardware; this demo simulates it.</p></div>
+</div></section>
+
+<section class="tab" id="clients"><div class="grid">
+ <div class="card"><h2>New client</h2>
+  <label for="cn">Full name</label><input id="cn" style="width:100%">
+  <label for="ci">ID / passport number</label><input id="ci" style="width:100%">
+  <label for="cph">Phone</label><input id="cph" style="width:100%">
+  <label for="idf">1. Scan ID or passport (photo)</label><input type="file" id="idf" accept="image/*">
+  <div class="row"><img class="pv" id="idp" alt="" hidden width="220"></div>
+  <pre id="ocr" class="note" style="white-space:pre-wrap"></pre>
+  <label>2. Live selfie</label>
+  <div class="row"><button class="b g" id="bcam">Start camera</button><button class="b g" id="bsnap">Take selfie</button></div>
+  <video id="vid" width="220" autoplay muted playsinline hidden></video><canvas class="pv" id="selfie" width="220" height="165" hidden></canvas>
+  <div class="row"><button class="b" id="bmatch">Match face to ID</button><span id="mres" class="pill off">Not checked</span></div>
+  <div class="row"><button class="b" id="bsave">Save client</button></div>
+  <p class="note">Get written consent before storing IDs or face data (Morocco Law 09-08 / CNDP, GDPR for EU clients). This demo keeps data in this browser only.</p></div>
+ <div class="card"><h2>Clients</h2><table><thead><tr><th>Name</th><th>ID</th><th>Face</th></tr></thead><tbody id="clist"></tbody></table></div>
+</div></section>
+
+<section class="tab" id="pay"><div class="grid">
+ <div class="card"><h2>New rental</h2>
+  <label for="rc">Client</label><select id="rc" style="width:100%"></select>
+  <label for="rcar">Car</label><select id="rcar" style="width:100%"></select>
+  <label for="rd">Days</label><input id="rd" type="number" min="1" value="3" style="width:100%">
+  <div class="row"><button class="b" id="brent">Create rental</button></div></div>
+ <div class="card"><h2>Payments</h2><table><thead><tr><th>Client</th><th>Car</th><th>Total</th><th></th></tr></thead><tbody id="plist"></tbody></table>
+  <p class="note" id="tot"></p></div>
+</div></section>
+
+<section class="tab" id="log"><div class="card"><h2>Alerts</h2><ul id="alerts"></ul></div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const cars=[["Dacia Logan","A-1021",320],["Renault Clio","A-2233",350],["Peugeot 208","B-4410",380],["Hyundai i10","B-7782",300],["Toyota Yaris","C-9015",400]].map((c,i)=>({name:c[0],plate:c[1],rate:c[2],on:i<3,speed:i<3?[0,40,70][i]:0,target:i<3?[0,40,70][i]:0,limit:120,steer:0,brake:0,x:200+(i-2)*45,y:100+i*22,stolen:false,stopping:false,rented:false}));
+let sel=0,clients=store.get("clients",[]),rentals=store.get("rentals",[]),descs={};
+function alertLog(t,k){const li=document.createElement("li");li.className=k||"";li.textContent=new Date().toLocaleTimeString()+" — "+t;$("alerts").prepend(li)}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button,.tab").forEach(e=>e.classList.remove("on"));b.classList.add("on");$(b.dataset.t).classList.add("on")});
+
+function status(c){return c.stolen?'<span class="pill bad">Unauthorized</span>':c.stopping?'<span class="pill warn">Stopping</span>':c.on?'<span class="pill ok">Engine on</span>':'<span class="pill off">Off</span>'}
+function render(){
+ $("cars").innerHTML=cars.map((c,i)=>`<tr class="${i==sel?"sel":""}" onclick="pick(${i})"><td>${c.name}<br><small>${c.plate}</small></td><td>${status(c)}</td><td>${Math.round(c.speed)}</td><td>${c.limit}</td></tr>`).join("");
+ $("pins").innerHTML=cars.map((c,i)=>`<circle cx="${c.x}" cy="${c.y}" r="${i==sel?8:6}" fill="${c.stolen?"#C62F2A":c.on?"#0E6BA8":"#7A8896"}"/><text x="${c.x+9}" y="${c.y+3}" font-size="9">${c.plate}</text>`).join("");
+ const c=cars[sel];$("ct").textContent=c.name+" · "+c.plate;$("gs").textContent=Math.round(c.speed);$("gst").textContent=Math.round(c.steer)+"°";$("gb").textContent=Math.round(c.brake)+"%";$("gl").textContent=c.limit;
+}
+function pick(i){sel=i;$("lim").value=cars[i].limit;render()}
+function tick(){cars.forEach((c,i)=>{
+ if(!c.on){c.speed=0;c.brake=0;c.steer=0;return}
+ if(c.stopping)c.target=0;
+ else if(Math.random()<.08)c.target=Math.max(0,c.target+(Math.random()*40-15));
+ if(c.stolen&&!c.stopping&&c.target<60)c.target=60;
+ const want=Math.min(c.target,c.limit);
+ if(c.target>c.limit&&!c.over){c.over=1;alertLog(c.plate+" exceeded "+c.limit+" km/h (requested "+Math.round(c.target)+"); speed capped","warn")}
+ if(c.target<=c.limit)c.over=0;
+ const d=want-c.speed;c.brake=d<-2?Math.min(100,-d*4):0;c.speed=Math.max(0,c.speed+Math.sign(d)*Math.min(Math.abs(d),6));
+ c.steer=c.speed>3?Math.max(-35,Math.min(35,c.steer+(Math.random()*10-5))):0;
+ if(c.speed>3){c.x=Math.max(10,Math.min(390,c.x+(Math.random()-.5)*(c.stolen?9:4)));c.y=Math.max(10,Math.min(250,c.y+(Math.random()-.5)*(c.stolen?9:4)))}
+ if(c.stopping&&c.speed<1){c.on=false;c.stopping=false;alertLog(c.plate+" stopped and engine disabled","warn")}
+});render()}
+$("bon").onclick=()=>{const c=cars[sel];c.on=true;c.stopping=false;c.stolen=false;alertLog(c.plate+" engine enabled")};
+$("boff").onclick=()=>{const c=cars[sel];if(c.on){c.stopping=true;alertLog(c.plate+" safe stop started (gradual braking)")}};
+$("bl").onclick=()=>{const c=cars[sel];c.limit=Math.max(20,Math.min(180,+$("lim").value||120));alertLog(c.plate+" speed limit set to "+c.limit)};
+$("bm").onclick=()=>{const m=$("msg").value.trim();if(!m)return;$("dash").textContent="Car dashboard ("+cars[sel].plate+"): "+m;alertLog("Message sent to "+cars[sel].plate+": "+m);$("msg").value=""};
+$("bsim").onclick=()=>{const c=cars[sel];if(!c.on){c.on=true}c.stolen=true;alertLog("Unauthorized movement on "+c.plate+" — no active rental","bad");$("dash").textContent="ALERT: contact the agency"};
+$("bpol").onclick=()=>{const c=cars[sel];alertLog("Police notified: "+c.plate+" at "+c.x.toFixed(0)+","+c.y.toFixed(0)+" (live location shared)","bad")};
+$("bslow").onclick=()=>{const c=cars[sel];c.limit=20;c.stopping=true;alertLog(c.plate+" capped at 20 km/h and stopping safely","bad")};
+
+// Clients: OCR + face match
+let stream=null,idImg=null;
+async function loadModels(){if(descs.ready)return;const u="https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";await Promise.all([faceapi.nets.ssdMobilenetv1.loadFromUri(u),faceapi.nets.faceLandmark68Net.loadFromUri(u),faceapi.nets.faceRecognitionNet.loadFromUri(u)]);descs.ready=1}
+$("idf").onchange=async e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);$("idp").src=url;$("idp").hidden=false;idImg=$("idp");$("ocr").textContent="Reading document…";
+ try{const r=await Tesseract.recognize(f,"eng+fra");const t=r.data.text.trim();$("ocr").textContent=t||"No text found";const m=t.match(/[A-Z]{1,2}\d{5,8}/);if(m&&!$("ci").value)$("ci").value=m[0]}catch(err){$("ocr").textContent="OCR failed: "+err.message}};
+$("bcam").onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:true});$("vid").srcObject=stream;$("vid").hidden=false}catch(e){alert("Camera unavailable: "+e.message)}};
+$("bsnap").onclick=()=>{if(!stream)return;const c=$("selfie");c.getContext("2d").drawImage($("vid"),0,0,220,165);c.hidden=false};
+let faceOK=false,faceDesc=null;
+$("bmatch").onclick=async()=>{const r=$("mres");if(!idImg||$("selfie").hidden){r.className="pill warn";r.textContent="Need ID photo + selfie";return}
+ r.className="pill off";r.textContent="Checking…";
+ try{await loadModels();const a=await faceapi.detectSingleFace(idImg).withFaceLandmarks().withFaceDescriptor();const b=await faceapi.detectSingleFace($("selfie")).withFaceLandmarks().withFaceDescriptor();
+  if(!a||!b){r.className="pill warn";r.textContent="Face not found — retake";return}
+  const d=faceapi.euclideanDistance(a.descriptor,b.descriptor);faceOK=d<0.5;faceDesc=Array.from(b.descriptor);
+  r.className="pill "+(faceOK?"ok":"bad");r.textContent=(faceOK?"Match":"No match")+" ("+d.toFixed(2)+")"}
+ catch(e){r.className="pill bad";r.textContent="Model load failed"}};
+$("bsave").onclick=()=>{if(!$("cn").value||!$("ci").value){alert("Name and ID number are required");return}
+ clients.push({name:$("cn").value,id:$("ci").value,phone:$("cph").value,face:faceOK,desc:faceDesc,date:new Date().toISOString()});store.set("clients",clients);
+ ["cn","ci","cph"].forEach(k=>$(k).value="");faceOK=false;faceDesc=null;$("mres").className="pill off";$("mres").textContent="Not checked";renderClients()};
+function renderClients(){$("clist").innerHTML=clients.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.id)}</td><td>${c.face?'<span class="pill ok">Verified</span>':'<span class="pill off">Unverified</span>'}</td></tr>`).join("")||'<tr><td colspan="3">No clients yet. Add one on the left.</td></tr>';
+ $("rc").innerHTML=clients.map((c,i)=>`<option value="${i}">${esc(c.name)}</option>`).join("");
+ $("rcar").innerHTML=cars.map((c,i)=>`<option value="${i}">${c.name} (${c.rate} MAD/day)</option>`).join("")}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+// Rentals & payments
+$("brent").onclick=()=>{const ci=+$("rc").value,car=+$("rcar").value,d=+$("rd").value;if(!clients[ci]||!(d>0)){alert("Add a client first");return}
+ rentals.push({client:clients[ci].name,car:cars[car].plate,total:d*cars[car].rate,paid:false});store.set("rentals",rentals);cars[car].rented=true;renderPay()};
+window.pay=i=>{rentals[i].paid=true;store.set("rentals",rentals);renderPay()};
+function renderPay(){$("plist").innerHTML=rentals.map((r,i)=>`<tr><td>${esc(r.client)}</td><td>${r.car}</td><td>${r.total} MAD</td><td>${r.paid?'<span class="pill ok">Paid</span>':`<button class="b g" onclick="pay(${i})">Mark paid</button>`}</td></tr>`).join("")||'<tr><td colspan="4">No rentals yet.</td></tr>';
+ const p=rentals.filter(r=>r.paid).reduce((s,r)=>s+r.total,0),u=rentals.filter(r=>!r.paid).reduce((s,r)=>s+r.total,0);$("tot").textContent="Collected: "+p+" MAD · Outstanding: "+u+" MAD"}
+renderClients();renderPay();pick(0);setInterval(tick,1000);alertLog("System ready (simulated telemetry)");
+</script></body></html>
