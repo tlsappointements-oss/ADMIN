@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FleetDesk — Car rental control</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
 <style>
@@ -39,18 +46,29 @@ svg.map{width:100%;background:#DCE6EC;border-radius:8px}
 .dash{background:#0e1722;color:#9FE3C0;border-radius:8px;padding:10px;font-family:monospace;min-height:44px}
 video,canvas.pv,img.pv{max-width:100%;border-radius:6px;background:#000}
 .note{font-size:12px;color:var(--mut);margin-top:8px}
+[hidden]{display:none!important}
+#map{height:330px;border-radius:8px;margin:6px 0 10px;z-index:0}
+.pin{background:#0E6BA8;color:#fff;border-radius:11px;padding:2px 8px;font-size:11px;border:2px solid #fff;box-shadow:0 1px 4px #0006;text-align:center;white-space:nowrap}
+.pin.off{background:#7A8896}.pin.bad{background:#C62F2A}.pin.warn{background:#B7791F}.pin.s{outline:3px solid #12202E66}
+.ag{background:#12202E;color:#fff;font-size:11px;padding:2px 8px;border-radius:4px;white-space:nowrap;transform:translate(-50%,-50%)}
+#loginf{display:flex;gap:6px;margin-left:auto}#loginf input{padding:5px 8px;width:150px}
+#auth{margin-left:auto;display:flex;gap:8px;align-items:center}
 </style></head><body>
 <header><b>FleetDesk</b>
-<nav id="nav"><button data-t="fleet" class="on">Fleet</button><button data-t="clients">Clients</button><button data-t="pay">Rentals &amp; payments</button><button data-t="log">Alerts</button></nav></header>
+<nav id="nav"><button data-t="fleet" class="on">Fleet</button><button data-t="clients">Clients</button><button data-t="pay">Rentals &amp; payments</button><button data-t="log">Alerts</button></nav><div id="auth"><span id="sync" class="pill off">Local only</span>
+<form id="loginf"><input id="em" type="email" placeholder="Staff email" aria-label="Staff email" required><input id="pw" type="password" placeholder="Password" aria-label="Password" required><button class="b">Sign in</button></form>
+<button class="b g" id="logout" hidden>Sign out</button></div></header>
 <main>
 
 <section class="tab on" id="fleet"><div class="grid">
  <div class="card"><h2>Live map — Casablanca</h2>
-  <svg class="map" id="map" viewBox="0 0 400 260" aria-label="Fleet map"><path d="M0 200 Q100 150 200 190 T400 170" stroke="#fff" stroke-width="8" fill="none"/><path d="M120 0 L160 260" stroke="#fff" stroke-width="6"/><circle cx="200" cy="130" r="9" fill="#12202E"/><text x="212" y="134" font-size="10" fill="#12202E">Agency</text><g id="pins"></g></svg>
+  <label style="display:inline-flex;gap:6px;margin:0;align-items:center"><input type="checkbox" id="fol" checked>Follow selected car</label><div id="map" aria-label="Live fleet map"></div>
   <table><thead><tr><th>Car</th><th>Status</th><th>Speed</th><th>Limit</th></tr></thead><tbody id="cars"></tbody></table></div>
  <div class="card"><h2 id="ct">Select a car</h2>
   <div class="gauges"><div><b id="gs">0</b><span>km/h</span></div><div><b id="gst">0°</b><span>steering</span></div><div><b id="gb">0%</b><span>brake</span></div><div><b id="gl">–</b><span>limit</span></div></div>
-  <div class="row"><button class="b" id="bon">Engine on</button><button class="b g" id="boff">Safe stop &amp; off</button></div>
+  <canvas id="c3d" style="width:100%;height:230px;border-radius:8px;background:linear-gradient(#27394b,#101a24);touch-action:none;cursor:grab" aria-label="3D car showing brake lights and turn signals"></canvas>
+  <div class="row"><span id="bl3" class="pill off">Brake lights off</span><span id="sg3" class="pill off">Signals off</span><span class="note" style="margin:0">Drag the car to rotate</span></div>
+  <div class="row"><button class="b d" id="bbr">Brake now</button><button class="b" id="bon">Engine on</button><button class="b g" id="boff">Safe stop &amp; off</button></div>
   <div class="row"><label for="lim" style="margin:0">Speed limit</label><input id="lim" type="number" min="20" max="180" value="120" style="width:80px"><button class="b g" id="bl">Apply</button></div>
   <div class="row"><input id="msg" placeholder="Message to car dashboard" style="flex:1"><button class="b g" id="bm">Send</button></div>
   <div class="dash" id="dash">Car dashboard: –</div>
@@ -91,44 +109,105 @@ video,canvas.pv,img.pv{max-width:100%;border-radius:6px;background:#000}
 </main>
 <script>
 const $=id=>document.getElementById(id);
-const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const cars=[["Dacia Logan","A-1021",320],["Renault Clio","A-2233",350],["Peugeot 208","B-4410",380],["Hyundai i10","B-7782",300],["Toyota Yaris","C-9015",400]].map((c,i)=>({name:c[0],plate:c[1],rate:c[2],on:i<3,speed:i<3?[0,40,70][i]:0,target:i<3?[0,40,70][i]:0,limit:120,steer:0,brake:0,x:200+(i-2)*45,y:100+i*22,stolen:false,stopping:false,rented:false}));
+const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}syncOut(k,v)}};
+const AG=[33.5731,-7.5898];
+const cars=[["Dacia Logan","A-1021",320],["Renault Clio","A-2233",350],["Peugeot 208","B-4410",380],["Hyundai i10","B-7782",300],["Toyota Yaris","C-9015",400]].map((c,i)=>{const a=Math.random()*6.28,r=.004+Math.random()*.01;return{name:c[0],plate:c[1],rate:c[2],color:[0x1d4f91,0xb03a2e,0x2e7d5b,0x6b6f76,0xd9a521][i],on:i<3,speed:[0,40,70][i]||0,target:[0,40,70][i]||0,limit:120,steer:0,brake:0,lat:AG[0]+Math.cos(a)*r,lng:AG[1]+Math.sin(a)*r*1.2,h:Math.random()*6.28,stolen:false,stopping:false,rented:false,hold:0,sig:"",sigT:0,trail:[]}});
 let sel=0,clients=store.get("clients",[]),rentals=store.get("rentals",[]),descs={};
-function alertLog(t,k){const li=document.createElement("li");li.className=k||"";li.textContent=new Date().toLocaleTimeString()+" — "+t;$("alerts").prepend(li)}
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button,.tab").forEach(e=>e.classList.remove("on"));b.classList.add("on");$(b.dataset.t).classList.add("on")});
-
+function addLi(t,k,d){const li=document.createElement("li");li.className=k||"";li.textContent=(d||new Date()).toLocaleTimeString()+" — "+t;$("alerts").prepend(li)}
+let lt;function alertLog(t,k){addLi(t,k);if(user)db.collection("fleet_alerts").add({text:t,level:k||"",at:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});clearTimeout(lt);lt=setTimeout(live,600)}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button,.tab").forEach(e=>e.classList.remove("on"));b.classList.add("on");$(b.dataset.t).classList.add("on");if(b.dataset.t=="fleet")setTimeout(()=>map.invalidateSize(),0)});
 function status(c){return c.stolen?'<span class="pill bad">Unauthorized</span>':c.stopping?'<span class="pill warn">Stopping</span>':c.on?'<span class="pill ok">Engine on</span>':'<span class="pill off">Off</span>'}
+
+// Live map (OpenStreetMap)
+const map=L.map("map").setView(AG,14);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
+L.marker(AG,{icon:L.divIcon({className:"",html:'<div class="ag">Agency</div>',iconSize:[0,0]})}).addTo(map);
+const trail=L.polyline([],{color:"#0E6BA8",weight:4}).addTo(map);
+function ico(c,i){const cl=c.stolen?"bad":c.on?(c.stopping?"warn":""):"off";return L.divIcon({className:"",html:`<div class="pin ${cl}${i==sel?" s":""}">${c.plate} <span style="display:inline-block;transform:rotate(${Math.round(c.h*57.3)}deg)">▲</span></div>`,iconSize:[78,22],iconAnchor:[39,11]})}
+const mk=cars.map((c,i)=>{const m=L.marker([c.lat,c.lng],{icon:ico(c,i)}).addTo(map);m.on("click",()=>pick(i));return m});
+
 function render(){
  $("cars").innerHTML=cars.map((c,i)=>`<tr class="${i==sel?"sel":""}" onclick="pick(${i})"><td>${c.name}<br><small>${c.plate}</small></td><td>${status(c)}</td><td>${Math.round(c.speed)}</td><td>${c.limit}</td></tr>`).join("");
- $("pins").innerHTML=cars.map((c,i)=>`<circle cx="${c.x}" cy="${c.y}" r="${i==sel?8:6}" fill="${c.stolen?"#C62F2A":c.on?"#0E6BA8":"#7A8896"}"/><text x="${c.x+9}" y="${c.y+3}" font-size="9">${c.plate}</text>`).join("");
+ cars.forEach((c,i)=>{mk[i].setLatLng([c.lat,c.lng]);const k=c.stolen+""+c.on+c.stopping+(i==sel)+Math.round(c.h*57.3/15);if(c._k!=k){c._k=k;mk[i].setIcon(ico(c,i))}});
  const c=cars[sel];$("ct").textContent=c.name+" · "+c.plate;$("gs").textContent=Math.round(c.speed);$("gst").textContent=Math.round(c.steer)+"°";$("gb").textContent=Math.round(c.brake)+"%";$("gl").textContent=c.limit;
+ trail.setLatLngs(c.trail);if($("fol").checked&&c.on)map.panTo([c.lat,c.lng],{animate:true,duration:.9});
+ const bl=c.on&&(c.brake>5||c.stopping||c.hold>0);$("bl3").className="pill "+(bl?"bad":"off");$("bl3").textContent=bl?"Brake lights ON":"Brake lights off";
+ const sg=c.on?c.sig:"";$("sg3").className="pill "+(sg?"warn":"off");$("sg3").textContent=sg=="H"?"Hazard lights":sg=="L"?"Left signal":sg=="R"?"Right signal":"Signals off";
 }
-function pick(i){sel=i;$("lim").value=cars[i].limit;render()}
-function tick(){cars.forEach((c,i)=>{
- if(!c.on){c.speed=0;c.brake=0;c.steer=0;return}
- if(c.stopping)c.target=0;
+function pick(i){sel=i;$("lim").value=cars[i].limit;map.panTo([cars[i].lat,cars[i].lng]);render()}
+let tc=0;
+function tick(){cars.forEach(c=>{
+ if(!c.on){c.speed=0;c.brake=0;c.steer=0;c.sig="";return}
+ let step=6;
+ if(c.hold>0){c.target=0;step=14;c.hold--}
+ else if(c.stopping){c.target=0;step=7}
  else if(Math.random()<.08)c.target=Math.max(0,c.target+(Math.random()*40-15));
  if(c.stolen&&!c.stopping&&c.target<60)c.target=60;
  const want=Math.min(c.target,c.limit);
  if(c.target>c.limit&&!c.over){c.over=1;alertLog(c.plate+" exceeded "+c.limit+" km/h (requested "+Math.round(c.target)+"); speed capped","warn")}
  if(c.target<=c.limit)c.over=0;
- const d=want-c.speed;c.brake=d<-2?Math.min(100,-d*4):0;c.speed=Math.max(0,c.speed+Math.sign(d)*Math.min(Math.abs(d),6));
- c.steer=c.speed>3?Math.max(-35,Math.min(35,c.steer+(Math.random()*10-5))):0;
- if(c.speed>3){c.x=Math.max(10,Math.min(390,c.x+(Math.random()-.5)*(c.stolen?9:4)));c.y=Math.max(10,Math.min(250,c.y+(Math.random()-.5)*(c.stolen?9:4)))}
- if(c.stopping&&c.speed<1){c.on=false;c.stopping=false;alertLog(c.plate+" stopped and engine disabled","warn")}
-});render()}
+ const d=want-c.speed;c.brake=d<-2?Math.min(100,-d*8):0;if(c.stopping||c.hold>0)c.brake=Math.max(c.brake,45);
+ c.speed=Math.max(0,c.speed+Math.sign(d)*Math.min(Math.abs(d),step));
+ if(c.speed>3){
+  c.steer=Math.max(-35,Math.min(35,c.steer*.8+(Math.random()*16-8)));
+  const dx=(c.lng-AG[1])*111320*Math.cos(AG[0]*Math.PI/180),dy=(c.lat-AG[0])*111320;
+  if(Math.hypot(dx,dy)>3500&&!c.stolen){let df=Math.atan2(-dx,-dy)-c.h;df=Math.atan2(Math.sin(df),Math.cos(df));c.steer=Math.sign(df)*20}
+  c.h+=(c.steer/35)*.12*Math.min(1,c.speed/50);
+  const v=c.speed/3.6;c.lat+=v*Math.cos(c.h)/111320;c.lng+=v*Math.sin(c.h)/(111320*Math.cos(c.lat*Math.PI/180));
+  c.trail.push([c.lat,c.lng]);if(c.trail.length>80)c.trail.shift();
+ }else c.steer=0;
+ if(Math.abs(c.steer)>10){c.sig=c.steer>0?"R":"L";c.sigT=3}else if(c.sigT>0)c.sigT--;else c.sig="";
+ if(c.stopping)c.sig="H";
+ if(c.stopping&&c.speed<1){c.on=false;c.stopping=false;c.sig="";alertLog(c.plate+" stopped and engine disabled","warn")}
+});
+ if(++tc%10==0&&cars.some(c=>c.speed>0))live();
+ render()}
+
+// 3D car: brake lights, turn signals, steering, nose dive
+try{
+const cv=$("c3d"),R=new THREE.WebGLRenderer({canvas:cv,antialias:true}),S=new THREE.Scene(),cam=new THREE.PerspectiveCamera(40,2,.1,100);
+S.add(new THREE.AmbientLight(0xffffff,.7));const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(4,8,5);S.add(dl);
+const M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.5,metalness:.3}),LM=c=>new THREE.MeshBasicMaterial({color:c});
+const car3=new THREE.Group(),body=new THREE.Group();car3.add(body);S.add(car3);
+const bodyMat=M(0x1d4f91),brakeM=LM(0x4a0000),sigL=LM(0x4a3000),sigR=LM(0x4a3000),headM=LM(0x777777);
+const box=(x,y,z)=>new THREE.BoxGeometry(x,y,z);
+const add=(g,m,x,y,z,p)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);(p||body).add(o);return o};
+add(box(4.2,.8,1.8),bodyMat,0,.75,0);add(box(2.2,.7,1.6),M(0x1a2733),-.2,1.45,0);add(box(.1,.08,1),brakeM,-1.32,1.6,0);
+[-1,1].forEach(s=>{add(box(.12,.22,.4),brakeM,-2.12,.85,s*.5);add(box(.12,.2,.35),headM,2.12,.8,s*.5);
+ add(box(.12,.16,.22),s<0?sigL:sigR,-2.12,.85,s*.82);add(box(.12,.16,.22),s<0?sigL:sigR,2.12,.85,s*.82)});
+const fl=new THREE.Mesh(new THREE.PlaneGeometry(16,16),M(0x2a3642));fl.rotation.x=-Math.PI/2;S.add(fl);
+const rl=new THREE.PointLight(0xff2020,0,7);rl.position.set(-3,.9,0);S.add(rl);
+const al=new THREE.PointLight(0xffa500,0,5);al.position.set(-2.8,.9,-1.3);S.add(al);const ar=new THREE.PointLight(0xffa500,0,5);ar.position.set(-2.8,.9,1.3);S.add(ar);
+const wg=new THREE.CylinderGeometry(.42,.42,.3,20);wg.rotateX(Math.PI/2);const wheels=[];
+[[1.3,-1],[1.3,1],[-1.3,-1],[-1.3,1]].forEach(([x,s])=>{const g=new THREE.Group();g.position.set(x,.42,s*.95);const w=add(wg,M(0x111111),0,0,0,g);add(box(.7,.08,.32),M(0xcccccc),0,0,0,w);car3.add(g);wheels.push({g,w,f:x>0})});
+let yaw=Math.PI-.6,drag=0,lx=0;
+cv.onpointerdown=e=>{drag=1;lx=e.clientX;cv.setPointerCapture(e.pointerId)};cv.onpointermove=e=>{if(drag){yaw-=(e.clientX-lx)*.01;lx=e.clientX}};cv.onpointerup=()=>drag=0;
+(function frame(t){requestAnimationFrame(frame);const c=cars[sel];
+ const w=cv.clientWidth,h=cv.clientHeight;if(cv.width!=w||cv.height!=h){R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+ bodyMat.color.setHex(c.color);
+ const br=c.on&&(c.brake>5||c.stopping||c.hold>0),bk=Math.floor(t/450)%2==0,sg=c.on?c.sig:"";
+ const Lo=(sg=="L"||sg=="H")&&bk,Ro=(sg=="R"||sg=="H")&&bk;
+ brakeM.color.setHex(br?0xff2020:0x4a0000);rl.intensity=br?3:0;
+ sigL.color.setHex(Lo?0xffa500:0x4a3000);sigR.color.setHex(Ro?0xffa500:0x4a3000);al.intensity=Lo?2.5:0;ar.intensity=Ro?2.5:0;
+ headM.color.setHex(c.on?0xffffcc:0x777777);
+ body.rotation.z=-(c.brake/100)*.07;
+ wheels.forEach(o=>{o.w.rotation.z-=c.speed*.004;if(o.f)o.g.rotation.y=-c.steer*Math.PI/180*.8});
+ cam.position.set(Math.cos(yaw)*9,3.2,Math.sin(yaw)*9);cam.lookAt(0,.9,0);R.render(S,cam)})(0);
+}catch(e){$("c3d").insertAdjacentHTML("afterend",'<p class="note">3D view needs WebGL.</p>');$("c3d").hidden=true}
+
 $("bon").onclick=()=>{const c=cars[sel];c.on=true;c.stopping=false;c.stolen=false;alertLog(c.plate+" engine enabled")};
 $("boff").onclick=()=>{const c=cars[sel];if(c.on){c.stopping=true;alertLog(c.plate+" safe stop started (gradual braking)")}};
 $("bl").onclick=()=>{const c=cars[sel];c.limit=Math.max(20,Math.min(180,+$("lim").value||120));alertLog(c.plate+" speed limit set to "+c.limit)};
 $("bm").onclick=()=>{const m=$("msg").value.trim();if(!m)return;$("dash").textContent="Car dashboard ("+cars[sel].plate+"): "+m;alertLog("Message sent to "+cars[sel].plate+": "+m);$("msg").value=""};
+$("bbr").onclick=()=>{const c=cars[sel];if(!c.on||c.speed<1){alertLog(c.plate+" is not moving — nothing to brake");return}c.hold=4;alertLog(c.plate+" remote brake applied","warn")};
 $("bsim").onclick=()=>{const c=cars[sel];if(!c.on){c.on=true}c.stolen=true;alertLog("Unauthorized movement on "+c.plate+" — no active rental","bad");$("dash").textContent="ALERT: contact the agency"};
 $("bpol").onclick=()=>{const c=cars[sel];alertLog("Police notified: "+c.plate+" at "+c.x.toFixed(0)+","+c.y.toFixed(0)+" (live location shared)","bad")};
 $("bslow").onclick=()=>{const c=cars[sel];c.limit=20;c.stopping=true;alertLog(c.plate+" capped at 20 km/h and stopping safely","bad")};
 
 // Clients: OCR + face match
-let stream=null,idImg=null;
+let stream=null,idImg=null,idFile=null;
 async function loadModels(){if(descs.ready)return;const u="https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";await Promise.all([faceapi.nets.ssdMobilenetv1.loadFromUri(u),faceapi.nets.faceLandmark68Net.loadFromUri(u),faceapi.nets.faceRecognitionNet.loadFromUri(u)]);descs.ready=1}
-$("idf").onchange=async e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);$("idp").src=url;$("idp").hidden=false;idImg=$("idp");$("ocr").textContent="Reading document…";
+$("idf").onchange=async e=>{const f=e.target.files[0];if(!f)return;idFile=f;const url=URL.createObjectURL(f);$("idp").src=url;$("idp").hidden=false;idImg=$("idp");$("ocr").textContent="Reading document…";
  try{const r=await Tesseract.recognize(f,"eng+fra");const t=r.data.text.trim();$("ocr").textContent=t||"No text found";const m=t.match(/[A-Z]{1,2}\d{5,8}/);if(m&&!$("ci").value)$("ci").value=m[0]}catch(err){$("ocr").textContent="OCR failed: "+err.message}};
 $("bcam").onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:true});$("vid").srcObject=stream;$("vid").hidden=false}catch(e){alert("Camera unavailable: "+e.message)}};
 $("bsnap").onclick=()=>{if(!stream)return;const c=$("selfie");c.getContext("2d").drawImage($("vid"),0,0,220,165);c.hidden=false};
@@ -140,10 +219,14 @@ $("bmatch").onclick=async()=>{const r=$("mres");if(!idImg||$("selfie").hidden){r
   const d=faceapi.euclideanDistance(a.descriptor,b.descriptor);faceOK=d<0.5;faceDesc=Array.from(b.descriptor);
   r.className="pill "+(faceOK?"ok":"bad");r.textContent=(faceOK?"Match":"No match")+" ("+d.toFixed(2)+")"}
  catch(e){r.className="pill bad";r.textContent="Model load failed"}};
-$("bsave").onclick=()=>{if(!$("cn").value||!$("ci").value){alert("Name and ID number are required");return}
- clients.push({name:$("cn").value,id:$("ci").value,phone:$("cph").value,face:faceOK,desc:faceDesc,date:new Date().toISOString()});store.set("clients",clients);
- ["cn","ci","cph"].forEach(k=>$(k).value="");faceOK=false;faceDesc=null;$("mres").className="pill off";$("mres").textContent="Not checked";renderClients()};
-function renderClients(){$("clist").innerHTML=clients.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.id)}</td><td>${c.face?'<span class="pill ok">Verified</span>':'<span class="pill off">Unverified</span>'}</td></tr>`).join("")||'<tr><td colspan="3">No clients yet. Add one on the left.</td></tr>';
+$("bsave").onclick=async()=>{if(!$("cn").value||!$("ci").value){alert("Name and ID number are required");return}
+ const cid=newId();let idUrl="",selfieUrl="";
+ if(user){try{if(idFile){const r=storage.ref("fleet/clients/"+cid+"/id");await r.put(idFile);idUrl=await r.getDownloadURL()}
+  if(!$("selfie").hidden){const b=await new Promise(r=>$("selfie").toBlob(r,"image/jpeg",.85));const r2=storage.ref("fleet/clients/"+cid+"/selfie.jpg");await r2.put(b);selfieUrl=await r2.getDownloadURL()}}
+  catch(e){setSync("Upload blocked: "+e.code,"bad")}}
+ clients.push({_id:cid,name:$("cn").value,id:$("ci").value,phone:$("cph").value,face:faceOK,desc:faceDesc,idUrl,selfieUrl,date:new Date().toISOString()});store.set("clients",clients);
+ ["cn","ci","cph"].forEach(k=>$(k).value="");faceOK=false;faceDesc=null;idFile=null;$("mres").className="pill off";$("mres").textContent="Not checked";renderClients()};
+function renderClients(){$("clist").innerHTML=clients.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.id)}</td><td>${c.face?'<span class="pill ok">Verified</span>':'<span class="pill off">Unverified</span>'}${c.idUrl?` <a href="${esc(c.idUrl)}" target="_blank" rel="noopener">ID scan</a>`:""}</td></tr>`).join("")||'<tr><td colspan="3">No clients yet. Add one on the left.</td></tr>';
  $("rc").innerHTML=clients.map((c,i)=>`<option value="${i}">${esc(c.name)}</option>`).join("");
  $("rcar").innerHTML=cars.map((c,i)=>`<option value="${i}">${c.name} (${c.rate} MAD/day)</option>`).join("")}
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
@@ -154,5 +237,31 @@ $("brent").onclick=()=>{const ci=+$("rc").value,car=+$("rcar").value,d=+$("rd").
 window.pay=i=>{rentals[i].paid=true;store.set("rentals",rentals);renderPay()};
 function renderPay(){$("plist").innerHTML=rentals.map((r,i)=>`<tr><td>${esc(r.client)}</td><td>${r.car}</td><td>${r.total} MAD</td><td>${r.paid?'<span class="pill ok">Paid</span>':`<button class="b g" onclick="pay(${i})">Mark paid</button>`}</td></tr>`).join("")||'<tr><td colspan="4">No rentals yet.</td></tr>';
  const p=rentals.filter(r=>r.paid).reduce((s,r)=>s+r.total,0),u=rentals.filter(r=>!r.paid).reduce((s,r)=>s+r.total,0);$("tot").textContent="Collected: "+p+" MAD · Outstanding: "+u+" MAD"}
-renderClients();renderPay();pick(0);setInterval(tick,1000);alertLog("System ready (simulated telemetry)");
+
+// Firebase sync (same project as the visa platform)
+firebase.initializeApp({apiKey:"AIzaSyDnp4fC2_cEw04ydtWOwYgVzRUsqScufFs",authDomain:"cars-website-558c0.firebaseapp.com",projectId:"cars-website-558c0",storageBucket:"cars-website-558c0.firebasestorage.app",messagingSenderId:"142475379783",appId:"1:142475379783:web:2849d07fb6eb8da4715d62"});
+const auth=firebase.auth(),db=firebase.firestore(),storage=firebase.storage();
+let user=null,unsubs=[];const FB={clients:"fleet_clients",rentals:"fleet_rentals"};
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function setSync(t,k){$("sync").textContent=t;$("sync").className="pill "+k}
+function syncOut(k,arr){if(!user||!FB[k])return;arr.forEach(x=>{x._id=x._id||newId();db.collection(FB[k]).doc(x._id).set(x).catch(e=>setSync("Sync blocked: "+e.code,"bad"))})}
+function live(){if(!user)return;db.collection("fleet_data").doc("live").set({t:firebase.firestore.FieldValue.serverTimestamp(),cars:cars.map(c=>({plate:c.plate,on:c.on,limit:c.limit,speed:Math.round(c.speed),steer:Math.round(c.steer),brake:Math.round(c.brake),lat:c.lat,lng:c.lng,h:c.h,stolen:c.stolen,stopping:c.stopping}))}).catch(e=>setSync("Sync blocked: "+e.code,"bad"))}
+$("loginf").onsubmit=e=>{e.preventDefault();setSync("Signing in…","warn");auth.signInWithEmailAndPassword($("em").value,$("pw").value).catch(err=>setSync("Sign-in failed: "+err.code,"bad"))};
+$("logout").onclick=()=>auth.signOut();
+auth.onAuthStateChanged(async u=>{unsubs.forEach(f=>f());unsubs=[];user=u;$("loginf").hidden=!!u;$("logout").hidden=!u;
+ if(!u){setSync("Local only","off");return}
+ setSync("Syncing…","warn");
+ for(const k in FB){let first=true;unsubs.push(db.collection(FB[k]).onSnapshot(sn=>{
+   const local=k=="clients"?clients:rentals;
+   if(first&&sn.empty&&local.length){first=false;syncOut(k,local);return}first=false;
+   const a=sn.docs.map(d=>d.data()).sort((x,y)=>x._id>y._id?1:-1);
+   if(k=="clients")clients=a;else rentals=a;
+   try{localStorage.setItem(k,JSON.stringify(a))}catch(e){}
+   renderClients();renderPay();setSync("Synced","ok")},e=>setSync("Sync blocked: "+e.code,"bad")))}
+ try{const l=await db.collection("fleet_data").doc("live").get();
+  if(l.exists)(l.data().cars||[]).forEach(sv=>{const c=cars.find(x=>x.plate==sv.plate);if(c&&sv.lat){Object.assign(c,{on:sv.on,limit:sv.limit,lat:sv.lat,lng:sv.lng,h:sv.h,stolen:sv.stolen});c.target=sv.speed||0;c.speed=sv.speed||0}});
+  const al=await db.collection("fleet_alerts").orderBy("at","desc").limit(30).get();
+  al.docs.reverse().forEach(d=>{const x=d.data();addLi(x.text,x.level,x.at&&x.at.toDate())})}
+ catch(e){setSync("Sync blocked: "+e.code,"bad")}});
+renderClients();renderPay();pick(0);setInterval(tick,1000);addLi("System ready (simulated telemetry)");
 </script></body></html>
